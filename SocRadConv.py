@@ -106,7 +106,6 @@ def RadConvEqm(output_dir, time_current, Tg):
             ax2.set_xlabel('Wavenumber')
             ax2.set_title('Spectral OLR')
             # plt.show()
-            plt.savefig('foo.pdf')
             plt.savefig(output_dir+'/TP_profile.pdf', bbox_inches="tight")
             plt.close(fig)
             print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)))
