@@ -1,4 +1,23 @@
+# .pyc files
+############
+*.pyc
+
+# .txt files
+############
+# *.txt
+
+
+# Model files
+#############
 current*
 profile*
+radiation_code.lock
 
-__pycache__
+# misc
+######
+*_lbl.nc
+*.png
+Tprofile.pdf
+.DS_Store
+__pycache__/
+socrates/
