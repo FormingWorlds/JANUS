@@ -1,6 +1,7 @@
 # .pyc files
 ############
 *.pyc
+*.par
 
 # .txt files
 ############

@@ -28,15 +28,16 @@ def radCompSoc(atm, stellar_toa_heating):
     pres_list = atm.p[:]
     presl_list = atm.pl[:]
 
-
+    # CO mixing ratio profile
+    co_mr_list = atm.mixing_ratios[4]
     # CO2 mixing ratio profile
     co2_mr_list = atm.mixing_ratios[1]
-    co2_mr_list = 0.5*np.ones(len(atm.mixing_ratios[1]))
     # Water vapour mixing ratio profile
     q_mr_list = atm.mixing_ratios[0]
-    q_mr_list = 0.5*np.ones(len(atm.mixing_ratios[1]))
     # H2 mixing ratio profile
-    h2_mr_list = 0.0*np.ones(len(atm.mixing_ratios[1]))
+    h2_mr_list = atm.mixing_ratios[2]
+    # N2 mixing ratio profile
+    n2_mr_list = atm.mixing_ratios[5]
 
     # Write single values
     t_surf = atm.ts
@@ -56,16 +57,18 @@ def radCompSoc(atm, stellar_toa_heating):
     nctools.ncout3d('profile.tl',0,0,presl_list,templ_list,'tl',longname="Temperature",units='K')
     nctools.ncout3d('profile.p',0,0,pres_list,pres_list,'p',longname="Pressure",units='PA')
     nctools.ncout3d('profile.co2',0,0,pres_list,co2_mr_list,'co2',longname="CO2",units='PPMV')
+    nctools.ncout3d('profile.co',0,0,pres_list,co_mr_list,'co',longname="CO",units='PPMV')
     nctools.ncout3d('profile.q',0,0,pres_list,q_mr_list,'q',longname="q",units='PPMV')
 #    nctools.ncout3d('profile.h2o',0,0,pres_list,q_mr_list,'h2o',longname="h2o",units='PPMV')
     nctools.ncout3d('profile.h2',0,0,pres_list,h2_mr_list,'h2',longname="H2",units='PPMV')
+    nctools.ncout3d('profile.n2',0,0,pres_list,n2_mr_list,'n2',longname="N2",units='PPMV')
 
     basename = 'profile'
     s = " "
 
-    seq4 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_sp_spider_h2+h2o+co2_3000K_300/sp_spider -R 1 300 -ch 300 -S -g 2 -C 5 -u")
+    seq4 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_h2+n2+h2o+co2+co/sp_spider -R 1 300 -ch 300 -S -g 2 -C 5 -u")
     seq5 = ("fmove", basename,"currentsw")
-    seq6 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_sp_spider_h2+h2o+co2_3000K_300/sp_spider -R 1 300 -ch 300 -I -g 2 -C 5 -u")
+    seq6 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_h2+n2+h2o+co2+co/sp_spider -R 1 300 -ch 300 -I -g 2 -C 5 -u")
     seq7 = ("fmove", basename,"currentlw")
 
 #    seq4 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_sp_spider_h2cia_3000K_300/sp_spider -R 1 300 -ch 300 -S -g 2 -C 5 -u")

@@ -80,7 +80,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
     #--------------Now do the time stepping-------------------
     #---------------------------------------------------------
     matplotlib.rc('axes',edgecolor='k')
-    for i in range(0,20):
+    for i in range(0,1):
 
         atm = steps(atm, stellar_toa_heating)
 
@@ -116,16 +116,19 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
             ax2.set_title('Spectral OLR')
             # plt.show()
             plt.savefig(output_dir+'/TP_profile_'+str(round(time_current))+'.png', bbox_inches="tight")
+            plt.show()
             plt.close(fig)
             print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)))
 
         # Reduce timestep if heating not converging
         if abs(np.max(atm.temp-PrevTemp[:])) < 0.05 or abs(atm.temp[0]-atm.temp[1]) > 3.0:
-            #print("reducing timestep")
+            print("reducing timestep")
             atm.dt  = atm.dt*0.99
 
 
-        if abs(atm.LW_flux_up[-1]-PrevOLR) < 0.1 and abs(np.max(atm.temp-PrevTemp[:])) < 0.5:
+        #if abs(atm.LW_flux_up[-1]-PrevOLR) < 10. or abs(np.max(atm.temp-PrevTemp[:])) < 10.:
+        #print(str(atm.LW_flux_up[0])+","+str(PrevOLR)+","+str(abs(atm.LW_flux_up[-1]-PrevOLR)))
+        if abs(atm.LW_flux_up[0]-PrevOLR) < 50. and i > 5 :
            print("break")
            #print(PrevTemp[:]-atm.temp)
            break    # break here
@@ -148,7 +151,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
     out_a = np.column_stack( ( atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths ) )
     np.savetxt( output_dir+str(int(time_current))+"_atm_spectral_flux.dat", out_a )
 
-    return atm.LW_flux_up[-1]
+    return atm.LW_flux_up[-1], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
 
 # Dry adjustment routine
 def dryAdj(atm):

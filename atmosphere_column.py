@@ -7,7 +7,7 @@ import numpy as np
 surface_pressure = 1.e3 # Surface pressure in mbar
 top_pressure = 1.0 		# mbar
 n_vertical_levels = 50
-timestep = 0.5
+timestep = 1.
 n_absorbing_species = 7
 n_bands = 300
 
