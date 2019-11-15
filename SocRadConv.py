@@ -5,6 +5,7 @@ Socrates radiative-convective model
 '''
 
 import numpy as np
+import math,phys
 import matplotlib.pyplot as plt
 import matplotlib
 import SocRadModel
@@ -15,6 +16,24 @@ from atmosphere_column import atmos
 # import matplotlib.pylab as pylab
 # import matplotlib.font_manager as fm
 # font = fm.FontProperties(family = 'Helvetica', fname = '/Users/tim/Dropbox/work/matplotlib_fonts/Helvetica/Helvetica.ttf')
+
+"""------------------------------------------------------------------------ """
+"""------------------------Thermodynamic constants------------------------- """
+"""------------------------------------------------------------------------ """
+
+R = phys.water.R                         # J/(kg*K) specific gas constant of water vapor
+Rcp = phys.water.Rcp                     # cp in J/(kg*K) specific heat constant of water vapor
+L = phys.water.L_vaporization            # J/kg, latent heat of condensation of water vapor at 300K
+esat = phys.satvps_function(phys.water)  # Saturation vapor pressure, arguments=T,T0,e0,MolecularWeight,LatentHeat
+Tref = 350.                              # Reference temperature
+pref = esat(Tref)                        # Reference pressure
+
+#Dew point temperature
+def Tdew(p):
+    return Tref/(1-(Tref*R/L)*math.log(p/pref))
+
+""" Moist adjustment switch """
+Moist_Adjustment = True
 
 def surf_Planck_nu(atm):
     h = 6.63e-34
@@ -47,7 +66,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
     atm.p = (atm.pl[1:] + atm.pl[:-1]) / 2
 
 
-    #==============Now do the calculation===================================
+    #==============Now do the calculation====================================
 
     atm.ts = Tg
     atm.Rcp = 2./7.
@@ -184,7 +203,15 @@ def dryAdj(atm):
             T1 = T2*pfact
             atm.temp[i] = T1
             atm.temp[i+1] = T2
-
+            
+    ########################## MOIST #########################
+    if Moist_Adjustment:       
+        for i in range(len(T)-1): # Downward pass
+            if T[i]<Tdew(p[i]):
+                T[i]=Tdew(p[i]) # temperature stays the same during the phase change
+        for i in range(len(T)-2,-1,-1): # Upward pass
+            if T[i]<Tdew(p[i]):
+                T[i]=Tdew(p[i])
 
 #Define function to do time integration for n steps
 def steps(atm, stellar_toa_heating):
