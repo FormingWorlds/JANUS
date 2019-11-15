@@ -74,7 +74,8 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
     atm.temp  = np.where(atm.temp<atm.ts/1.5,atm.ts/1.5,atm.temp)
     # atm.n_species = 2
     atm.n_species = 7
-
+    Moist_adiabat=[Tdew(pp) for pp in atm.p]
+    
     # # Water vapour
     # atm.mixing_ratios[0] = 1.e-5
     # # CO2
@@ -124,6 +125,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
             #print("Max dT " + str(abs(np.max(atm.temp-PrevTemp[:]))))
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15,7))
             ax1.semilogy(atm.temp,atm.p)
+            ax1.semilogy(Moist_adiabat,atm.p,'r',label='Moist adiabat')
             ax1.invert_yaxis()
             ax1.set_xlabel('Temperature [K]')
             ax1.set_ylabel('Pressure [mb]')
