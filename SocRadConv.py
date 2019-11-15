@@ -47,7 +47,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
     atm.p = (atm.pl[1:] + atm.pl[:-1]) / 2
 
 
-    #==============Now do the calculation====================================
+    #==============Now do the calculation===================================
 
     atm.ts = Tg
     atm.Rcp = 2./7.
