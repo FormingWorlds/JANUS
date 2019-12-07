@@ -6,7 +6,7 @@ Socrates radiative-convective model
 
 import numpy as np
 import math,phys
-from scipy.integrate import odeint
+import General_adiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
 import SocRadModel
@@ -174,127 +174,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
     np.savetxt( output_dir+str(int(time_current))+"_atm_spectral_flux.dat", out_a )
 
     return atm.LW_flux_up[-1], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
-
-#--------- Importing thermodynamical properties of gases -----------
-
-def L_heat(switch): # Molar latent heat for gases considered, in J.mol-1
-    if switch == 'H2O':
-        return phys.water.L_vaporization*phys.water.MolecularWeight*1e-3 # Conversion from J.kg-1 to J.mol-1 (molecular weight is in g/mol in phys.f90)
-    if switch == 'CH4':
-        return phys.CH4.L_vaporization*phys.methane.MolecularWeight*1e-3
-    if switch == 'CO2':
-        return phys.CO2.L_vaporization*phys.co2.MolecularWeight*1e-3
-    if switch == 'CO':
-        return phys.CO.L_vaporization*phys.co.MolecularWeight*1e-3
-    if switch == 'N2':
-        return phys.N2.L_vaporization*phys.n2.MolecularWeight*1e-3
-    if switch == 'O2':
-        return phys.O2.L_vaporization*phys.o2.MolecularWeight*1e-3
-    if switch == 'H2':
-        return phys.H2.L_vaporization*phys.h2.MolecularWeight*1e-3
-    if switch == 'He':
-        return phys.He.L_vaporization*phys.he.MolecularWeight*1e-3
-    if switch == 'NH3':
-        return phys.NH3.L_vaporization*phys.nh3.MolecularWeight*1e-3
-
-R_universal=8.31446261815324 # Universal gas constant, J.K-1.mol-1, should probably go elsewhere since it's a constant
-
-def cpv(switch): # Molar heat capacities for gases considered, in J.K-1.mol-1
-    if switch == 'H2O':
-        return phys.water.cp*phys.water.MolecularWeight*1e-3
-    if switch == 'CH4':
-        return phys.methane.cp*phys.methane.MolecularWeight*1e-3
-    if switch == 'CO2':
-        return phys.co2.cp*phys.co2.MolecularWeight*1e-3
-    if switch == 'CO':
-        return phys.co.cp*phys.co.MolecularWeight*1e-3
-    if switch == 'N2':
-        return phys.n2.cp*phys.n2.MolecularWeight*1e-3
-    if switch == 'O2':
-        return phys.o2.cp*phys.o2.MolecularWeight*1e-3
-    if switch == 'H2':
-        return phys.h2.cp*phys.h2.MolecularWeight*1e-3
-    if switch == 'He':
-        return phys.he.cp*phys.he.MolecularWeight*1e-3
-    if switch == 'NH3':
-        return phys.nh3.cp*phys.nh3.MolecularWeight*1e-3
-    
-def cpc(switch): # Molar heat capacities for condensed phases considered. J.K-1.mol-1. # ToDo: replace with liquid or solid phase values
-    if switch == 'H2O':
-        return phys.water.cp*phys.water.MolecularWeight*1e-3 
-    if switch == 'CH4':
-        return phys.methane.cp*phys.methane.MolecularWeight*1e-3
-    if switch == 'CO2':
-        return phys.co2.cp*phys.co2.MolecularWeight*1e-3
-    if switch == 'CO':
-        return phys.co.cp*phys.co.MolecularWeight*1e-3
-    if switch == 'N2':
-        return phys.n2.cp*phys.n2.MolecularWeight*1e-3
-    if switch == 'O2':
-        return phys.o2.cp*phys.o2.MolecularWeight*1e-3
-    if switch == 'H2':
-        return phys.h2.cp*phys.h2.MolecularWeight*1e-3
-    if switch == 'He':
-        return phys.he.cp*phys.he.MolecularWeight*1e-3
-    if switch == 'NH3':
-        return phys.nh3.cp*phys.nh3.MolecularWeight*1e-3
-
-def xv(switch): # Molar abundances of vapor phase/mole of gas mixture 
-    if switch == 'H2O':
-        return 0.5
-    if switch == 'CH4':
-        return 0.
-    if switch == 'CO2':
-        return 0.
-    if switch == 'CO':
-        return 0.
-    if switch == 'N2':
-        return 0.
-    if switch == 'O2':
-        return 0.
-    if switch == 'H2':
-        return 0.
-    if switch == 'He':
-        return 0.
-    if switch == 'NH3':
-        return 0.
-    
-def xc(switch): # Molar abundances of condensed phase/mole of gas mixture
-    if switch == 'H2O':
-        return 0.
-    if switch == 'CH4':
-        return 0.
-    if switch == 'CO2':
-        return 0.
-    if switch == 'CO':
-        return 0.
-    if switch == 'N2':
-        return 0.
-    if switch == 'O2':
-        return 0.
-    if switch == 'H2':
-        return 0.
-    if switch == 'He':
-        return 0.
-    if switch == 'NH3':
-        return 0.
-    
-#function that returns dlnT/dlnP
-def General_moist_adiabat(T,t):
-    xd=0.5 # Molar abundance of non-condensible species/mole of gas mixture
-    cpd=1000.*phys.air.MolecularWeight*1.e-3 # molar heat capacity of the dry species
-    xv_cpv=xv('H2O')*cpv('H2O')+xv('CO2')*cpv('CO2') # add other species as needed (generalizable sum?)
-    xc_cpc=xc('H2O')*cpc('H2O')+xc('CO2')*cpc('CO2')
-    first_term=(xv('H2O')/xd)*(L_heat('H2O')/(R_universal*T))**2 + (xv('CO2')/xd)*(L_heat('CO2')/(R_universal*T))**2
-    quadr_term=((xv('H2O')/xd)*L_heat('H2O')/(R_universal*T) + (xv('CO2')/xd)*L_heat('CO2')/(R_universal*T))**2
-    sum_abundances=xv('H2O')+xv('CO2')
-    sum_ratio_abundances=(xv('H2O')/xd)+(xv('CO2')/xd)
-
-    num=(1+xv('H2O')*(L_heat('H2O')/(xd*R_universal*T)))
-    denom=(1/R_universal)*(xd*cpd+xv_cpv+xc_cpc/(xd+sum_abundances)) + (first_term+quadr_term/(1.+sum_ratio_abundances))
-    dTdt=num/denom
-    return dTdt
-
+  
 # Dry adjustment routine
 def dryAdj(atm):
     T = atm.temp
@@ -334,9 +214,8 @@ def moistAdj(atm):
     p = atm.p
 
     if Moist_Adjustment: # switch
-        #initial condition
-        T0=300.
-        Tdew=odeint(General_moist_adiabat,T0,np.log(p)) # integrate dlnT/dlnP
+        
+        Tdew=ga.General_moist_adiabat
 
         for i in range(len(T)-1): # Downward pass
             if T[i]<Tdew(p[i]):
