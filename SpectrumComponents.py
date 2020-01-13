@@ -21,8 +21,6 @@ mr_list = []
 names_list = []
 all_spectra = []
 
-mr_list.append([0.0,0,0,0,0])
-names_list.append('Surface')
 
 mr_list.append([0.0001,0,0,0,0])
 names_list.append('H2O')
@@ -33,19 +31,19 @@ names_list.append('CO2')
 mr_list.append([0,0,0,0.001,0])
 names_list.append('CO')
 
-mr_list.append([0,0,0.001,0.0,0])
+mr_list.append([0,0,0.003,0.0,0])
 names_list.append('H2')
 
-mr_list.append([0,0,0,0,0.001])
+mr_list.append([0,0,0,0,0.01])
 names_list.append('N2')
 
-mr_list.append([0.0001,0.001,0.001,0.001,0.001])
+mr_list.append([0.0001,0.001,0.003,0.001,0.01])
 names_list.append('All')
 
 for i in range(len(mr_list)):
     mr = mr_list[i]
     time_current        = 0  # K
-    surfaceT_current    = 1000  # K
+    surfaceT_current    = 300  # K
     h2o_kg              = mr[0] # k
     co2_kg              = mr[1] # kg
     h2_kg               = mr[2]  # kg
@@ -63,13 +61,12 @@ for i in range(len(mr_list)):
     all_spectra.append(spectrum)
 
 plt.figure()
-plt.plot(bands,all_spectra[0],':',label=names_list[0],color='k',lw=1.5)
 
-for i in range(1,len(mr_list)-1):
+for i in range(len(mr_list)-1):
     plt.plot(bands,all_spectra[i],'--',label=names_list[i])
 
 plt.plot(bands,all_spectra[-1],'-',label=names_list[-1],color='k',lw=1.5)
 
 plt.legend()
-plt.xlim([0,8000])
+plt.xlim([0,2500])
 plt.savefig('all_spectra.pdf')

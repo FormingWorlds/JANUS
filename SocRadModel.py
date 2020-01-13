@@ -34,10 +34,14 @@ def radCompSoc(atm, stellar_toa_heating):
     co2_mr_list = atm.mixing_ratios[1]
     # Water vapour mixing ratio profile
     q_mr_list = atm.mixing_ratios[0]
+    # CH4 mixing ratio profile
+    ch4_mr_list = atm.mixing_ratios[3]
     # H2 mixing ratio profile
     h2_mr_list = atm.mixing_ratios[2]
     # N2 mixing ratio profile
     n2_mr_list = atm.mixing_ratios[5]
+    # O2 mixing ratio profile
+    o2_mr_list = atm.mixing_ratios[6]
 
     # Write single values
     t_surf = atm.ts
@@ -59,21 +63,28 @@ def radCompSoc(atm, stellar_toa_heating):
     nctools.ncout3d('profile.co2',0,0,pres_list,co2_mr_list,'co2',longname="CO2",units='PPMV')
     nctools.ncout3d('profile.co',0,0,pres_list,co_mr_list,'co',longname="CO",units='PPMV')
     nctools.ncout3d('profile.q',0,0,pres_list,q_mr_list,'q',longname="q",units='PPMV')
+    nctools.ncout3d('profile.ch4',0,0,pres_list,ch4_mr_list,'ch4',longname="ch4",units='PPMV')
 #    nctools.ncout3d('profile.h2o',0,0,pres_list,q_mr_list,'h2o',longname="h2o",units='PPMV')
     nctools.ncout3d('profile.h2',0,0,pres_list,h2_mr_list,'h2',longname="H2",units='PPMV')
     nctools.ncout3d('profile.n2',0,0,pres_list,n2_mr_list,'n2',longname="N2",units='PPMV')
+    nctools.ncout3d('profile.o2',0,0,pres_list,o2_mr_list,'o2',longname="O2",units='PPMV')
 
     basename = 'profile'
     s = " "
 
-    seq4 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_h2+n2+h2o+co2+co/sp_spider -R 1 300 -ch 300 -S -g 2 -C 5 -u")
+    seq4 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_all_2020/sp_spider -R 1 300 -ch 300 -S -g 2 -C 5 -u")
     seq5 = ("fmove", basename,"currentsw")
-    seq6 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_h2+n2+h2o+co2+co/sp_spider -R 1 300 -ch 300 -I -g 2 -C 5 -u")
+    seq6 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_all_2020/sp_spider -R 1 300 -ch 300 -I -g 2 -C 5 -u")
     seq7 = ("fmove", basename,"currentlw")
 
-#    seq4 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_sp_spider_h2cia_3000K_300/sp_spider -R 1 300 -ch 300 -S -g 2 -C 5 -u")
+#    seq4 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_h2+h2o+co2+co_newh2cia/sp_spider -R 1 300 -ch 300 -S -g 2 -C 5 -u")
 #    seq5 = ("fmove", basename,"currentsw")
-#    seq6 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_sp_spider_h2cia_3000K_300/sp_spider -R 1 300 -ch 300 -I -g 2 -C 5 -u")
+#    seq6 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_h2+h2o+co2+co_newh2cia/sp_spider -R 1 300 -ch 300 -I -g 2 -C 5 -u")
+#    seq7 = ("fmove", basename,"currentlw")
+
+#    seq4 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_h2+h2o+co2+co/sp_spider -R 1 300 -ch 300 -S -g 2 -C 5 -u")
+#    seq5 = ("fmove", basename,"currentsw")
+#    seq6 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_h2+h2o+co2+co/sp_spider -R 1 300 -ch 300 -I -g 2 -C 5 -u")
 #    seq7 = ("fmove", basename,"currentlw")
 
     comline1 = s.join(seq4)

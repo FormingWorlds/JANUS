@@ -52,7 +52,8 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
     atm.ts = Tg
     atm.Rcp = 2./7.
     atm.temp = atm.ts*(atm.p/atm.p[-1])**atm.Rcp  #Initialize on an adiabat
-    atm.temp  = np.where(atm.temp<atm.ts/1.5,atm.ts/1.5,atm.temp)
+    atm.temp  = np.where(atm.temp<atm.ts/4.,atm.ts/4.,atm.temp)
+    atm.temp  = np.where(atm.temp<400.,400.,atm.temp)
     # atm.n_species = 2
     atm.n_species = 7
 
@@ -87,7 +88,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
         #hack!
         # atm.temp[0] = atm.temp[1]
 
-        if i % 5 == 0:
+        if i % 1 == 0:
             if 1==2:
                 plt.figure(figsize=(7,4))
                 plt.semilogy(atm.temp,atm.p)
@@ -111,6 +112,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
             ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths,'k')
 #            ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,'k--')
             ax2.set_xlim([0,8*atm.ts])
+            ax2.set_xlim([0,30000])
             ax2.set_ylabel('Spectral Flux')
             ax2.set_xlabel('Wavenumber')
             ax2.set_title('Spectral OLR')
