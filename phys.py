@@ -246,6 +246,26 @@ CO2.formula = 'CO2'
 CO2.L_vaporization=3.970000e+05
 CO2.rho_liquid=1.110000e+03
 #------------------------
+CO = gas() # Complete Thermodynamic data of CO (ToDo: confirm the "None")
+CO.CriticalPointT = 1.134450e+02
+CO.CriticalPointP = 3.498750e+06
+CO.TriplePointT = 6.795000e+01
+CO.TriplePointP = 1.530000e+04
+CO.L_vaporization_BoilingPoint = None
+CO.L_vaporization_TriplePoint = 2.142857e+05 # 
+CO.L_fusion = None
+CO.L_sublimation = 2.7142857e+05
+CO.rho_liquid_BoilingPoint = None
+CO.rho_liquid_TriplePoint = None
+CO.rho_solid = None
+CO.cp = 1.04000e+03
+CO.gamma = 50.241546e+00
+CO.MolecularWeight = 2.800970e+01
+CO.name = 'Carbon Monoxide' 
+CO.formula = 'CO' 
+CO.L_vaporization=2.142857e+05
+CO.rho_liquid=None
+#------------------------
 N2 = gas()
 N2.CriticalPointT = 1.262000e+02
 N2.CriticalPointP = 3.400000e+06
@@ -260,7 +280,7 @@ N2.rho_liquid_TriplePoint = None
 N2.rho_solid = 1.026000e+03
 N2.cp = 1.037000e+03
 N2.gamma = 1.403000e+00
-N2.MolecularWeight = 2.800000e+01
+N2.MolecularWeight = 2.801340e+01
 N2.name = 'Nitrogen' 
 N2.formula = 'N2' 
 N2.L_vaporization=2.180000e+05
@@ -300,7 +320,7 @@ H2.rho_liquid_TriplePoint = None
 H2.rho_solid = 8.800000e+01
 H2.cp = 1.423000e+04
 H2.gamma = 1.384000e+00
-H2.MolecularWeight = 2.000000e+00
+H2.MolecularWeight = 2.015680e+00
 H2.name = 'Hydrogen' 
 H2.formula = 'H2' 
 H2.L_vaporization=4.540000e+05
@@ -320,7 +340,7 @@ He.rho_liquid_TriplePoint = None
 He.rho_solid = 2.000000e+02
 He.cp = 5.196000e+03
 He.gamma = 1.664000e+00
-He.MolecularWeight = 4.000000e+00
+He.MolecularWeight = 4.002602e+00
 He.name = 'Helium' 
 He.formula = 'He' 
 He.L_vaporization=2.030000e+04
@@ -340,7 +360,7 @@ NH3.rho_liquid_TriplePoint = 7.342000e+02
 NH3.rho_solid = 8.226000e+02
 NH3.cp = 2.060000e+03
 NH3.gamma = 1.309000e+00
-NH3.MolecularWeight = 1.700000e+01
+NH3.MolecularWeight = 1.703100e+01
 NH3.name = 'Ammonia' 
 NH3.formula = 'NH3' 
 NH3.L_vaporization=1.658000e+06
@@ -350,6 +370,15 @@ NH3.rho_liquid=7.342000e+02
 #------------------------
 #Synonym for H2O
 water = H2O
+methane = CH4
+co2 = CO2
+co = CO
+n2 = N2
+o2 = O2
+h2 = H2
+he = He
+nh3 = NH3
+
 #Make a list of all the gases
 #
 #This clever little fragment uses the fact that
