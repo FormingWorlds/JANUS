@@ -22,16 +22,19 @@ f.write('sp_spider'+ '\n')
 # Set number of bands
 f.write('300'+ '\n')
 # Set number of absorbers
-f.write('6'+ '\n')
+f.write('7'+ '\n')
 # Set absorber ids (see Socrates userguide)
 f.write('1'+ '\n')
 f.write('2'+ '\n')
 f.write('5'+ '\n')
 f.write('6'+ '\n')
+f.write('7'+ '\n')
 f.write('13'+ '\n')
 f.write('23'+ '\n')
 # Set number of continua
-f.write('2'+ '\n')
+f.write('3'+ '\n')
+f.write('7'+ '\n')
+f.write('7'+ '\n')
 f.write('13'+ '\n')
 f.write('13'+ '\n')
 f.write('23'+ '\n')
@@ -58,7 +61,7 @@ for band in bands[:-1]:
 
 # Set continua in each band
 for band in bands[:-1]:
-	f.write('1 2'+ '\n')
+	f.write('1 2 3'+ '\n')
 
 # Exclude no bands
 f.write('n'+ '\n')
@@ -132,6 +135,24 @@ f.write('5'+ '\n')
 f.write('y'+ '\n')
 # Select data
 f.write('co_o'+ '\n')
+f.write('-1'+ '\n')
+f.write('EOF'+ '\n')
+
+
+# O2-O2
+f.write('Ccorr_k -F pt_cont -CIA O2-O2_2018b_fixed.cia -R 1 300 -i 1.0 -ct 7 7 1.0e2 -t 1.0e-2 -s ' + 'sp_spider' + ' +p -lk -o o2_o -m o2_m -L o2_lbl.nc' + '\n')
+
+# Add to spec file with prep_spec
+f.write('prep_spec <<EOF'+ '\n')
+# Select spectral file
+f.write('sp_spider'+ '\n')
+# Append
+f.write('a'+ '\n')
+# Select block 19 (CIA data)
+f.write('19'+ '\n')
+f.write('y'+ '\n')
+# Select data
+f.write('o2_o'+ '\n')
 f.write('-1'+ '\n')
 f.write('EOF'+ '\n')
 
