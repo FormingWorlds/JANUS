@@ -26,7 +26,7 @@ R = phys.water.R                         # J/(kg*K) specific gas constant of wat
 Rcp = phys.water.Rcp                     # cp in J/(kg*K) specific heat constant of water vapor
 L = phys.water.L_vaporization            # J/kg, latent heat of condensation of water vapor at 300K
 esat = phys.satvps_function(phys.water)  # Saturation vapor pressure, arguments=T,T0,e0,MolecularWeight,LatentHeat
-Tref = 350.                              # Reference temperature
+Tref = 3000.                              # Reference temperature
 pref = esat(Tref)                        # Reference pressure
 
 #Dew point temperature
@@ -34,7 +34,7 @@ def Tdew(p):
     return Tref/(1-(Tref*R/L)*math.log(p/pref))
 
 """ Moist adjustment switch """
-Moist_Adjustment = True
+Moist_Adjustment = False
 
 def surf_Planck_nu(atm):
     h = 6.63e-34
@@ -53,7 +53,6 @@ def surf_Planck_nu(atm):
 def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio, co2_ratio, h2_ratio, ch4_ratio, co_ratio, n2_ratio, o2_ratio, he_ratio):
     #--------------------Set radmodel options-------------------
     #---Instantiate the radiation model---
-
     atm = atmos()
 
     #---Set up pressure array (a global)----
