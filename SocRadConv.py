@@ -26,7 +26,7 @@ R = phys.water.R                         # J/(kg*K) specific gas constant of wat
 Rcp = phys.water.Rcp                     # cp in J/(kg*K) specific heat constant of water vapor
 L = phys.water.L_vaporization            # J/kg, latent heat of condensation of water vapor at 300K
 esat = phys.satvps_function(phys.water)  # Saturation vapor pressure, arguments=T,T0,e0,MolecularWeight,LatentHeat
-Tref = 350.                              # Reference temperature
+Tref = 3000.                              # Reference temperature
 pref = esat(Tref)                        # Reference pressure
 
 #Dew point temperature
@@ -34,7 +34,7 @@ def Tdew(p):
     return Tref/(1-(Tref*R/L)*math.log(p/pref))
 
 """ Moist adjustment switch """
-Moist_Adjustment = True
+Moist_Adjustment = False
 
 def surf_Planck_nu(atm):
     h = 6.63e-34
@@ -53,7 +53,6 @@ def surf_Planck_nu(atm):
 def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio, co2_ratio, h2_ratio, ch4_ratio, co_ratio, n2_ratio, o2_ratio, he_ratio):
     #--------------------Set radmodel options-------------------
     #---Instantiate the radiation model---
-
     atm = atmos()
 
     #---Set up pressure array (a global)----
@@ -72,7 +71,8 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
     atm.ts = Tg
     atm.Rcp = 2./7.
     atm.temp = atm.ts*(atm.p/atm.p[-1])**atm.Rcp  #Initialize on an adiabat
-    atm.temp  = np.where(atm.temp<atm.ts/1.5,atm.ts/1.5,atm.temp)
+    atm.temp  = np.where(atm.temp<atm.ts/4.,atm.ts/4.,atm.temp)
+    atm.temp  = np.where(atm.temp<400.,400.,atm.temp)
     # atm.n_species = 2
     atm.n_species = 7
     Moist_adiabat=[Tdew(pp) for pp in atm.p]
@@ -108,7 +108,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
         #hack!
         # atm.temp[0] = atm.temp[1]
 
-        if i % 5 == 0:
+        if i % 1 == 0:
             if 1==2:
                 plt.figure(figsize=(7,4))
                 plt.semilogy(atm.temp,atm.p)
@@ -133,6 +133,7 @@ def RadConvEqm(output_dir, time_current, Tg, stellar_toa_heating, p_s, h2o_ratio
             ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths,'k')
 #            ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,'k--')
             ax2.set_xlim([0,8*atm.ts])
+            ax2.set_xlim([0,30000])
             ax2.set_ylabel('Spectral Flux')
             ax2.set_xlabel('Wavenumber')
             ax2.set_title('Spectral OLR')
