@@ -32,17 +32,17 @@ def Tdew(p):
 Moist_Adjustment = False
 
 def surf_Planck_nu(atm):
-    h  = 6.63e-34
-    c  = 3.0e8
-    kb = 1.38e-23
-    B  = np.zeros(len(atm.band_centres))
-    c1 = 1.191042e-5
-    c2 = 1.4387752
+    h   = 6.63e-34
+    c   = 3.0e8
+    kb  = 1.38e-23
+    B   = np.zeros(len(atm.band_centres))
+    c1  = 1.191042e-5
+    c2  = 1.4387752
     for i in range(len(atm.band_centres)):
-        nu = atm.band_centres[i]
-        B[i] = (c1*nu**3 / (np.exp(c2*nu/atm.ts)-1))
+        nu      = atm.band_centres[i]
+        B[i]    = (c1*nu**3 / (np.exp(c2*nu/atm.ts)-1))
 
-    B = B * atm.band_widths/1000.0
+    B   = B * atm.band_widths/1000.0
     return B
 
 def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, atm_chemistry, loop_counter, SPIDER_options):
@@ -59,7 +59,6 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     levels      = [atm.ptop + i*(pstart-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
     atm.pl      = np.array(logLevels)
     atm.p       = (atm.pl[1:] + atm.pl[:-1]) / 2
-
 
     # Now do the calculation
     atm.ts          = runtime_helpfile.iloc[-1]["T_surf"]   
