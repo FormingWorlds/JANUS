@@ -162,7 +162,7 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     out_a = np.column_stack( ( atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths ) )
     np.savetxt( output_dir+str(int(time_current))+"_atm_spectral_flux.dat", out_a )
 
-    return atm.LW_flux_up[-1]
+    return atm.LW_flux_up[-1], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths^
   
 # Dry adjustment routine
 def dryAdj(atm):
