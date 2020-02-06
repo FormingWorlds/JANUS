@@ -64,7 +64,8 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     atm.ts          = runtime_helpfile.iloc[-1]["T_surf"]   
     atm.Rcp         = 2./7.
     atm.temp        = atm.ts*(atm.p/atm.p[-1])**atm.Rcp               # Initialize on adiabat
-    atm.temp        = np.where(atm.temp<atm.ts/4.,atm.ts/4.,atm.temp) # CHECK
+    # Set initial stratosphere guess to isothermal (closer to actual solution)
+    atm.temp        = np.where(atm.temp<atm.ts/4.,atm.ts/4.,atm.temp) 
     # atm.temp  = np.where(atm.temp<400.,400.,atm.temp)
     atm.n_species   = 7
     Moist_adiabat   = [ Tdew(pp) for pp in atm.p ]
@@ -252,10 +253,11 @@ def steps(atm, stellar_toa_heating):
         moistAdj(atm)
     Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
     
-    # ** Temporary kludge to keep stratosphere from getting too cold
-    atm.temp = np.where(atm.temp<50.,50.,atm.temp)  #**KLUDGE
+    # Legacy RTP klduge :)
+    # # ** Temporary kludge to keep stratosphere from getting too cold
+    # atm.temp = np.where(atm.temp<50.,50.,atm.temp)  #**KLUDGE
 
-    # Dummies for separate LW and stellar. **FIX THIS**
-    fluxStellar = fluxLW = heatStellar = heatLW = np.zeros(atm.nlev)
+    # # Dummies for separate LW and stellar. **FIX THIS**
+    # fluxStellar = fluxLW = heatStellar = heatLW = np.zeros(atm.nlev)
     
     return atm
