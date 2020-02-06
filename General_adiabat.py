@@ -277,37 +277,37 @@ def General_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3):
 # the new solve_ivp fct doesn't have arg() yet like odeint, but it will come in version 1.4.
                    
 # Ground temperature
-T0=373.15
+T0   = 373.15
 
 # Initialising the relative abundances
-xH2O = 0.1
-xCO2 = 0.#05
-xCH4 = 0.#003
-xCO  = 0.#0001
-xN2  = 0.#3
-xO2  = 0.#2
-xH2  = 0.#01
-xHe  = 0.#001
-xNH3 = 0.#0001
+xH2O = 0.2
+xCO2 = 0.
+xCH4 = 0.
+xCO  = 0.
+xN2  = 0.
+xO2  = 0.
+xH2  = 0.
+xHe  = 0.
+xNH3 = 0.
 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
 
 #lnP points
 nlev = 100         # number of pressure levels
-ps = 1e5            # Surface pressure in Pa
-ptop = 1.e-5*ps   # Pressure at the TOA in Pa
-p = np.exp(np.linspace(math.log(ps),math.log(ptop),nlev)) # Logarithmic pressure grid scale
+ps   = 1e5         # Surface pressure in Pa
+ptop = 1.e-5*ps    # Pressure at the TOA in Pa
+p    = np.exp(np.linspace(math.log(ps),math.log(ptop),nlev)) # Logarithmic pressure grid scale
 
 # Initialising the arrays for plotting
-xH2O_array=np.ones(len(p))*xH2O
-xCO2_array=np.ones(len(p))*xCO2
-xCH4_array=np.ones(len(p))*xCH4
-xCO_array=np.ones(len(p))*xCO
-xN2_array=np.ones(len(p))*xN2
-xO2_array=np.ones(len(p))*xO2
-xH2_array=np.ones(len(p))*xH2
-xHe_array=np.ones(len(p))*xHe
-xNH3_array=np.ones(len(p))*xNH3
-xd_array=np.ones(len(p))*xd
+xH2O_array = np.ones(len(p))*xH2O
+xCO2_array = np.ones(len(p))*xCO2
+xCH4_array = np.ones(len(p))*xCH4
+xCO_array  = np.ones(len(p))*xCO
+xN2_array  = np.ones(len(p))*xN2
+xO2_array  = np.ones(len(p))*xO2
+xH2_array  = np.ones(len(p))*xH2
+xHe_array  = np.ones(len(p))*xHe
+xNH3_array = np.ones(len(p))*xNH3
+xd_array   = np.ones(len(p))*xd
  
 #solve ODE with dry, constant abundances
 Moist_adiabat=odeint(General_moist_adiabat,T0,np.log(p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
@@ -432,15 +432,15 @@ for i in range(len(p)):
         
 #plot results
         
-TdewH2O = [Tdew('H2O',pp) for pp in p]
-TdewCO2 = [Tdew('CO2',pp) for pp in p]
-TdewCH4 = [Tdew('CH4',pp) for pp in p]
-TdewCO = [Tdew('CO',pp) for pp in p]
-TdewN2 = [Tdew('N2',pp) for pp in p]
-TdewO2 = [Tdew('O2',pp) for pp in p]
-TdewH2 = [Tdew('H2',pp) for pp in p]
-TdewHe = [Tdew('He',pp) for pp in p]
-TdewNH3 = [Tdew('NH3',pp) for pp in p]
+TdewH2O = [ Tdew('H2O',pp) for pp in p ]
+TdewCO2 = [ Tdew('CO2',pp) for pp in p ]
+TdewCH4 = [ Tdew('CH4',pp) for pp in p ]
+TdewCO  = [ Tdew('CO',pp) for pp in p ]
+TdewN2  = [ Tdew('N2',pp) for pp in p ]
+TdewO2  = [ Tdew('O2',pp) for pp in p ]
+TdewH2  = [ Tdew('H2',pp) for pp in p ]
+TdewHe  = [ Tdew('He',pp) for pp in p ]
+TdewNH3 = [ Tdew('NH3',pp) for pp in p ]
 
 plt.figure(1)
 plt.semilogy(Moist_adiabat,p,'r',linewidth=4)
@@ -454,11 +454,12 @@ plt.semilogy(TdewH2,p,label='H2')
 plt.semilogy(TdewHe,p,label='He')
 plt.semilogy(TdewNH3,p,label='NH3')
 plt.gca().invert_yaxis()
-plt.xlabel('T [K]')
-plt.ylabel('P [Pa]')
+plt.xlabel('T (K)')
+plt.ylabel('P (Pa)')
 plt.title('Individual moist adiabats')
 plt.legend()
 plt.show()
+plt.savefig('general_adiabat_TP.pdf', bbox_inches = 'tight')
 
 plt.figure(2)
 plt.semilogy(xH2O_array,p,label='H2O relative abundance')
@@ -472,10 +473,11 @@ plt.semilogy(xHe_array,p,label='He relative abundance')
 plt.semilogy(xNH3_array,p,label='NH3 relative abundance')
 plt.gca().invert_yaxis()
 plt.xlabel('xv')
-plt.ylabel('P')
+plt.ylabel('P (Pa)')
 plt.title('Relative abundances')
 plt.legend()
 plt.show()
+plt.savefig('general_adiabat_XP.pdf', bbox_inches = 'tight')
 
 """
 plt.semilogy(Moist_adiabat,p)
