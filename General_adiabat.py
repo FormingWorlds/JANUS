@@ -212,66 +212,72 @@ def cpv(switch): # Molar heat capacities for gases considered, in J.K-1.mol-1
 
 def General_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3):
 
-    if T<13.95: # Kludge, for H2 esat>7200 for T>13.95K which seems to be a hard limit
-        T=13.95
+    # Kludge, for H2 esat>7200 for T>13.95K which seems to be a hard limit
+    if T < 13.95: 
+        T = 13.95
     
-    cpd=cpv('N2') #1000.*phys.air.MolecularWeight*1.e-3 # molar heat capacity of the dry species
+    # Molar heat capacity of the dry species
+    cpd = cpv('N2') #1000.*phys.air.MolecularWeight*1.e-3 
                          
-    xv_cpv=xH2O*cpv('H2O') + xCO2*cpv('CO2') +\
-                             xCH4*cpv('CH4') +\
-                             xCO*cpv('CO')   +\
-                             xN2*cpv('N2')   +\
-                             xO2*cpv('O2')   +\
-                             xH2*cpv('H2')   +\
-                             xHe*cpv('He')   +\
-                             xNH3*cpv('NH3')
+    xv_cpv = xH2O * cpv('H2O') + xCO2*cpv('CO2') + \
+                                 xCH4*cpv('CH4') + \
+                                 xCO*cpv('CO')   + \
+                                 xN2*cpv('N2')   + \
+                                 xO2*cpv('O2')   + \
+                                 xH2*cpv('H2')   + \
+                                 xHe*cpv('He')   + \
+                                 xNH3*cpv('NH3')
   
-    first_term=(xH2O/xd)*(L_heat('H2O',T)/(R_universal*T))**2 +\
-               (xCO2/xd)*(L_heat('CO2',T)/(R_universal*T))**2 +\
-               (xCH4/xd)*(L_heat('CH4',T)/(R_universal*T))**2 +\
-               (xCO/xd)*(L_heat('CO',T)/(R_universal*T))**2   +\
-               (xN2/xd)*(L_heat('N2',T)/(R_universal*T))**2   +\
-               (xO2/xd)*(L_heat('O2',T)/(R_universal*T))**2   +\
-               (xH2/xd)*(L_heat('H2',T)/(R_universal*T))**2   +\
-               (xHe/xd)*(L_heat('He',T)/(R_universal*T))**2   +\
-               (xNH3/xd)*(L_heat('NH3',T)/(R_universal*T))**2
+    first_term = (xH2O/xd) * (L_heat('H2O',T) / (R_universal*T))**2 + \
+                 (xCO2/xd) * (L_heat('CO2',T) / (R_universal*T))**2 + \
+                 (xCH4/xd) * (L_heat('CH4',T) / (R_universal*T))**2 + \
+                 (xCO/xd)  * (L_heat('CO',T)  / (R_universal*T))**2 + \
+                 (xN2/xd)  * (L_heat('N2',T)  / (R_universal*T))**2 + \
+                 (xO2/xd)  * (L_heat('O2',T)  / (R_universal*T))**2 + \
+                 (xH2/xd)  * (L_heat('H2',T)  / (R_universal*T))**2 + \
+                 (xHe/xd)  * (L_heat('He',T)  / (R_universal*T))**2 + \
+                 (xNH3/xd) * (L_heat('NH3',T) / (R_universal*T))**2
     
     quadr_term=(
-               (xH2O/xd)*L_heat('H2O',T)/(R_universal*T) +\
-               (xCO2/xd)*L_heat('CO2',T)/(R_universal*T) +\
-               (xCH4/xd)*L_heat('CH4',T)/(R_universal*T) +\
-               (xCO/xd)*L_heat('CO',T)/(R_universal*T)   +\
-               (xN2/xd)*L_heat('N2',T)/(R_universal*T)   +\
-               (xO2/xd)*L_heat('O2',T)/(R_universal*T)   +\
-               (xH2/xd)*L_heat('H2',T)/(R_universal*T)   +\
-               (xHe/xd)*L_heat('He',T)/(R_universal*T)   +\
-               (xNH3/xd)*L_heat('NH3',T)/(R_universal*T)             
-                                                       )**2
+                 (xH2O/xd) * L_heat('H2O',T) / (R_universal*T) + \
+                 (xCO2/xd) * L_heat('CO2',T) / (R_universal*T) + \
+                 (xCH4/xd) * L_heat('CH4',T) / (R_universal*T) + \
+                 (xCO/xd)  * L_heat('CO',T)  / (R_universal*T) + \
+                 (xN2/xd)  * L_heat('N2',T)  / (R_universal*T) + \
+                 (xO2/xd)  * L_heat('O2',T)  / (R_universal*T) + \
+                 (xH2/xd)  * L_heat('H2',T)  / (R_universal*T) + \
+                 (xHe/xd)  * L_heat('He',T)  / (R_universal*T) + \
+                 (xNH3/xd) * L_heat('NH3',T) / (R_universal*T)             
+                )**2
         
-    sum_abundances=xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3
+    sum_abundances = xH2O + xCO2 + xCH4 + xCO + xN2 + xO2 + xH2 + xHe + xNH3
                                              
-    sum_ratio_abundances=xH2O/xd + xCO2/xd +\
-                                   xCH4/xd +\
-                                   xCO/xd  +\
-                                   xN2/xd  +\
-                                   xO2/xd  +\
-                                   xH2/xd  +\
-                                   xHe/xd  +\
-                                   xNH3/xd
+    sum_ratio_abundances = xH2O/xd + xCO2/xd + \
+                                     xCH4/xd + \
+                                     xCO/xd  + \
+                                     xN2/xd  + \
+                                     xO2/xd  + \
+                                     xH2/xd  + \
+                                     xHe/xd  + \
+                                     xNH3/xd
                                                       
-    num_sum=(xH2O/xd)*L_heat('H2O',T)/(R_universal*T) +\
-            (xCO2/xd)*L_heat('CO2',T)/(R_universal*T) +\
-            (xCH4/xd)*L_heat('CH4',T)/(R_universal*T) +\
-            (xCO/xd)*L_heat('CO',T)/(R_universal*T)   +\
-            (xN2/xd)*L_heat('N2',T)/(R_universal*T)   +\
-            (xO2/xd)*L_heat('O2',T)/(R_universal*T)   +\
-            (xH2/xd)*L_heat('H2',T)/(R_universal*T)   +\
-            (xHe/xd)*L_heat('He',T)/(R_universal*T)   +\
-            (xNH3/xd)*L_heat('NH3',T)/(R_universal*T)
+    num_sum = (xH2O/xd) * L_heat('H2O',T) / (R_universal*T) + \
+              (xCO2/xd) * L_heat('CO2',T) / (R_universal*T) + \
+              (xCH4/xd) * L_heat('CH4',T) / (R_universal*T) + \
+              (xCO/xd)  * L_heat('CO',T)  / (R_universal*T) + \
+              (xN2/xd)  * L_heat('N2',T)  / (R_universal*T) + \
+              (xO2/xd)  * L_heat('O2',T)  / (R_universal*T) + \
+              (xH2/xd)  * L_heat('H2',T)  / (R_universal*T) + \
+              (xHe/xd)  * L_heat('He',T)  / (R_universal*T) + \
+              (xNH3/xd) * L_heat('NH3',T) / (R_universal*T)
         
-    num=(1.+ num_sum)*T # Factor T to get dT/dlnP
-    denom=(1./R_universal)*(xd*cpd+xv_cpv)/(xd+sum_abundances) + (first_term+quadr_term)/(1.+sum_ratio_abundances)
-    dTdlnP=num/denom       
+    # Factor T to get dT/dlnP
+    num    = (1.+ num_sum)*T 
+    denom  = (1./R_universal)*(xd*cpd+xv_cpv)/(xd+sum_abundances) + \
+             (first_term+quadr_term)/(1.+sum_ratio_abundances)
+    
+    dTdlnP = num/denom       
+    
     return dTdlnP    
 
 # the new solve_ivp fct doesn't have arg() yet like odeint, but it will come in version 1.4.
@@ -310,7 +316,7 @@ xNH3_array = np.ones(len(p))*xNH3
 xd_array   = np.ones(len(p))*xd
  
 #solve ODE with dry, constant abundances
-Moist_adiabat=odeint(General_moist_adiabat,T0,np.log(p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
+Moist_adiabat = odeint(General_moist_adiabat,T0,np.log(p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
 #Moist_adiabat=solve_ivp(lambda lnP,T: General_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),(np.log(ps),np.log(ptop)),T0*np.ones(len(p)))
 # This works only if T is an array in General_moist_adiabat().
 

@@ -221,8 +221,6 @@ def moistAdj(atm):
 
     T = atm.temp
     p = atm.p
-
-    if Moist_Adjustment == True: # switch
         
         Tdew = ga.General_moist_adiabat
 
@@ -259,10 +257,16 @@ def steps(atm, stellar_toa_heating):
     kturb   = .1
     atm.temp[-1] += -atm.dt*kturb*(atm.temp[-1] - atm.ts)
     
-    # Dry adjustment step
+    # Adiabatic adjustment
     for iadj in range(10):
+        
+        # Dry adjustment step
         dryAdj(atm)
-        moistAdj(atm)
+
+        # Moist adjustment step
+        if Moist_Adjustment == True: # switch
+            moistAdj(atm)
+
     Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
     
     # Legacy RTP kludge :)
