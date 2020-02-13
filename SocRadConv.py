@@ -163,7 +163,7 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     out_a = np.column_stack( ( atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths ) )
     np.savetxt( output_dir+str(int(time_current))+"_atm_spectral_flux.dat", out_a )
 
-    return atm.LW_flux_up[-1], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths^
+    return atm.LW_flux_up[-1], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
   
 # Dry adjustment routine
 def dryAdj(atm):
@@ -253,7 +253,7 @@ def steps(atm, stellar_toa_heating):
         moistAdj(atm)
     Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
     
-    # Legacy RTP klduge :)
+    # Legacy RTP kludge :)
     # # ** Temporary kludge to keep stratosphere from getting too cold
     # atm.temp = np.where(atm.temp<50.,50.,atm.temp)  #**KLUDGE
 
@@ -261,3 +261,27 @@ def steps(atm, stellar_toa_heating):
     # fluxStellar = fluxLW = heatStellar = heatLW = np.zeros(atm.nlev)
     
     return atm
+
+def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance):
+
+    luminosity_df           = pd.read_csv("luminosity_tracks/Lum_m"+str(star_mass)+".txt")
+
+    time_current            = time_current/1e+6         # Myr
+    ages                    = luminosity_df["age"]*1e+3 # Myr
+    luminosities            = luminosity_df["lum"]      # L_sol
+
+    # Interpolate luminosity for current time
+    interpolate_luminosity  = interpolate.interp1d(ages, luminosities)
+    interpolated_luminosity = interpolate_luminosity([time_current+time_offset])*L_sun
+
+    stellar_toa_heating     = interpolated_luminosity / ( 4. * np.pi * (mean_distance*AU)**2. )
+    
+    return stellar_toa_heating[0], interpolated_luminosity/L_sun
+
+# If called stand-alone, plot adiabat comparison
+time_current  = 0. # yr
+time_offset   = 0. # yr
+mean_distance = 1. # au
+atm_chemistry = [ 0., 0., 0., 0., 0., 0., 0., 0., 0. ] # H2O, CO2, H2, CH4, CO, N2, O2, He, NH3
+toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
+LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, [], toa_heating, atm_chemistry, loop_counter, SPIDER_options)
