@@ -281,7 +281,7 @@ T0   = 373.15
 
 # Initialising the relative abundances # Careful about condensing things that are not there...
 xH2O = 0.2
-xCO2 = 0.
+xCO2 = 0.2
 xCH4 = 0.
 xCO  = 0.
 xN2  = 0.
@@ -293,7 +293,7 @@ xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
 
 #lnP points
 nlev = 100         # number of pressure levels
-ps   = 1e5         # Surface pressure in Pa
+ps   = 1e7         # Surface pressure in Pa
 ptop = 1.e-5*ps    # Pressure at the TOA in Pa
 p    = np.exp(np.linspace(math.log(ps),math.log(ptop),nlev)) # Logarithmic pressure grid scale
 
