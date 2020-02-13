@@ -4,8 +4,8 @@
 
 import numpy as np
 
-surface_pressure 	= 1e5 	# Surface pressure in Pa
-top_pressure 		= 1e-3 	# Pa
+surface_pressure 	= 1e5 						# Pa
+top_pressure 		= 1e-7*surface_pressure 	# Pa
 n_vertical_levels 	= 100
 timestep 			= 0.5
 n_absorbing_species = 7
@@ -22,9 +22,9 @@ class atmos:
 		self.p 				= np.ones(self.nlev)
 		self.pl 			= np.ones(self.nlev+1)
 		self.dt 			= timestep
-		self.temp 			= 300.0*np.ones(self.nlev)
-		self.templ 			= 300.0*np.ones(self.nlev+1)
 		self.ts 			= 300.0
+		self.temp 			= self.ts*np.ones(self.nlev)
+		self.templ 			= self.ts*np.ones(self.nlev+1)
 		self.Rcp 			= 2./7.
 		self.n_species 		= n_absorbing_species
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
