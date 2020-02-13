@@ -2,7 +2,6 @@
 MDH 28/01/19
 Socrates radiative-convective model
 '''
-
 import numpy as np
 import math,phys
 import General_adiabat as ga # Moist adiabat with multiple condensibles
@@ -11,18 +10,24 @@ import matplotlib
 import SocRadModel
 from atmosphere_column import atmos
 import pandas as pd
+from scipy import interpolate
+import seaborn as sns
 
 # Parameters to run SocRadConv stand-alone
 rad_steps = 100
 
 # Thermodynamic constants for moist adjustment
-R    = phys.water.R                  # J/(kg*K) specific gas constant of water vapor
-Rcp  = phys.water.Rcp                # cp in J/(kg*K) specific heat constant of water vapor
-L    = phys.water.L_vaporization     # J/kg, latent heat of condensation of water vapor at 300K
+R         = phys.water.R                  # J/(kg*K) specific gas constant of water vapor
+Rcp       = phys.water.Rcp                # cp in J/(kg*K) specific heat constant of water vapor
+L         = phys.water.L_vaporization     # J/kg, latent heat of condensation of water vapor at 300K
 # Saturation vapor pressure, args=T,T0,e0,MolecularWeight,LatentHeat
-esat = phys.satvps_function(phys.water) 
-Tref = 3000.                         # Reference temperature
-pref = esat(Tref)                    # Reference pressure
+esat      = phys.satvps_function(phys.water) 
+Tref      = 2000.                         # Reference temperature
+pref      = esat(Tref)                    # Reference pressure
+
+# Other constants
+L_sun     = 3.828e+26                     # W, IAU definition
+AU        = 1.495978707e+11               # m
 
 # Calculate dew point temperature
 def Tdew(p):
@@ -45,34 +50,38 @@ def surf_Planck_nu(atm):
     B   = B * atm.band_widths/1000.0
     return B
 
-def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, atm_chemistry, loop_counter, SPIDER_options):
+def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, atm_chemistry, loop_counter, SPIDER_options, standalone):
 
     # Instantiate the radiation model
     atm = atmos()
 
+    if standalone == True:
+        atm.ps      = runtime_helpfile[0]*1e5   # bar->Pa
+        atm.ts      = runtime_helpfile[1]       # K   
+    else:
+        atm.ps      = runtime_helpfile.iloc[-1]["P_surf"]*1e5 # bar->Pa
+        atm.ts      = runtime_helpfile.iloc[-1]["T_surf"]   
+
     # Set up pressure array (a global)
-    atm.ps      = runtime_helpfile.iloc[-1]["P_surf"]*1e5 # bar->Pa
-    pstart      = atm.ps#*.995
-    rat         = (atm.ptop/pstart)**(1./atm.nlev)
-    logLevels   = [pstart*rat**i for i in range(atm.nlev+1)]
+    pstart          = atm.ps#*.995
+    rat             = (atm.ptop/pstart)**(1./atm.nlev)
+    logLevels       = [pstart*rat**i for i in range(atm.nlev+1)]
     logLevels.reverse()
-    levels      = [atm.ptop + i*(pstart-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
-    atm.pl      = np.array(logLevels)
-    atm.p       = (atm.pl[1:] + atm.pl[:-1]) / 2
+    levels          = [atm.ptop + i*(pstart-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
+    atm.pl          = np.array(logLevels)
+    atm.p           = (atm.pl[1:] + atm.pl[:-1]) / 2
 
     # Now do the calculation
-    atm.ts          = runtime_helpfile.iloc[-1]["T_surf"]   
     atm.Rcp         = 2./7.
     atm.temp        = atm.ts*(atm.p/atm.p[-1])**atm.Rcp               # Initialize on adiabat
     # Set initial stratosphere guess to isothermal (closer to actual solution)
     atm.temp        = np.where(atm.temp<atm.ts/4.,atm.ts/4.,atm.temp) 
-    # atm.temp  = np.where(atm.temp<400.,400.,atm.temp)
+    # atm.temp      = np.where(atm.temp<400.,400.,atm.temp)
     atm.n_species   = 7
     Moist_adiabat   = [ Tdew(pp) for pp in atm.p ]
     
     # Feed mixing ratios
-    if SPIDER_options["use_vulcan"] == 1 or SPIDER_options["use_vulcan"] == 2:
-        atm_chemistry = atm_chemistry.reindex(index=atm_chemistry.index[::-1])
+    if standalone == True:
         atm.mixing_ratios[0] = atm_chemistry["H2O"]    # H2O
         atm.mixing_ratios[1] = atm_chemistry["CO2"]    # CO2
         atm.mixing_ratios[2] = atm_chemistry["H2"]     # H2
@@ -80,14 +89,26 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
         atm.mixing_ratios[4] = atm_chemistry["CO"]     # CO
         atm.mixing_ratios[5] = atm_chemistry["N2"]     # N2
         atm.mixing_ratios[6] = atm_chemistry["O2"]     # O2
-    else: # Constant mixing ratios from SPIDER
-        atm.mixing_ratios[0] = runtime_helpfile.iloc[-1]["H2O_mr"]    # H2O
-        atm.mixing_ratios[1] = runtime_helpfile.iloc[-1]["CO2_mr"]    # CO2
-        atm.mixing_ratios[2] = runtime_helpfile.iloc[-1]["H2_mr"]     # H2
-        atm.mixing_ratios[3] = runtime_helpfile.iloc[-1]["CH4_mr"]    # CH4
-        atm.mixing_ratios[4] = runtime_helpfile.iloc[-1]["CO_mr"]     # CO
-        atm.mixing_ratios[5] = runtime_helpfile.iloc[-1]["N2_mr"]     # N2
-        atm.mixing_ratios[6] = runtime_helpfile.iloc[-1]["O2_mr"]     # O2
+    else:
+        # Varying mixing ratios with height
+        if SPIDER_options["use_vulcan"] == 1 or SPIDER_options["use_vulcan"] == 2:
+            atm_chemistry = atm_chemistry.reindex(index=atm_chemistry.index[::-1])
+            atm.mixing_ratios[0] = atm_chemistry["H2O"]    # H2O
+            atm.mixing_ratios[1] = atm_chemistry["CO2"]    # CO2
+            atm.mixing_ratios[2] = atm_chemistry["H2"]     # H2
+            atm.mixing_ratios[3] = atm_chemistry["CH4"]    # CH4
+            atm.mixing_ratios[4] = atm_chemistry["CO"]     # CO
+            atm.mixing_ratios[5] = atm_chemistry["N2"]     # N2
+            atm.mixing_ratios[6] = atm_chemistry["O2"]     # O2
+        # Constant mixing ratios with SOCRATES
+        else: 
+            atm.mixing_ratios[0] = runtime_helpfile.iloc[-1]["H2O_mr"]    # H2O
+            atm.mixing_ratios[1] = runtime_helpfile.iloc[-1]["CO2_mr"]    # CO2
+            atm.mixing_ratios[2] = runtime_helpfile.iloc[-1]["H2_mr"]     # H2
+            atm.mixing_ratios[3] = runtime_helpfile.iloc[-1]["CH4_mr"]    # CH4
+            atm.mixing_ratios[4] = runtime_helpfile.iloc[-1]["CO_mr"]     # CO
+            atm.mixing_ratios[5] = runtime_helpfile.iloc[-1]["N2_mr"]     # N2
+            atm.mixing_ratios[6] = runtime_helpfile.iloc[-1]["O2_mr"]     # O2
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR     = 0.
@@ -105,37 +126,28 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
         # atm.temp[0] = atm.temp[1]
 
         if i % 1 == 0:
-            if 1==2:
-                plt.figure(figsize=(7,4))
-                plt.semilogy(atm.temp,atm.p)
-                plt.gca().invert_yaxis()
-                plt.ylabel('Pressure [mb]')
-                plt.xlabel('Temperature [K]')
-                plt.gca().xaxis.label.set_color('white')
-                plt.tick_params(axis='x', colors='white')
-                plt.gca().yaxis.label.set_color('white')
-                plt.tick_params(axis='y', colors='white')
-                # plt.show()
-            #print("OLR " + str(atm.LW_flux_up[-1]))
-            #print("OLR change " + str(atm.LW_flux_up[-1]-PrevOLR))
-            # print("Max heating " + str(np.max(atm.total_heating)))
-            #print("Max dT " + str(abs(np.max(atm.temp-PrevTemp[:]))))
+
+            sns.set_style("ticks")
+            sns.despine()
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15,7))
-            ax1.semilogy(atm.temp,atm.p)
-            ax1.semilogy(Moist_adiabat,atm.p,'r',label='Moist adiabat')
+
+            ax1.semilogy(atm.temp,atm.p*1e-5)
+            ax1.semilogy(Moist_adiabat,atm.p*1e-5,'r--',label=r'H$_2$O moist adiabat')
             ax1.invert_yaxis()
-            ax1.set_xlabel('Temperature [K]')
-            ax1.set_ylabel('Pressure [mb]')
-            ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths,'k')
-#            ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,'k--')
-            ax2.set_xlim([0,8*atm.ts])
-            ax2.set_xlim([0,30000])
-            ax2.set_ylabel('Spectral Flux')
-            ax2.set_xlabel('Wavenumber')
-            ax2.set_title('Spectral OLR')
-            # plt.show()
-            plt.savefig(output_dir+'/TP_profile_'+str(round(time_current))+'.png', bbox_inches="tight")
-            plt.show()
+            ax1.set_xlabel('Temperature (K)')
+            ax1.set_ylabel('Pressure (bar)')
+            ax1.set_xlim([0,np.max(atm.temp)])
+            ax1.set_ylim([np.max(atm.p*1e-5),np.min(atm.p*1e-5)])
+            ax1.legend()
+            
+            ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths)
+            ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,color="gray",ls='--',label='Black body ('+str(atm.ts)+" K)")
+            ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
+            ax2.set_ylabel('Spectral flux density (Jy?)')
+            ax2.set_xlabel('Wavenumber (1/cm)')
+            ax2.legend()
+
+            plt.savefig(output_dir+'/TP_profile_'+str(round(time_current))+'.pdf', bbox_inches="tight")
             plt.close(fig)
             print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)))
 
@@ -210,18 +222,18 @@ def moistAdj(atm):
     T = atm.temp
     p = atm.p
 
-    if Moist_Adjustment: # switch
+    if Moist_Adjustment == True: # switch
         
-        Tdew=ga.General_moist_adiabat
+        Tdew = ga.General_moist_adiabat
 
         # Downward pass
         for i in range(len(T)-1):
-            if T[i]<Tdew(p[i]):
-                T[i]=Tdew(p[i])   # Temperature stays the same during phase change
+            if T[i] < Tdew(p[i]):
+                T[i] = Tdew(p[i])   # Temperature stays the same during phase change
         # Upward pass
         for i in range(len(T)-2,-1,-1): 
-            if T[i]<Tdew(p[i]):
-                T[i]=Tdew(p[i])
+            if T[i] < Tdew(p[i]):
+                T[i] = Tdew(p[i])
 
 # Time integration for n steps
 def steps(atm, stellar_toa_heating):
@@ -265,8 +277,8 @@ def steps(atm, stellar_toa_heating):
 def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance):
 
     luminosity_df           = pd.read_csv("luminosity_tracks/Lum_m"+str(star_mass)+".txt")
-
     time_current            = time_current/1e+6         # Myr
+    time_offset             = time_offset/1e+6          # Myr
     ages                    = luminosity_df["age"]*1e+3 # Myr
     luminosities            = luminosity_df["lum"]      # L_sol
 
@@ -279,9 +291,19 @@ def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_dist
     return stellar_toa_heating[0], interpolated_luminosity/L_sun
 
 # If called stand-alone, plot adiabat comparison
-time_current  = 0. # yr
-time_offset   = 0. # yr
-mean_distance = 1. # au
-atm_chemistry = [ 0., 0., 0., 0., 0., 0., 0., 0., 0. ] # H2O, CO2, H2, CH4, CO, N2, O2, He, NH3
+time_current  = 1e+7    # yr
+time_offset   = 1e+7    # yr
+mean_distance = 1.0     # au
+P_surf        = 10      # bar
+T_surf        = 1000    # K
+atm_chemistry = { 
+                    "H2O" : 0.5, 
+                    "CO2" : 0.0, 
+                    "H2"  : 0.5, 
+                    "CH4" : 0.0,
+                    "CO"  : 0.0,  
+                    "N2"  : 0.0, 
+                    "O2"  : 0.0 
+                }
 toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
-LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, [], toa_heating, atm_chemistry, loop_counter, SPIDER_options)
+LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, [P_surf,T_surf], toa_heating, atm_chemistry, [], [], standalone=True)
