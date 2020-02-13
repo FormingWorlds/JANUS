@@ -136,14 +136,14 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
             ax1.semilogy(atm.temp,atm.p*1e-5, ls="-", label=r'Dry adiabat')
-            ax1.semilogy(moist_adiabat[-1], atm.p*1e-5, color="green", ls="-", label=r'General moist adiabat')
+            ax1.semilogy(moist_adiabat[::-1], atm.p*1e-5, color="green", ls="-", label=r'General moist adiabat')
             ax1.semilogy(Moist_adiabat_H2O, atm.p*1e-5, color="red", ls="--", label=r'H$_2$O moist adiabat')
             ax1.invert_yaxis()
             ax1.set_xlabel('Temperature (K)')
             ax1.set_ylabel('Pressure (bar)')
             ax1.set_xlim([0,np.max(atm.temp)])
             ax1.set_ylim([np.max(atm.p*1e-5),np.min(atm.p*1e-5)])
-            ax1.set_xticks([np.min(atm.temp),0.25*np.max(atm.temp),0.5*np.max(atm.temp),0.75*np.max(atm.temp),np.max(atm.temp)])
+            ax1.set_xticks([0,0.2*np.max(atm.temp),0.4*np.max(atm.temp),0.6*np.max(atm.temp),0.8*np.max(atm.temp),np.max(atm.temp)])
             ax1.legend()
             
             ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths)
