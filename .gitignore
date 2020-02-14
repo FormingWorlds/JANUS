@@ -22,3 +22,9 @@ Tprofile.pdf
 .DS_Store
 __pycache__/
 socrates/
+general_adiabat_TP.pdf
+general_adiabat_XP.pdf
+TP_profile_10000000.pdf
+output10000000_atm_spectral_flux.dat
+output10000000_atm_TP_profile.dat
+general_adiabat.pdf
