@@ -37,6 +37,9 @@ def Tdew_H2O(p):
 # Moist adjustment switch
 Moist_Adjustment = True
 
+# Number of dry adjustment steps
+Nsteps_dry = 5
+
 def surf_Planck_nu(atm):
     h   = 6.63e-34
     c   = 3.0e8
@@ -81,8 +84,18 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     # Set initial stratosphere guess to isothermal (closer to actual solution)
     atm.temp        = np.where(atm.temp<atm.ts/4.,atm.ts/4.,atm.temp) 
 
-    # Calculate RTP H2O moist adiabat
+    # Calculate individual moist adiabats
     Moist_adiabat_H2O   = [ Tdew_H2O(pp) for pp in atm.p ]
+
+    TdewH2O = [ ga.Tdew( 'H2O', pressure ) for pressure in atm.p ]
+    TdewCO2 = [ ga.Tdew( 'CO2', pressure ) for pressure in atm.p ]
+    TdewCH4 = [ ga.Tdew( 'CH4', pressure ) for pressure in atm.p ]
+    TdewCO  = [ ga.Tdew( 'CO',  pressure ) for pressure in atm.p ]
+    TdewN2  = [ ga.Tdew( 'N2',  pressure ) for pressure in atm.p ]
+    TdewO2  = [ ga.Tdew( 'O2',  pressure ) for pressure in atm.p ]
+    TdewH2  = [ ga.Tdew( 'H2',  pressure ) for pressure in atm.p ]
+    TdewHe  = [ ga.Tdew( 'He',  pressure ) for pressure in atm.p ]
+    TdewNH3 = [ ga.Tdew( 'NH3', pressure ) for pressure in atm.p ]
     
     # Feed mixing ratios
     if standalone == True:
@@ -128,7 +141,7 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     # matplotlib.rc('axes',edgecolor='k')
     for i in range(0,rad_steps):
 
-        atm, moist_adiabat = steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan)
+        atm, moist_wo_cond, moist_w_cond = steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan)
 
         if i % 1 == 0:
 
@@ -137,8 +150,20 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
             ax1.semilogy(atm.temp,atm.p*1e-5, ls="-", label=r'Dry adiabat')
-            ax1.semilogy(moist_adiabat[::-1], atm.p*1e-5, color="green", ls="-", label=r'General moist adiabat')
-            ax1.semilogy(Moist_adiabat_H2O, atm.p*1e-5, color="red", ls="--", label=r'H$_2$O moist adiabat')
+
+            if Moist_Adjustment == True:
+                ax1.semilogy(moist_wo_cond, atm.p*1e-5, color="green", ls="-", label=r'Moist adiabat, no cond.')
+                ax1.semilogy(moist_w_cond, atm.p*1e-5, color="green", ls="--", label=r'Moist adiabat, w/ cond.')
+                # ax1.semilogy(Moist_adiabat_H2O, atm.p*1e-5, color="red", ls="-.", label=r'H$_2$O moist adiabat')
+
+                ax1.semilogy(TdewH2O, atm.p*1e-5, label=r'H$_2$O', lw=0.8, ls=":")
+                ax1.semilogy(TdewCO2, atm.p*1e-5, label=r'CO$_2$', lw=0.8, ls=":")
+                ax1.semilogy(TdewH2,  atm.p*1e-5, label=r'H$_2$',  lw=0.8, ls=":")
+                ax1.semilogy(TdewCH4, atm.p*1e-5, label=r'CH$_4$', lw=0.8, ls=":")
+                ax1.semilogy(TdewCO,  atm.p*1e-5, label=r'CO',     lw=0.8, ls=":")
+                ax1.semilogy(TdewN2,  atm.p*1e-5, label=r'N$_2$',  lw=0.8, ls=":")
+                ax1.semilogy(TdewO2,  atm.p*1e-5, label=r'O$_2$',  lw=0.8, ls=":")
+
             ax1.invert_yaxis()
             ax1.set_xlabel('Temperature (K)')
             ax1.set_ylabel('Pressure (bar)')
@@ -269,21 +294,21 @@ def steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan):
     atm.temp[-1] += -atm.dt*kturb*(atm.temp[-1] - atm.ts)
     
     # Adiabatic adjustment
-    for iadj in range(10):
+    for iadj in range(Nsteps_dry):
         
         # Dry adjustment step
         dryAdj(atm)
 
-        # Moist adjustment step
-        if Moist_Adjustment == True: # switch
-            moist_adiabat = ga.solve_general_adiabat(copy.deepcopy(atm), atm_chemistry, use_vulcan)
-            # moistAdj(atm)
-        else:
-            moist_adiabat = np.zeros(len(atm.temp))
+    # Moist adjustment step
+    if Moist_Adjustment == True:
+        moist_wo_cond, moist_w_cond = ga.solve_general_adiabat(copy.deepcopy(atm), atm_chemistry, use_vulcan, condensation=True)
+        # print(moist_wo_cond, moist_w_cond)
+    else:
+        moist_wo_cond, moist_w_cond = np.zeros(len(atm.temp))
 
     Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
     
-    return atm, moist_adiabat
+    return atm, moist_wo_cond[::-1], moist_w_cond[::-1]
 
 def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance):
 

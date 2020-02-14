@@ -509,33 +509,34 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     # plt.savefig('general_adiabat_TP.pdf', bbox_inches = 'tight')
 
     # plt.figure(2)
-    x_H2O = ax2.semilogy(xH2O_array,p_plot,label=r'H$_2$O')
-    x_CO2 = ax2.semilogy(xCO2_array,p_plot,label=r'CO$_2$')
-    x_H2  = ax2.semilogy(xH2_array,p_plot,label=r'H$_2$')
-    x_CH4 = ax2.semilogy(xCH4_array,p_plot,label=r'CH$_4$')
-    x_CO  = ax2.semilogy(xCO_array,p_plot,label=r'CO')
-    x_N2  = ax2.semilogy(xN2_array,p_plot,label=r'N$_2$')
-    x_O2  = ax2.semilogy(xO2_array,p_plot,label=r'O$_2$')
+    xplot_H2O = ax2.semilogy(xH2O_array,p_plot,label=r'H$_2$O')
+    xplot_CO2 = ax2.semilogy(xCO2_array,p_plot,label=r'CO$_2$')
+    xplot_H2  = ax2.semilogy(xH2_array,p_plot,label=r'H$_2$')
+    xplot_CH4 = ax2.semilogy(xCH4_array,p_plot,label=r'CH$_4$')
+    xplot_CO  = ax2.semilogy(xCO_array,p_plot,label=r'CO')
+    xplot_N2  = ax2.semilogy(xN2_array,p_plot,label=r'N$_2$')
+    xplot_O2  = ax2.semilogy(xO2_array,p_plot,label=r'O$_2$')
 
-    # Constant abundances w/o condensation
-   
-    if use_vulcan == 0:
-        atm_chemistry["H2O"] = np.ones(len(p_plot))*atm_chemistry["H2O"]
-        atm_chemistry["CO2"] = np.ones(len(p_plot))*atm_chemistry["CO2"]
-        atm_chemistry["H2"]  = np.ones(len(p_plot))*atm_chemistry["H2"]
-        atm_chemistry["CH4"] = np.ones(len(p_plot))*atm_chemistry["CH4"]
-        atm_chemistry["CO"]  = np.ones(len(p_plot))*atm_chemistry["CO"]
-        atm_chemistry["N2"]  = np.ones(len(p_plot))*atm_chemistry["N2"]
-        atm_chemistry["O2"]  = np.ones(len(p_plot))*atm_chemistry["O2"]
-        atm_chemistry["He"]  = np.ones(len(p_plot))*atm_chemistry["He"]
-        atm_chemistry["NH3"] = np.ones(len(p_plot))*atm_chemistry["NH3"]
-    ax2.semilogy(atm_chemistry["H2O"], p_plot, ls="--", color=x_H2O[0].get_color() )
-    ax2.semilogy(atm_chemistry["CO2"], p_plot, ls="--", color=x_CO2[0].get_color() )
-    ax2.semilogy(atm_chemistry["H2"],  p_plot, ls="--", color=x_H2[0].get_color() )
-    ax2.semilogy(atm_chemistry["CH4"], p_plot, ls="--", color=x_CH4[0].get_color() )
-    ax2.semilogy(atm_chemistry["CO"],  p_plot, ls="--", color=x_CO[0].get_color() )
-    ax2.semilogy(atm_chemistry["N2"],  p_plot, ls="--", color=x_N2[0].get_color() )
-    ax2.semilogy(atm_chemistry["O2"],  p_plot, ls="--", color=x_O2[0].get_color() )
+    # Constant abundances w/o condensation as comparison
+    if condensation == True:
+    
+        if use_vulcan == 0:
+            const_abundances_H2O = np.ones(len(p_plot))*atm_chemistry["H2O"]
+            const_abundances_CO2 = np.ones(len(p_plot))*atm_chemistry["CO2"]
+            const_abundances_H2  = np.ones(len(p_plot))*atm_chemistry["H2"]
+            const_abundances_CH4 = np.ones(len(p_plot))*atm_chemistry["CH4"]
+            const_abundances_CO  = np.ones(len(p_plot))*atm_chemistry["CO"]
+            const_abundances_N2  = np.ones(len(p_plot))*atm_chemistry["N2"]
+            const_abundances_O2  = np.ones(len(p_plot))*atm_chemistry["O2"]
+            const_abundances_He  = np.ones(len(p_plot))*atm_chemistry["He"]
+            const_abundances_NH3 = np.ones(len(p_plot))*atm_chemistry["NH3"]
+        ax2.semilogy(const_abundances_H2O, p_plot, ls="--", color=xplot_H2O[0].get_color() )
+        ax2.semilogy(const_abundances_CO2, p_plot, ls="--", color=xplot_CO2[0].get_color() )
+        ax2.semilogy(const_abundances_H2,  p_plot, ls="--", color=xplot_H2[0].get_color() )
+        ax2.semilogy(const_abundances_CH4, p_plot, ls="--", color=xplot_CH4[0].get_color() )
+        ax2.semilogy(const_abundances_CO,  p_plot, ls="--", color=xplot_CO[0].get_color() )
+        ax2.semilogy(const_abundances_N2,  p_plot, ls="--", color=xplot_N2[0].get_color() )
+        ax2.semilogy(const_abundances_O2,  p_plot, ls="--", color=xplot_O2[0].get_color() )
 
     # ax2.semilogy(xHe_array,p_plot,label=r'He')
     # ax2.semilogy(xNH3_array,p_plot,label=r'NH$_3$')
@@ -543,8 +544,8 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     ax2.set_xlabel(r'Mixing ratio $X_{\mathrm{vol}}/X_{\mathrm{tot}}$')
     ax2.set_ylabel(r'Total pressure $P$ (bar)')
     ax2.set_title('Relative abundances with condensation')
-    ax2.legend(ncol=2)
-    ax2.set_xlim(left=0)
+    ax2.legend(ncol=1)
+    ax2.set_xlim(left=0, right=1.0)
     ax2.set_ylim([np.max(p_plot),np.min(p_plot)])
     # plt.show()
     plt.savefig('./output/general_adiabat.pdf', bbox_inches = 'tight')
@@ -573,7 +574,7 @@ atm_chemistry  = {
                 "NH3" : 0.0
                 }
 atm            = atmos()
-atm.ts         = 400          # K
+atm.ts         = 600          # K
 atm.ps         = 1e+6          # Pa
 atm.ptop       = atm.ps*1e-5   # Pa
 use_vulcan     = 0
