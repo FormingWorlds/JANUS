@@ -61,7 +61,10 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
         atm.ts      = runtime_helpfile[1]       # K   
     else:
         atm.ps      = runtime_helpfile.iloc[-1]["P_surf"]*1e5 # bar->Pa
-        atm.ts      = runtime_helpfile.iloc[-1]["T_surf"]   
+        atm.ts      = runtime_helpfile.iloc[-1]["T_surf"]
+
+    # Avoid math error for moist adiabat
+    atm.ptop        = atm.ps*1e-5   
 
     # Set up pressure array (a global)
     pstart          = atm.ps#*.995
@@ -303,11 +306,11 @@ time_current  = 1e+7    # yr
 time_offset   = 1e+7    # yr
 mean_distance = 1.0     # au
 P_surf        = 10      # bar
-T_surf        = 1000    # K
+T_surf        = 600     # K
 atm_chemistry = { 
                     "H2O" : 0.5, 
-                    "CO2" : 0.0, 
-                    "H2"  : 0.5, 
+                    "CO2" : 0.3, 
+                    "H2"  : 0.0, 
                     "CH4" : 0.0,
                     "CO"  : 0.0,  
                     "N2"  : 0.0, 
