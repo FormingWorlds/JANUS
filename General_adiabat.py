@@ -279,8 +279,8 @@ def general_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3):
         
     # Factor T to get dT/dlnP
     num    = (1.+ num_sum)*T 
-    denom  = (1./R_universal)*(xd*cpd+xv_cpv)/(xd+sum_abundances) + \
-             (first_term+quadr_term)/(1.+sum_ratio_abundances)
+    denom  = (1./R_universal) * (xd*cpd+xv_cpv) / (xd+sum_abundances) + \
+             (first_term + quadr_term) / (1.+sum_ratio_abundances)
     
     dTdlnP = num/denom    
 
