@@ -136,8 +136,9 @@ def Tdew(switch,p):
         pref = esat('NH3',Tref)
         L_NH3=phys.NH3.L_vaporization*phys.nh3.MolecularWeight*1e-3
         return Tref/(1.-(Tref*R_universal/L_NH3)*math.log(p/pref))
-    
-def L_heat(switch,T): # Molar latent heat for gases considered, in J.mol-1. Used in General_moist_adiabat()
+
+# Molar latent heat (J mol-1) for gases considered in general_moist_adiabat()
+def L_heat(switch,T): 
     if switch == 'H2O':
         if T<=Tdew('H2O',esat('H2O',T)):
             return phys.water.L_vaporization*phys.water.MolecularWeight*1e-3 # Conversion from J.kg-1 to J.mol-1 (molecular weight is in g/mol in phys.f90)
@@ -212,10 +213,9 @@ def cpv(switch): # Molar heat capacities for gases considered, in J.K-1.mol-1
     if switch == 'NH3':
         return phys.nh3.cp*phys.nh3.MolecularWeight*1e-3    
 
-# def General_moist_adiabat(T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3):
-def General_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3):
+def general_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3):
 
-    # Kludge, for H2 esat>7200 for T>13.95K which seems to be a hard limit
+    # Kludge for H2 esat>7200 for T>13.95K
     if T < 13.95: 
         T = 13.95
     
@@ -225,24 +225,24 @@ def General_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3):
     # Avoid devision by zero if atmosphere consists of condensibles only
     xd = np.max([xd,1e-3])
                          
-    xv_cpv = xH2O * cpv('H2O') + xCO2 * cpv('CO2')  + \
-                                 xCH4 * cpv('CH4')  + \
-                                 xCO  * cpv('CO')   + \
-                                 xN2  * cpv('N2')   + \
-                                 xO2  * cpv('O2')   + \
-                                 xH2  * cpv('H2')   + \
-                                 xHe  * cpv('He')   + \
+    xv_cpv = xH2O * cpv('H2O') + xCO2 * cpv('CO2') + \
+                                 xCH4 * cpv('CH4') + \
+                                 xCO  * cpv('CO')  + \
+                                 xN2  * cpv('N2')  + \
+                                 xO2  * cpv('O2')  + \
+                                 xH2  * cpv('H2')  + \
+                                 xHe  * cpv('He')  + \
                                  xNH3 * cpv('NH3')
   
-    first_term = (xH2O/xd) * (L_heat('H2O',T) / (R_universal*T))**2 + \
-                 (xCO2/xd) * (L_heat('CO2',T) / (R_universal*T))**2 + \
-                 (xCH4/xd) * (L_heat('CH4',T) / (R_universal*T))**2 + \
-                 (xCO/xd)  * (L_heat('CO',T)  / (R_universal*T))**2 + \
-                 (xN2/xd)  * (L_heat('N2',T)  / (R_universal*T))**2 + \
-                 (xO2/xd)  * (L_heat('O2',T)  / (R_universal*T))**2 + \
-                 (xH2/xd)  * (L_heat('H2',T)  / (R_universal*T))**2 + \
-                 (xHe/xd)  * (L_heat('He',T)  / (R_universal*T))**2 + \
-                 (xNH3/xd) * (L_heat('NH3',T) / (R_universal*T))**2
+    first_term = (xH2O/xd) * ( L_heat('H2O',T) / (R_universal*T) )**2 + \
+                 (xCO2/xd) * ( L_heat('CO2',T) / (R_universal*T) )**2 + \
+                 (xCH4/xd) * ( L_heat('CH4',T) / (R_universal*T) )**2 + \
+                 (xCO/xd)  * ( L_heat('CO',T)  / (R_universal*T) )**2 + \
+                 (xN2/xd)  * ( L_heat('N2',T)  / (R_universal*T) )**2 + \
+                 (xO2/xd)  * ( L_heat('O2',T)  / (R_universal*T) )**2 + \
+                 (xH2/xd)  * ( L_heat('H2',T)  / (R_universal*T) )**2 + \
+                 (xHe/xd)  * ( L_heat('He',T)  / (R_universal*T) )**2 + \
+                 (xNH3/xd) * ( L_heat('NH3',T) / (R_universal*T) )**2
     
     quadr_term=(
                  (xH2O/xd) * L_heat('H2O',T) / (R_universal*T) + \
@@ -258,14 +258,14 @@ def General_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3):
         
     sum_abundances = xH2O + xCO2 + xCH4 + xCO + xN2 + xO2 + xH2 + xHe + xNH3
                                              
-    sum_ratio_abundances = xH2O/xd + xCO2/xd + \
-                                     xCH4/xd + \
-                                     xCO/xd  + \
-                                     xN2/xd  + \
-                                     xO2/xd  + \
-                                     xH2/xd  + \
-                                     xHe/xd  + \
-                                     xNH3/xd
+    sum_ratio_abundances = xH2O / xd + xCO2 / xd + \
+                                       xCH4 / xd + \
+                                       xCO  / xd + \
+                                       xN2  / xd + \
+                                       xO2  / xd + \
+                                       xH2  / xd + \
+                                       xHe  / xd + \
+                                       xNH3 / xd
                                                       
     num_sum = (xH2O/xd) * L_heat('H2O',T) / (R_universal*T) + \
               (xCO2/xd) * L_heat('CO2',T) / (R_universal*T) + \
@@ -335,7 +335,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
         xd_array   = np.ones(len(atm.p))*xd
 
     # Solve ODE with dry, constant abundances
-    atm.temp = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
+    atm.temp = odeint(general_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
 
     # Check condensation for each species, adjust xv, solve ODE with new abundances
     for i in range(len(atm.p)):
@@ -362,7 +362,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
                 xd_array[i]   = xd
 
                 # Recalculate the moist adiabat with new abundances
-                atm.temp      = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp      = odeint(general_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
 
         if xNH3_array[i] != 0.:
             if atm.temp[i] < Tdew('NH3',atm.p[i]):
@@ -373,7 +373,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
                 xd            = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)       
                 xNH3_array[i] = xNH3
                 xd_array[i]   = xd
-                atm.temp      = odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp      = odeint(general_moist_adiabat,atm.ts,np.log(p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
            
         if xCO2_array[i] != 0.:
             if atm.temp[i] < Tdew('CO2',atm.p[i]):
@@ -384,7 +384,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
                 xd            = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xCO2_array[i] = xCO2
                 xd_array[i]   = xd
-                atm.temp      = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp      = odeint(general_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
 
         if xCH4_array[i] != 0.:
             if atm.temp[i] < Tdew('CH4',atm.p[i]):
@@ -395,7 +395,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
                 xd            = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xCH4_array[i] = xCH4
                 xd_array[i]   = xd
-                atm.temp      = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp      = odeint(general_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
 
         if xO2_array[i] != 0.:
             if atm.temp[i] < Tdew('O2',atm.p[i]):
@@ -406,7 +406,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
                 xd            = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xO2_array[i]  = xO2
                 xd_array[i]   = xd
-                atm.temp      = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp      = odeint(general_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
             
         if xCO_array[i] != 0.:
             if atm.temp[i] < Tdew('CO',atm.p[i]):
@@ -417,7 +417,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
                 xd            = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xCO_array[i]  = xCO
                 xd_array[i]   = xd
-                atm.temp      = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp      = odeint(general_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
 
         if xN2_array[i] != 0.:
             if atm.temp[i] < Tdew('N2',atm.p[i]):
@@ -428,7 +428,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
                 xd            = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xN2_array[i]  = xN2
                 xd_array[i]   = xd
-                atm.temp      = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp      = odeint(general_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
             
                 # Kludge for H2 esat > 7200 for T > 13.95K
                 if atm.temp[i] < 13.95: 
@@ -443,7 +443,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
                 xd            = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xH2_array[i]  = xH2
                 xd_array[i]   = xd
-                atm.temp      = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp      = odeint(general_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
             
         if xHe_array[i] != 0.:
             if atm.temp[i] < Tdew('He',atm.p[i]):
@@ -454,7 +454,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
                 xd            = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)       
                 xHe_array[i]  = xHe
                 xd_array[i]   = xd
-                atm.temp      = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp      = odeint(general_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
             
     # Plot results
             
@@ -488,7 +488,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
     # ax1.semilogy(TdewNH3,p_plot,label=r'NH$_3$')
     ax1.invert_yaxis()
     ax1.set_xlabel(r'Temperature $T$ (K)')
-    ax1.set_ylabel(r'Total pressure, $P$ (Pa)')
+    ax1.set_ylabel(r'Total pressure $P$ (bar)')
     ax1.set_title('Individual moist adiabats')
     ax1.legend(ncol=1)
     ax1.set_xlim([0,np.max(atm.temp)])
@@ -508,7 +508,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
     # ax2.semilogy(xNH3_array,p_plot,label=r'NH$_3$')
     ax2.invert_yaxis()
     ax2.set_xlabel(r'Mixing ratio $X_{\mathrm{vol}}/X_{\mathrm{tot}}$')
-    ax2.set_ylabel(r'Total pressure, $P$ (bar)')
+    ax2.set_ylabel(r'Total pressure $P$ (bar)')
     ax2.set_title('Relative abundances')
     ax2.legend(ncol=1)
     ax2.set_xlim(left=0)
@@ -530,8 +530,8 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
 # Define init parameters if called standalone
 atm_chemistry = { 
                 "H2O" : 0.5, 
-                "CO2" : 0.0, 
-                "H2"  : 0.3, 
+                "CO2" : 0.3, 
+                "H2"  : 0.0, 
                 "CH4" : 0.0,
                 "CO"  : 0.0,  
                 "N2"  : 0.0, 
@@ -539,9 +539,10 @@ atm_chemistry = {
                 "He"  : 0.0,  
                 "NH3" : 0.0
                 }
-atm         = atmos()
-atm.ts      = 1000      # K
-atm.ps      = 1e+6      # Pa
-use_vulcan  = 0
+atm           = atmos()
+atm.ts        = 600          # K
+atm.ps        = 1e+6          # Pa
+atm.ptop      = atm.ps*1e-5   # Pa
+use_vulcan    = 0
 moist_adiabat = solve_general_adiabat(atm, atm_chemistry, use_vulcan)
 
