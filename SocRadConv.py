@@ -12,6 +12,7 @@ from atmosphere_column import atmos
 import pandas as pd
 from scipy import interpolate
 import seaborn as sns
+import copy
 
 # Parameters to run SocRadConv stand-alone
 rad_steps = 100
@@ -272,19 +273,12 @@ def steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan):
 
         # Moist adjustment step
         if Moist_Adjustment == True: # switch
-            moist_adiabat = ga.solve_general_adiabat(atm, atm_chemistry, use_vulcan)
+            moist_adiabat = ga.solve_general_adiabat(copy.deepcopy(atm), atm_chemistry, use_vulcan)
             # moistAdj(atm)
         else:
-            moist_adiabat = np.zeros(atm.temp)
+            moist_adiabat = np.zeros(len(atm.temp))
 
     Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
-    
-    # Legacy RTP kludge :)
-    # # ** Temporary kludge to keep stratosphere from getting too cold
-    # atm.temp = np.where(atm.temp<50.,50.,atm.temp)  #**KLUDGE
-
-    # # Dummies for separate LW and stellar. **FIX THIS**
-    # fluxStellar = fluxLW = heatStellar = heatLW = np.zeros(atm.nlev)
     
     return atm, moist_adiabat
 

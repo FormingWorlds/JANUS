@@ -525,10 +525,10 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
     plt.show()
     """
 
-    return atm    
+    return atm.temp    
 
 # Define init parameters if called standalone
-atm_chemistry = { 
+atm_chemistry  = { 
                 "H2O" : 0.5, 
                 "CO2" : 0.3, 
                 "H2"  : 0.0, 
@@ -539,10 +539,10 @@ atm_chemistry = {
                 "He"  : 0.0,  
                 "NH3" : 0.0
                 }
-atm           = atmos()
-atm.ts        = 600          # K
-atm.ps        = 1e+6          # Pa
-atm.ptop      = atm.ps*1e-5   # Pa
-use_vulcan    = 0
-moist_adiabat = solve_general_adiabat(atm, atm_chemistry, use_vulcan)
+atm            = atmos()
+atm.ts         = 600          # K
+atm.ps         = 1e+6          # Pa
+atm.ptop       = atm.ps*1e-5   # Pa
+use_vulcan     = 0
+atm_moist_temp = solve_general_adiabat(atm, atm_chemistry, use_vulcan)
 
