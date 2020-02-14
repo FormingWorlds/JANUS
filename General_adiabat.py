@@ -288,19 +288,18 @@ def General_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3):
 
 # the new solve_ivp fct doesn't have arg() yet like odeint, but it will come in version 1.4.
 
-def set_pressure_array(atm):
+def set_pressure_array2(atm):
 
-    pstart          = atm.ps#*.995
-    rat             = (atm.ptop/pstart)**(1./atm.nlev)
-    logLevels       = [pstart*rat**i for i in range(atm.nlev+1)]
+    rat             = (atm.ptop/atm.ps)**(1./atm.nlev)
+    logLevels       = [atm.ps*rat**i for i in range(atm.nlev+1)]
     logLevels.reverse()
-    levels          = [atm.ptop + i*(pstart-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
+    levels          = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
     atm.pl          = np.array(logLevels)
     atm.p           = (atm.pl[1:] + atm.pl[:-1]) / 2
 
     return atm
 
-def set_pressure_array2(atm):
+def set_pressure_array(atm):
 
     atm.p    = np.exp(np.linspace(math.log(atm.ps),math.log(atm.ptop),atm.nlev))
 
@@ -316,7 +315,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
     # p    = np.exp(np.linspace(math.log(ps),math.log(ptop),atm.nlev)) 
 
     # Set up pressure array (a global)
-    atm  = set_pressure_array2(atm)
+    atm  = set_pressure_array(atm)
 
     # Initialize relative surface abundances 
     xH2O = atm_chemistry["H2O"]
@@ -342,176 +341,127 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
         xNH3_array = np.ones(len(atm.p))*xNH3
         xd_array   = np.ones(len(atm.p))*xd
 
-    # # Ground temperature
-    # atm.ts   = 1000# 373.15
+    
+    # Solve ODE with dry, constant abundances
+    atm.temp = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
 
-    # # Initialising the relative abundances # Careful about condensing things that are not there...
-    # xH2O = 0.3
-    # xCO2 = 0.
-    # xCH4 = 0.
-    # xCO  = 0.
-    # xN2  = 0.
-    # xO2  = 0.
-    # xH2  = 0.
-    # xHe  = 0.
-    # xNH3 = 0.
-    # xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
-
-    # #lnP points
-    # atm.nlev = 100         # number of pressure levels
-    # ps   = 1e6         # Surface pressure in Pa
-    # ptop = 1e-6*ps    # Pressure at the TOA in Pa
-    # p    = np.exp(np.linspace(math.log(ps),math.log(ptop),atm.nlev)) # Logarithmic pressure grid scale
-
-    # # Initialising the arrays for plotting
-    # xH2O_array = np.ones(len(p))*xH2O
-    # xCO2_array = np.ones(len(p))*xCO2
-    # xCH4_array = np.ones(len(p))*xCH4
-    # xCO_array  = np.ones(len(p))*xCO
-    # xN2_array  = np.ones(len(p))*xN2
-    # xO2_array  = np.ones(len(p))*xO2
-    # xH2_array  = np.ones(len(p))*xH2
-    # xHe_array  = np.ones(len(p))*xHe
-    # xNH3_array = np.ones(len(p))*xNH3
-    # xd_array   = np.ones(len(p))*xd
-     
-    #solve ODE with dry, constant abundances
-    Moist_adiabat = odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
-    #Moist_adiabat=solve_ivp(lambda lnP,T: General_moist_adiabat(lnP,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),(np.log(ps),np.log(ptop)),atm.ts*np.ones(len(p)))
-    # This works only if T is an array in General_moist_adiabat().
-
-    #Check condensation for each species, adjust xv if needed and solve ODE with the new abundances
+    # Check condensation for each species, adjust xv, solve ODE with new abundances
     for i in range(len(atm.p)):
         if xH2O_array[i] != 0.: # If water is present
-            if Moist_adiabat[i]<=Tdew('H2O',atm.p[i]): # If condensation occurs
+            if atm.temp[i]<=Tdew('H2O',atm.p[i]): # If condensation occurs
                 #print("condensation")
                 if i==0: # 0 is surface level
                     atm.ps = atm.ps - xH2O*atm.ps + esat('H2O',atm.ts) # We replace the dry cst abundance with the saturation vapor pressure at the surface
-                    # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev)) # Update the pressure array with the new ps. keeping ptop cst?
-                    atm  = set_pressure_array2(atm)
-                xH2O=esat('H2O',Moist_adiabat[i])/atm.p[i] # Update the new abundance where needed
+                    # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev)) 
+                    # Update the pressure array with the new ps. keeping ptop cst?
+                    atm  = set_pressure_array(atm)
+                xH2O=esat('H2O',atm.temp[i])/atm.p[i] # Update the new abundance where needed
                 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3) # Update xd
                 xH2O_array[i]=xH2O      
                 xd_array[i]=xd
-                #xH2O_array = np.where(xH2O_array>1.,1.,xH2O_array) # Kludge 
-                #Moist_adiabat[i]=odeint(General_moist_adiabat,atm.ts,np.log(p[i]),args=(xd_array[i],xH2O_array[i],xCO2_array[i],xCH4_array[i],xCO_array[i],xN2_array[i],xO2_array[i],xH2_array[i],xHe_array[i],xNH3_array[i]))
-                #Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd_array,xH2O_array,xCO2_array,xCH4_array,xCO_array,xN2_array,xO2_array,xH2_array,xHe_array,xNH3_array)) 
-                Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
+
+                atm.temp=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
 
         if xNH3_array[i] != 0.:
-            if Moist_adiabat[i]<Tdew('NH3',atm.p[i]):
+            if atm.temp[i]<Tdew('NH3',atm.p[i]):
                 if i==0:
                     atm.ps = atm.ps - xNH3*atm.ps + esat('NH3',atm.ts)
                     # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev))
-                    atm  = set_pressure_array2(atm)
-                xNH3=esat('NH3',Moist_adiabat[i])/atm.p[i]
+                    atm  = set_pressure_array(atm)
+                xNH3=esat('NH3',atm.temp[i])/atm.p[i]
                 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)       
                 xNH3_array[i]=xNH3
                 xd_array[i]=xd
-                #Moist_adiabat[i]=odeint(General_moist_adiabat,atm.ts,np.log(p[i]),args=(xd_array[i],xH2O_array[i],xCO2_array[i],xCH4_array[i],xCO_array[i],xN2_array[i],xO2_array[i],xH2_array[i],xHe_array[i],xNH3_array[i]))
-                #Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd_array,xH2O_array,xCO2_array,xCH4_array,xCO_array,xN2_array,xO2_array,xH2_array,xHe_array,xNH3_array))
-                Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
            
         if xCO2_array[i] != 0.:
-            if Moist_adiabat[i]<Tdew('CO2',atm.p[i]):
+            if atm.temp[i]<Tdew('CO2',atm.p[i]):
                 if i==0:
                     atm.ps = atm.ps - xCO2*atm.ps + esat('CO2',atm.ts)
                     # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev))
-                    atm  = set_pressure_array2(atm)
-                xCO2=esat('CO2',Moist_adiabat[i])/atm.p[i]
+                    atm  = set_pressure_array(atm)
+                xCO2=esat('CO2',atm.temp[i])/atm.p[i]
                 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xCO2_array[i]=xCO2
                 xd_array[i]=xd
-                #Moist_adiabat[i]=odeint(General_moist_adiabat,atm.ts,np.log(p[i]),args=(xd_array[i],xH2O_array[i],xCO2_array[i],xCH4_array[i],xCO_array[i],xN2_array[i],xO2_array[i],xH2_array[i],xHe_array[i],xNH3_array[i]))
-                #Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd_array,xH2O_array,xCO2_array,xCH4_array,xCO_array,xN2_array,xO2_array,xH2_array,xHe_array,xNH3_array))
-                Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
+                atm.temp=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
 
         if xCH4_array[i] != 0.:
-            if Moist_adiabat[i]<Tdew('CH4',atm.p[i]):
+            if atm.temp[i]<Tdew('CH4',atm.p[i]):
                 if i==0:
                     atm.ps = atm.ps - xCH4*atm.ps + esat('CH4',atm.ts)
                     # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev))
-                    atm  = set_pressure_array2(atm)
-                xCH4=esat('CH4',Moist_adiabat[i])/atm.p[i]
+                    atm  = set_pressure_array(atm)
+                xCH4=esat('CH4',atm.temp[i])/atm.p[i]
                 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xCH4_array[i]=xCH4
                 xd_array[i]=xd
-                #Moist_adiabat[i]=odeint(General_moist_adiabat,atm.ts,np.log(p[i]),args=(xd_array[i],xH2O_array[i],xCO2_array[i],xCH4_array[i],xCO_array[i],xN2_array[i],xO2_array[i],xH2_array[i],xHe_array[i],xNH3_array[i]))
-                #Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd_array,xH2O_array,xCO2_array,xCH4_array,xCO_array,xN2_array,xO2_array,xH2_array,xHe_array,xNH3_array))
-                Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
+                atm.temp=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
 
         if xO2_array[i] != 0.:
-            if Moist_adiabat[i]<Tdew('O2',atm.p[i]):
+            if atm.temp[i]<Tdew('O2',atm.p[i]):
                 if i==0:
                     atm.ps = atm.ps - xO2*atm.ps + esat('O2',atm.ts)
                     # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev))
-                    atm  = set_pressure_array2(atm)
-                xO2=esat('O2',Moist_adiabat[i])/atm.p[i]
+                    atm  = set_pressure_array(atm)
+                xO2=esat('O2',atm.temp[i])/atm.p[i]
                 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xO2_array[i]=xO2
                 xd_array[i]=xd
-                #Moist_adiabat[i]=odeint(General_moist_adiabat,atm.ts,np.log(p[i]),args=(xd_array[i],xH2O_array[i],xCO2_array[i],xCH4_array[i],xCO_array[i],xN2_array[i],xO2_array[i],xH2_array[i],xHe_array[i],xNH3_array[i]))
-                #Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd_array,xH2O_array,xCO2_array,xCH4_array,xCO_array,xN2_array,xO2_array,xH2_array,xHe_array,xNH3_array))
-                Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
             
         if xCO_array[i] != 0.:
-            if Moist_adiabat[i]<Tdew('CO',atm.p[i]):
+            if atm.temp[i]<Tdew('CO',atm.p[i]):
                 if i==0:
                     atm.ps = atm.ps - xCO*atm.ps + esat('CO',atm.ts)
                     # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev))
-                    atm  = set_pressure_array2(atm)
-                xCO=esat('CO',Moist_adiabat[i])/atm.p[i]
+                    atm  = set_pressure_array(atm)
+                xCO=esat('CO',atm.temp[i])/atm.p[i]
                 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xCO_array[i]=xCO
                 xd_array[i]=xd
-                #Moist_adiabat[i]=odeint(General_moist_adiabat,atm.ts,np.log(p[i]),args=(xd_array[i],xH2O_array[i],xCO2_array[i],xCH4_array[i],xCO_array[i],xN2_array[i],xO2_array[i],xH2_array[i],xHe_array[i],xNH3_array[i]))
-                #Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd_array,xH2O_array,xCO2_array,xCH4_array,xCO_array,xN2_array,xO2_array,xH2_array,xHe_array,xNH3_array))
-                Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True) 
+                atm.temp=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
 
         if xN2_array[i] != 0.:
-            if Moist_adiabat[i]<Tdew('N2',atm.p[i]):
+            if atm.temp[i]<Tdew('N2',atm.p[i]):
                 if i==0:
                     atm.ps = atm.ps - xN2*atm.ps + esat('N2',atm.ts)
                     # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev))
-                    atm  = set_pressure_array2(atm)
-                xN2=esat('N2',Moist_adiabat[i])/atm.p[i]
+                    atm  = set_pressure_array(atm)
+                xN2=esat('N2',atm.temp[i])/atm.p[i]
                 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xN2_array[i]=xN2
                 xd_array[i]=xd
-                #Moist_adiabat[i]=odeint(General_moist_adiabat,atm.ts,np.log(p[i]),args=(xd_array[i],xH2O_array[i],xCO2_array[i],xCH4_array[i],xCO_array[i],xN2_array[i],xO2_array[i],xH2_array[i],xHe_array[i],xNH3_array[i]))
-                #Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd_array,xH2O_array,xCO2_array,xCH4_array,xCO_array,xN2_array,xO2_array,xH2_array,xHe_array,xNH3_array))
-                Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
             
-                if Moist_adiabat[i]<13.95: # Kludge, for H2 esat>7200 for T>13.95K which seems to be a hard limit
-                    Moist_adiabat[i]=13.95
+                if atm.temp[i]<13.95: # Kludge, for H2 esat>7200 for T>13.95K
+                    atm.temp[i]=13.95
              
         if xH2_array[i] != 0.:
-            if Moist_adiabat[i]<Tdew('H2',atm.p[i]):
+            if atm.temp[i]<Tdew('H2',atm.p[i]):
                 if i==0:
                     atm.ps = atm.ps - xH2*atm.ps + esat('H2',atm.ts)
                     # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev))
-                    atm  = set_pressure_array2(atm)
-                xH2=esat('H2',Moist_adiabat[i])/atm.p[i]
+                    atm  = set_pressure_array(atm)
+                xH2=esat('H2',atm.temp[i])/atm.p[i]
                 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)
                 xH2_array[i]=xH2
                 xd_array[i]=xd
-                #Moist_adiabat[i]=odeint(General_moist_adiabat,atm.ts,np.log(p[i]),args=(xd_array[i],xH2O_array[i],xCO2_array[i],xCH4_array[i],xCO_array[i],xN2_array[i],xO2_array[i],xH2_array[i],xHe_array[i],xNH3_array[i]))
-                #Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd_array,xH2O_array,xCO2_array,xCH4_array,xCO_array,xN2_array,xO2_array,xH2_array,xHe_array,xNH3_array))
-                Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
             
         if xHe_array[i] != 0.:
-            if Moist_adiabat[i]<Tdew('He',atm.p[i]):
+            if atm.temp[i]<Tdew('He',atm.p[i]):
                 if i==0:
                     atm.ps = atm.ps - xHe*atm.ps + esat('He',atm.ts)
                     # p = np.exp(np.linspace(math.log(atm.ps),math.log(ptop),atm.nlev))
-                    atm  = set_pressure_array2(atm)
-                xHe=esat('He',Moist_adiabat[i])/atm.p[i]
+                    atm  = set_pressure_array(atm)
+                xHe=esat('He',atm.temp[i])/atm.p[i]
                 xd   = 1.-(xH2O+xCO2+xCH4+xCO+xN2+xO2+xH2+xHe+xNH3)       
                 xHe_array[i]=xHe
                 xd_array[i]=xd
                 #Moist_adiabat[i]=odeint(General_moist_adiabat,atm.ts,np.log(p[i]),args=(xd_array[i],xH2O_array[i],xCO2_array[i],xCH4_array[i],xCO_array[i],xN2_array[i],xO2_array[i],xH2_array[i],xHe_array[i],xNH3_array[i]))
                 #Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(p),args=(xd_array,xH2O_array,xCO2_array,xCH4_array,xCO_array,xN2_array,xO2_array,xH2_array,xHe_array,xNH3_array))
-                Moist_adiabat=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
+                atm.temp=odeint(General_moist_adiabat,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
             
             
     #plot results
@@ -535,7 +485,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
     # plt.figure(1)
-    ax1.semilogy(Moist_adiabat,p_plot,'r',linewidth=3,label=r'Combined')
+    ax1.semilogy(atm.temp,p_plot,'r',linewidth=3,label=r'Combined')
     ax1.semilogy(TdewH2O,p_plot,label=r'H$_2$O',ls="--")
     ax1.semilogy(TdewCO2,p_plot,label=r'CO$_2$',ls="--")
     ax1.semilogy(TdewH2,p_plot,label=r'H$_2$',ls="--")
@@ -550,7 +500,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
     ax1.set_ylabel(r'Total pressure, $P$ (Pa)')
     ax1.set_title('Individual moist adiabats')
     ax1.legend(ncol=1)
-    ax1.set_xlim([0,np.max(Moist_adiabat)])
+    ax1.set_xlim([0,np.max(atm.temp)])
     ax1.set_ylim([np.max(p_plot),np.min(p_plot)])
     # plt.show()
     # plt.savefig('general_adiabat_TP.pdf', bbox_inches = 'tight')
@@ -584,7 +534,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan):
     plt.show()
     """
 
-    return Moist_adiabat    
+    return atm    
 
 # Define init parameters if called standalone
 atm_chemistry = { 

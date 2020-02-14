@@ -71,13 +71,13 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     atm.pl          = np.array(logLevels)
     atm.p           = (atm.pl[1:] + atm.pl[:-1]) / 2
 
-    # Now do the calculation
-    atm.Rcp         = 2./7.
-    atm.temp        = atm.ts*(atm.p/atm.p[-1])**atm.Rcp               # Initialize on adiabat
+    # Initialize on adiabat
+    atm.temp        = atm.ts*(atm.p/atm.p[-1])**atm.Rcp
+
     # Set initial stratosphere guess to isothermal (closer to actual solution)
     atm.temp        = np.where(atm.temp<atm.ts/4.,atm.ts/4.,atm.temp) 
-    # atm.temp      = np.where(atm.temp<400.,400.,atm.temp)
-    atm.n_species   = 7
+
+    # Calculate RTP H2O moist adiabat
     Moist_adiabat_H2O   = [ Tdew_H2O(pp) for pp in atm.p ]
     
     # Feed mixing ratios
@@ -125,9 +125,6 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     for i in range(0,rad_steps):
 
         atm, moist_adiabat = steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan)
-
-        #hack!
-        # atm.temp[0] = atm.temp[1]
 
         if i % 1 == 0:
 
