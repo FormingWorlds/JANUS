@@ -352,6 +352,8 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
                      
             # If water is present...
             if xH2O_array[i] != 0.:
+                
+                # Example change for commit
                                     
                 # If condensation occurs...
                 if moist_w_cond[i] <= Tdew('H2O',xH2O/atm.p[i]):
