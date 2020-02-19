@@ -609,7 +609,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     plt.show()
     """
 
-    return Tdry, moist_w_cond, xH2O_array   
+    return Tdry, moist_w_cond   
 
 # Define init parameters if called standalone
 atm_chemistry  = { 
@@ -631,5 +631,5 @@ set_pressure_array(atm)
 atm.temp        = atm.ts*(atm.p/atm.p[0])**atm.Rcp
 use_vulcan     = 0
 condensation   = True
-Tdry, moist_w_cond, xH2O_array = solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation)
+Tdry, moist_w_cond = solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation)
 

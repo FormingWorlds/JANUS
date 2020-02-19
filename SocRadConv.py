@@ -152,8 +152,10 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
             ax1.semilogy(atm.temp,atm.p*1e-5, ls="-", label=r'Dry adiabat')
 
             if Moist_Adjustment == True:
-                ax1.semilogy(moist_wo_cond, atm.p*1e-5, color="green", ls="-", label=r'Moist adiabat, no cond.')
-                ax1.semilogy(moist_w_cond, atm.p*1e-5, color="green", ls="--", label=r'Moist adiabat, w/ cond.')
+                # ax1.semilogy(moist_wo_cond, atm.p*1e-5, color="green", ls="-", label=r'Moist adiabat, no cond.')
+
+                # ax1.semilogy(moist_w_cond, atm.p*1e-5, color="green", ls="--", label=r'Moist adiabat')
+                
                 # ax1.semilogy(Moist_adiabat_H2O, atm.p*1e-5, color="red", ls="-.", label=r'H$_2$O moist adiabat')
 
                 ax1.semilogy(TdewH2O, atm.p*1e-5, label=r'H$_2$O', lw=0.8, ls=":")
@@ -209,7 +211,7 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
 
     return atm.LW_flux_up[-1], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
   
-# Dry adjustment routine
+# Dry convective adjustment routine
 def dryAdj(atm):
 
     T = atm.temp
@@ -250,7 +252,6 @@ def dryAdj(atm):
 
 # # Moist adjustment routine
 # def moistAdj(atm, atm_chemistry, use_vulcan):
-
 
 #     moist_adiabat = ga.solve_general_adiabat(atm, atm_chemistry, use_vulcan)
         
@@ -308,7 +309,7 @@ def steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan):
 
     Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
     
-    return atm, moist_wo_cond[::-1], moist_w_cond[::-1]
+    return atm, moist_wo_cond, moist_w_cond
 
 def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance):
 
@@ -333,8 +334,8 @@ mean_distance = 1.0     # au
 P_surf        = 10      # bar
 T_surf        = 600     # K
 atm_chemistry = { 
-                    "H2O" : 0.5, 
-                    "CO2" : 0.3, 
+                    "H2O" : 0.999, 
+                    "CO2" : 0.0, 
                     "H2"  : 0.0, 
                     "CH4" : 0.0,
                     "CO"  : 0.0,  
