@@ -222,60 +222,82 @@ def cpv(switch):
     if switch == 'NH3':
         return phys.nh3.cp*phys.nh3.MolecularWeight*1e-3    
     
-def slope(lnP,T,params):
-# Returns dT/dlnP given T, P and local abundances
+def slope(lnP,T,params):#**atm_chemistry_arrays):
+    # Returns dT/dlnP given T, P and local abundances
+    # Builds the abundance arrays given local abundances
     
     # Kludge for H2 esat>7200 for T>13.95K
     if T < 13.95: 
         T = 13.95
     
-    xd   = params.xd
-    xH2O = params.xH2O
-    xCO2 = params.xCO2
-    xCH4 = params.xCH4
-    xCO  = params.xCO
-    xN2  = params.N2
-    xO2  = params.O2
-    xH2  = params.H2
-    xHe  = params.He
-    xNH3 = params.xNH3
-    current_x = params.current_x
-    current_molecule = params.current_molecule
+    #if use_vulcan == 0:
+    #    atm_chemistry_arrays = {}
+        #for x in atm_chemistry:
+        #    atm_chemistry_arrays['%s' % x] = atm_chemistry[x] #[] # initialized to append in the slope function
+            
+    #atm_chemistry_arrays = {}
+    
+    for molecule in atm_chemistry:       
+        #atm_chemistry_arrays['%s' % molecule] = [atm_chemistry[molecule]]
+        # Check condensation for each molecule 
+        #print(params.atm_chemistry_arrays)
+        #print(molecule)
+        #print(params.atm_chemistry_arrays[molecule])
+        if atm_chemistry[molecule] > 0.: # Tdew requires a non zero pressure
+            if T <= Tdew(molecule,params.atm_chemistry_arrays[molecule][-1]/numpy.exp(lnP)): 
+                params.atm_chemistry_arrays[molecule].append(esat(molecule,T)/numpy.exp(lnP))  # sets the abundance to the saturation vapor pressure
+                params.index2 += 1 
+            else:
+                params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule])
+                # If the molecule is not present, x_molecule = 0 
+    
+    #print(params.atm_chemistry_arrays)
+    # Define individual abundances from the last abundance calculated
+    xH2O = params.atm_chemistry_arrays['H2O'][-1]
+    xCO2 = params.atm_chemistry_arrays['CO2'][-1]
+    xCH4 = params.atm_chemistry_arrays['CH4'][-1]
+    xCO  = params.atm_chemistry_arrays['CO'][-1]
+    xN2  = params.atm_chemistry_arrays['N2'][-1]
+    xO2  = params.atm_chemistry_arrays['O2'][-1]
+    xH2  = params.atm_chemistry_arrays['H2'][-1]
+    xHe  = params.atm_chemistry_arrays['He'][-1]
+    xNH3 = params.atm_chemistry_arrays['NH3'][-1]
+    xd   = 1. - ( xH2O + xCO2 + xCH4 + xCO + xN2 + xO2 + xH2 + xHe + xNH3 )
     
     # Molar heat capacity of the dry species
     cpd = cpv('N2') #1000.*phys.air.MolecularWeight*1.e-3 
 
     # Avoid division by zero if atmosphere consists of condensibles only
-    xd = np.max([xd,1e-3])
+    xd = np.max([xd,1e-8])
                          
     xv_cpv = xH2O * cpv('H2O') + xCO2 * cpv('CO2') + \
                                  xCH4 * cpv('CH4') + \
-                                 xCO  * cpv('CO')  + \
-                                 xN2  * cpv('N2')  + \
-                                 xO2  * cpv('O2')  + \
-                                 xH2  * cpv('H2')  + \
-                                 xHe  * cpv('He')  + \
+                                 xCO  * cpv('CO' ) + \
+                                 xN2  * cpv('N2' ) + \
+                                 xO2  * cpv('O2' ) + \
+                                 xH2  * cpv('H2' ) + \
+                                 xHe  * cpv('He' ) + \
                                  xNH3 * cpv('NH3')
   
     first_term = (xH2O/xd) * ( L_heat('H2O',T) / (R_universal*T) )**2 + \
                  (xCO2/xd) * ( L_heat('CO2',T) / (R_universal*T) )**2 + \
                  (xCH4/xd) * ( L_heat('CH4',T) / (R_universal*T) )**2 + \
-                 (xCO/xd)  * ( L_heat('CO',T)  / (R_universal*T) )**2 + \
-                 (xN2/xd)  * ( L_heat('N2',T)  / (R_universal*T) )**2 + \
-                 (xO2/xd)  * ( L_heat('O2',T)  / (R_universal*T) )**2 + \
-                 (xH2/xd)  * ( L_heat('H2',T)  / (R_universal*T) )**2 + \
-                 (xHe/xd)  * ( L_heat('He',T)  / (R_universal*T) )**2 + \
+                 (xCO /xd) * ( L_heat('CO' ,T) / (R_universal*T) )**2 + \
+                 (xN2 /xd) * ( L_heat('N2' ,T) / (R_universal*T) )**2 + \
+                 (xO2 /xd) * ( L_heat('O2' ,T) / (R_universal*T) )**2 + \
+                 (xH2 /xd) * ( L_heat('H2' ,T) / (R_universal*T) )**2 + \
+                 (xHe /xd) * ( L_heat('He' ,T) / (R_universal*T) )**2 + \
                  (xNH3/xd) * ( L_heat('NH3',T) / (R_universal*T) )**2
     
     quadr_term=(
                  (xH2O/xd) * L_heat('H2O',T) / (R_universal*T) + \
                  (xCO2/xd) * L_heat('CO2',T) / (R_universal*T) + \
                  (xCH4/xd) * L_heat('CH4',T) / (R_universal*T) + \
-                 (xCO/xd)  * L_heat('CO',T)  / (R_universal*T) + \
-                 (xN2/xd)  * L_heat('N2',T)  / (R_universal*T) + \
-                 (xO2/xd)  * L_heat('O2',T)  / (R_universal*T) + \
-                 (xH2/xd)  * L_heat('H2',T)  / (R_universal*T) + \
-                 (xHe/xd)  * L_heat('He',T)  / (R_universal*T) + \
+                 (xCO /xd) * L_heat('CO' ,T) / (R_universal*T) + \
+                 (xN2 /xd) * L_heat('N2' ,T) / (R_universal*T) + \
+                 (xO2 /xd) * L_heat('O2' ,T) / (R_universal*T) + \
+                 (xH2 /xd) * L_heat('H2' ,T) / (R_universal*T) + \
+                 (xHe /xd) * L_heat('He' ,T) / (R_universal*T) + \
                  (xNH3/xd) * L_heat('NH3',T) / (R_universal*T)             
                 )**2
         
@@ -293,28 +315,20 @@ def slope(lnP,T,params):
     num_sum = (xH2O/xd) * L_heat('H2O',T) / (R_universal*T) + \
               (xCO2/xd) * L_heat('CO2',T) / (R_universal*T) + \
               (xCH4/xd) * L_heat('CH4',T) / (R_universal*T) + \
-              (xCO/xd)  * L_heat('CO',T)  / (R_universal*T) + \
-              (xN2/xd)  * L_heat('N2',T)  / (R_universal*T) + \
-              (xO2/xd)  * L_heat('O2',T)  / (R_universal*T) + \
-              (xH2/xd)  * L_heat('H2',T)  / (R_universal*T) + \
-              (xHe/xd)  * L_heat('He',T)  / (R_universal*T) + \
+              (xCO /xd) * L_heat('CO' ,T) / (R_universal*T) + \
+              (xN2 /xd) * L_heat('N2' ,T) / (R_universal*T) + \
+              (xO2 /xd) * L_heat('O2' ,T) / (R_universal*T) + \
+              (xH2 /xd) * L_heat('H2' ,T) / (R_universal*T) + \
+              (xHe /xd) * L_heat('He' ,T) / (R_universal*T) + \
               (xNH3/xd) * L_heat('NH3',T) / (R_universal*T)
      
-    # Check condensation
-    #print(numpy.exp(lnP))
-    if T <= Tdew(current_molecule,current_x/numpy.exp(lnP)):          
-        current_x = esat(current_molecule,T)/numpy.exp(lnP)  # sets the abundance to the saturation vapor pressure
-        current_x = params.current_x                         # updates params
-        num       = (1.+ num_sum)*T                          # Factor T to get dT/dlnP instead of dlnT/dlnP
-        denom     = (1./R_universal) * (xd*cpd+xv_cpv) / (xd+sum_abundances) + \
-                 (first_term + quadr_term) / (1.+sum_ratio_abundances)
-    else:                                                    # If nothing condenses, beta = L/RT = 0
-        num    = T 
-        denom  = (1./R_universal) * (xd*cpd+xv_cpv) / (xd+sum_abundances)
+    num       = (1.+ num_sum)*T                          # Factor T to get dT/dlnP instead of dlnT/dlnP
+    denom     = (1./R_universal) * (xd*cpd+xv_cpv) / (xd+sum_abundances) + \
+                (first_term + quadr_term) / (1.+sum_ratio_abundances)
     
     dTdlnP = num/denom    
 
-    return dTdlnP    
+    return dTdlnP
 
 def set_pressure_array(atm):
     rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
@@ -325,13 +339,11 @@ def set_pressure_array(atm):
     return atm
                         
 def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
-# Builds the temperature profile from the ground up
-       
-    #atm.p = numpy.flip(atm.p) # The pressure array must be increasing here.
-    #atm.temp = numpy.flip(atm.temp)
+# Builds the generalized moist adiabat from the slope 
     
     params = Dummy() # initialize parameter object
           
+    """
     # Initialize relative surface abundances 
     xH2O = atm_chemistry["H2O"]
     xCO2 = atm_chemistry["CO2"]
@@ -344,58 +356,32 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     xNH3 = atm_chemistry["NH3"]
     xd   = 1. - ( xH2O + xCO2 + xCH4 + xCO + xN2 + xO2 + xH2 + xHe + xNH3 )
     params.xd = xd
-
-    if use_vulcan == 0:
-        xH2O_array = np.ones(len(atm.p))*xH2O
-        xCO2_array = np.ones(len(atm.p))*xCO2
-        xCH4_array = np.ones(len(atm.p))*xCH4
-        xCO_array  = np.ones(len(atm.p))*xCO
-        xN2_array  = np.ones(len(atm.p))*xN2
-        xO2_array  = np.ones(len(atm.p))*xO2
-        xH2_array  = np.ones(len(atm.p))*xH2
-        xHe_array  = np.ones(len(atm.p))*xHe
-        xNH3_array = np.ones(len(atm.p))*xNH3
-        xd_array   = np.ones(len(atm.p))*xd
-
-    # Solve ODE with constant abundances
-    #atm.temp = odeint(slope,atm.ts,np.log(atm.p),args=(xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3),tfirst=True)
-
-    Tdry = atm.temp
+    """
     
+    if use_vulcan == 0:
+        params.atm_chemistry_arrays = {}
+        for x in atm_chemistry:
+            params.atm_chemistry_arrays['%s' % x] = [atm_chemistry[x]] #[] # initialized to append in the slope function
+  
     if condensation == True:
-
-        #moist_w_cond[0] = atm.temp[0] # atm.temp[0] is computed from atm.ts in steps()
         
-        # Check condensation for each species, adjust xv, solve ODE with new abundances
-        for i in range(atm.nlev-1):
-            
-            # Euler step (log space)
-            h = (np.log(atm.p[i]) - np.log(atm.p[i+1]))/atm.nlev
-                               
-            for x in atm_chemistry:
-                params.current_molecule = x # string              
-                params.xH2O             = xH2O
-                params.xCO2             = xCO2
-                params.xCH4             = xCH4
-                params.xCO              = xCO
-                params.N2               = xN2
-                params.O2               = xO2
-                params.H2               = xH2
-                params.He               = xHe
-                params.xNH3             = xNH3
-                params.current_x        = atm_chemistry[x]
-                
-                if atm_chemistry[x] != 0.:                                     # If the current molecule is present                    
-                    moist_w_cond = []                                          # initialize the solution
-                    int_slope = integrator(slope,np.log(atm.ptop),atm.temp[0],h) # create the integrator instance 
-                    int_slope.setParams(params)                                # Update parameters used in the slope function dT/dlnP
-                    while int_slope.x < np.log(atm.ps):                      # infinite loop?
-                        moist_w_cond.append(int_slope.next())                  # execute the Runge-Kutta integrator, fill array of tuples
-                        params.current_x = current_x
-                        f'{x}'_array = current_x
+        # Solve ODE with new abundances                
+        moist_w_cond = []                                             # initialize the solution
+        int_slope = integrator(slope,np.log(atm.ps),atm.temp[0],-1.) # create the integrator instance. Negative increment to go from ps to ptop < ps
+        int_slope.setParams(params)                                  # Update parameters used in the slope function dT/dlnP
+        index = 0
+        params.index2 = 0
+        while int_slope.x > np.log(atm.ptop):                         # stop at p = ptop
+            moist_w_cond.append(int_slope.next())                     # execute the Runge-Kutta integrator, fill array of tuples
+            #print(int_slope.x)
+            index += 1
                         
-                    moist_w_cond = -numpy.array(moist_w_cond)          # convert to numpy array. lnP accessed through moist_w_cond[:,0]
-                                                                      #                         T   accessed through moist_w_cond[:,1]                   
+        moist_w_cond = numpy.array(moist_w_cond)          # convert to numpy array. lnP accessed through moist_w_cond[:,0]
+                                                          #                         T   accessed through moist_w_cond[:,1]                   
+        print(index)  
+        print(params.index2)                                                        
+        print(params.atm_chemistry_arrays) 
+        
     # Plot results
     
     Partial = False
@@ -410,59 +396,63 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in atm.p ]
         TdewHe  = [ Tdew( 'He',  pressure ) for pressure in atm.p ]
         TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in atm.p ]
+    
     else:                # Condensation curves for a mixed atmosphere (0 if species not present)
-        if max(xH2O_array) != 0.:
-            TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in xH2O_array/atm.p ]
+        if max(numpy.array(params.atm_chemistry_arrays['H2O'])) != 0.:
+            TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2O'])/numpy.exp(moist_w_cond[:,0]) ]
         else:
             TdewH2O = numpy.zeros(atm.nlev)
-        if max(xCO2_array) != 0.:
-            TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in xCO2_array/atm.p ]
+        if max(numpy.array(params.atm_chemistry_arrays['CO2'])) != 0.:
+            TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2'])/numpy.exp(moist_w_cond[:,0]) ]
         else:
             TdewCO2 = numpy.zeros(atm.nlev)
-        if max(xCH4_array) != 0.:
-            TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in xCH4_array/atm.p ]
+        if max(numpy.array(params.atm_chemistry_arrays['CH4'])) != 0.:
+            TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4'])/numpy.exp(moist_w_cond[:,0]) ]
         else:
             TdewCH4 = numpy.zeros(atm.nlev)
-        if max(xCO_array) != 0.:
-            TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in xCO_array/atm.p ]
+        if max(numpy.array(params.atm_chemistry_arrays['CO'])) != 0.:
+            TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])/numpy.exp(moist_w_cond[:,0]) ]
         else:
             TdewCO = numpy.zeros(atm.nlev)
-        if max(xN2_array) != 0.:
-            TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in xN2_array/atm.p ]
+        if max(numpy.array(params.atm_chemistry_arrays['N2'])) != 0.:
+            TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])/numpy.exp(moist_w_cond[:,0]) ]
         else:
             TdewN2 = numpy.zeros(atm.nlev)
-        if max(xO2_array) != 0.:
-            TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in xO2_array/atm.p ]
+        if max(numpy.array(params.atm_chemistry_arrays['O2'])) != 0.:
+            TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])/numpy.exp(moist_w_cond[:,0]) ]
         else:
             TdewO2 = numpy.zeros(atm.nlev)
-        if  max(xH2_array) != 0.:
-            TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in xH2_array/atm.p ]
+        if  max(numpy.array(params.atm_chemistry_arrays['H2'])) != 0.:
+            TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])/numpy.exp(moist_w_cond[:,0]) ]
         else:
             TdewH2 = numpy.zeros(atm.nlev)
-        if max(xHe_array) != 0.:
-            TdewHe  = [ Tdew( 'He',  pressure ) for pressure in xHe_array/atm.p ]
+        if max(numpy.array(params.atm_chemistry_arrays['He'])) != 0.:
+            TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])/numpy.exp(moist_w_cond[:,0]) ]
         else:
             TdewHe = numpy.zeros(atm.nlev)
-        if max(xNH3_array) != 0.:
-            TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in xNH3_array/atm.p ]
+        if max(numpy.array(params.atm_chemistry_arrays['NH3'])) != 0.:
+            TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3'])/numpy.exp(moist_w_cond[:,0]) ]
         else:
             TdewNH3 = numpy.zeros(atm.nlev)
- 
+        
     sns.set_style("ticks")
     sns.despine()
 
-    p_plot = atm.p*1e-5 # bar
+    p_plot = numpy.exp(moist_w_cond[:,0]) # atm.p*1e-5 # bar
 
     ls_adiabat = 2
     ls_ind = 0.8
-
+    
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
     # plt.figure(1)
-    ax1.semilogy(Tdry,p_plot,'r',lw=ls_adiabat,label=r'No condensation')
+    ax1.semilogy(atm.ts*(p_plot/atm.ps)**(2./7.),p_plot,'r',lw=ls_adiabat,label=r'No condensation')
+    
     if condensation == True:
-        ax1.semilogy(moist_w_cond,p_plot,'b',lw=ls_adiabat,label=r'With condensation')
-
+        #print(moist_w_cond)
+    
+        ax1.semilogy(moist_w_cond[:,1],p_plot,'b',lw=ls_adiabat,label=r'With condensation')
+        
     ax1.semilogy(TdewH2O,p_plot,label=r'H$_2$O', lw=ls_ind, ls="--")
     ax1.semilogy(TdewCO2,p_plot,label=r'CO$_2$', lw=ls_ind, ls="--")
     ax1.semilogy(TdewH2,p_plot, label=r'H$_2$',  lw=ls_ind, ls="--")
@@ -472,6 +462,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     ax1.semilogy(TdewO2,p_plot, label=r'O$_2$',  lw=ls_ind, ls="--")
     # ax1.semilogy(TdewHe,p_plot, label=r'He', lw=ls_ind, ls="--")
     # ax1.semilogy(TdewNH3,p_plot,label=r'NH$_3$', lw=ls_ind, ls="--")
+    
     ax1.invert_yaxis()
     ax1.set_xlabel(r'Temperature $T$ (K)')
     ax1.set_ylabel(r'Total pressure $P$ (bar)')
@@ -483,15 +474,18 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     # plt.savefig('general_adiabat_TP.pdf', bbox_inches = 'tight')
 
     # plt.figure(2)
-    xplot_H2O = ax2.semilogy(xH2O_array,p_plot,label=r'H$_2$O')
-    xplot_CO2 = ax2.semilogy(xCO2_array,p_plot,label=r'CO$_2$')
-    xplot_H2  = ax2.semilogy(xH2_array,p_plot,label=r'H$_2$')
-    xplot_CH4 = ax2.semilogy(xCH4_array,p_plot,label=r'CH$_4$')
-    xplot_CO  = ax2.semilogy(xCO_array,p_plot,label=r'CO')
-    xplot_N2  = ax2.semilogy(xN2_array,p_plot,label=r'N$_2$')
-    xplot_O2  = ax2.semilogy(xO2_array,p_plot,label=r'O$_2$')
-
+    
+    
+    xplot_H2O = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['H2O']),p_plot,label=r'H$_2$O')
+    xplot_CO2 = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['CO2']),p_plot,label=r'CO$_2$')
+    xplot_H2  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['H2']),p_plot,label=r'H$_2$')
+    xplot_CH4 = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['CH4']),p_plot,label=r'CH$_4$')
+    xplot_CO  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['CO']),p_plot,label=r'CO')
+    xplot_N2  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['N2']),p_plot,label=r'N$_2$')
+    xplot_O2  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['O2']),p_plot,label=r'O$_2$')
+    
     # Constant abundances w/o condensation as comparison
+    
     if condensation == True:
     
         if use_vulcan == 0:
@@ -525,15 +519,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     plt.savefig('./output/general_adiabat.pdf', bbox_inches = 'tight')
     #plt.close(fig)
 
-    """
-    plt.semilogy(Moist_adiabat,p)
-    plt.semilogy(TdewH2O,p,label='H2O')
-    plt.gca().invert_yaxis()
-    plt.legend()
-    plt.show()
-    """
-
-    return Tdry, moist_w_cond   
+    return moist_w_cond   
 
 # Define init parameters if called standalone
 atm_chemistry  = { 
@@ -548,12 +534,12 @@ atm_chemistry  = {
                 "He"  : 0.0  
                 }
 atm            = atmos()
-atm.ts         = 600          # K
+atm.ts         = 300          # K
 atm.ps         = 1e+6          # Pa
 atm.ptop       = atm.ps*1e-5   # Pa
 set_pressure_array(atm)
 atm.temp        = atm.ts*(atm.p/atm.p[0])**atm.Rcp
 use_vulcan     = 0
 condensation   = True
-Tdry, moist_w_cond = solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation)
+moist_w_cond = solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation)
 
