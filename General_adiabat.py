@@ -24,8 +24,7 @@ import seaborn as sns
 R_universal = 8.31446261815324 # Universal gas constant, J.K-1.mol-1, should probably go elsewhere since it's a constant    
 
 def esat(switch,T): 
-# Saturation vapor pressure for gases considered [Pa]
-# assuming ideal gas law and constant latent heat
+    """Saturation vapor pressure [Pa] given a temperature T [K]. Assuming the ideal gas law and a constant latent heat. Select the molecule of interest with the switch argument (a string)."""
     if switch == 'H2O':
         e=phys.satvps_function(phys.water)
         return e(T) 
@@ -96,8 +95,7 @@ def C(switch,p):
     
 
 def Tdew(switch,p): 
-# Dew point temperature for pure species[K]
-# p is the total pressure
+    """Dew point temperature [K] given a pressure p [Pa]. Select the molecule of interest with the switch argument (a string)."""
     if switch == 'H2O':
         Tref = 373.15 # K, boiling point of H2O at 1 atm 
         pref = 1e5 # esat('H2O',Tref) returns 121806.3 Pa, should return 1e5       
@@ -146,7 +144,7 @@ def Tdew(switch,p):
         return Tref/(1.-(Tref*R_universal/L_NH3)*math.log(p/pref))
 
 def L_heat(switch,T): 
-# Molar latent heat [J mol-1] for gases considered in slope()
+    """Molar latent heat [J mol-1] for gases considered given a temperature T [K]. Select the molecule of interest with the switch argument (a string)."""
     if switch == 'H2O':
         if T<=Tdew('H2O',esat('H2O',T)):
             return phys.water.L_vaporization*phys.water.MolecularWeight*1e-3 # Conversion from J.kg-1 to J.mol-1 (molecular weight is in g/mol in phys.f90)
@@ -202,7 +200,7 @@ def L_heat(switch,T):
             return 0.
     
 def cpv(switch): 
-# Molar heat capacities for gases considered [J.K-1.mol-1]
+    """Molar heat capacities [J.K-1.mol-1]. Select the molecule of interest with the switch argument (a string)."""
     if switch == 'H2O':
         return phys.water.cp*phys.water.MolecularWeight*1e-3
     if switch == 'CH4':
@@ -222,36 +220,24 @@ def cpv(switch):
     if switch == 'NH3':
         return phys.nh3.cp*phys.nh3.MolecularWeight*1e-3    
     
-def slope(lnP,T,params):#**atm_chemistry_arrays):
-    # Returns dT/dlnP given T, P and local abundances
-    # Builds the abundance arrays given local abundances
+def slope(lnP,T,params):
+    """Returns the slope dT/dlnP and builds the abundance arrays given a temperature T [K], the natural logarithm of a pressure [Pa] lnP and the dictionary atm_chemistry_arrays passed to this function with the ClimateUtilities object params."""
     
     # Kludge for H2 esat>7200 for T>13.95K
     if T < 13.95: 
         T = 13.95
     
-    #if use_vulcan == 0:
-    #    atm_chemistry_arrays = {}
-        #for x in atm_chemistry:
-        #    atm_chemistry_arrays['%s' % x] = atm_chemistry[x] #[] # initialized to append in the slope function
-            
-    #atm_chemistry_arrays = {}
-    
     for molecule in atm_chemistry:       
-        #atm_chemistry_arrays['%s' % molecule] = [atm_chemistry[molecule]]
         # Check condensation for each molecule 
-        #print(params.atm_chemistry_arrays)
-        #print(molecule)
-        #print(params.atm_chemistry_arrays[molecule])
         if atm_chemistry[molecule] > 0.: # Tdew requires a non zero pressure
             if T <= Tdew(molecule,params.atm_chemistry_arrays[molecule][-1]/numpy.exp(lnP)): 
-                params.atm_chemistry_arrays[molecule].append(esat(molecule,T)/numpy.exp(lnP))  # sets the abundance to the saturation vapor pressure
+                params.atm_chemistry_arrays[molecule][-1] = esat(molecule,T)/numpy.exp(lnP)    # Replace the current abundance 
+                params.atm_chemistry_arrays[molecule].append(esat(molecule,T)/numpy.exp(lnP))  # Append another element for the next iteration
                 params.index2 += 1 
             else:
                 params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule])
                 # If the molecule is not present, x_molecule = 0 
     
-    #print(params.atm_chemistry_arrays)
     # Define individual abundances from the last abundance calculated
     xH2O = params.atm_chemistry_arrays['H2O'][-1]
     xCO2 = params.atm_chemistry_arrays['CO2'][-1]
@@ -339,7 +325,7 @@ def set_pressure_array(atm):
     return atm
                         
 def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
-# Builds the generalized moist adiabat from the slope 
+    """Builds the generalized moist adiabat from slope(lnP,T,params) and plots the adiabat along with the relative abundances.""" 
     
     params = Dummy() # initialize parameter object
           
@@ -361,84 +347,90 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     if use_vulcan == 0:
         params.atm_chemistry_arrays = {}
         for x in atm_chemistry:
-            params.atm_chemistry_arrays['%s' % x] = [atm_chemistry[x]] #[] # initialized to append in the slope function
+            params.atm_chemistry_arrays['%s' % x] = [atm_chemistry[x]] 
+            # initialized to replace the element corresponding to the current
+            # integration step in the slope function
   
     if condensation == True:
         
-        # Solve ODE with new abundances                
-        moist_w_cond = []                                             # initialize the solution
-        int_slope = integrator(slope,np.log(atm.ps),atm.temp[0],-1.) # create the integrator instance. Negative increment to go from ps to ptop < ps
-        int_slope.setParams(params)                                  # Update parameters used in the slope function dT/dlnP
-        index = 0
-        params.index2 = 0
-        while int_slope.x > np.log(atm.ptop):                         # stop at p = ptop
-            moist_w_cond.append(int_slope.next())                     # execute the Runge-Kutta integrator, fill array of tuples
+        # Solve ODE               
+        moist_w_cond = []                                             # Initialize the solution
+        int_slope = integrator(slope,np.log(atm.ps),atm.temp[0],-.1)  # Create the integrator instance. Negative increment to go from ps to ptop < ps
+        int_slope.setParams(params)                                   # Update parameters used in the slope function dT/dlnP
+        index = 0         # To count the number of iterations
+        params.index2 = 0 # To count the number of iterations in slope()
+        while int_slope.x > np.log(atm.ptop):                         # Stop at p = ptop
+            moist_w_cond.append(int_slope.next())                     # Execute the Runge-Kutta integrator, fill array of tuples
+            
             #print(int_slope.x)
             index += 1
                         
-        moist_w_cond = numpy.array(moist_w_cond)          # convert to numpy array. lnP accessed through moist_w_cond[:,0]
+        moist_w_cond = numpy.array(moist_w_cond)          # Convert to numpy array. lnP accessed through moist_w_cond[:,0]
                                                           #                         T   accessed through moist_w_cond[:,1]                   
         print(index)  
         print(params.index2)                                                        
-        print(params.atm_chemistry_arrays) 
+        print(params.atm_chemistry_arrays['H2O']) 
+        print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i < 0.999))  # Number of condensed levels
+        print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i == 0.999)) # Number of non-condensed levels
         
     # Plot results
+    
+    # pressure array from the integral
+    p_plot = numpy.exp(moist_w_cond[:,0]) # atm.p*1e-5 # bar
     
     Partial = False
     
     if Partial == False: # Condensation curves for a one-species atmosphere       
-        TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in atm.p ]
-        TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in atm.p ]
-        TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in atm.p ]
-        TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in atm.p ]
-        TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in atm.p ]
-        TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in atm.p ]
-        TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in atm.p ]
-        TdewHe  = [ Tdew( 'He',  pressure ) for pressure in atm.p ]
-        TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in atm.p ]
+        TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in p_plot ]
+        TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in p_plot ]
+        TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in p_plot ]
+        TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in p_plot ]
+        TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in p_plot ]
+        TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in p_plot ]
+        TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in p_plot ]
+        TdewHe  = [ Tdew( 'He',  pressure ) for pressure in p_plot ]
+        TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in p_plot ]
     
     else:                # Condensation curves for a mixed atmosphere (0 if species not present)
         if max(numpy.array(params.atm_chemistry_arrays['H2O'])) != 0.:
-            TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2O'])/numpy.exp(moist_w_cond[:,0]) ]
+            TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2O'])/p_plot ]
         else:
-            TdewH2O = numpy.zeros(atm.nlev)
+            TdewH2O = numpy.zeros(len(p_plot))
         if max(numpy.array(params.atm_chemistry_arrays['CO2'])) != 0.:
-            TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2'])/numpy.exp(moist_w_cond[:,0]) ]
+            TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2'])/p_plot ]
         else:
-            TdewCO2 = numpy.zeros(atm.nlev)
+            TdewCO2 = numpy.zeros(len(p_plot))
         if max(numpy.array(params.atm_chemistry_arrays['CH4'])) != 0.:
-            TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4'])/numpy.exp(moist_w_cond[:,0]) ]
+            TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4'])/p_plot ]
         else:
-            TdewCH4 = numpy.zeros(atm.nlev)
+            TdewCH4 = numpy.zeros(len(p_plot))
         if max(numpy.array(params.atm_chemistry_arrays['CO'])) != 0.:
-            TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])/numpy.exp(moist_w_cond[:,0]) ]
+            TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])/p_plot ]
         else:
-            TdewCO = numpy.zeros(atm.nlev)
+            TdewCO = numpy.zeros(len(p_plot))
         if max(numpy.array(params.atm_chemistry_arrays['N2'])) != 0.:
-            TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])/numpy.exp(moist_w_cond[:,0]) ]
+            TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])/p_plot ]
         else:
-            TdewN2 = numpy.zeros(atm.nlev)
+            TdewN2 = numpy.zeros(len(p_plot))
         if max(numpy.array(params.atm_chemistry_arrays['O2'])) != 0.:
-            TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])/numpy.exp(moist_w_cond[:,0]) ]
+            TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])/p_plot ]
         else:
-            TdewO2 = numpy.zeros(atm.nlev)
+            TdewO2 = numpy.zeros(len(p_plot))
         if  max(numpy.array(params.atm_chemistry_arrays['H2'])) != 0.:
-            TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])/numpy.exp(moist_w_cond[:,0]) ]
+            TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])/p_plot ]
         else:
-            TdewH2 = numpy.zeros(atm.nlev)
+            TdewH2 = numpy.zeros(len(p_plot))
         if max(numpy.array(params.atm_chemistry_arrays['He'])) != 0.:
-            TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])/numpy.exp(moist_w_cond[:,0]) ]
+            TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])/p_plot ]
         else:
             TdewHe = numpy.zeros(atm.nlev)
         if max(numpy.array(params.atm_chemistry_arrays['NH3'])) != 0.:
-            TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3'])/numpy.exp(moist_w_cond[:,0]) ]
+            TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3'])/p_plot ]
         else:
-            TdewNH3 = numpy.zeros(atm.nlev)
+            TdewNH3 = numpy.zeros(len(p_plot))
         
     sns.set_style("ticks")
     sns.despine()
-
-    p_plot = numpy.exp(moist_w_cond[:,0]) # atm.p*1e-5 # bar
 
     ls_adiabat = 2
     ls_ind = 0.8
