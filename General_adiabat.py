@@ -27,31 +27,24 @@ def esat(switch,T):
     """Saturation vapor pressure [Pa] given a temperature T [K]. Assuming the ideal gas law and a constant latent heat. Select the molecule of interest with the switch argument (a string)."""
     if switch == 'H2O':
         e=phys.satvps_function(phys.water)
-        return e(T) 
     if switch == 'CH4':
         e=phys.satvps_function(phys.methane)
-        return e(T)
     if switch == 'CO2':
         e=phys.satvps_function(phys.co2)
-        return e(T)
     if switch == 'CO':
         e=phys.satvps_function(phys.co)
-        return e(T)
     if switch == 'N2':
         e=phys.satvps_function(phys.n2)
-        return e(T)
     if switch == 'O2':
         e=phys.satvps_function(phys.o2)
-        return e(T)
     if switch == 'H2':
         e=phys.satvps_function(phys.h2)
-        return e(T)
     if switch == 'He':
         e=phys.satvps_function(phys.he)
-        return e(T)
     if switch == 'NH3':
         e=phys.satvps_function(phys.nh3)
-        return e(T)
+    
+    return e(T)
     
 #-----------------------------Antoine coefficients-----------------------------
 # Need to define what happens when T<Lower_Bound. At p[23]=145Pa we have Tgrid[23,0]=254.6K<Lower_Bound so Tdew[i<23] is not defined
@@ -340,49 +333,62 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
             # initialized to replace the element corresponding to the current
             # integration step in the slope function
   
-    if condensation == True:
+    # if condensation == True:
         
-        # Solve ODE               
-        moist_w_cond = []                                             # Initialize the solution
-        int_slope = integrator(slope,np.log(atm.ps),atm.temp[0],-1)  # Create the integrator instance. Negative increment to go from ps to ptop < ps
-        int_slope.setParams(params)                                   # Update parameters used in the slope function dT/dlnP
-        index = 0         # To count the number of iterations
-        params.index2 = 0 # To count the number of iterations in slope()
-        while int_slope.x > np.log(atm.ptop):                         # Stop at p = ptop
+    # Solve ODE            
+    moist_w_cond = [tuple([np.log(atm.ps), atm.temp[0]])]                                             # Initialize the solution
+    int_slope = integrator(slope,np.log(atm.ps),atm.temp[0],-1)  # Create the integrator instance. Negative increment to go from ps to ptop < ps
+    int_slope.setParams(params)                                   # Update parameters used in the slope function dT/dlnP
+    index = 0         # To count the number of iterations
+    params.index2 = 0 # To count the number of iterations in slope()
+    while int_slope.x > np.log(atm.ptop):                         # Stop at p = ptop
 
-            if index > 1:
-                T   = moist_w_cond[-1][1]
-                lnP = moist_w_cond[-1][0]
-            else:
-                T   = atm.temp[0]
-                lnP = np.log(atm.ps) 
+        if index > 1:
+            T   = moist_w_cond[-1][1]
+            lnP = moist_w_cond[-1][0]
+        else:
+            T   = atm.temp[0]
+            lnP = np.log(atm.ps) 
 
-            for molecule in atm_chemistry:  
-                params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule])     
-                # Check condensation for each molecule 
-                if atm_chemistry[molecule] > 0.: # Tdew requires a non zero pressure
-                    if T <= Tdew(molecule,params.atm_chemistry_arrays[molecule][-1]/numpy.exp(lnP)): 
-                        params.atm_chemistry_arrays[molecule][-1] = esat(molecule,T)/numpy.exp(lnP) 
+        for molecule in atm_chemistry:  
+            params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule])     
+            # Check condensation for each molecule 
+            if atm_chemistry[molecule] > 0.: # Tdew requires a non zero pressure
+                p_molecule = params.atm_chemistry_arrays[molecule][-1]*numpy.exp(lnP)
+                p_sat = esat(molecule,T)
+                print(molecule, index, params.index2, np.exp(lnP), T, Tdew(molecule,numpy.exp(lnP)))
+                if T <= Tdew(molecule,numpy.exp(lnP)):
+                    params.atm_chemistry_arrays[molecule][-1] = np.min([p_molecule,p_sat])/numpy.exp(lnP) 
 
-                    # print(molecule, T)
-                    params.index2 += 1 
+                # print(molecule, T)
+                params.index2 += 1 
 
-            moist_w_cond.append(int_slope.next())                     # Execute the Runge-Kutta integrator, fill array of tuples
+        moist_w_cond.append(int_slope.next())                     # Execute the Runge-Kutta integrator, fill array of tuples
 
-            # print(moist_w_cond)
-            
-            #print(int_slope.x)
-            index += 1
+        # print(moist_w_cond)
+        
+        #print(int_slope.x)
+        index += 1
 
-            # print(index, params.index2)
-                        
-        moist_w_cond = numpy.array(moist_w_cond)          # Convert to numpy array. lnP accessed through moist_w_cond[:,0]
-                                                          #                         T   accessed through moist_w_cond[:,1]                   
-        print(index, params.index2)                                                        
-        print(params.atm_chemistry_arrays['H2O'])
-        print(len(moist_w_cond[:,0]), len(params.atm_chemistry_arrays['H2O']))
-        print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i < 0.999))  # Number of condensed levels
-        print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i == 0.999)) # Number of non-condensed levels
+        # print(index, params.index2)
+
+    # Reset abundances for uppermost pressure level
+    for molecule in atm_chemistry:  
+        params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule])     
+        p_molecule = params.atm_chemistry_arrays[molecule][-1]*numpy.exp(lnP)
+        p_sat = esat(molecule,T)
+        print(molecule, index, params.index2, np.exp(lnP), T, Tdew(molecule,numpy.exp(lnP)))
+        if T <= Tdew(molecule,numpy.exp(lnP)):
+            params.atm_chemistry_arrays[molecule][-1] = np.min([p_molecule,p_sat])/numpy.exp(lnP) 
+            params.index2 += 1 
+                    
+    moist_w_cond = numpy.array(moist_w_cond)          # Convert to numpy array. lnP accessed through moist_w_cond[:,0]
+                                                      #                         T   accessed through moist_w_cond[:,1]                   
+    print(index, params.index2)                                                        
+    print(params.atm_chemistry_arrays['H2O'])
+    print(len(moist_w_cond[:,0]), len(params.atm_chemistry_arrays['H2O']))
+    print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i < 0.999))  # Number of condensed levels
+    print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i == 0.999)) # Number of non-condensed levels
         
     # Plot results
     
@@ -448,13 +454,12 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
-    # plt.figure(1)
-    ax1.semilogy(atm.ts*(p_plot/atm.ps)**(2./7.),p_plot,'r',lw=ls_adiabat,label=r'No condensation')
+    # ax1.semilogy(atm.ts*(p_plot/atm.ps)**(2./7.),p_plot,'r',lw=ls_adiabat,label=r'No condensation')
     
-    if condensation == True:
-        #print(moist_w_cond)
+    # if condensation == True:
+    #     #print(moist_w_cond)
     
-        ax1.semilogy(moist_w_cond[:,1],p_plot,'b',lw=ls_adiabat,label=r'With condensation')
+    ax1.semilogy(moist_w_cond[:,1],p_plot,'b',lw=ls_adiabat,label=r'Moist adiabat')
         
     ax1.semilogy(TdewH2O,p_plot,label=r'H$_2$O', lw=ls_ind, ls="--")
     ax1.semilogy(TdewCO2,p_plot,label=r'CO$_2$', lw=ls_ind, ls="--")
@@ -468,7 +473,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     
     ax1.invert_yaxis()
     ax1.set_xlabel(r'Temperature $T$ (K)')
-    ax1.set_ylabel(r'Total pressure $P$ (bar)')
+    ax1.set_ylabel(r'Total pressure $P$ (Pa)')
     ax1.set_title('Individual moist adiabats')
     ax1.legend(ncol=1)
     #ax1.set_xlim([0,np.max(atm.temp)])
@@ -526,22 +531,22 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
 # Define init parameters if called standalone
 atm_chemistry  = { 
-                "H2O" : 0.999, 
+                "H2O" : 0.7, 
                 "NH3" : 0.0,
                 "CO2" : 0.0, 
                 "CH4" : 0.0,
                 "O2"  : 0.0,
                 "CO"  : 0.0,
-                "N2"  : 0.0, 
+                "N2"  : 0.3, 
                 "H2"  : 0.0,                        
                 "He"  : 0.0  
                 }
 atm            = atmos()
-atm.ts         = 300          # K
+atm.ts         = 470           # K
 atm.ps         = 1e+6          # Pa
 atm.ptop       = atm.ps*1e-5   # Pa
 set_pressure_array(atm)
-atm.temp        = atm.ts*(atm.p/atm.p[0])**atm.Rcp
+atm.temp       = atm.ts*(atm.p/atm.p[0])**atm.Rcp
 use_vulcan     = 0
 condensation   = True
 moist_w_cond = solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation)
