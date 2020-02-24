@@ -1,6 +1,6 @@
 import math
 import numpy as np
-# from ClimateUtilities import * #To get the math methods routines
+from ClimateUtilities import * #To get the math methods routines
 #
 #All units are mks units
 #
@@ -640,12 +640,12 @@ class MoistAdiabat:
             den = self.cpa + (self.cpc + (self.L/(self.Rc*T) - 1.)*(self.L/T))*qsat
             return num/den
         self.slope = slope
-        self.ptop = 1000. #Default top of atmosphere
+        # self.ptop = 1000. #Default top of atmosphere
         self.step = -.05 #Default step size for integration
-    def __call__(self,ps,Ts,pgrid = None):
+    def __call__(self,ps,Ts,ptop,pgrid=[]):
         #Initial conditions
         step = self.step  #Step size for integration
-        ptop = self.ptop #Where to stop integratoin
+        # ptop = self.ptop #Where to stop integratoin
         #
         logpa = math.log(ps)
         logT = math.log(Ts)
@@ -666,9 +666,9 @@ class MoistAdiabat:
                 TL.append(T)
         #Numeric.array turns lists into arrays that one
         #can do arithmetic on.
-        pL = Numeric.array(pL)
-        TL = Numeric.array(TL)
-        molarConL = Numeric.array(molarConL)
+        pL = numpy.array(pL)
+        TL = numpy.array(TL)
+        molarConL = numpy.array(molarConL)
         #Now compute mass specific concentration
         Mc = self.condensible.MolecularWeight
         Mnc = self.noncon.MolecularWeight
@@ -681,16 +681,16 @@ class MoistAdiabat:
         #which creates a callable object which acts like
         #an interpolation function for the listed data give
         #as arguments.
-        if pgrid == None:
-            return pL,TL,molarConL,qL
+        if not list(pgrid):
+          return pL,TL,molarConL,qL
         else:
-            T1 = interp(pL,TL)
-            mc1 = interp(pL,molarConL)
-            q1 = interp(pL,qL)
-            T = Numeric.array([T1(pp) for pp in pgrid])
-            mc = Numeric.array([mc1(pp) for pp in pgrid])
-            q = Numeric.array([q1(pp) for pp in pgrid])
-            return Numeric.array(pgrid),T, mc, q
+          T1 = interp(pL,TL)
+          mc1 = interp(pL,molarConL)
+          q1 = interp(pL,qL)
+          T = numpy.array([T1(pp) for pp in pgrid])
+          mc = numpy.array([mc1(pp) for pp in pgrid])
+          q = numpy.array([q1(pp) for pp in pgrid])
+          return numpy.array(pgrid),T, mc, q
 
 
 

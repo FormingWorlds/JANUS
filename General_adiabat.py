@@ -231,6 +231,8 @@ def slope(lnP,T,params):
     xHe  = params.atm_chemistry_arrays['He'][-1]
     xNH3 = params.atm_chemistry_arrays['NH3'][-1]
     xd   = 1. - ( xH2O + xCO2 + xCH4 + xCO + xN2 + xO2 + xH2 + xHe + xNH3 )
+
+    # print(xd)
     
     # Molar heat capacity of the dry species
     cpd = cpv('N2') #1000.*phys.air.MolecularWeight*1.e-3 
@@ -356,7 +358,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
             if atm_chemistry[molecule] > 0.: # Tdew requires a non zero pressure
                 p_molecule = params.atm_chemistry_arrays[molecule][-1]*numpy.exp(lnP)
                 p_sat = esat(molecule,T)
-                print(molecule, index, params.index2, np.exp(lnP), T, Tdew(molecule,numpy.exp(lnP)))
+                # print(molecule, index, params.index2, np.exp(lnP), T, Tdew(molecule,numpy.exp(lnP)))
                 if T <= Tdew(molecule,numpy.exp(lnP)):
                     params.atm_chemistry_arrays[molecule][-1] = np.min([p_molecule,p_sat])/numpy.exp(lnP) 
 
@@ -377,36 +379,52 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule])     
         p_molecule = params.atm_chemistry_arrays[molecule][-1]*numpy.exp(lnP)
         p_sat = esat(molecule,T)
-        print(molecule, index, params.index2, np.exp(lnP), T, Tdew(molecule,numpy.exp(lnP)))
+        # print(molecule, index, params.index2, np.exp(lnP), T, Tdew(molecule,numpy.exp(lnP)))
         if T <= Tdew(molecule,numpy.exp(lnP)):
             params.atm_chemistry_arrays[molecule][-1] = np.min([p_molecule,p_sat])/numpy.exp(lnP) 
             params.index2 += 1 
                     
     moist_w_cond = numpy.array(moist_w_cond)          # Convert to numpy array. lnP accessed through moist_w_cond[:,0]
                                                       #                         T   accessed through moist_w_cond[:,1]                   
-    print(index, params.index2)                                                        
-    print(params.atm_chemistry_arrays['H2O'])
-    print(len(moist_w_cond[:,0]), len(params.atm_chemistry_arrays['H2O']))
-    print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i < 0.999))  # Number of condensed levels
-    print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i == 0.999)) # Number of non-condensed levels
+    # print(index, params.index2)                                                        
+    # print(params.atm_chemistry_arrays['H2O'])
+    # print(len(moist_w_cond[:,0]), len(params.atm_chemistry_arrays['H2O']))
+    # print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i < 0.999))  # Number of condensed levels
+    # print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i == 0.999)) # Number of non-condensed levels
         
     # Plot results
+
+
     
     # pressure array from the integral
     p_plot = numpy.exp(moist_w_cond[:,0]) # atm.p*1e-5 # bar
+
+
+    p_plot2 = np.logspace(-5,7,100)
+
+    # Calc Ray's moist adiabat
+    moist_ray  = phys.MoistAdiabat(phys.CO2,phys.N2)
+    p_H2O_surf = p_plot[0]*params.atm_chemistry_arrays["H2O"][0]
+    # p_noncondesible = atm.ps - p_H2O_surf
+    p_noncondesible = atm.ps*(1-atm_chemistry["H2O"])
+    print(p_noncondesible,p_H2O_surf,moist_w_cond[:,1][0])
+    p_ray2,T_ray2,molarCon2,massCon2 = moist_ray(p_noncondesible,atm.ts,np.min(p_plot2))
+    p_ray,T_ray,molarCon,massCon = moist_ray(p_noncondesible,atm.ts,np.min(p_plot2),p_plot2)
+    # print(p_ray,T_ray)
     
     Partial = False
-    
+
+
     if Partial == False: # Condensation curves for a one-species atmosphere       
-        TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in p_plot ]
-        TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in p_plot ]
-        TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in p_plot ]
-        TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in p_plot ]
-        TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in p_plot ]
-        TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in p_plot ]
-        TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in p_plot ]
-        TdewHe  = [ Tdew( 'He',  pressure ) for pressure in p_plot ]
-        TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in p_plot ]
+        TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in p_plot2 ]
+        TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in p_plot2 ]
+        TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in p_plot2 ]
+        TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in p_plot2 ]
+        TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in p_plot2 ]
+        TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in p_plot2 ]
+        TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in p_plot2 ]
+        TdewHe  = [ Tdew( 'He',  pressure ) for pressure in p_plot2 ]
+        TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in p_plot2 ]
     
     else:                # Condensation curves for a mixed atmosphere (0 if species not present)
         if max(numpy.array(params.atm_chemistry_arrays['H2O'])) != 0.:
@@ -459,70 +477,71 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     # if condensation == True:
     #     #print(moist_w_cond)
     
-    ax1.semilogy(moist_w_cond[:,1],p_plot,'b',lw=ls_adiabat,label=r'Moist adiabat')
+    # ax1.semilogy(moist_w_cond[:,1],p_plot,color="blue",lw=ls_adiabat,label=r'Moist adiabat')
+
+    ax1.semilogy(T_ray,p_ray,lw=ls_adiabat, color="blue", ls="--",label=r'p$_{non-cond.}$ = '+str(p_noncondesible)+' Pa')
+    ax1.semilogy(T_ray2,p_ray2,lw=ls_adiabat, color="blue", ls="-")
         
-    ax1.semilogy(TdewH2O,p_plot,label=r'H$_2$O', lw=ls_ind, ls="--")
-    ax1.semilogy(TdewCO2,p_plot,label=r'CO$_2$', lw=ls_ind, ls="--")
-    ax1.semilogy(TdewH2,p_plot, label=r'H$_2$',  lw=ls_ind, ls="--")
-    ax1.semilogy(TdewCH4,p_plot,label=r'CH$_4$', lw=ls_ind, ls="--")
-    ax1.semilogy(TdewCO,p_plot, label=r'CO',     lw=ls_ind, ls="--")
-    ax1.semilogy(TdewN2,p_plot, label=r'N$_2$',  lw=ls_ind, ls="--")
-    ax1.semilogy(TdewO2,p_plot, label=r'O$_2$',  lw=ls_ind, ls="--")
+    ax1.semilogy(TdewH2O,p_plot2,label=r'H$_2$O', lw=ls_ind, ls="--")
+    ax1.semilogy(TdewCO2,p_plot2,label=r'CO$_2$', lw=ls_ind, ls="--")
+    ax1.semilogy(TdewH2,p_plot2, label=r'H$_2$',  lw=ls_ind, ls="--")
+    ax1.semilogy(TdewCH4,p_plot2,label=r'CH$_4$', lw=ls_ind, ls="--")
+    ax1.semilogy(TdewCO,p_plot2, label=r'CO',     lw=ls_ind, ls="--")
+    ax1.semilogy(TdewN2,p_plot2, label=r'N$_2$',  lw=ls_ind, ls="--")
+    ax1.semilogy(TdewO2,p_plot2, label=r'O$_2$',  lw=ls_ind, ls="--")
     # ax1.semilogy(TdewHe,p_plot, label=r'He', lw=ls_ind, ls="--")
     # ax1.semilogy(TdewNH3,p_plot,label=r'NH$_3$', lw=ls_ind, ls="--")
     
     ax1.invert_yaxis()
     ax1.set_xlabel(r'Temperature $T$ (K)')
     ax1.set_ylabel(r'Total pressure $P$ (Pa)')
-    ax1.set_title('Individual moist adiabats')
+    ax1.set_title('Moist adiabats + individual Clausius-Clapeyron slopes')
     ax1.legend(ncol=1)
-    #ax1.set_xlim([0,np.max(atm.temp)])
-    ax1.set_ylim([np.max(p_plot),np.min(p_plot)])
-    # plt.show()
-    # plt.savefig('general_adiabat_TP.pdf', bbox_inches = 'tight')
+    ax1.set_xlim([0,np.max(atm.ts)])
+    # ax1.set_ylim([np.max(p_plot),np.min(p_plot)])
+    
+    # xplot_H2O = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['H2O']),p_plot,label=r'H$_2$O')
+    # xplot_CO2 = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['CO2']),p_plot,label=r'CO$_2$')
+    # xplot_H2  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['H2']),p_plot,label=r'H$_2$')
+    # xplot_CH4 = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['CH4']),p_plot,label=r'CH$_4$')
+    # xplot_CO  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['CO']),p_plot,label=r'CO')
+    # xplot_N2  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['N2']),p_plot,label=r'N$_2$')
+    # xplot_O2  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['O2']),p_plot,label=r'O$_2$')
 
-    # plt.figure(2)
-    
-    
-    xplot_H2O = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['H2O']),p_plot,label=r'H$_2$O')
-    xplot_CO2 = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['CO2']),p_plot,label=r'CO$_2$')
-    xplot_H2  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['H2']),p_plot,label=r'H$_2$')
-    xplot_CH4 = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['CH4']),p_plot,label=r'CH$_4$')
-    xplot_CO  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['CO']),p_plot,label=r'CO')
-    xplot_N2  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['N2']),p_plot,label=r'N$_2$')
-    xplot_O2  = ax2.semilogy(numpy.array(params.atm_chemistry_arrays['O2']),p_plot,label=r'O$_2$')
+    ax2.semilogy(molarCon,p_ray,lw=ls_adiabat, color="blue", ls="--")
+    ax2.semilogy(molarCon2,p_ray2,lw=ls_adiabat, color="blue", ls="-",label=r'Ray_molarCon')
     
     # Constant abundances w/o condensation as comparison
     
-    if condensation == True:
+    # if condensation == True:
     
-        if use_vulcan == 0:
-            const_abundances_H2O = np.ones(len(p_plot))*atm_chemistry["H2O"]
-            const_abundances_CO2 = np.ones(len(p_plot))*atm_chemistry["CO2"]
-            const_abundances_H2  = np.ones(len(p_plot))*atm_chemistry["H2"]
-            const_abundances_CH4 = np.ones(len(p_plot))*atm_chemistry["CH4"]
-            const_abundances_CO  = np.ones(len(p_plot))*atm_chemistry["CO"]
-            const_abundances_N2  = np.ones(len(p_plot))*atm_chemistry["N2"]
-            const_abundances_O2  = np.ones(len(p_plot))*atm_chemistry["O2"]
-            const_abundances_He  = np.ones(len(p_plot))*atm_chemistry["He"]
-            const_abundances_NH3 = np.ones(len(p_plot))*atm_chemistry["NH3"]
-        ax2.semilogy(const_abundances_H2O, p_plot, ls="--", color=xplot_H2O[0].get_color() )
-        ax2.semilogy(const_abundances_CO2, p_plot, ls="--", color=xplot_CO2[0].get_color() )
-        ax2.semilogy(const_abundances_H2,  p_plot, ls="--", color=xplot_H2[0].get_color() )
-        ax2.semilogy(const_abundances_CH4, p_plot, ls="--", color=xplot_CH4[0].get_color() )
-        ax2.semilogy(const_abundances_CO,  p_plot, ls="--", color=xplot_CO[0].get_color() )
-        ax2.semilogy(const_abundances_N2,  p_plot, ls="--", color=xplot_N2[0].get_color() )
-        ax2.semilogy(const_abundances_O2,  p_plot, ls="--", color=xplot_O2[0].get_color() )
+    if use_vulcan == 0:
+        const_abundances_H2O = np.ones(len(p_plot))*atm_chemistry["H2O"]
+        const_abundances_CO2 = np.ones(len(p_plot))*atm_chemistry["CO2"]
+        const_abundances_H2  = np.ones(len(p_plot))*atm_chemistry["H2"]
+        const_abundances_CH4 = np.ones(len(p_plot))*atm_chemistry["CH4"]
+        const_abundances_CO  = np.ones(len(p_plot))*atm_chemistry["CO"]
+        const_abundances_N2  = np.ones(len(p_plot))*atm_chemistry["N2"]
+        const_abundances_O2  = np.ones(len(p_plot))*atm_chemistry["O2"]
+        const_abundances_He  = np.ones(len(p_plot))*atm_chemistry["He"]
+        const_abundances_NH3 = np.ones(len(p_plot))*atm_chemistry["NH3"]
+    # ax2.semilogy(const_abundances_H2O, p_plot, ls="--", color=xplot_H2O[0].get_color() )
+    # ax2.semilogy(const_abundances_CO2, p_plot, ls="--", color=xplot_CO2[0].get_color() )
+    # ax2.semilogy(const_abundances_H2,  p_plot, ls="--", color=xplot_H2[0].get_color() )
+    # ax2.semilogy(const_abundances_CH4, p_plot, ls="--", color=xplot_CH4[0].get_color() )
+    # ax2.semilogy(const_abundances_CO,  p_plot, ls="--", color=xplot_CO[0].get_color() )
+    # ax2.semilogy(const_abundances_N2,  p_plot, ls="--", color=xplot_N2[0].get_color() )
+    # ax2.semilogy(const_abundances_O2,  p_plot, ls="--", color=xplot_O2[0].get_color() )
 
     # ax2.semilogy(xHe_array,p_plot,label=r'He')
     # ax2.semilogy(xNH3_array,p_plot,label=r'NH$_3$')
     ax2.invert_yaxis()
-    ax2.set_xlabel(r'Mixing ratio $X_{\mathrm{vol}}/X_{\mathrm{tot}}$')
+    ax2.set_xlabel(r'Molar concentration $X_{\mathrm{cond.}}/X_{\mathrm{non-cond.}}$')
     ax2.set_ylabel(r'Total pressure $P$ (bar)')
-    ax2.set_title('Relative abundances with condensation')
+    # ax2.set_title('Relative abundances with condensation')
     ax2.legend(ncol=1)
-    ax2.set_xlim(left=0, right=1.0)
-    ax2.set_ylim([np.max(p_plot),np.min(p_plot)])
+    # ax2.set_xlim(left=0, right=1.0)
+    # ax2.set_ylim([np.max(p_plot),np.min(p_plot)])
     # plt.show()
     plt.savefig('./output/general_adiabat.pdf', bbox_inches = 'tight')
     #plt.close(fig)
@@ -531,19 +550,19 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
 # Define init parameters if called standalone
 atm_chemistry  = { 
-                "H2O" : 0.7, 
+                "H2O" : 0.050, 
                 "NH3" : 0.0,
                 "CO2" : 0.0, 
                 "CH4" : 0.0,
                 "O2"  : 0.0,
                 "CO"  : 0.0,
-                "N2"  : 0.3, 
+                "N2"  : 0.0, 
                 "H2"  : 0.0,                        
                 "He"  : 0.0  
                 }
 atm            = atmos()
-atm.ts         = 470           # K
-atm.ps         = 1e+6          # Pa
+atm.ts         = 600           # K
+atm.ps         = 1e+5          # Pa
 atm.ptop       = atm.ps*1e-5   # Pa
 set_pressure_array(atm)
 atm.temp       = atm.ts*(atm.p/atm.p[0])**atm.Rcp
