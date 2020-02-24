@@ -227,17 +227,6 @@ def slope(lnP,T,params):
     if T < 13.95: 
         T = 13.95
     
-    for molecule in atm_chemistry:       
-        # Check condensation for each molecule 
-        if atm_chemistry[molecule] > 0.: # Tdew requires a non zero pressure
-            if T <= Tdew(molecule,params.atm_chemistry_arrays[molecule][-1]/numpy.exp(lnP)): 
-                params.atm_chemistry_arrays[molecule][-1] = esat(molecule,T)/numpy.exp(lnP)    # Replace the current abundance 
-                params.atm_chemistry_arrays[molecule].append(esat(molecule,T)/numpy.exp(lnP))  # Append another element for the next iteration
-                params.index2 += 1 
-            else:
-                params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule])
-                # If the molecule is not present, x_molecule = 0 
-    
     # Define individual abundances from the last abundance calculated
     xH2O = params.atm_chemistry_arrays['H2O'][-1]
     xCO2 = params.atm_chemistry_arrays['CO2'][-1]
@@ -347,7 +336,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     if use_vulcan == 0:
         params.atm_chemistry_arrays = {}
         for x in atm_chemistry:
-            params.atm_chemistry_arrays['%s' % x] = [atm_chemistry[x]] 
+            params.atm_chemistry_arrays['%s' % x] = [] 
             # initialized to replace the element corresponding to the current
             # integration step in the slope function
   
@@ -355,21 +344,43 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         
         # Solve ODE               
         moist_w_cond = []                                             # Initialize the solution
-        int_slope = integrator(slope,np.log(atm.ps),atm.temp[0],-.1)  # Create the integrator instance. Negative increment to go from ps to ptop < ps
+        int_slope = integrator(slope,np.log(atm.ps),atm.temp[0],-1)  # Create the integrator instance. Negative increment to go from ps to ptop < ps
         int_slope.setParams(params)                                   # Update parameters used in the slope function dT/dlnP
         index = 0         # To count the number of iterations
         params.index2 = 0 # To count the number of iterations in slope()
         while int_slope.x > np.log(atm.ptop):                         # Stop at p = ptop
+
+            if index > 1:
+                T   = moist_w_cond[-1][1]
+                lnP = moist_w_cond[-1][0]
+            else:
+                T   = atm.temp[0]
+                lnP = np.log(atm.ps) 
+
+            for molecule in atm_chemistry:  
+                params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule])     
+                # Check condensation for each molecule 
+                if atm_chemistry[molecule] > 0.: # Tdew requires a non zero pressure
+                    if T <= Tdew(molecule,params.atm_chemistry_arrays[molecule][-1]/numpy.exp(lnP)): 
+                        params.atm_chemistry_arrays[molecule][-1] = esat(molecule,T)/numpy.exp(lnP) 
+
+                    # print(molecule, T)
+                    params.index2 += 1 
+
             moist_w_cond.append(int_slope.next())                     # Execute the Runge-Kutta integrator, fill array of tuples
+
+            # print(moist_w_cond)
             
             #print(int_slope.x)
             index += 1
+
+            # print(index, params.index2)
                         
         moist_w_cond = numpy.array(moist_w_cond)          # Convert to numpy array. lnP accessed through moist_w_cond[:,0]
                                                           #                         T   accessed through moist_w_cond[:,1]                   
-        print(index)  
-        print(params.index2)                                                        
-        print(params.atm_chemistry_arrays['H2O']) 
+        print(index, params.index2)                                                        
+        print(params.atm_chemistry_arrays['H2O'])
+        print(len(moist_w_cond[:,0]), len(params.atm_chemistry_arrays['H2O']))
         print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i < 0.999))  # Number of condensed levels
         print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i == 0.999)) # Number of non-condensed levels
         
