@@ -645,11 +645,11 @@ class MoistAdiabat:
     def __call__(self,ps,Ts,ptop,pgrid=[]):
         #Initial conditions
         step = self.step  #Step size for integration
-        # ptop = self.ptop #Where to stop integratoin
+        # ptop = self.ptop #Where to stop integration
         #
         logpa = math.log(ps)
         logT = math.log(Ts)
-        ad = integrator(self.slope,logpa,logT,step )
+        ad = integrator(self.slope,logpa,logT,step)
         #Initialize lists to save results
         pL = [math.exp(logpa) + self.satvp(math.exp(logT))]
         molarConL = [self.satvp(math.exp(logT))/pL[0]]
