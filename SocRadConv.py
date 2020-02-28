@@ -34,9 +34,6 @@ AU        = 1.495978707e+11               # m
 def Tdew_H2O(p):
     return Tref/(1-(Tref*R/L)*math.log(p/pref))
 
-# Moist adjustment switch
-Moist_Adjustment = True
-
 # Number of dry adjustment steps
 Nsteps_dry = 5
 
@@ -54,7 +51,7 @@ def surf_Planck_nu(atm):
     B   = B * atm.band_widths/1000.0
     return B
 
-def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, atm_chemistry, loop_counter, SPIDER_options, standalone):
+def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, atm_chemistry, loop_counter, SPIDER_options, standalone, moist_adiabat):
 
     # Instantiate the radiation model
     atm = atmos()
@@ -141,7 +138,7 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     # matplotlib.rc('axes',edgecolor='k')
     for i in range(0,rad_steps):
 
-        atm, moist_wo_cond, moist_w_cond = steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan)
+        atm, moist_wo_cond, moist_w_cond = steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan, moist_adiabat)
 
         if i % 1 == 0:
 
@@ -149,22 +146,22 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
             sns.despine()
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
-            ax1.semilogy(atm.temp,atm.p*1e-5, ls="-", label=r'Dry adiabat')
+            ax1.semilogy(atm.temp,atm.p*1e-5, ls="-") # , label=r'Dry adiabat'
 
-            if Moist_Adjustment == True:
+            if moist_adiabat == True:
                 # ax1.semilogy(moist_wo_cond, atm.p*1e-5, color="green", ls="-", label=r'Moist adiabat, no cond.')
 
                 # ax1.semilogy(moist_w_cond, atm.p*1e-5, color="green", ls="--", label=r'Moist adiabat')
                 
                 # ax1.semilogy(Moist_adiabat_H2O, atm.p*1e-5, color="red", ls="-.", label=r'H$_2$O moist adiabat')
 
-                ax1.semilogy(TdewH2O, atm.p*1e-5, label=r'H$_2$O', lw=0.8, ls=":")
-                ax1.semilogy(TdewCO2, atm.p*1e-5, label=r'CO$_2$', lw=0.8, ls=":")
-                ax1.semilogy(TdewH2,  atm.p*1e-5, label=r'H$_2$',  lw=0.8, ls=":")
-                ax1.semilogy(TdewCH4, atm.p*1e-5, label=r'CH$_4$', lw=0.8, ls=":")
-                ax1.semilogy(TdewCO,  atm.p*1e-5, label=r'CO',     lw=0.8, ls=":")
-                ax1.semilogy(TdewN2,  atm.p*1e-5, label=r'N$_2$',  lw=0.8, ls=":")
-                ax1.semilogy(TdewO2,  atm.p*1e-5, label=r'O$_2$',  lw=0.8, ls=":")
+                ax1.semilogy(TdewH2O, atm.p*1e-5, label=r'H$_2$O', lw=0.8, ls=":", color="blue")
+                ax1.semilogy(TdewCO2, atm.p*1e-5, label=r'CO$_2$', lw=0.8, ls=":", color="green")
+                # ax1.semilogy(TdewH2,  atm.p*1e-5, label=r'H$_2$',  lw=0.8, ls=":")
+                # ax1.semilogy(TdewCH4, atm.p*1e-5, label=r'CH$_4$', lw=0.8, ls=":")
+                # ax1.semilogy(TdewCO,  atm.p*1e-5, label=r'CO',     lw=0.8, ls=":")
+                # ax1.semilogy(TdewN2,  atm.p*1e-5, label=r'N$_2$',  lw=0.8, ls=":")
+                # ax1.semilogy(TdewO2,  atm.p*1e-5, label=r'O$_2$',  lw=0.8, ls=":")
 
             ax1.invert_yaxis()
             ax1.set_xlabel('Temperature (K)')
@@ -175,10 +172,22 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
             ax1.legend()
             
             ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths)
-            ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,color="gray",ls='--',label='Black body ('+str(atm.ts)+" K)")
+            ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,color="gray",ls='--',label=str(atm.ts)+" K "+'black body')
             ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
-            ax2.set_ylabel('Spectral flux density (Jy?)')
+            ax2.set_ylabel('Spectral flux density')
             ax2.set_xlabel('Wavenumber (1/cm)')
+
+            # Wave length on top x-axis: http://bit.ly/2Pydvb0
+            def tick_function(wavenumber):
+                wavelength = [ 1e4*1./i for i in wavenumber ] # to micrometer
+                return ["%.3f" % z for z in wavelength]
+            ax2b = ax2.twiny()
+            new_tick_locations = [np.min(atm.band_centres), np.min(atm.band_centres)+0.25*(np.max(atm.band_centres)-np.min(atm.band_centres)), np.min(atm.band_centres)+0.5*(np.max(atm.band_centres)-np.min(atm.band_centres)), np.min(atm.band_centres)+0.75*(np.max(atm.band_centres)-np.min(atm.band_centres)), np.max(atm.band_centres)]
+            ax2b.set_xlim(ax2.get_xlim())
+            ax2b.set_xticks(new_tick_locations)
+            ax2b.set_xticklabels(tick_function(new_tick_locations))
+            ax2b.set_xlabel(r"Wave length ($\mu$m)")
+
             ax2.legend()
 
             plt.savefig(output_dir+'/TP_profile_'+str(round(time_current))+'.pdf', bbox_inches="tight")
@@ -250,28 +259,8 @@ def dryAdj(atm):
             atm.temp[i]   = T1
             atm.temp[i+1] = T2       
 
-# # Moist adjustment routine
-# def moistAdj(atm, atm_chemistry, use_vulcan):
-
-#     moist_adiabat = ga.solve_general_adiabat(atm, atm_chemistry, use_vulcan)
-        
-#     # moist_adiabat = ga.General_moist_adiabat(atm.ps,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3)
-
-#     # print(Tdew)
-
-#     # # Downward pass
-#     # for i in range(len(T)-1):
-#     #     if T[i] < Tdew(p[i]):
-#     #         T[i] = Tdew(p[i])   # Temperature stays the same during phase change
-#     # # Upward pass
-#     # for i in range(len(T)-2,-1,-1): 
-#     #     if T[i] < Tdew(p[i]):
-#     #         T[i] = Tdew(p[i])
-
-#     return moist_adiabat
-
 # Time integration for n steps
-def steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan):
+def steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan, moist_adiabat):
     atm     = SocRadModel.radCompSoc(atm, stellar_toa_heating)
     dT      = atm.total_heating*atm.dt
     
@@ -301,11 +290,11 @@ def steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan):
         dryAdj(atm)
 
     # Moist adjustment step
-    if Moist_Adjustment == True:
+    if moist_adiabat == True:
         moist_wo_cond, moist_w_cond = ga.solve_general_adiabat(copy.deepcopy(atm), atm_chemistry, use_vulcan, condensation=True)
         # print(moist_wo_cond, moist_w_cond)
     else:
-        moist_wo_cond, moist_w_cond = np.zeros(len(atm.temp))
+        moist_wo_cond, moist_w_cond = np.zeros(len(atm.temp)), np.zeros(len(atm.temp))
 
     Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
     
@@ -345,4 +334,4 @@ atm_chemistry = {
                     "NH3" : 0.0
                 }
 toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
-LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, [P_surf,T_surf], toa_heating, atm_chemistry, [], [], standalone=True)
+LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, [P_surf,T_surf], toa_heating, atm_chemistry, [], [], standalone=True, moist_adiabat=False)
