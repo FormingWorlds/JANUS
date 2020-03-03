@@ -477,7 +477,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
         # Pressure array for interpolation scheme
         # p_plot = np.logspace(-5,5,100)
-        p_plot = np.logspace(np.log(atm.ptop),np.log(atm.ps),100)
+        p_plot = np.exp(np.linspace(np.log(atm.ptop),np.log(atm.ps),100))
 
         # Execute Ray's function
         if mode == "original":
@@ -488,6 +488,9 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
             # print("p_noncondensible: ", p_noncondensible)
             p_ray,T_ray,molarCon,massCon = moist_ray(p_noncondensible,atm.ts,np.min(p_plot))
             p_ray_interp,T_ray_interp,molarCon_interp,massCon_interp = moist_ray(p_noncondensible,atm.ts,np.min(p_plot),p_plot)
+            print(p_ray)
+            print(p_plot)
+            #print(molarCon_interp)
             # p_ray_interp is a copy of p_plot
             # print(p_ray_interp)
             # print(T_ray_interp)
