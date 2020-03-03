@@ -331,7 +331,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
-    for mode in [ "original", "hybrid", "ray1", "ray2" ]:
+    for mode in [ "original", "hybrid", "ray1" ]:
 
         params = Dummy() # initialize parameter object  
     
@@ -364,8 +364,9 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
                         #print(params.atm_chemistry_arrays[molecule])
                         if int_slope.y <= Tdew(molecule,numpy.exp(int_slope.x)): # Check condensation for each molecule
                             # If int_slope.y < Tdew, how can numpy.exp(int_slope.x) < p_sat?
-                            #params.atm_chemistry_arrays[molecule][-1] = np.min([p_molecule,p_sat])/numpy.exp(int_slope.x) # min to avoid p_sat > p_molecule       
-                            params.atm_chemistry_arrays[molecule][-1] = p_sat/numpy.exp(int_slope.x)
+                            params.atm_chemistry_arrays[molecule][-1] = np.min([p_molecule,p_sat])/numpy.exp(int_slope.x) # min to avoid p_sat > p_molecule       
+                            # params.atm_chemistry_arrays[molecule][-1] = p_sat/numpy.exp(int_slope.x)
+
                         #print(int_slope.y,Tdew(molecule,numpy.exp(int_slope.x)))
                         #print(numpy.exp(int_slope.x),params.atm_chemistry_arrays[molecule][-1],p_molecule,p_sat)
                             
@@ -473,24 +474,29 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         abundance_arrayO2  = numpy.array(params.atm_chemistry_arrays['O2'])
         abundance_arrayH2  = numpy.array(params.atm_chemistry_arrays['H2'])
         abundance_arrayHe  = numpy.array(params.atm_chemistry_arrays['He'])
+        # print(len(pL), len(TL), len(abundance_arrayH2O))
+        print(abundance_arrayH2O)
         
         # print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i < 0.999))  # Number of condensed levels
         # print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i == 0.999)) # Number of non-condensed levels
             
         # ------------------------------------ Plotting -------------------------------------
 
-        # pressure array from the integral
-        p_int = numpy.exp(moist_w_cond[:,0]) # atm.p*1e-5 # bar
-        # pressure array for plotting
-        p_plot = np.logspace(-5,5,100)
+        # # pressure array from the integral
+        # p_int = numpy.exp(moist_w_cond[:,0]) # atm.p*1e-5 # bar
+        # # pressure array for plotting
+
+        # Pressure array for interpolation scheme
+        # p_plot = np.logspace(-5,5,100)
+        p_plot = np.logspace(np.log(atm.ptop),np.log(atm.ps),100)
 
         # Execute Ray's function
         if mode == "original":
             # Compute Ray's moist adiabat (valid for a single condensible gas)
             moist_ray  = phys.MoistAdiabat(phys.H2O,phys.N2)
             p_noncondensible = atm.ps*(1.-atm_chemistry["H2O"])
-            print(atm.ts, esat('H2O',atm.ts))
-            print("p_noncondensible: ", p_noncondensible)
+            # print(atm.ts, esat('H2O',atm.ts))
+            # print("p_noncondensible: ", p_noncondensible)
             p_ray,T_ray,molarCon,massCon = moist_ray(p_noncondensible,atm.ts,np.min(p_plot))
             p_ray_interp,T_ray_interp,molarCon_interp,massCon_interp = moist_ray(p_noncondensible,atm.ts,np.min(p_plot),p_plot)
             # p_ray_interp is a copy of p_plot
@@ -500,6 +506,10 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
             # print(massCon_interp)
             # print(p_noncondensible)
             #print([esat('H2O',T_ray_interp[i])/p_ray_interp[i] for i in range(len(p_ray_interp))])
+
+            # Plot Ray's H2O moist adiabat function
+            ax1.semilogy(T_ray_interp,p_plot,lw=ls_adiabat, color="gray", ls="--",label=r'p$_{non-cond.}$ = '+"{:.2f}".format(p_noncondensible)+' Pa')
+            ax2.semilogy(molarCon_interp,p_plot,lw=ls_adiabat, color="gray", ls="--",label=r"Ray's function")
         
         
         # Interpolate the integrated adiabat to p_plot?
@@ -518,16 +528,19 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
             abundance_arrayH21  = interp(pL,abundance_arrayH2)
             abundance_arrayHe1  = interp(pL,abundance_arrayHe)
             
-            T_interp                  = numpy.array([T1(pp) for pp in p_plot])
-            abundance_arrayH2O_interp = numpy.array([abundance_arrayH2O1(pp) for pp in p_plot])
-            abundance_arrayNH3_interp = numpy.array([abundance_arrayNH31(pp) for pp in p_plot])
-            abundance_arrayCO2_interp = numpy.array([abundance_arrayCO21(pp) for pp in p_plot])
-            abundance_arrayCH4_interp = numpy.array([abundance_arrayCH41(pp) for pp in p_plot])
-            abundance_arrayCO_interp  = numpy.array([abundance_arrayCO1(pp) for pp in p_plot])
-            abundance_arrayN2_interp  = numpy.array([abundance_arrayN21(pp) for pp in p_plot])
-            abundance_arrayO2_interp  = numpy.array([abundance_arrayO21(pp) for pp in p_plot])
-            abundance_arrayH2_interp  = numpy.array([abundance_arrayH21(pp) for pp in p_plot])
-            abundance_arrayHe_interp  = numpy.array([abundance_arrayHe1(pp) for pp in p_plot])
+            T_interp                  = numpy.array([T1(pp) for pp in pL])
+            abundance_arrayH2O_interp = numpy.array([abundance_arrayH2O1(pp) for pp in pL])
+            abundance_arrayNH3_interp = numpy.array([abundance_arrayNH31(pp) for pp in pL])
+            abundance_arrayCO2_interp = numpy.array([abundance_arrayCO21(pp) for pp in pL])
+            abundance_arrayCH4_interp = numpy.array([abundance_arrayCH41(pp) for pp in pL])
+            abundance_arrayCO_interp  = numpy.array([abundance_arrayCO1(pp) for pp in pL])
+            abundance_arrayN2_interp  = numpy.array([abundance_arrayN21(pp) for pp in pL])
+            abundance_arrayO2_interp  = numpy.array([abundance_arrayO21(pp) for pp in pL])
+            abundance_arrayH2_interp  = numpy.array([abundance_arrayH21(pp) for pp in pL])
+            abundance_arrayHe_interp  = numpy.array([abundance_arrayHe1(pp) for pp in pL])
+
+            pL = p_plot
+
             
             #print([esat('H2O',T_interp[i])/p_plot[i] for i in range(len(p_plot))])
             #print([esat('H2O',T_interp[i])/p_plot[i] for i in range(len(p_plot))])
@@ -540,53 +553,53 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         Partial = False
 
         if Partial == False: # Condensation curves for a one-species atmosphere       
-            TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in p_plot ]
-            TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in p_plot ]
-            TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in p_plot ]
-            TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in p_plot ]
-            TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in p_plot ]
-            TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in p_plot ]
-            TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in p_plot ]
-            TdewHe  = [ Tdew( 'He',  pressure ) for pressure in p_plot ]
-            TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in p_plot ]
+            TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in pL ]
+            TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in pL ]
+            TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in pL ]
+            TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in pL ]
+            TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in pL ]
+            TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in pL ]
+            TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in pL ]
+            TdewHe  = [ Tdew( 'He',  pressure ) for pressure in pL ]
+            TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in pL ]
         
         else:                # Condensation curves for a mixed atmosphere (0 if species not present)
             if max(numpy.array(params.atm_chemistry_arrays['H2O'])) != 0.:
-                TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2O'])/p_int ]
+                TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2O'])/pL ]
             else:
-                TdewH2O = numpy.zeros(len(p_int))
+                TdewH2O = numpy.zeros(len(pL))
             if max(numpy.array(params.atm_chemistry_arrays['CO2'])) != 0.:
-                TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2'])/p_int ]
+                TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2'])/pL ]
             else:
-                TdewCO2 = numpy.zeros(len(p_int))
+                TdewCO2 = numpy.zeros(len(pL))
             if max(numpy.array(params.atm_chemistry_arrays['CH4'])) != 0.:
-                TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4'])/p_int ]
+                TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4'])/pL ]
             else:
-                TdewCH4 = numpy.zeros(len(p_int))
+                TdewCH4 = numpy.zeros(len(pL))
             if max(numpy.array(params.atm_chemistry_arrays['CO'])) != 0.:
-                TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])/p_int ]
+                TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])/pL ]
             else:
-                TdewCO = numpy.zeros(len(p_int))
+                TdewCO = numpy.zeros(len(pL))
             if max(numpy.array(params.atm_chemistry_arrays['N2'])) != 0.:
-                TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])/p_int ]
+                TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])/pL ]
             else:
-                TdewN2 = numpy.zeros(len(p_int))
+                TdewN2 = numpy.zeros(len(pL))
             if max(numpy.array(params.atm_chemistry_arrays['O2'])) != 0.:
-                TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])/p_int ]
+                TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])/pL ]
             else:
-                TdewO2 = numpy.zeros(len(p_int))
+                TdewO2 = numpy.zeros(len(pL))
             if  max(numpy.array(params.atm_chemistry_arrays['H2'])) != 0.:
-                TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])/p_int ]
+                TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])/pL ]
             else:
-                TdewH2 = numpy.zeros(len(p_int))
+                TdewH2 = numpy.zeros(len(pL))
             if max(numpy.array(params.atm_chemistry_arrays['He'])) != 0.:
-                TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])/p_int ]
+                TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])/pL ]
             else:
-                TdewHe = numpy.zeros(len(p_int))
+                TdewHe = numpy.zeros(len(pL))
             if max(numpy.array(params.atm_chemistry_arrays['NH3'])) != 0.:
-                TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3'])/p_int ]
+                TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3'])/pL ]
             else:
-                TdewNH3 = numpy.zeros(len(p_int))
+                TdewNH3 = numpy.zeros(len(pL))
         
 
         #ax1.semilogy(moist_w_cond[:,1],p_plot,color="red",lw=ls_adiabat,label=r'Moist adiabat')
@@ -601,17 +614,13 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
             color = "red"
         label = mode
             
-        # Plot Ray's H2O moist adiabat function
-        if mode == "original":
-            ax1.semilogy(T_ray_interp,p_plot,lw=ls_adiabat, color="gray", ls="--",label=r'p$_{non-cond.}$ = '+"{:.2f}".format(p_noncondensible)+' Pa')
-            ax2.semilogy(molarCon_interp,p_plot,lw=ls_adiabat, color="gray", ls="--",label=r"Ray's function")
             
             #ax1.semilogy(T_ray,p_ray,lw=ls_adiabat, color="blue", ls="-")
 
         if mode == "original":
-            ax1.semilogy(atm.ts*(p_plot/atm.ps)**(2./7.),p_plot,color='black', ls="--",lw=ls_adiabat,label=r'Dry adiabat')
+            ax1.semilogy(atm.ts*(pL/atm.ps)**(2./7.),pL,color='black', ls="--",lw=ls_adiabat,label=r'Dry adiabat')
             
-            ax1.semilogy(TdewH2O,p_plot,label=r'H$_2$O', lw=ls_ind, ls=":", color="gray")
+            ax1.semilogy(TdewH2O,pL,label=r'H$_2$O', lw=ls_ind, ls=":", color="gray")
             # ax1.semilogy(TdewCO2,p_plot,label=r'CO$_2$', lw=ls_ind, ls="--")
             # ax1.semilogy(TdewH2,p_plot, label=r'H$_2$',  lw=ls_ind, ls="--")
             # ax1.semilogy(TdewCH4,p_plot,label=r'CH$_4$', lw=ls_ind, ls="--")
@@ -623,25 +632,25 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
         alpha=0.0
         if Interpolate:
-            xplot_H2O = ax2.semilogy(abundance_arrayH2O_interp,p_plot,label=mode+r': H$_2$O', color=color)
-            xplot_CO2 = ax2.semilogy(abundance_arrayCO2_interp,p_plot, alpha=alpha)#,label=r'CO$_2$', alpha=alpha)
-            xplot_H2  = ax2.semilogy(abundance_arrayH2_interp,p_plot, alpha=alpha)#,label=r'H$_2$', alpha=alpha)
-            xplot_CH4 = ax2.semilogy(abundance_arrayCH4_interp,p_plot, alpha=alpha)#,label=r'CH$_4$', alpha=alpha)
-            xplot_CO  = ax2.semilogy(abundance_arrayCO_interp,p_plot, alpha=alpha)#,label=r'CO', alpha=alpha)
-            xplot_N2  = ax2.semilogy(abundance_arrayN2_interp,p_plot, alpha=alpha)#,label=r'N$_2$', alpha=alpha)
-            xplot_O2  = ax2.semilogy(abundance_arrayO2_interp,p_plot, alpha=alpha)#,label=r'O$_2$', alpha=alpha)
+            xplot_H2O = ax2.semilogy(abundance_arrayH2O_interp,pL,label=mode+r': H$_2$O', color=color)
+            xplot_CO2 = ax2.semilogy(abundance_arrayCO2_interp,pL, alpha=alpha)#,label=r'CO$_2$', alpha=alpha)
+            xplot_H2  = ax2.semilogy(abundance_arrayH2_interp,pL, alpha=alpha)#,label=r'H$_2$', alpha=alpha)
+            xplot_CH4 = ax2.semilogy(abundance_arrayCH4_interp,pL, alpha=alpha)#,label=r'CH$_4$', alpha=alpha)
+            xplot_CO  = ax2.semilogy(abundance_arrayCO_interp,pL, alpha=alpha)#,label=r'CO', alpha=alpha)
+            xplot_N2  = ax2.semilogy(abundance_arrayN2_interp,pL, alpha=alpha)#,label=r'N$_2$', alpha=alpha)
+            xplot_O2  = ax2.semilogy(abundance_arrayO2_interp,pL, alpha=alpha)#,label=r'O$_2$', alpha=alpha)
         else:
-            xplot_H2O = ax2.semilogy(abundance_arrayH2O,p_int,label=mode+r': H$_2$O', color=color)
-            xplot_CO2 = ax2.semilogy(abundance_arrayCO2,p_int, alpha=alpha)#,label=r'CO$_2$', alpha=alpha)#
-            xplot_H2  = ax2.semilogy(abundance_arrayH2,p_int, alpha=alpha)#,label=r'H$_2$', alpha=alpha)
-            xplot_CH4 = ax2.semilogy(abundance_arrayCH4,p_int, alpha=alpha)#,label=r'CH$_4$', alpha=alpha)
-            xplot_CO  = ax2.semilogy(abundance_arrayCO,p_int, alpha=alpha)#,label=r'CO', alpha=alpha)
-            xplot_N2  = ax2.semilogy(abundance_arrayN2,p_int, alpha=alpha)#,label=r'N$_2$', alpha=alpha)
-            xplot_O2  = ax2.semilogy(abundance_arrayO2,p_int, alpha=alpha)#,label=r'O$_2$', alpha=alpha)
+            xplot_H2O = ax2.semilogy(abundance_arrayH2O,pL,label=mode+r': H$_2$O', color=color)
+            xplot_CO2 = ax2.semilogy(abundance_arrayCO2,pL, alpha=alpha)#,label=r'CO$_2$', alpha=alpha)#
+            xplot_H2  = ax2.semilogy(abundance_arrayH2,pL, alpha=alpha)#,label=r'H$_2$', alpha=alpha)
+            xplot_CH4 = ax2.semilogy(abundance_arrayCH4,pL, alpha=alpha)#,label=r'CH$_4$', alpha=alpha)
+            xplot_CO  = ax2.semilogy(abundance_arrayCO,pL, alpha=alpha)#,label=r'CO', alpha=alpha)
+            xplot_N2  = ax2.semilogy(abundance_arrayN2,pL, alpha=alpha)#,label=r'N$_2$', alpha=alpha)
+            xplot_O2  = ax2.semilogy(abundance_arrayO2,pL, alpha=alpha)#,label=r'O$_2$', alpha=alpha)
 
         # Calculated moist adiabat
         if Interpolate:
-            ax1.semilogy(T_interp,p_plot,color=color,lw=ls_adiabat,label=label) # interpolated
+            ax1.semilogy(T_interp,pL,color=color,lw=ls_adiabat,label=label) # interpolated
         else:
             ax1.semilogy(TL,pL,color=color,lw=ls_adiabat,label=label) # non-interpolated
 
@@ -688,7 +697,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     ax2.set_ylabel(r'Total pressure $P$ (Pa)')
     # ax2.set_title('Relative abundances with condensation')
     ax2.legend(ncol=1)
-    # ax2.set_xlim(left=0, right=1.0)
+    ax2.set_xlim(left=-0.05, right=1.05)
     ax2.set_ylim([1e5,1e-5])
     ax1.set_ylim([1e5,1e-5])
     # plt.show()
@@ -699,7 +708,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
 # Define init parameters if called standalone
 atm_chemistry  = { 
-                "H2O" : 0.9999, 
+                "H2O" : 0.1, 
                 "NH3" : 0.0,
                 "CO2" : 0.0, 
                 "CH4" : 0.0,
@@ -712,7 +721,7 @@ atm_chemistry  = {
 atm            = atmos()
 atm.ts         = 380.           # K
 atm.ps         = 1e+5          # Pa
-atm.ptop       = atm.ps*1e-5   # Pa
+atm.ptop       = atm.ps*1e-10   # Pa
 set_pressure_array(atm)
 atm.temp       = atm.ts*(atm.p/atm.p[0])**atm.Rcp
 use_vulcan     = 0
