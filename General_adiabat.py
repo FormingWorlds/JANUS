@@ -347,6 +347,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         # --------------------------------- Initialisations ---------------------------------          
         moist_w_cond = [] #[tuple([np.log(atm.ps), atm.ts])]     # Initialize the tuple solution
         pL = []                                                  # Initialize the final pressure array
+        psatL = []
         TL = []                                                  # Initialize the final temperature array
         step = -.1                                               # Negative increment to go from ps to ptop < ps
         int_slope = integrator(slope,np.log(atm.ps),np.log(atm.ts),step) # Create the integrator instance.
@@ -436,12 +437,14 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
                 T = math.exp(ans[1])
                 p = pa+esat('H2O',T)
                 pL.append(p)
+                psatL.append(esat('H2O',T))
                 for molecule in atm_chemistry:
                     if atm_chemistry[molecule] > 0.:    
                         #params.atm_chemistry_arrays[molecule].append(esat('H2O',T)/p)
-                        params.atm_chemistry_arrays[molecule][-1] = esat(molecule,numpy.exp(int_slopeRay.y))/numpy.exp(int_slopeRay.x)
+                        params.atm_chemistry_arrays[molecule][-1] = esat(molecule,T)/p            
                 TL.append(T) 
                 index += 1
+
             # print(len(params.atm_chemistry_arrays['H2O']))
         # """
         
@@ -703,7 +706,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
 # Define init parameters if called standalone
 atm_chemistry  = { 
-                "H2O" : 0.1, 
+                "H2O" : 0.9999, 
                 "NH3" : 0.0,
                 "CO2" : 0.0, 
                 "CH4" : 0.0,
@@ -714,7 +717,7 @@ atm_chemistry  = {
                 "He"  : 0.0  
                 }
 atm            = atmos()
-atm.ts         = 380.           # K
+atm.ts         = 500.           # K
 atm.ps         = 1e+5          # Pa
 atm.ptop       = atm.ps*1e-10   # Pa
 set_pressure_array(atm)
