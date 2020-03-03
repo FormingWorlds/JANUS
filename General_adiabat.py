@@ -90,6 +90,10 @@ def C(switch,p):
 
 def Tdew(switch,p): 
     """Dew point temperature [K] given a pressure p [Pa]. Select the molecule of interest with the switch argument (a string)."""
+
+    # Avoid math error for p = 0
+    p = np.max([p, 1e-100])
+
     if switch == 'H2O':
         Tref = 373.15 # K, boiling point of H2O at 1 atm 
         pref = 1e5 # esat('H2O',Tref) returns 121806.3 Pa, should return 1e5       
@@ -441,24 +445,6 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
             # print(len(params.atm_chemistry_arrays['H2O']))
         # """
         
-        # -------------------------------- Integration with Ray's slope -------------------------------
-        # """
-        if mode == "ray2":
-            # print(params.atm_chemistry_arrays['H2O'])
-            while int_slopeRay.x > atm.ptop:                   
-                ans = int_slopeRay.next()
-                moist_w_cond.append(int_slopeRay.next())
-                pa = math.exp(ans[0])
-                T = math.exp(ans[1])
-                #p = pa+satvp(T)
-                p = pa+esat('H2O',T)
-                pL.append(p)
-                for molecule in atm_chemistry:
-                    #params.atm_chemistry_arrays[molecule].append(satvp(T)/p)
-                    params.atm_chemistry_arrays[molecule].append(esat('H2O',T)/p)
-                TL.append(T)    
-            # print(params.atm_chemistry_arrays['H2O'])
-       # """
         # Convert to numpy array. 
         moist_w_cond = numpy.array(moist_w_cond) # lnP accessed through moist_w_cond[:,0]
                                                  # T   accessed through moist_w_cond[:,1] 
@@ -475,7 +461,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         abundance_arrayH2  = numpy.array(params.atm_chemistry_arrays['H2'])
         abundance_arrayHe  = numpy.array(params.atm_chemistry_arrays['He'])
         # print(len(pL), len(TL), len(abundance_arrayH2O))
-        print(abundance_arrayH2O)
+        # print(abundance_arrayH2O)
         
         # print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i < 0.999))  # Number of condensed levels
         # print(sum(1 for i in params.atm_chemistry_arrays['H2O'] if i == 0.999)) # Number of non-condensed levels
@@ -552,66 +538,75 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         
         Partial = False
 
-        if Partial == False: # Condensation curves for a one-species atmosphere       
-            TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in pL ]
-            TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in pL ]
-            TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in pL ]
-            TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in pL ]
-            TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in pL ]
-            TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in pL ]
-            TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in pL ]
-            TdewHe  = [ Tdew( 'He',  pressure ) for pressure in pL ]
-            TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in pL ]
+        # if Partial == False: # Condensation curves for a one-species atmosphere       
+        #     TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in pL ]
+        #     TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in pL ]
+        #     TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in pL ]
+        #     TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in pL ]
+        #     TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in pL ]
+        #     TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in pL ]
+        #     TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in pL ]
+        #     TdewHe  = [ Tdew( 'He',  pressure ) for pressure in pL ]
+        #     TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in pL ]
         
-        else:                # Condensation curves for a mixed atmosphere (0 if species not present)
-            if max(numpy.array(params.atm_chemistry_arrays['H2O'])) != 0.:
-                TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2O'])/pL ]
-            else:
-                TdewH2O = numpy.zeros(len(pL))
-            if max(numpy.array(params.atm_chemistry_arrays['CO2'])) != 0.:
-                TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2'])/pL ]
-            else:
-                TdewCO2 = numpy.zeros(len(pL))
-            if max(numpy.array(params.atm_chemistry_arrays['CH4'])) != 0.:
-                TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4'])/pL ]
-            else:
-                TdewCH4 = numpy.zeros(len(pL))
-            if max(numpy.array(params.atm_chemistry_arrays['CO'])) != 0.:
-                TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])/pL ]
-            else:
-                TdewCO = numpy.zeros(len(pL))
-            if max(numpy.array(params.atm_chemistry_arrays['N2'])) != 0.:
-                TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])/pL ]
-            else:
-                TdewN2 = numpy.zeros(len(pL))
-            if max(numpy.array(params.atm_chemistry_arrays['O2'])) != 0.:
-                TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])/pL ]
-            else:
-                TdewO2 = numpy.zeros(len(pL))
-            if  max(numpy.array(params.atm_chemistry_arrays['H2'])) != 0.:
-                TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])/pL ]
-            else:
-                TdewH2 = numpy.zeros(len(pL))
-            if max(numpy.array(params.atm_chemistry_arrays['He'])) != 0.:
-                TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])/pL ]
-            else:
-                TdewHe = numpy.zeros(len(pL))
-            if max(numpy.array(params.atm_chemistry_arrays['NH3'])) != 0.:
-                TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3'])/pL ]
-            else:
-                TdewNH3 = numpy.zeros(len(pL))
+        # else:                # Condensation curves for a mixed atmosphere (0 if species not present)
+
+        # if max(numpy.array(params.atm_chemistry_arrays['H2O'])) != 0.:
+
+        TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2O']) * pL ]
+        TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2']) * pL ]
+        TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4']) * pL ]
+        TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])  * pL ]
+        TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])  * pL ]
+        TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])  * pL ]
+        TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])  * pL ]
+        TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])  * pL ]
+        TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3']) * pL ]
+
+        # # else:
+        # #     TdewH2O = numpy.zeros(len(pL))
+        # if max(numpy.array(params.atm_chemistry_arrays['CO2'])) != 0.:
+        #     TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2'])*pL ]
+        # else:
+        #     TdewCO2 = numpy.zeros(len(pL))
+        # if max(numpy.array(params.atm_chemistry_arrays['CH4'])) != 0.:
+        #     TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4'])*pL ]
+        # else:
+        #     TdewCH4 = numpy.zeros(len(pL))
+        # if max(numpy.array(params.atm_chemistry_arrays['CO'])) != 0.:
+        #     TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])*pL ]
+        # else:
+        #     TdewCO = numpy.zeros(len(pL))
+        # if max(numpy.array(params.atm_chemistry_arrays['N2'])) != 0.:
+        #     TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])*pL ]
+        # else:
+        #     TdewN2 = numpy.zeros(len(pL))
+        # if max(numpy.array(params.atm_chemistry_arrays['O2'])) != 0.:
+        #     TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])*pL ]
+        # else:
+        #     TdewO2 = numpy.zeros(len(pL))
+        # if  max(numpy.array(params.atm_chemistry_arrays['H2'])) != 0.:
+        #     TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])*pL ]
+        # else:
+        #     TdewH2 = numpy.zeros(len(pL))
+        # if max(numpy.array(params.atm_chemistry_arrays['He'])) != 0.:
+        #     TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])*pL ]
+        # else:
+        #     TdewHe = numpy.zeros(len(pL))
+        # if max(numpy.array(params.atm_chemistry_arrays['NH3'])) != 0.:
+        #     TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3'])*pL ]
+        # else:
+        #     TdewNH3 = numpy.zeros(len(pL))
         
 
         #ax1.semilogy(moist_w_cond[:,1],p_plot,color="red",lw=ls_adiabat,label=r'Moist adiabat')
 
         if mode ==  "original":
-            color = "magenta"
+            color = "red"
         if mode ==  "hybrid":
-            color = "orange"
+            color = "blue"
         if mode ==  "ray1":
             color = "green"
-        if mode ==  "ray2":
-            color = "red"
         label = mode
             
             
