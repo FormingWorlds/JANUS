@@ -437,13 +437,13 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
                         params.atm_chemistry_arrays[molecule][-1] = esat(molecule,numpy.exp(int_slopeRay.y))/numpy.exp(int_slopeRay.x)
                 TL.append(T) 
                 index += 1
-            print(len(params.atm_chemistry_arrays['H2O']))
+            # print(len(params.atm_chemistry_arrays['H2O']))
         # """
         
         # -------------------------------- Integration with Ray's slope -------------------------------
         # """
         if mode == "ray2":
-            print(params.atm_chemistry_arrays['H2O'])
+            # print(params.atm_chemistry_arrays['H2O'])
             while int_slopeRay.x > atm.ptop:                   
                 ans = int_slopeRay.next()
                 moist_w_cond.append(int_slopeRay.next())
@@ -456,7 +456,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
                     #params.atm_chemistry_arrays[molecule].append(satvp(T)/p)
                     params.atm_chemistry_arrays[molecule].append(esat('H2O',T)/p)
                 TL.append(T)    
-            print(params.atm_chemistry_arrays['H2O'])
+            # print(params.atm_chemistry_arrays['H2O'])
        # """
         # Convert to numpy array. 
         moist_w_cond = numpy.array(moist_w_cond) # lnP accessed through moist_w_cond[:,0]
@@ -484,14 +484,21 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         # pressure array for plotting
         p_plot = np.logspace(-5,5,100)
 
+        # Execute Ray's function
         if mode == "original":
             # Compute Ray's moist adiabat (valid for a single condensible gas)
             moist_ray  = phys.MoistAdiabat(phys.H2O,phys.N2)
             p_noncondensible = atm.ps*(1.-atm_chemistry["H2O"])
+            print(atm.ts, esat('H2O',atm.ts))
+            print("p_noncondensible: ", p_noncondensible)
             p_ray,T_ray,molarCon,massCon = moist_ray(p_noncondensible,atm.ts,np.min(p_plot))
             p_ray_interp,T_ray_interp,molarCon_interp,massCon_interp = moist_ray(p_noncondensible,atm.ts,np.min(p_plot),p_plot)
             # p_ray_interp is a copy of p_plot
-            #print(p_ray_interp,molarCon_interp)
+            # print(p_ray_interp)
+            # print(T_ray_interp)
+            # print(molarCon_interp)
+            # print(massCon_interp)
+            # print(p_noncondensible)
             #print([esat('H2O',T_ray_interp[i])/p_ray_interp[i] for i in range(len(p_ray_interp))])
         
         
@@ -594,9 +601,11 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
             color = "red"
         label = mode
             
-        
+        # Plot Ray's H2O moist adiabat function
         if mode == "original":
             ax1.semilogy(T_ray_interp,p_plot,lw=ls_adiabat, color="gray", ls="--",label=r'p$_{non-cond.}$ = '+"{:.2f}".format(p_noncondensible)+' Pa')
+            ax2.semilogy(molarCon_interp,p_plot,lw=ls_adiabat, color="gray", ls="--",label=r"Ray's function")
+            
             #ax1.semilogy(T_ray,p_ray,lw=ls_adiabat, color="blue", ls="-")
 
         if mode == "original":
