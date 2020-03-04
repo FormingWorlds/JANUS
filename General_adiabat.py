@@ -301,6 +301,8 @@ def slope(lnP,lnT,params):
     denom     = (1./R_universal) * (xd*cpd+xv_cpv) / (xd+sum_abundances) + \
                 (first_term + quadr_term) / (1.+sum_ratio_abundances)
     
+    params.general_cp = (xd*cpd + xv_cpv) / (xd + sum_abundances)
+    
     return num/denom  
 
 def slopeRay(logpa,logT):
@@ -316,6 +318,7 @@ def slopeRay(logpa,logT):
     num = (1. + (L/(Ra*T))*qsat)*Ra
     den = cpa + (cpc + (L/(Rc*T) - 1.)*(L/T))*qsat
     return num/den
+
 
 def set_pressure_array(atm):
     rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
@@ -349,6 +352,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         moist_w_cond = [] #[tuple([np.log(atm.ps), atm.ts])]     # Initialize the tuple solution
         pL = []                                                  # Initialize the final pressure array
         psatL = []
+        Rcp = []                                                 # Initialize the exponent of the dry adiabat
         TL = []                                                  # Initialize the final temperature array
         step = -.1                                               # Negative increment to go from ps to ptop < ps
         int_slope = integrator(slope,np.log(atm.ps),np.log(atm.ts),step) # Create the integrator instance.
@@ -369,7 +373,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         """ Original attempt """
         if mode == "original":
             while Pressure > atm.ptop:                    # Start at ln(ps), stop at ln(ptop)
-              
+                
                 for molecule in atm_chemistry:                       # Loop on the molecules 
                     params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule]) # Abundance at p[0]                 
                     if atm_chemistry[molecule] > 0.:                                      # Tdew requires a non zero pressure
@@ -390,6 +394,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
                 logP = int_slope.x
                 Temperature = np.exp(logT)
                 Pressure = np.exp(logP)
+                Rcp.append(R_universal/params.general_cp)
 
 
                 index += 1
@@ -637,34 +642,8 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
         if mode == "original":
 
-
-            #Plot dry adiabat
-
-            params.atm_chemistry_arrays['dry']   = 1. - ( xH2O + xCO2 + xCH4 + xCO + xN2 + xO2 + xH2 + xHe + xNH3 )
-
-            # Molar heat capacity of the dry species
-            cpd = phys.air.cp*phys.air.MolecularWeight*1.e-3 #cpv('N2')
-
-            # Avoid division by zero if atmosphere consists of condensibles only
-            xd = np.max([xd,1e-8])
-                                 
-            xv_cpv = xH2O * cpv('H2O') + \
-                     xCO2 * cpv('CO2') + \
-                     xCH4 * cpv('CH4') + \
-                     xCO  * cpv('CO' ) + \
-                     xN2  * cpv('N2' ) + \
-                     xO2  * cpv('O2' ) + \
-                     xH2  * cpv('H2' ) + \
-                     xHe  * cpv('He' ) + \
-                     xNH3 * cpv('NH3')
-
-            sum_abundances = xH2O + xCO2 + xCH4 + xCO + xN2 + xO2 + xH2 + xHe + xNH3
-
-            cp_dry = (xd*cpd + xv_cpv) / (xd + sum_abundances)
-
-            dry_adiabat_exponent = R_universal / cp_dry
-
-            ax1.semilogy(atm.ts*(pL/atm.ps)**(dry_adiabat_exponent),pL,color='black', ls="--",lw=ls_adiabat,label=r'Dry adiabat')
+            ax1.semilogy(atm.ts*(pL/atm.ps)**Rcp,pL,color='black', ls="--",lw=ls_adiabat,label=r'Dry adiabat')
+            print(Rcp)
             
             ax1.semilogy(TdewH2O,pL,label=r'H$_2$O', lw=ls_ind, ls=":", color="gray")
             # ax1.semilogy(TdewCO2,p_plot,label=r'CO$_2$', lw=ls_ind, ls="--")
