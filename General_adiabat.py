@@ -19,6 +19,55 @@ import matplotlib.pyplot as plt
 from atmosphere_column import atmos
 import seaborn as sns
 
+# Color definitions
+vol_colors = {
+    "black_1" : "#000000",
+    "black_2" : "#323232",
+    "black_3" : "#7f7f7f",
+    "H2O_1"   : "#8db4cb",
+    "H2O_2"   : "#4283A9",
+    "H2O_3"   : "#274e65",
+    "CO2_1"   : "#811111",
+    "CO2_2"   : "#B91919",
+    "CO2_3"   : "#ce5e5e",
+    "H2_1"    : "#a0d2cb",
+    "H2_2"    : "#62B4A9",
+    "H2_3"    : "#3a6c65",
+    "CH4_1"   : "#eb9194",
+    "CH4_2"   : "#E6767A",
+    "CH4_3"   : "#b85e61",
+    "CO_1"    : "#eab597",
+    "CO_2"    : "#DD8452",
+    "CO_3"    : "#844f31",
+    "N2_1"    : "#c29fb2",
+    "N2_2"    : "#9A607F",
+    "N2_3"    : "#4d303f",  
+    "S_1"     : "#f1ca70",
+    "S_2"     : "#EBB434",
+    "S_3"     : "#a47d24",    
+    "O2_1"    : "#57ccda",
+    "O2_2"    : "#2EC0D1",
+    "O2_3"    : "#2499a7",
+    "He_1"    : "#acbbbf",
+    "He_2"    : "#768E95",
+    "He_3"    : "#465559"
+}
+
+# Volatile Latex names
+vol_latex = {
+    "H2O"   : r"H$_2$O",
+    "CO2"   : r"CO$_2$",
+    "H2"    : r"H$_2$" ,
+    "CH4"   : r"CH$_4$",
+    "CO"    : r"CO" ,
+    "N2"    : r"N$_2$" ,
+    "S"     : r"S"  ,
+    "O2"    : r"O$_2$" ,
+    "He"    : r"He" ,
+    "NH3"   : r"NH$_3$"
+}
+
+
 #--------- Importing thermodynamical properties of gases -----------
 
 R_universal = 8.31446261815324 # Universal gas constant, J.K-1.mol-1, should probably go elsewhere since it's a constant    
@@ -85,117 +134,106 @@ def C(switch,p):
     
     
     #return (B(p)/(A(p)-numpy.log10(p/pref)))-C(p)
-"""    
-    
+"""  
 
-def Tdew(switch,p): 
-    """Dew point temperature [K] given a pressure p [Pa]. Select the molecule of interest with the switch argument (a string)."""
-
-    # Avoid math error for p = 0
-    p = np.max([p, 1e-100])
+## Molar latent heat [J mol-1] for gas phase considered given a temperature T [K]. 
+## Select the molecule of interest with the switch argument (a string).
+def L_heat( switch, T ):
 
     if switch == 'H2O':
-        Tref = 373.15 # K, boiling point of H2O at 1 atm 
-        pref = 1e5 # esat('H2O',Tref) returns 121806.3 Pa, should return 1e5       
-        L_H2O=phys.water.L_vaporization*phys.water.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_H2O)*math.log(p/pref))
-        #return (B(p)/(A(p)-numpy.log10(p/pref)))-C(p)
+        L_sublimation   = phys.H2O.L_sublimation
+        L_vaporization  = phys.H2O.L_vaporization
+        MolecularWeight = phys.H2O.MolecularWeight
+        T_triple        = phys.H2O.TriplePointT
+        T_crit          = phys.H2O.CriticalPointT
+    
     if switch == 'CH4':
-        Tref = 148.15 # K, arbitrary point (148.15K,esat(148.15K)=9.66bar) on the L/G coexistence curve of methane 
-        pref = esat('CH4',Tref)
-        L_CH4=phys.CH4.L_vaporization*phys.methane.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_CH4)*math.log(p/pref))
+        L_sublimation   = phys.CH4.L_sublimation
+        L_vaporization  = phys.CH4.L_vaporization
+        MolecularWeight = phys.CH4.MolecularWeight
+        T_triple        = phys.CH4.TriplePointT
+        T_crit          = phys.CH4.CriticalPointT
+        
     if switch == 'CO2':
-        Tref = 253. # K, arbitrary point (253K,esat(253K)=20.9bar) on the coexistence curve of CO2 
-        pref = esat('CO2',Tref)
-        L_CO2=phys.CO2.L_vaporization*phys.co2.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_CO2)*math.log(p/pref))
-    if switch == 'CO':
-        Tref = 100. # K, arbitrary point (100K,esat(100K)=4.6bar) on the coexistence curve of CO 
-        pref = esat('CO',Tref)
-        L_CO=phys.CO.L_vaporization*phys.co.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_CO)*math.log(p/pref))
-    if switch == 'N2':
-        Tref = 98.15 # K, arbitrary point (98.15K,esat(98.15K)=7.9bar) on the coexistence curve of N2 
-        pref = esat('N2',Tref)
-        L_N2=phys.N2.L_vaporization*phys.n2.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_N2)*math.log(p/pref))
-    if switch == 'O2':
-        Tref = 123.15 # K, arbitrary point (123.15K,esat(123.15K)=21.9bar) on the coexistence curve of O2 
-        pref = esat('O2',Tref)
-        L_O2=phys.O2.L_vaporization*phys.o2.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_O2)*math.log(p/pref))
-    if switch == 'H2':
-        Tref = 23.15 # K, arbitrary point (23.15K,esat(23.15K)=1.7bar) on the coexistence curve of H2 
-        pref = esat('H2',Tref)
-        L_H2=phys.H2.L_vaporization*phys.h2.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_H2)*math.log(p/pref))
-    if switch == 'He':
-        Tref = 4.22 # K, boiling point of He at 1 atm 
-        pref = 1e5 # esat('He',Tref) returns 45196 Pa, should return 1e5
-        L_He=phys.He.L_vaporization*phys.he.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_He)*math.log(p/pref))
-    if switch == 'NH3':
-        Tref = 273.15 # K, arbitrary point (273.15K,esat(273.15K)=8.6bar) on the coexistence curve of NH3 
-        pref = esat('NH3',Tref)
-        L_NH3=phys.NH3.L_vaporization*phys.nh3.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_NH3)*math.log(p/pref))
-
-def L_heat(switch,T): 
-    """Molar latent heat [J mol-1] for gases considered given a temperature T [K]. Select the molecule of interest with the switch argument (a string)."""
-    if switch == 'H2O':
-        if T<=Tdew('H2O',esat('H2O',T)):
-            return phys.water.L_vaporization*phys.water.MolecularWeight*1e-3 # Conversion from J.kg-1 to J.mol-1 (molecular weight is in g/mol in phys.f90)
-        else:
-            return 0. # Without condensation, neglect the L terms
-    
-    if switch == 'CH4':
-        if T<=Tdew('CH4',esat('CH4',T)):
-            return phys.CH4.L_vaporization*phys.methane.MolecularWeight*1e-3
-        else:
-            return 0.
-        
-    if switch == 'CO2':        
-        if T<=Tdew('CO2',esat('CO2',T)):
-            return phys.CO2.L_vaporization*phys.co2.MolecularWeight*1e-3
-        else:
-            return 0.
+        L_sublimation   = phys.CO2.L_sublimation
+        L_vaporization  = phys.CO2.L_vaporization
+        MolecularWeight = phys.CO2.MolecularWeight
+        T_triple        = phys.CO2.TriplePointT
+        T_crit          = phys.CO2.CriticalPointT
         
     if switch == 'CO':
-        if T<=Tdew('CO',esat('CO',T)):
-            return phys.CO.L_vaporization*phys.co.MolecularWeight*1e-3
-        else:
-            return 0.
+        L_sublimation   = phys.CO.L_sublimation
+        L_vaporization  = phys.CO.L_vaporization
+        MolecularWeight = phys.CO.MolecularWeight
+        T_triple        = phys.CO.TriplePointT
+        T_crit          = phys.CO.CriticalPointT
             
     if switch == 'N2':
-        if T<=Tdew('N2',esat('N2',T)):
-            return phys.N2.L_vaporization*phys.n2.MolecularWeight*1e-3
-        else:
-            return 0.
+        L_sublimation   = phys.N2.L_sublimation
+        L_vaporization  = phys.N2.L_vaporization
+        MolecularWeight = phys.N2.MolecularWeight
+        T_triple        = phys.N2.TriplePointT
+        T_crit          = phys.N2.CriticalPointT
         
     if switch == 'O2':
-        if T<=Tdew('O2',esat('O2',T)):
-            return phys.O2.L_vaporization*phys.o2.MolecularWeight*1e-3
-        else:
-            return 0.
+        L_sublimation   = phys.O2.L_sublimation
+        L_vaporization  = phys.O2.L_vaporization
+        MolecularWeight = phys.O2.MolecularWeight
+        T_triple        = phys.O2.TriplePointT
+        T_crit          = phys.O2.CriticalPointT
     
     if switch == 'H2':
-        if T<=Tdew('H2',esat('H2',T)):
-            return phys.H2.L_vaporization*phys.h2.MolecularWeight*1e-3
-        else:
-            return 0.
-    
+        L_sublimation   = phys.H2.L_vaporization # No H2 sublimation
+        L_vaporization  = phys.H2.L_vaporization
+        MolecularWeight = phys.H2.MolecularWeight
+        T_triple        = phys.H2.TriplePointT
+        T_crit          = phys.H2.CriticalPointT
+        
     if switch == 'He':
-        if T<=Tdew('He',esat('He',T)):
-            return phys.He.L_vaporization*phys.he.MolecularWeight*1e-3
-        else:
-            return 0.
+        L_sublimation   = phys.He.L_vaporization  # No He sublimation
+        L_vaporization  = phys.He.L_vaporization
+        MolecularWeight = phys.He.MolecularWeight
+        T_triple        = phys.He.TriplePointT
+        T_crit          = phys.He.CriticalPointT
         
     if switch == 'NH3':
-        if T<=Tdew('He',esat('He',T)):
-            return phys.NH3.L_vaporization*phys.nh3.MolecularWeight*1e-3
-        else:
-            return 0.
+        L_sublimation   = phys.NH3.L_sublimation
+        L_vaporization  = phys.NH3.L_vaporization
+        MolecularWeight = phys.NH3.MolecularWeight
+        T_triple        = phys.NH3.TriplePointT
+        T_crit          = phys.NH3.CriticalPointT
+
+
+
+    # Gas-solid transition
+    if T <= T_triple:
+        # Conversion from J.kg-1 to J.mol-1 (molecular weight is in g/mol in phys.f90)
+        L_heat = L_sublimation*MolecularWeight*1e-3 
+    # Gas-liquid transition
+    elif T <= T_crit:
+        L_heat = L_vaporization*MolecularWeight*1e-3 
+    # Super-critical state
+    else:
+        # Numerical issus with 0.
+        L_heat = 1e-30
+
+    print(switch, T, T_triple, T_crit, L_heat)
+
+    return L_heat  
+    
+## Dew point temperature [K] array for given pressure array [Pa] and surface T [K]. 
+## Select the molecule of interest with the switch argument (a string)
+def Tdew(switch, prs, T_surf, L_use): 
+
+    # Calculate dew-point for each pressure
+    T_dew = T_surf / ( 1. - ( T_surf * R_universal / L_use ) * np.log( prs / np.max(prs) ) )
+
+    # Re-calc with correct L_heat
+    for idx, T in enumerate(T_dew):
+        L_use = L_heat( switch, T )
+        T_dew[idx] = T_surf / ( 1. - ( T_surf * R_universal / L_use ) * np.log( prs[idx] / np.max(prs) ) )
+
+    return T_dew
     
 def cpv(switch): 
     """Molar heat capacities [J.K-1.mol-1]. Select the molecule of interest with the switch argument (a string)."""
@@ -381,10 +419,11 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
                         p_sat = esat(molecule,Temperature)
                         #print(molecule,p_molecule,p_sat,params.atm_chemistry_arrays[molecule][-1])
                         #print(params.atm_chemistry_arrays[molecule])
-                        if Temperature <= Tdew(molecule,Pressure): # Check condensation for each molecule
-                            # If int_slope.y < Tdew, how can numpy.exp(int_slope.x) < p_sat?
-                            params.atm_chemistry_arrays[molecule][-1] = np.min([p_molecule,p_sat])/Pressure # min to avoid p_sat > p_molecule       
-                            # params.atm_chemistry_arrays[molecule][-1] = p_sat/Pressure
+                        # if Temperature <= Tdew(molecule,Pressure,atm.ts): # Check condensation for each molecule
+                        
+                        # If int_slope.y < Tdew, how can numpy.exp(int_slope.x) < p_sat?
+                        params.atm_chemistry_arrays[molecule][-1] = np.min([p_molecule,p_sat])/Pressure # min to avoid p_sat > p_molecule       
+                        # params.atm_chemistry_arrays[molecule][-1] = p_sat/Pressure
                             
                 moist_w_cond.append(int_slope.next()) # Execute the Runge-Kutta integrator, fill array of tuples
                 pL.append(numpy.exp(int_slope.x))
@@ -399,9 +438,9 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
                 index += 1
 
-            print(atm.ps, atm.ts)
-            print(esat('H2O',atm.ts), np.max(params.atm_chemistry_arrays['H2O'])*np.max(pL))
-            print(np.max(pL), np.max(TL))
+            # print(atm.ps, atm.ts)
+            # print(esat('H2O',atm.ts), np.max(params.atm_chemistry_arrays['H2O'])*np.max(pL))
+            # print(np.max(pL), np.max(TL))
 
         
         
@@ -555,77 +594,12 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
             pL = p_plot
 
-            
-            #print([esat('H2O',T_interp[i])/p_plot[i] for i in range(len(p_plot))])
-            #print([esat('H2O',T_interp[i])/p_plot[i] for i in range(len(p_plot))])
-        #else:
-            #print([esat('H2O',TL[i])/pL[i] for i in range(len(pL))])
-            #print("T_interp[-1] = ", T_interp[-1])
-            #pL=numpy.flip(pL)
-            #p_int = p_plot
-        
-        Partial = False
 
-        # if Partial == False: # Condensation curves for a one-species atmosphere       
-        #     TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in pL ]
-        #     TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in pL ]
-        #     TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in pL ]
-        #     TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in pL ]
-        #     TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in pL ]
-        #     TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in pL ]
-        #     TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in pL ]
-        #     TdewHe  = [ Tdew( 'He',  pressure ) for pressure in pL ]
-        #     TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in pL ]
-        
-        # else:                # Condensation curves for a mixed atmosphere (0 if species not present)
-
-        # if max(numpy.array(params.atm_chemistry_arrays['H2O'])) != 0.:
-
-        TdewH2O = [ Tdew( 'H2O', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2O']) * pL ]
-        TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2']) * pL ]
-        TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4']) * pL ]
-        TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])  * pL ]
-        TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])  * pL ]
-        TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])  * pL ]
-        TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])  * pL ]
-        TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])  * pL ]
-        TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3']) * pL ]
-
-        # # else:
-        # #     TdewH2O = numpy.zeros(len(pL))
-        # if max(numpy.array(params.atm_chemistry_arrays['CO2'])) != 0.:
-        #     TdewCO2 = [ Tdew( 'CO2', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO2'])*pL ]
-        # else:
-        #     TdewCO2 = numpy.zeros(len(pL))
-        # if max(numpy.array(params.atm_chemistry_arrays['CH4'])) != 0.:
-        #     TdewCH4 = [ Tdew( 'CH4', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CH4'])*pL ]
-        # else:
-        #     TdewCH4 = numpy.zeros(len(pL))
-        # if max(numpy.array(params.atm_chemistry_arrays['CO'])) != 0.:
-        #     TdewCO  = [ Tdew( 'CO',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['CO'])*pL ]
-        # else:
-        #     TdewCO = numpy.zeros(len(pL))
-        # if max(numpy.array(params.atm_chemistry_arrays['N2'])) != 0.:
-        #     TdewN2  = [ Tdew( 'N2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['N2'])*pL ]
-        # else:
-        #     TdewN2 = numpy.zeros(len(pL))
-        # if max(numpy.array(params.atm_chemistry_arrays['O2'])) != 0.:
-        #     TdewO2  = [ Tdew( 'O2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['O2'])*pL ]
-        # else:
-        #     TdewO2 = numpy.zeros(len(pL))
-        # if  max(numpy.array(params.atm_chemistry_arrays['H2'])) != 0.:
-        #     TdewH2  = [ Tdew( 'H2',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['H2'])*pL ]
-        # else:
-        #     TdewH2 = numpy.zeros(len(pL))
-        # if max(numpy.array(params.atm_chemistry_arrays['He'])) != 0.:
-        #     TdewHe  = [ Tdew( 'He',  pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['He'])*pL ]
-        # else:
-        #     TdewHe = numpy.zeros(len(pL))
-        # if max(numpy.array(params.atm_chemistry_arrays['NH3'])) != 0.:
-        #     TdewNH3 = [ Tdew( 'NH3', pressure ) for pressure in numpy.array(params.atm_chemistry_arrays['NH3'])*pL ]
-        # else:
-        #     TdewNH3 = numpy.zeros(len(pL))
-        
+        # Plot single-species dew points
+        for vol in [ 'H2O' ]:
+            L_use = L_heat( vol, atm.ts )
+            Tdew_array = Tdew( vol, pL, atm.ts, L_use )
+            ax1.semilogy( Tdew_array, pL, label=vol_latex[vol]+' dew-point', lw=ls_ind, ls=":", color=vol_colors[vol+"_1"])
 
         #ax1.semilogy(moist_w_cond[:,1],p_plot,color="red",lw=ls_adiabat,label=r'Moist adiabat')
 
@@ -643,19 +617,10 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
         if mode == "original":
 
             ax1.semilogy(atm.ts*(pL/atm.ps)**Rcp,pL,color='black', ls="--",lw=ls_adiabat,label=r'Dry adiabat')
-            print(Rcp)
+            # print(Rcp)
             
-            ax1.semilogy(TdewH2O,pL,label=r'H$_2$O', lw=ls_ind, ls=":", color="gray")
-            # ax1.semilogy(TdewCO2,p_plot,label=r'CO$_2$', lw=ls_ind, ls="--")
-            # ax1.semilogy(TdewH2,p_plot, label=r'H$_2$',  lw=ls_ind, ls="--")
-            # ax1.semilogy(TdewCH4,p_plot,label=r'CH$_4$', lw=ls_ind, ls="--")
-            # ax1.semilogy(TdewCO,p_plot, label=r'CO',     lw=ls_ind, ls="--")
-            # ax1.semilogy(TdewN2,p_plot, label=r'N$_2$',  lw=ls_ind, ls="--")
-            # ax1.semilogy(TdewO2,p_plot, label=r'O$_2$',  lw=ls_ind, ls="--")
-            # ax1.semilogy(TdewHe,p_plot, label=r'He', lw=ls_ind, ls="--")
-            # ax1.semilogy(TdewNH3,p_plot,label=r'NH$_3$', lw=ls_ind, ls="--")  
-
         alpha=0.0
+        
         if Interpolate:
             xplot_H2O = ax2.semilogy(abundance_arrayH2O_interp,pL,label=mode+r': H$_2$O', color=color)
             xplot_CO2 = ax2.semilogy(abundance_arrayCO2_interp,pL, alpha=alpha)#,label=r'CO$_2$', alpha=alpha)
@@ -675,9 +640,9 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
         # Calculated moist adiabat
         if Interpolate:
-            ax1.semilogy(T_interp,pL,color=color,lw=ls_adiabat,label=label) # interpolated
+            ax1.semilogy(T_interp,pL,color=color,lw=ls_adiabat,label="Moist adiabat",alpha=0.) # interpolated
         else:
-            ax1.semilogy(TL,pL,color=color,lw=ls_adiabat,label=label) # non-interpolated
+            ax1.semilogy(TL,pL,color=color,lw=ls_adiabat,label="Moist adiabat",alpha=0.) # non-interpolated
 
         #ax2.semilogy(molarCon_interp,p_plot,lw=ls_adiabat, color="blue", ls="--")
         #ax2.semilogy(molarCon,p_ray,lw=ls_adiabat, color="blue", ls="-",label=r'Ray_molarCon')
@@ -711,7 +676,8 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     ax1.set_ylabel(r'Total pressure $P$ (Pa)')
     ax1.set_title('Adiabats + individual Clausius-Clapeyron slopes')
     ax1.legend(ncol=1)
-    ax1.set_xlim([0,np.max(atm.ts)])
+    # ax1.set_xlim([0,np.max(atm.ts)])
+    # ax1.set_ylim([1e5,1e-5])
     # ax1.set_ylim([np.max(p_plot),np.min(p_plot)])
 
     # ax2.semilogy(xHe_array,p_plot,label=r'He')
@@ -724,7 +690,7 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
     ax2.legend(ncol=1)
     ax2.set_xlim(left=-0.05, right=1.05)
     ax2.set_ylim([1e5,1e-5])
-    ax1.set_ylim([1e5,1e-5])
+    
     # plt.show()
     plt.savefig('./output/general_adiabat.pdf', bbox_inches = 'tight')
     #plt.close(fig)
