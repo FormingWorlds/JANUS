@@ -67,6 +67,7 @@ vol_latex = {
     "NH3"   : r"NH$_3$"
 }
 
+vol_list = [ "H2O", "CO2", "H2", "CH4", "CO", "N2", "S", "O2", "He", "NH3" ]
 
 #--------- Importing thermodynamical properties of gases -----------
 
@@ -375,7 +376,7 @@ def dry_adiabat( T_surf, p_array, Rcp ):
 
     return T_p
                         
-def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
+def moist_adiabat(atm):
     """Builds the generalized moist adiabat from slope(lnP,T,params) and plots the adiabat along with the relative abundances."""   
 
     sns.set_style("ticks")
@@ -390,51 +391,95 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
     params = Dummy() # initialize parameter object  
 
-    if use_vulcan == 0:
-        params.atm_chemistry_arrays = {}
-        for x in atm_chemistry:
-            params.atm_chemistry_arrays['%s' % x] = [] 
+    # print(params)
+
+    # params.atm_chemistry_arrays = {}
+    # for x in atm_chemistry:
+    #     params.atm_chemistry_arrays['%s' % x] = [] 
           
     # Initialization
-    moist_w_cond = [] #[tuple([np.log(atm.ps), atm.ts])]     # Initialize the tuple solution
-    pL = []                                                  # Initialize the final pressure array
-    psatL = []
-    Rcp = []                                                 # Initialize the exponent of the dry adiabat
-    TL = []                                                  # Initialize the final temperature array
-    step = -.1                                               # Negative increment to go from ps to ptop < ps
-    int_slope = integrator(slope,np.log(atm.ps),np.log(atm.ts),step) # Create the integrator instance.
-    int_slopeRay = integrator(slopeRay,np.log(atm.ps),np.log(atm.ts),step)
-    int_slope.setParams(params)                              # Update parameters used in the slope function dT/dlnP
-    index = 0    
 
+     # Initialize the tuple solution
+    moist_w_cond    = [] #[tuple([np.log(atm.ps), atm.ts])] 
 
-    logT = int_slope.y
-    logP = int_slope.x
-    Temperature = np.exp(logT)
-    Pressure = np.exp(logP)
+    # Initialize the final pressure array   
+    pL              = []                                                  
+    psatL           = []
+
+    # Initialize the exponent of the dry adiabat
+    Rcp             = []    
+
+    # Initialize the final temperature array                                             
+    TL              = []
+   
+    # Negative increment to go from ps to ptop < ps       
+    step            = -.1
+
+    # Start volatile partial pressures
+    for vol in atm.p_vol.keys():
+
+        # Consider if condensation occurs
+        # Only for condensible gases
+        if vol != atm.vol_dry:
+
+            # Starting partial pressure
+            p_vol_current  = atm.p_vol[vol]
+
+            # Saturation vapor pressure
+            p_vol_sat      = p_sat(vol, atm.ts)
+
+            # Condensation if p_vol_current > p_sat
+            atm.p_vol[vol] = np.min([p_vol_current, p_vol_sat])
+
+    # Recalc surface pressure
+    atm.ps = np.sum(1.-sum(atm.p_vol.values()))
+
+    # Calculate condensation-consistent mixing ratios
+    for vol in atm.p_vol.keys():
+
+        # Reset mixing ratio
+        params.x_vol[vol]  = atm.p_vol[vol] / atm.ps
+
+    # Create the integrator instance.                                               
+    int_slope       = integrator(slope, np.log(atm.ps), np.log(atm.ts), step)
+    int_slopeRay    = integrator(slopeRay, np.log(atm.ps), np.log(atm.ts), step)
+
+    # Update parameters used in the slope function dT/dlnP
+    int_slope.setParams(params)
+
+    index           = 0    
+
+    logT            = int_slope.y
+    logP            = int_slope.x
+    Temperature     = np.exp(logT)
+    Pressure        = np.exp(logP)
   
-    # ----------------------------------- Integration -----------------------------------
-    while Pressure > atm.ptop:                    # Start at ln(ps), stop at ln(ptop)
+    ##### Integration
+    while Pressure > atm.ptop:
         
-        # Loop on the molecules 
-        for molecule in atm_chemistry:                       
-            params.atm_chemistry_arrays[molecule].append(atm_chemistry[molecule]) 
+        # Loop on the volatiles 
+        for vol in atm_chemistry:                       
+            
+            # Initialize volatile from original abundance
+            params.atm_chemistry_arrays[vol].append(atm_chemistry[vol]) 
 
-            # Abundance at p[0]                 
-            if atm_chemistry[molecule] > 0.:
+            # Original partial pressure
+            p_vol = params.atm_chemistry_arrays[vol][-1]*Pressure
 
-                # Tdew requires a non zero pressure
-                p_molecule = params.atm_chemistry_arrays[molecule][-1]*Pressure
+            # Saturation vapor pressure for current level
+            p_vol_sat  = p_sat(vol,Temperature)
 
-                # Reset partial pressures to saturation vapor pressure
-                # H2 is background dry gas, assumed to not condense
-                if molecule != "H2":
-                    params.atm_chemistry_arrays[molecule][-1] = np.min([p_molecule,p_sat(molecule,Temperature)])/Pressure
-                    
+            # Reset partial pressures to saturation vapor pressure
+            # H2 is background dry gas, assumed to not condense
+            if vol != "H2":
+                params.atm_chemistry_arrays[vol][-1] = np.min([p_vol,p_vol_sat])/Pressure
 
-                # If int_slope.y < Tdew, how can numpy.exp(int_slope.x) < p_sat?
-                 # min to avoid p_sat > p_molecule       
-                # params.atm_chemistry_arrays[molecule][-1] = p_sat/Pressure
+            # if vol != "H2":
+                
+
+            # If int_slope.y < Tdew, how can numpy.exp(int_slope.x) < p_sat?
+             # min to avoid p_sat > p_molecule       
+            # params.atm_chemistry_arrays[vol][-1] = p_sat/Pressure
         
         # Execute the Runge-Kutta integrator, fill array of tuples
         moist_w_cond.append(int_slope.next()) 
@@ -621,31 +666,45 @@ def solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation):
 
     return moist_w_cond   
 
-# Define init parameters if called standalone
-atm_chemistry  = { 
-                    "H2O" : 0.5, 
-                    "NH3" : 0.0,
-                    "CO2" : 0.0, 
-                    "CH4" : 0.0,
-                    "O2"  : 0.0,
-                    "CO"  : 0.0,
-                    "N2"  : 0.0,             
-                    "He"  : 0.0  
-                 }
 
-# Define 'dry' non-condensible gas as H2
-atm_chemistry["H2"] = np.sum(1.-sum(atm_chemistry.values()))
+### Initial conditions if called stand-alone
 
-print(atm_chemistry)
-
-# Other initial conditions
+# Create atmosphere object
 atm            = atmos()
+
+# Surface temperature of planet
 atm.ts         = 600.           # K
+
+# Surface pressure
 atm.ps         = 1e+5           # Pa
+
+# Top pressure
 atm.ptop       = atm.ps*1e-10   # Pa
-set_pressure_array(atm)
+
+# Instantiate pressure array
+atm            = set_pressure_array(atm)
+
+# Initialize temperature profile on dry adiabat with 'Earth air'
 atm.temp       = atm.ts*(atm.p/atm.p[0])**atm.Rcp
-use_vulcan     = 0
-condensation   = True
-moist_w_cond   = solve_general_adiabat(atm, atm_chemistry, use_vulcan, condensation)
+
+# Initial mixing ratios
+atm.x_vol["H2O"] = 0.5
+atm.x_vol["NH3"] = 0.0
+atm.x_vol["CO2"] = 0.0
+atm.x_vol["CH4"] = 0.0
+atm.x_vol["O2"]  = 0.0
+atm.x_vol["CO"]  = 0.0
+atm.x_vol["N2"]  = 0.0
+atm.x_vol["He"]  = 0.0
+
+# Define 'dry' non-condensible background gas as H2
+atm.vol_dry      = "H2"
+atm.x_vol[atm.vol_dry]  = np.sum(1.-sum(atm.x_vol.values()))
+
+# Define partial pressures
+for vol in vol_list:
+    atm.p_vol[vol] = atm.ps * atm.x_vol[vol]
+
+# Execut moist adiabat function
+moist_w_cond     = moist_adiabat(atm)
 
