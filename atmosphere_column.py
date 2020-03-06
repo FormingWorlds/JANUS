@@ -32,13 +32,15 @@ class atmos:
 		self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500)))
 		self.band_centres 	= (self.bands[1:] + self.bands[:-1]) / 2
 		self.band_widths 	= np.diff(self.bands)
+		self.p_vol 			= {}
+		self.vol_dry        = "H2"
 
 	class atmos_fluxes:
 		'''
 		Fluxes class
 		'''
 		def __init__(self,nlev):
-			self.nlev_flux = nlev
-			self.LW_flux_up = np.zeros(nlev)
-			self.LW_spectral_flux_up = np.zeros([n_bands,nlev])
-			self.total_heating = np.zeros(nlev)
+			self.nlev_flux 				= nlev
+			self.LW_flux_up 			= np.zeros(nlev)
+			self.LW_spectral_flux_up 	= np.zeros([n_bands,nlev])
+			self.total_heating 			= np.zeros(nlev)
