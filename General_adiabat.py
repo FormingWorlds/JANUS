@@ -67,8 +67,6 @@ vol_latex = {
     "NH3"   : r"NH$_3$"
 }
 
-vol_list = [ "H2O", "CO2", "H2", "CH4", "CO", "N2", "S", "O2", "He", "NH3" ]
-
 #--------- Importing thermodynamical properties of gases -----------
 
 R_universal = 8.31446261815324 # Universal gas constant, J.K-1.mol-1, should probably go elsewhere since it's a constant    
@@ -361,13 +359,17 @@ def slopeRay(logpa,logT):
     den = cpa + (cpc + (L/(Rc*T) - 1.)*(L/T))*qsat
     return num/den
 
-
+# Define pressure levels
 def set_pressure_array(atm):
+   
+    atm.p     = np.ones(atm.nlev)
+    atm.pl    = np.ones(atm.nlev+1)
     rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
     logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
     levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
     atm.pl    = np.array(logLevels)
     atm.p     = (atm.pl[1:] + atm.pl[:-1]) / 2
+    
     return atm
 
 def dry_adiabat( T_surf, p_array, Rcp ):
@@ -375,21 +377,62 @@ def dry_adiabat( T_surf, p_array, Rcp ):
     T_p = T_surf * np.power( ( p_array / np.max(p_array) ), Rcp )
 
     return T_p
+
+
+# Species-dependent quantities
+self.x_dry          = {} # species-dependent dry molar mixing ratios
+self.x_gas          = {} # gas phase molar mixing ratios of condensing species
+self.x_cond         = {} # cloud/rain-out phase molar mixing ratios of condensing species
+
+def condensation( atm, P_tot, tmp ):
+
+    # Figure out which species are condensing
+    for vol in atm.vol_list:
+
+        # Current partial pressure
+        p_vol_current  = atm.p_vol[vol][-1]
+
+        # Saturation vapor pressure
+        p_vol_sat      = p_sat(vol, tmp)
+
+        # Condensation if p_vol_current > p_sat
+        if p_vol_current > p_vol_sat:
+
+            # Flag as condensing species
+            atm.vol_cond[vol][-1].append(vol)
+
+            # Add partial pressure to dry species
+            atm.xd[-1]    = p_vol_current
+
+
+            # Reduce species partial pressure to p_sat
+            atm.p_vol[vol][-1]    = p_vol_sat
+
+        else:
+
+            # Flag as dry species
+            atm.vol_dry[vol][-1].append(vol)
+
+            # Add partial pressure to dry species
+            atm.xd[-1]    = p_vol_current
+
+    # ? Recalc total pressure ?
+    P_tot = np.sum(atm.p_vol.values())
+
+    # Recalculate molar mixing ratios
+    for vol in atm.p_vol.keys():
+
+        # Reset mixing ratio
+        atm.x_vol[vol]  = atm.p_vol[vol] / atm.ps
+
+    return atm
                         
 def moist_adiabat(atm):
     """Builds the generalized moist adiabat from slope(lnP,T,params) and plots the adiabat along with the relative abundances."""   
 
-    sns.set_style("ticks")
-    sns.despine()
-
-    ls_adiabat  = 2
-    ls_ind      = 1.0
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
-
     # for mode in [ "original" ]: # "hybrid", , "ray1"
 
-    params = Dummy() # initialize parameter object  
+    # params = Dummy() # initialize parameter object  
 
     # print(params)
 
@@ -399,7 +442,7 @@ def moist_adiabat(atm):
           
     # Initialization
 
-     # Initialize the tuple solution
+    # Initialize the tuple solution
     moist_w_cond    = [] #[tuple([np.log(atm.ps), atm.ts])] 
 
     # Initialize the final pressure array   
@@ -415,39 +458,22 @@ def moist_adiabat(atm):
     # Negative increment to go from ps to ptop < ps       
     step            = -.1
 
-    # Start volatile partial pressures
-    for vol in atm.p_vol.keys():
+    # Calculate condensation
+    atm             = condensation(atm)
 
-        # Consider if condensation occurs
-        # Only for condensible gases
-        if vol != atm.vol_dry:
+    
 
-            # Starting partial pressure
-            p_vol_current  = atm.p_vol[vol]
-
-            # Saturation vapor pressure
-            p_vol_sat      = p_sat(vol, atm.ts)
-
-            # Condensation if p_vol_current > p_sat
-            atm.p_vol[vol] = np.min([p_vol_current, p_vol_sat])
-
-    # Recalc surface pressure
-    atm.ps = np.sum(1.-sum(atm.p_vol.values()))
-
-    # Calculate condensation-consistent mixing ratios
-    for vol in atm.p_vol.keys():
-
-        # Reset mixing ratio
-        params.x_vol[vol]  = atm.p_vol[vol] / atm.ps
-
-    # Create the integrator instance.                                               
+    # Create the integrator instance                                              
     int_slope       = integrator(slope, np.log(atm.ps), np.log(atm.ts), step)
+
+    # Integrator for comparison with Ray's slope
     int_slopeRay    = integrator(slopeRay, np.log(atm.ps), np.log(atm.ts), step)
 
     # Update parameters used in the slope function dT/dlnP
-    int_slope.setParams(params)
+    int_slope.setParams(atm)
 
-    index           = 0    
+    # Integration counter
+    idx           = 0    
 
     logT            = int_slope.y
     logP            = int_slope.x
@@ -492,7 +518,7 @@ def moist_adiabat(atm):
         Pressure    = np.exp(logP)
         Rcp.append(R_universal/params.general_cp)
 
-        index += 1
+        idx += 1
 
 
     # Convert to numpy array. 
@@ -511,19 +537,28 @@ def moist_adiabat(atm):
     abundance_arrayH2  = numpy.array(params.atm_chemistry_arrays['H2'])
     abundance_arrayHe  = numpy.array(params.atm_chemistry_arrays['He'])
 
-    # ------------------------------------ Plotting -------------------------------------
-
-    # Pressure array for interpolation scheme
-    p_plot = np.exp(np.linspace(np.log(atm.ptop),np.log(atm.ps),100))
+    
 
     # Ray's moist adiabat (1 condensible + 1 non-condensible gas, fixed partial pressure of the non-condensible)
     ray_vol_cond = "H2O"
     moist_adiabat_ray = phys.MoistAdiabat(phys.H2O,phys.N2)
-
     p_dry_gas         = atm.ps*(1.-atm_chemistry[ray_vol_cond])
-
     p_ray, T_ray, molarCon_ray, massCon_ray = moist_adiabat_ray( p_dry_gas, atm.ts, atm.ptop )
     p_ray_interp, T_ray_interp, molarCon_ray_interp, massCon_ray_interp = moist_adiabat_ray(p_dry_gas, atm.ts, atm.ptop, p_plot)
+
+
+
+    ### Plotting
+
+    # Pressure array for interpolation scheme
+    p_plot = np.exp(np.linspace(np.log(atm.ptop),np.log(atm.ps),100))
+    sns.set_style("ticks")
+    sns.despine()
+
+    ls_adiabat  = 2
+    ls_ind      = 1.0
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
     # Plot Ray's H2O moist adiabat function
     ax1.semilogy(T_ray, p_ray, lw=ls_adiabat, color=vol_colors[ray_vol_cond+"_2"], ls="--", label=vol_latex[ray_vol_cond]+r' adiabat Ray') # label=r'p$_{non-cond.}$ = '+"{:.2f}".format(p_dry_gas)+' Pa'
@@ -670,40 +705,48 @@ def moist_adiabat(atm):
 ### Initial conditions if called stand-alone
 
 # Create atmosphere object
-atm            = atmos()
+atm              = atmos()
 
 # Surface temperature of planet
-atm.ts         = 600.           # K
+atm.ts           = 600.           # K
 
 # Surface pressure
-atm.ps         = 1e+5           # Pa
+atm.ps           = 1e+5           # Pa
 
 # Top pressure
-atm.ptop       = atm.ps*1e-10   # Pa
+atm.ptop         = atm.ps*1e-10   # Pa
 
 # Instantiate pressure array
-atm            = set_pressure_array(atm)
+atm              = set_pressure_array(atm)
 
 # Initialize temperature profile on dry adiabat with 'Earth air'
-atm.temp       = atm.ts*(atm.p/atm.p[0])**atm.Rcp
+atm.temp         = atm.ts*(atm.p/atm.p[0])**atm.Rcp
 
-# Initial mixing ratios
-atm.x_vol["H2O"] = 0.5
-atm.x_vol["NH3"] = 0.0
-atm.x_vol["CO2"] = 0.0
-atm.x_vol["CH4"] = 0.0
-atm.x_vol["O2"]  = 0.0
-atm.x_vol["CO"]  = 0.0
-atm.x_vol["N2"]  = 0.0
-atm.x_vol["He"]  = 0.0
+# Initial gas phase molar mixing ratios at surface
+atm.x_gas["H2"]  = [ 0.5 ]
+atm.x_gas["N2"]  = [ 0. ]
+atm.x_gas["H2O"] = [ 0.5 ]
+atm.x_gas["CO2"] = [ 0. ]
+atm.x_gas["CH4"] = [ 0. ]
+atm.x_gas["O2"]  = [ 0. ]
+atm.x_gas["CO"]  = [ 0. ]
+atm.x_gas["NH3"] = [ 0. ]
+atm.x_gas["He"]  = [ 0. ]
 
-# Define 'dry' non-condensible background gas as H2
-atm.vol_dry      = "H2"
-atm.x_vol[atm.vol_dry]  = np.sum(1.-sum(atm.x_vol.values()))
+# Initialize dry and condensed species
+for vol in atm.vol_list:
+    atm.x_dry[vol]  = [ 0. ]
+    atm.x_cond[vol] = [ 0. ]
 
 # Define partial pressures
 for vol in vol_list:
-    atm.p_vol[vol] = atm.ps * atm.x_vol[vol]
+    atm.p_vol[vol]  = atm.ps * atm.x_gas[vol]
+
+# Initialize level-dependent quantities
+atm.vol_list        = atm.x_gas.keys() # List of all species for looping
+atm.xd              = [ 0. ]           # Molar mixing ratio of all 'dry' gas
+atm.vol_dry         = [ [] ]           # Dry species per pressure level
+atm.vol_cond        = [ [] ]           # Condensing species per pressure level
 
 # Execut moist adiabat function
 moist_w_cond     = moist_adiabat(atm)
