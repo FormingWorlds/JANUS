@@ -378,52 +378,57 @@ def dry_adiabat( T_surf, p_array, Rcp ):
 
     return T_p
 
+def condensation( atm ):
 
-# Species-dependent quantities
-self.x_dry          = {} # species-dependent dry molar mixing ratios
-self.x_gas          = {} # gas phase molar mixing ratios of condensing species
-self.x_cond         = {} # cloud/rain-out phase molar mixing ratios of condensing species
+    # Find new level to calculate
+    idx = np.amax(atm.ifatm)
 
-def condensation( atm, P_tot, tmp ):
+    print("Condensation (lvl ", idx, ")", end=" ")
 
     # Figure out which species are condensing
     for vol in atm.vol_list:
 
-        # Current partial pressure
-        p_vol_current  = atm.p_vol[vol][-1]
+        print(vol, end=" ")
+        
+        # Current partial pressure & mixing ratios
+        p_vol_old      = atm.p_vol[vol][idx]
+        x_moist_old    = atm.x_moist[vol][idx]
 
-        # Saturation vapor pressure
-        p_vol_sat      = p_sat(vol, tmp)
+        # Saturation vapor pressure at current temperature
+        p_vol_sat      = p_sat(vol, atm.tmp[idx])
 
-        # Condensation if p_vol_current > p_sat
-        if p_vol_current > p_vol_sat:
-
-            # Flag as condensing species
-            atm.vol_cond[vol][-1].append(vol)
-
-            # Add partial pressure to dry species
-            atm.xd[-1]    = p_vol_current
-
+        # Condensation if p_old > p_sat
+        if p_vol_old > p_vol_sat:
 
             # Reduce species partial pressure to p_sat
-            atm.p_vol[vol][-1]    = p_vol_sat
+            atm.p_vol[vol][idx]   = p_vol_sat
 
+            # Recalculate mixing ratios
+            atm.x_moist[vol][idx] = p_vol_sat / P_tot
+            atm.x_cond[vol][idx]  = x_moist_old - atm.x_moist[vol][idx]
+            atm.x_dry[vol][idx]   = 0.
+
+            # Flag as condensing species
+            atm.vol_cond[idx].append(vol)
+
+        # Does not condense: dry species
         else:
 
+            # Add partial pressure to combined partial pressure of dry species
+            atm.xd[idx]           += p_vol_old
+
+            # Recalculate mixing ratios
+            atm.x_moist[vol][idx] = 0.
+            atm.x_cond[vol][idx]  = 0.
+            atm.x_dry[vol][idx]   = p_vol_old / atm.p[idx]
+
             # Flag as dry species
-            atm.vol_dry[vol][-1].append(vol)
+            atm.vol_dry[idx].append(vol)
 
-            # Add partial pressure to dry species
-            atm.xd[-1]    = p_vol_current
+    # ?? Recalc total pressure ??
+    # P_tot = np.sum(atm.p_vol.values())
 
-    # ? Recalc total pressure ?
-    P_tot = np.sum(atm.p_vol.values())
-
-    # Recalculate molar mixing ratios
-    for vol in atm.p_vol.keys():
-
-        # Reset mixing ratio
-        atm.x_vol[vol]  = atm.p_vol[vol] / atm.ps
+    print()
 
     return atm
                         
@@ -460,8 +465,6 @@ def moist_adiabat(atm):
 
     # Calculate condensation
     atm             = condensation(atm)
-
-    
 
     # Create the integrator instance                                              
     int_slope       = integrator(slope, np.log(atm.ps), np.log(atm.ts), step)
@@ -702,51 +705,54 @@ def moist_adiabat(atm):
     return moist_w_cond   
 
 
-### Initial conditions if called stand-alone
+### Stand-alone initial conditions ###
 
 # Create atmosphere object
 atm              = atmos()
 
 # Surface temperature of planet
 atm.ts           = 600.           # K
+atm.tmp[0]       = atm.ts         # K
 
 # Surface pressure
 atm.ps           = 1e+5           # Pa
+atm.p[0]         = atm.ps         # Pa
 
 # Top pressure
 atm.ptop         = atm.ps*1e-10   # Pa
 
-# Instantiate pressure array
-atm              = set_pressure_array(atm)
+# # Instantiate pressure array
+# atm              = set_pressure_array(atm)
 
 # Initialize temperature profile on dry adiabat with 'Earth air'
 atm.temp         = atm.ts*(atm.p/atm.p[0])**atm.Rcp
 
 # Initial gas phase molar mixing ratios at surface
-atm.x_gas["H2"]  = [ 0.5 ]
-atm.x_gas["N2"]  = [ 0. ]
-atm.x_gas["H2O"] = [ 0.5 ]
-atm.x_gas["CO2"] = [ 0. ]
-atm.x_gas["CH4"] = [ 0. ]
-atm.x_gas["O2"]  = [ 0. ]
-atm.x_gas["CO"]  = [ 0. ]
-atm.x_gas["NH3"] = [ 0. ]
-atm.x_gas["He"]  = [ 0. ]
+atm.x_moist["H2"]  = [ 0.5 ]
+atm.x_moist["N2"]  = [ 0. ]
+atm.x_moist["H2O"] = [ 0.5 ]
+atm.x_moist["CO2"] = [ 0. ]
+atm.x_moist["CH4"] = [ 0. ]
+atm.x_moist["O2"]  = [ 0. ]
+atm.x_moist["CO"]  = [ 0. ]
+atm.x_moist["NH3"] = [ 0. ]
+atm.x_moist["He"]  = [ 0. ]
+
+# Initialize level-dependent quantities
+atm.vol_list        = atm.x_moist.keys() # List of all species for looping
+atm.xd              = [ 0. ]           # Combined molar mixing ratio of all 'dry' gas
+atm.vol_dry         = [ [] ]           # Dry species per pressure level
+atm.vol_cond        = [ [] ]           # Condensing species per pressure level
 
 # Initialize dry and condensed species
 for vol in atm.vol_list:
     atm.x_dry[vol]  = [ 0. ]
     atm.x_cond[vol] = [ 0. ]
 
-# Define partial pressures
-for vol in vol_list:
-    atm.p_vol[vol]  = atm.ps * atm.x_gas[vol]
-
-# Initialize level-dependent quantities
-atm.vol_list        = atm.x_gas.keys() # List of all species for looping
-atm.xd              = [ 0. ]           # Molar mixing ratio of all 'dry' gas
-atm.vol_dry         = [ [] ]           # Dry species per pressure level
-atm.vol_cond        = [ [] ]           # Condensing species per pressure level
+# Calculate surface partial pressures
+for vol in atm.vol_list:
+    atm.p_vol[vol]  = [ atm.ps * atm.x_moist[vol][-1] ]
+    atm.p[0]        += atm.p_vol[vol]
 
 # Execut moist adiabat function
 moist_w_cond     = moist_adiabat(atm)
