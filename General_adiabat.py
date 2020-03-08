@@ -221,15 +221,17 @@ def cpv(switch):
 def slope(lnP, lnT, atm):
     """Returns the slope dT/dlnP given a temperature T [K], the natural logarithm of a pressure [Pa] lnP and the dictionary atm_chemistry_arrays passed to this function with the ClimateUtilities object params."""
     
-    # # T instead lnT
-    # tmp = math.exp(lnT)
+    # print(lnP, lnT, math.exp(lnP), math.exp(lnT))
 
-    # # Kludge for H2 p_sat > 7200 for T > 13.95K
-    # if tmp < 13.95: 
-    #     tmp = 13.95
+    # T instead lnT
+    tmp = math.exp(lnT)
+
+    # Kludge for H2 p_sat > 7200 for T > 13.95K
+    if tmp < 13.95: 
+        tmp = 13.95
 
     # Find current atm index
-    idx = np.amax(atm.ifatm)
+    idx = int(np.amax(atm.ifatm))
 
     # Sum terms in equation
     num_sum     = 0.
@@ -239,6 +241,8 @@ def slope(lnP, lnT, atm):
 
     # Calculate sums over volatiles
     for vol in atm.vol_list: 
+
+        # print(vol, atm.x_moist[vol][idx], atm.xd[idx])
 
         # Coefficients
         eta_vol     = atm.x_moist[vol][idx] / atm.xd[idx]
@@ -258,11 +262,11 @@ def slope(lnP, lnT, atm):
     numerator   = 1. + num_sum
     denominator = (atm.cp[idx] / R_universal) + (denom_sum1 + denom_sum2) / (1. + denom_sum3)
 
-    # dlnT/dlnP
-    dlnTdlnP = numerator / denominator
+    # dT/dlnP
+    dTdlnP = numerator / denominator
 
     # Moist adiabat slope
-    return dlnTdlnP
+    return dTdlnP
 
 def slopeRay(logpa,logT):
     eps = phys.H2O.MolecularWeight/phys.air.MolecularWeight
@@ -299,22 +303,27 @@ def dry_adiabat( T_surf, p_array, Rcp ):
 
 def condensation( atm ):
 
-    # Find new level to calculate
+    # Find current level
     idx = int(np.amax(atm.ifatm))
 
-    print("Condensation (lvl ", idx, ")", end=" ")
+    print("Condensation, idx:", idx)
 
     # Figure out which species are condensing
     for vol in atm.vol_list:
 
-        print(vol, end=" ")
-        
         # Current partial pressure & mixing ratios
-        p_vol_old      = atm.p_vol[vol][idx]
-        x_moist_old    = atm.x_moist[vol][idx]
+        if idx != 0:
+            p_vol_old      = atm.p_vol[vol][idx-1]
+            x_moist_old    = p_vol_old / atm.p[idx-1]
+        # If surface
+        else:
+            p_vol_old      = atm.p_vol[vol][idx]
+            x_moist_old    = p_vol_old / atm.p[idx]
 
         # Saturation vapor pressure at current temperature
         p_vol_sat      = p_sat(vol, atm.tmp[idx])
+
+        print(vol, x_moist_old, p_vol_old, round(p_vol_sat), end=" ") # , end=""
 
         # Condensation if p_old > p_sat
         if p_vol_old > p_vol_sat:
@@ -323,45 +332,51 @@ def condensation( atm ):
             atm.p_vol[vol][idx]   = p_vol_sat
 
             # Recalculate mixing ratios
-            atm.x_moist[vol][idx] = p_vol_sat / P_tot
+            atm.x_moist[vol][idx] = p_vol_sat / atm.p[idx]
             atm.x_cond[vol][idx]  = x_moist_old - atm.x_moist[vol][idx]
             atm.x_dry[vol][idx]   = 0.
 
-            # Add combined mixing ratios
+            # Add to combined mixing ratios of condensed species
             atm.xv[idx]           += atm.x_moist[vol][idx]
             atm.xc[idx]           += atm.x_cond[vol][idx]
 
             # Update cp
-            atm.cp[idx]           += (x_moist[vol][idx] + x_cond[vol][idx]) * cpv(vol)
+            atm.cp[idx]           += (atm.x_moist[vol][idx] + atm.x_cond[vol][idx]) * cpv(vol)
 
-            # Flag as condensing species
-            atm.vol_cond[idx].append(vol)
+            # # Flag as condensing species
+            # atm.vol_cond[idx].append(vol)
     
         # Does not condense: dry species
         else:
 
-            # Add partial pressure to combined partial pressure of dry species
-            atm.xd[idx]           += p_vol_old
+            # Species partial pressure same as before
+            atm.p_vol[vol][idx]   = p_vol_old
 
             # Recalculate mixing ratios
             atm.x_moist[vol][idx] = 0.
             atm.x_cond[vol][idx]  = 0.
             atm.x_dry[vol][idx]   = p_vol_old / atm.p[idx]
 
-            # Update cp
-            atm.cp[idx]           += x_dry[vol][idx] * cpv(vol)
+            # Add to combined mixing ratios of dry species
+            atm.xd[idx]           += p_vol_old / atm.p[idx]
 
-            # Flag as dry species
-            atm.vol_dry[idx].append(vol)
+            # Update cp
+            atm.cp[idx]           += atm.x_dry[vol][idx] * cpv(vol)
+
+            # # Flag as dry species
+            # atm.vol_dry[idx].append(vol)
+
+        print("|", atm.p_vol[vol][idx], atm.x_moist[vol][idx], atm.x_dry[vol][idx], atm.x_cond[vol][idx])
 
 
     # Renormalize cp
     atm.cp[idx] = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
+    print("=>", atm.cp[idx], atm.xd[idx], atm.xv[idx], atm.xc[idx])
 
     # ?? Recalc total pressure ??
     # P_tot = np.sum(atm.p_vol.values())
 
-    print()
+    # print()
 
     return atm
                         
@@ -394,7 +409,7 @@ def moist_adiabat(atm):
     TL              = []
    
     # Negative increment to go from ps to ptop < ps       
-    step            = -.1
+    step            = -.01
 
     # Calculate condensation
     atm             = condensation(atm)
@@ -418,13 +433,17 @@ def moist_adiabat(atm):
   
     ##### Integration
     while atm.p[idx] > atm.ptop:
+
+        print("RK4 step, idx:", idx, end=" ")
         
         # Execute the Runge-Kutta integrator, fill array of tuples
         moist_w_cond.append(int_slope.next()) 
 
         # Fill new T,P values
-        atm.p[idx+1].append(numpy.exp(int_slope.x))
-        atm.tmp[idx+1].append(numpy.exp(int_slope.y))
+        atm.p[idx+1]    = np.exp(int_slope.x)
+        atm.tmp[idx+1]  = np.exp(int_slope.y)
+
+        print(atm.p[idx+1], atm.tmp[idx+1])
 
         # Set next level to calculate
         idx             += 1
@@ -433,6 +452,10 @@ def moist_adiabat(atm):
         # Calculate condensation at next level
         atm             = condensation(atm)
 
+
+
+        # # Update parameters used in the slope function dT/dlnP
+        # int_slope.setParams(atm)
 
     # Convert to numpy array. 
     moist_w_cond = numpy.array(moist_w_cond) # lnP accessed through moist_w_cond[:,0]
@@ -617,6 +640,19 @@ def moist_adiabat(atm):
 
 ### Stand-alone initial conditions ###
 
+# Define volatile list and their surface molar/volume mixing ratios
+vol_list = { 
+            "H2"  : 0.5, 
+            "N2"  : 0.0, 
+            "H2O" : 0.5, 
+            "CO2" : 0.0, 
+            "CH4" : 0.0, 
+            "O2"  : 0.0, 
+            "CO"  : 0.0, 
+            "NH3" : 0.0, 
+            "He"  : 0.0 
+            }
+
 # Create atmosphere object
 atm              = atmos()
 
@@ -626,46 +662,31 @@ atm.tmp[0]       = atm.ts         # K
 
 # Surface pressure
 atm.ps           = 1e+5           # Pa
-atm.p[0]         = atm.ps         # Pa
 
 # Top pressure
 atm.ptop         = atm.ps*1e-10   # Pa
 
 # # Instantiate pressure array
 # atm              = set_pressure_array(atm)
-
-# Initialize temperature profile on dry adiabat with 'Earth air'
-atm.temp         = atm.ts*(atm.p/atm.p[0])**atm.Rcp
-
-# Initial gas phase molar mixing ratios at surface
-atm.x_moist["H2"]  = [ 0.5 ]
-atm.x_moist["N2"]  = [ 0. ]
-atm.x_moist["H2O"] = [ 0.5 ]
-atm.x_moist["CO2"] = [ 0. ]
-atm.x_moist["CH4"] = [ 0. ]
-atm.x_moist["O2"]  = [ 0. ]
-atm.x_moist["CO"]  = [ 0. ]
-atm.x_moist["NH3"] = [ 0. ]
-atm.x_moist["He"]  = [ 0. ]
+# # Initialize temperature profile on dry adiabat with 'Earth air'
+# atm.tmp         = atm.ts*(atm.p/atm.p[0])**atm.Rcp
 
 # Initialize level-dependent quantities
-atm.vol_list        = atm.x_moist.keys() # List of all species for looping
-atm.xd              = [ 0. ]           # Combined molar mixing ratio of all 'dry' gas
-atm.xv              = [ 0. ]           # Combined molar mixing ratio of all 'condensing' gas
-atm.xc              = [ 0. ]           # Combined molar mixing ratio of all clouds
-atm.vol_dry         = [ [] ]           # Dry species per pressure level
-atm.vol_cond        = [ [] ]           # Condensing species per pressure level
+atm.vol_list        = vol_list.keys() # List of all species for looping
 
-# Initialize dry and condensed species
+# Instantiate object dicts and arrays
 for vol in atm.vol_list:
-    atm.x_dry[vol]  = [ 0. ]
-    atm.x_cond[vol] = [ 0. ]
 
-# Calculate surface partial pressures
-for vol in atm.vol_list:
-    atm.p_vol[vol]  = [ atm.ps * atm.x_moist[vol][0] ]
-    atm.p[0]        += atm.p_vol[vol]
-    atm.xv[0]       += atm.x_moist[vol][0]
+    atm.p_vol[vol]      = np.zeros(atm.nlev)
+    atm.x_dry[vol]      = np.zeros(atm.nlev)
+    atm.x_moist[vol]    = np.zeros(atm.nlev)
+    atm.x_cond[vol]     = np.zeros(atm.nlev)
+
+    # Surface partial pressures
+    atm.p_vol[vol][0]   = atm.ps * vol_list[vol]
+
+    # Total pressure
+    atm.p[0]            += atm.p_vol[vol][0]
 
 # Execut moist adiabat function
 moist_w_cond     = moist_adiabat(atm)
