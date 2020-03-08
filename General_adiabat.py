@@ -100,45 +100,6 @@ def p_sat(switch,T):
     # Return saturation vapor pressure
     return e(T)
     
-#-----------------------------Antoine coefficients-----------------------------
-# Need to define what happens when T<Lower_Bound. At p[23]=145Pa we have Tgrid[23,0]=254.6K<Lower_Bound so Tdew[i<23] is not defined
-"""
-Upper_Bound=573.   # validity range in K from https://webbook.nist.gov/cgi/cbook.cgi?ID=C7732185&Mask=4&Type=ANTOINE&Plot=on#ANTOINE
-Lower_Bound=255.9   
- 
-def A(switch,p):
-    if switch == 'H2O':        
-        if p>=p_sat(Lower_Bound) and p<=p_sat(373.):
-            return 4.6543
-        if p>=p_sat(379.) and p<=p_sat(Upper_Bound):
-            return 3.55959
-        
-        #if pp>p_sat(373.) and pp<p_sat(379.): # missing values between T=373K and 379K
-            #return interp()
-        
-
-def B(switch,p):
-    if pp>=p_sat(Lower_Bound) and pp<=p_sat(373.):
-        return 1435.264
-    if pp>=p_sat(379.) and pp<=p_sat(Upper_Bound):
-        return 643.748
-    
-    #if pp>p_sat(373.) and pp<p_sat(379.): # missing values between T=373K and 379K
-        #return interp()
-    
-
-def C(switch,p):
-    if pp>=p_sat(Lower_Bound) and pp<=p_sat(373.):
-        return -64.848
-    if pp>=p_sat(379.) and pp<=p_sat(Upper_Bound):
-        return -198.043
-    
-    #if pp>p_sat(373.) and pp<p_sat(379.): # missing values between T=373K and 379K
-        #return interp()
-    
-    
-    #return (B(p)/(A(p)-numpy.log10(p/pref)))-C(p)
-"""  
 
 ## Molar latent heat [J mol-1] for gas phase considered given a temperature T [K]. 
 ## Select the molecule of interest with the switch argument (a string).
@@ -208,7 +169,6 @@ def L_heat( switch, T ):
         T_crit          = phys.NH3.CriticalPointT
 
 
-
     # Gas-solid transition
     if T <= T_triple:
         # Conversion from J.kg-1 to J.mol-1 (molecular weight is in g/mol in phys.f90)
@@ -258,92 +218,51 @@ def cpv(switch):
     if switch == 'NH3':
         return phys.nh3.cp*phys.nh3.MolecularWeight*1e-3    
     
-def slope(lnP,lnT,params):
+def slope(lnP, lnT, atm):
     """Returns the slope dT/dlnP given a temperature T [K], the natural logarithm of a pressure [Pa] lnP and the dictionary atm_chemistry_arrays passed to this function with the ClimateUtilities object params."""
     
-    T = math.exp(lnT)
-    # Kludge for H2 esat>7200 for T>13.95K
-    if T < 13.95: 
-        T = 13.95
-    
-    # Define individual abundances from the last abundance calculated
-    xH2O = params.atm_chemistry_arrays['H2O'][-1]
-    xCO2 = params.atm_chemistry_arrays['CO2'][-1]
-    xCH4 = params.atm_chemistry_arrays['CH4'][-1]
-    xCO  = params.atm_chemistry_arrays['CO'][-1]
-    xN2  = params.atm_chemistry_arrays['N2'][-1]
-    xO2  = params.atm_chemistry_arrays['O2'][-1]
-    xH2  = params.atm_chemistry_arrays['H2'][-1]
-    xHe  = params.atm_chemistry_arrays['He'][-1]
-    xNH3 = params.atm_chemistry_arrays['NH3'][-1]
-    xd   = 1. - ( xH2O + xCO2 + xCH4 + xCO + xN2 + xO2 + xH2 + xHe + xNH3 )
-    
-    # Molar heat capacity of the dry species
-    cpd = phys.air.cp*phys.air.MolecularWeight*1.e-3 #cpv('N2')
+    # # T instead lnT
+    # tmp = math.exp(lnT)
 
-    # Avoid division by zero if atmosphere consists of condensibles only
-    xd = np.max([xd,1e-8])
-                         
-    xv_cpv = xH2O * cpv('H2O') + \
-             xCO2 * cpv('CO2') + \
-             xCH4 * cpv('CH4') + \
-             xCO  * cpv('CO' ) + \
-             xN2  * cpv('N2' ) + \
-             xO2  * cpv('O2' ) + \
-             xH2  * cpv('H2' ) + \
-             xHe  * cpv('He' ) + \
-             xNH3 * cpv('NH3')
-  
-    first_term = (xH2O/xd) * ( L_heat('H2O',T) / (R_universal*T) )**2 + \
-                 (xCO2/xd) * ( L_heat('CO2',T) / (R_universal*T) )**2 + \
-                 (xCH4/xd) * ( L_heat('CH4',T) / (R_universal*T) )**2 + \
-                 (xCO /xd) * ( L_heat('CO' ,T) / (R_universal*T) )**2 + \
-                 (xN2 /xd) * ( L_heat('N2' ,T) / (R_universal*T) )**2 + \
-                 (xO2 /xd) * ( L_heat('O2' ,T) / (R_universal*T) )**2 + \
-                 (xH2 /xd) * ( L_heat('H2' ,T) / (R_universal*T) )**2 + \
-                 (xHe /xd) * ( L_heat('He' ,T) / (R_universal*T) )**2 + \
-                 (xNH3/xd) * ( L_heat('NH3',T) / (R_universal*T) )**2
-    
-    quadr_term=(
-                 (xH2O/xd) * L_heat('H2O',T) / (R_universal*T) + \
-                 (xCO2/xd) * L_heat('CO2',T) / (R_universal*T) + \
-                 (xCH4/xd) * L_heat('CH4',T) / (R_universal*T) + \
-                 (xCO /xd) * L_heat('CO' ,T) / (R_universal*T) + \
-                 (xN2 /xd) * L_heat('N2' ,T) / (R_universal*T) + \
-                 (xO2 /xd) * L_heat('O2' ,T) / (R_universal*T) + \
-                 (xH2 /xd) * L_heat('H2' ,T) / (R_universal*T) + \
-                 (xHe /xd) * L_heat('He' ,T) / (R_universal*T) + \
-                 (xNH3/xd) * L_heat('NH3',T) / (R_universal*T)             
-                )**2
-        
-    sum_abundances = xH2O + xCO2 + xCH4 + xCO + xN2 + xO2 + xH2 + xHe + xNH3
-                                             
-    sum_ratio_abundances = xH2O / xd + xCO2 / xd + \
-                                       xCH4 / xd + \
-                                       xCO  / xd + \
-                                       xN2  / xd + \
-                                       xO2  / xd + \
-                                       xH2  / xd + \
-                                       xHe  / xd + \
-                                       xNH3 / xd
-                                                      
-    num_sum = (xH2O/xd) * L_heat('H2O',T) / (R_universal*T) + \
-              (xCO2/xd) * L_heat('CO2',T) / (R_universal*T) + \
-              (xCH4/xd) * L_heat('CH4',T) / (R_universal*T) + \
-              (xCO /xd) * L_heat('CO' ,T) / (R_universal*T) + \
-              (xN2 /xd) * L_heat('N2' ,T) / (R_universal*T) + \
-              (xO2 /xd) * L_heat('O2' ,T) / (R_universal*T) + \
-              (xH2 /xd) * L_heat('H2' ,T) / (R_universal*T) + \
-              (xHe /xd) * L_heat('He' ,T) / (R_universal*T) + \
-              (xNH3/xd) * L_heat('NH3',T) / (R_universal*T)
-     
-    num       = (1.+ num_sum)
-    denom     = (1./R_universal) * (xd*cpd+xv_cpv) / (xd+sum_abundances) + \
-                (first_term + quadr_term) / (1.+sum_ratio_abundances)
-    
-    params.general_cp = (xd*cpd + xv_cpv) / (xd + sum_abundances)
-    
-    return num/denom  
+    # # Kludge for H2 p_sat > 7200 for T > 13.95K
+    # if tmp < 13.95: 
+    #     tmp = 13.95
+
+    # Find current atm index
+    idx = np.amax(atm.ifatm)
+
+    # Sum terms in equation
+    num_sum     = 0.
+    denom_sum1  = 0. 
+    denom_sum2  = 0. 
+    denom_sum3  = 0.
+
+    # Calculate sums over volatiles
+    for vol in atm.vol_list: 
+
+        # Coefficients
+        eta_vol     = atm.x_moist[vol][idx] / atm.xd[idx]
+        beta_vol    = L_heat(vol, tmp) / (R_universal * tmp) 
+
+        # Sum in numerator
+        num_sum     += eta_vol * beta_vol
+
+        # Sums in denominator
+        denom_sum1  += eta_vol * (beta_vol**2.)
+        denom_sum3  += eta_vol
+                              
+    # Sum 2 in denominator  
+    denom_sum2  = num_sum ** 2.
+
+    # Collect terms
+    numerator   = 1. + num_sum
+    denominator = (atm.cp[idx] / R_universal) + (denom_sum1 + denom_sum2) / (1. + denom_sum3)
+
+    # dlnT/dlnP
+    dlnTdlnP = numerator / denominator
+
+    # Moist adiabat slope
+    return dlnTdlnP
 
 def slopeRay(logpa,logT):
     eps = phys.H2O.MolecularWeight/phys.air.MolecularWeight
@@ -381,7 +300,7 @@ def dry_adiabat( T_surf, p_array, Rcp ):
 def condensation( atm ):
 
     # Find new level to calculate
-    idx = np.amax(atm.ifatm)
+    idx = int(np.amax(atm.ifatm))
 
     print("Condensation (lvl ", idx, ")", end=" ")
 
@@ -408,9 +327,16 @@ def condensation( atm ):
             atm.x_cond[vol][idx]  = x_moist_old - atm.x_moist[vol][idx]
             atm.x_dry[vol][idx]   = 0.
 
+            # Add combined mixing ratios
+            atm.xv[idx]           += atm.x_moist[vol][idx]
+            atm.xc[idx]           += atm.x_cond[vol][idx]
+
+            # Update cp
+            atm.cp[idx]           += (x_moist[vol][idx] + x_cond[vol][idx]) * cpv(vol)
+
             # Flag as condensing species
             atm.vol_cond[idx].append(vol)
-
+    
         # Does not condense: dry species
         else:
 
@@ -422,8 +348,15 @@ def condensation( atm ):
             atm.x_cond[vol][idx]  = 0.
             atm.x_dry[vol][idx]   = p_vol_old / atm.p[idx]
 
+            # Update cp
+            atm.cp[idx]           += x_dry[vol][idx] * cpv(vol)
+
             # Flag as dry species
             atm.vol_dry[idx].append(vol)
+
+
+    # Renormalize cp
+    atm.cp[idx] = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
 
     # ?? Recalc total pressure ??
     # P_tot = np.sum(atm.p_vol.values())
@@ -476,52 +409,29 @@ def moist_adiabat(atm):
     int_slope.setParams(atm)
 
     # Integration counter
-    idx           = 0    
+    idx             = 0    
 
-    logT            = int_slope.y
-    logP            = int_slope.x
-    Temperature     = np.exp(logT)
-    Pressure        = np.exp(logP)
+    # logT            = int_slope.y
+    # logP            = int_slope.x
+    # Temperature     = np.exp(logT)
+    # Pressure        = np.exp(logP)
   
     ##### Integration
-    while Pressure > atm.ptop:
-        
-        # Loop on the volatiles 
-        for vol in atm_chemistry:                       
-            
-            # Initialize volatile from original abundance
-            params.atm_chemistry_arrays[vol].append(atm_chemistry[vol]) 
-
-            # Original partial pressure
-            p_vol = params.atm_chemistry_arrays[vol][-1]*Pressure
-
-            # Saturation vapor pressure for current level
-            p_vol_sat  = p_sat(vol,Temperature)
-
-            # Reset partial pressures to saturation vapor pressure
-            # H2 is background dry gas, assumed to not condense
-            if vol != "H2":
-                params.atm_chemistry_arrays[vol][-1] = np.min([p_vol,p_vol_sat])/Pressure
-
-            # if vol != "H2":
-                
-
-            # If int_slope.y < Tdew, how can numpy.exp(int_slope.x) < p_sat?
-             # min to avoid p_sat > p_molecule       
-            # params.atm_chemistry_arrays[vol][-1] = p_sat/Pressure
+    while atm.p[idx] > atm.ptop:
         
         # Execute the Runge-Kutta integrator, fill array of tuples
         moist_w_cond.append(int_slope.next()) 
-        pL.append(numpy.exp(int_slope.x))
-        TL.append(numpy.exp(int_slope.y))
 
-        logT        = int_slope.y
-        logP        = int_slope.x
-        Temperature = np.exp(logT)
-        Pressure    = np.exp(logP)
-        Rcp.append(R_universal/params.general_cp)
+        # Fill new T,P values
+        atm.p[idx+1].append(numpy.exp(int_slope.x))
+        atm.tmp[idx+1].append(numpy.exp(int_slope.y))
 
-        idx += 1
+        # Set next level to calculate
+        idx             += 1
+        atm.ifatm[idx]  = idx
+
+        # Calculate condensation at next level
+        atm             = condensation(atm)
 
 
     # Convert to numpy array. 
@@ -741,6 +651,8 @@ atm.x_moist["He"]  = [ 0. ]
 # Initialize level-dependent quantities
 atm.vol_list        = atm.x_moist.keys() # List of all species for looping
 atm.xd              = [ 0. ]           # Combined molar mixing ratio of all 'dry' gas
+atm.xv              = [ 0. ]           # Combined molar mixing ratio of all 'condensing' gas
+atm.xc              = [ 0. ]           # Combined molar mixing ratio of all clouds
 atm.vol_dry         = [ [] ]           # Dry species per pressure level
 atm.vol_cond        = [ [] ]           # Condensing species per pressure level
 
@@ -751,8 +663,9 @@ for vol in atm.vol_list:
 
 # Calculate surface partial pressures
 for vol in atm.vol_list:
-    atm.p_vol[vol]  = [ atm.ps * atm.x_moist[vol][-1] ]
+    atm.p_vol[vol]  = [ atm.ps * atm.x_moist[vol][0] ]
     atm.p[0]        += atm.p_vol[vol]
+    atm.xv[0]       += atm.x_moist[vol][0]
 
 # Execut moist adiabat function
 moist_w_cond     = moist_adiabat(atm)

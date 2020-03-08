@@ -10,6 +10,8 @@ timestep 			= 0.5
 n_absorbing_species = 7
 n_bands 			= 300
 
+R_universal = 8.31446261815324 # Universal gas constant, J.K-1.mol-1
+
 class atmos:
 	'''
 	Atmosphere class
@@ -40,10 +42,13 @@ class atmos:
 		
 		# Level-dependent quantities
 		self.xd 			= [] 					# total molar mixing ratio of 'dry' gas
+		self.xv 			= [] 					# total molar mixing ratio of 'condensing' gas
+		self.xc 			= [] 					# total molar mixing ratio of clouds
 		self.vol_list 		= [] 					# names of all species present
 		self.vol_dry        = [] 					# names of dry species per pressure level
 		self.vol_cond       = [] 					# names of condensing species per pressure level
-		self.ifatm 			= [ 0 ] 				# Defines n level to which atmosphere is calculated
+		self.ifatm 			= np.zeros(self.nlev) 	# Defines n level to which atmosphere is calculated
+		self.cp      		= np.zeros(self.nlev)   # Heat capactiy depending on mixing ratio
 
 	class atmos_fluxes:
 		'''
