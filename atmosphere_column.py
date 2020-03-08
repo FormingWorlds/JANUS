@@ -5,7 +5,7 @@ import numpy as np
 
 surface_pressure 	= 1e5 						# Pa
 top_pressure 		= 1e-7*surface_pressure 	# Pa
-n_vertical_levels 	= 100
+n_vertical_levels 	= 10000  					# For computation
 timestep 			= 0.5
 n_absorbing_species = 7
 n_bands 			= 300
@@ -15,15 +15,15 @@ class atmos:
 	Atmosphere class
 	'''
 	def __init__(self):
-		self.ps 			= surface_pressure 	# Surface pressure in Pa
-		self.ptop 			= top_pressure 		# Top pressure in Pa
-		self.nlev 			= n_vertical_levels # Number of vertical levels
-		self.p 				= [] 				# np.ones(self.nlev)
-		self.pl 			= [] 				# np.ones(self.nlev+1)
+		self.ps 			= surface_pressure 	 	   # Surface pressure in Pa
+		self.ptop 			= top_pressure 		 	   # Top pressure in Pa
+		self.nlev 			= n_vertical_levels  	   # Number of vertical levels
+		self.p 				= np.zeros(self.nlev) 	   # np.ones(self.nlev)
+		self.pl 			= np.zeros(self.nlev+1)    # np.ones(self.nlev+1)
 		self.dt 			= timestep
 		self.ts 			= 300.0
-		self.temp 			= self.ts*np.ones(self.nlev)
-		self.templ 			= self.ts*np.ones(self.nlev+1)
+		self.tmp 			= self.ts*np.ones(self.nlev)
+		self.tmpl 			= self.ts*np.ones(self.nlev+1)
 		self.Rcp 			= 2./7.
 		self.n_species 		= n_absorbing_species
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
@@ -34,15 +34,16 @@ class atmos:
 
 		# Species-dependent quantities
 		self.p_vol 			= {} # gas phase partial pressures
-		self.x_dry 			= {} # species-dependent dry molar mixing ratios
-		self.x_gas 			= {} # gas phase molar mixing ratios of condensing species
-		self.x_cond         = {} # cloud/rain-out phase molar mixing ratios of condensing species
+		self.x_dry 			= {} # Gas phase molar mixing ratios of dry species
+		self.x_moist 	    = {} # Gas phase molar mixing ratios of condensing species
+		self.x_cond         = {} # Condensed phase molar mixing ratios of condensing species
 		
 		# Level-dependent quantities
-		self.xd 			= [] # total molar mixing ratio of 'dry' gas
-		self.vol_list 		= [] # names of all species present
-		self.vol_dry        = [] # names of dry species per pressure level
-		self.vol_cond       = [] # names of condensing species per pressure level
+		self.xd 			= [] 					# total molar mixing ratio of 'dry' gas
+		self.vol_list 		= [] 					# names of all species present
+		self.vol_dry        = [] 					# names of dry species per pressure level
+		self.vol_cond       = [] 					# names of condensing species per pressure level
+		self.ifatm 			= [ 0 ] 				# Defines n level to which atmosphere is calculated
 
 	class atmos_fluxes:
 		'''
