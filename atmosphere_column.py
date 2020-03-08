@@ -41,12 +41,12 @@ class atmos:
 		self.x_cond         = {} # Condensed phase molar mixing ratios of condensing species
 		
 		# Level-dependent quantities
-		self.xd 			= [] 					# total molar mixing ratio of 'dry' gas
-		self.xv 			= [] 					# total molar mixing ratio of 'condensing' gas
-		self.xc 			= [] 					# total molar mixing ratio of clouds
-		self.vol_list 		= [] 					# names of all species present
-		self.vol_dry        = [] 					# names of dry species per pressure level
-		self.vol_cond       = [] 					# names of condensing species per pressure level
+		self.xd 			= np.zeros(self.nlev)	# total molar mixing ratio of 'dry' gas
+		self.xv 			= np.zeros(self.nlev)	# total molar mixing ratio of 'condensing' gas
+		self.xc 			= np.zeros(self.nlev)	# total molar mixing ratio of clouds
+		self.vol_list 		= []			     	# names of all species present
+		# self.vol_dry        = np.zeros(self.nlev)	# names of dry species per pressure level
+		# self.vol_cond       = np.zeros(self.nlev)	# names of condensing species per pressure level
 		self.ifatm 			= np.zeros(self.nlev) 	# Defines n level to which atmosphere is calculated
 		self.cp      		= np.zeros(self.nlev)   # Heat capactiy depending on mixing ratio
 

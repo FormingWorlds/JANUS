@@ -368,16 +368,16 @@ NH3.rho_liquid=7.342000e+02
 #------------------------
 
 #------------------------
-#Synonym for H2O
-water = H2O
+#Synonyms for volatiles
+water   = H2O
 methane = CH4
-co2 = CO2
-co = CO
-n2 = N2
-o2 = O2
-h2 = H2
-he = He
-nh3 = NH3
+co2     = CO2
+co      = CO
+n2      = N2
+o2      = O2
+h2      = H2
+he      = He
+nh3     = NH3
 
 #Make a list of all the gases
 #
