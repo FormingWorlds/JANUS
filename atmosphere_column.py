@@ -35,15 +35,14 @@ class atmos:
 		self.band_widths 	= np.diff(self.bands)
 
 		# Species-dependent quantities
-		self.p_vol 			= {} # gas phase partial pressures
-		self.x_dry 			= {} # Gas phase molar mixing ratios of dry species
-		self.x_moist 	    = {} # Gas phase molar mixing ratios of condensing species
-		self.x_cond         = {} # Condensed phase molar mixing ratios of condensing species
+		self.p_vol 			= {} # Gas phase partial pressures
+		self.x_gas 			= {} # Gas phase molar mixing ratio
+		self.x_cond         = {} # Condensed phase molar mixing ratio
 		
 		# Level-dependent quantities
-		self.xd 			= np.zeros(self.nlev)	# total molar mixing ratio of 'dry' gas
-		self.xv 			= np.zeros(self.nlev)	# total molar mixing ratio of 'condensing' gas
-		self.xc 			= np.zeros(self.nlev)	# total molar mixing ratio of clouds
+		self.xd 			= np.zeros(self.nlev)	# Summed molar mixing ratio of 'dry' gas
+		self.xv 			= np.zeros(self.nlev)	# Summed molar mixing ratio of 'condensing' gas
+		self.xc 			= np.zeros(self.nlev)	# Summed molar mixing ratio of cloud phase
 		self.vol_list 		= []			     	# names of all species present
 		# self.vol_dry        = np.zeros(self.nlev)	# names of dry species per pressure level
 		# self.vol_cond       = np.zeros(self.nlev)	# names of condensing species per pressure level
