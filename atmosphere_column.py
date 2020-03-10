@@ -36,18 +36,22 @@ class atmos:
 
 		# Species-dependent quantities
 		self.p_vol 			= {} # Gas phase partial pressures
-		self.x_gas 			= {} # Gas phase molar mixing ratio
-		self.x_cond         = {} # Condensed phase molar mixing ratio
+		self.x_gas 			= {} # Gas phase molar concentration
+		self.x_cond         = {} # Condensed phase molar concentration
+		self.mr_gas 		= {} # Gas phase molar mixing ratio (relative to all gas)
+		self.mr_cond        = {} # Condensed phase molar mixing ratio (relative to all gas)
 		
 		# Level-dependent quantities
-		self.xd 			= np.zeros(self.nlev)	# Summed molar mixing ratio of 'dry' gas
-		self.xv 			= np.zeros(self.nlev)	# Summed molar mixing ratio of 'condensing' gas
-		self.xc 			= np.zeros(self.nlev)	# Summed molar mixing ratio of cloud phase
+		self.xd 			= np.zeros(self.nlev)	# Molar concentration of dry gas
+		self.xv 			= np.zeros(self.nlev)	# Molar concentration of moist gas
+		self.xc 			= np.zeros(self.nlev)	# Molar concentration of condensed phase
+		self.mrd 			= np.zeros(self.nlev)	# Molar mixing ratio of 'dry' gas (relative to gas phase)
+		self.mrv 			= np.zeros(self.nlev)	# Molar mixing ratio of 'condensing' gas (relative to gas)
+		self.mrc			= np.zeros(self.nlev)	# Molar mixing ratio of cloud phase (relative to gas)
 		self.vol_list 		= []			     	# names of all species present
-		# self.vol_dry        = np.zeros(self.nlev)	# names of dry species per pressure level
-		# self.vol_cond       = np.zeros(self.nlev)	# names of condensing species per pressure level
 		self.ifatm 			= np.zeros(self.nlev) 	# Defines n level to which atmosphere is calculated
-		self.cp      		= np.zeros(self.nlev)   # Heat capactiy depending on mixing ratio
+		self.cp      		= np.zeros(self.nlev)   # Heat capactiy depending on molar concentration ratio
+		self.cp_mr     		= np.zeros(self.nlev)   # Heat capactiy depending on mixing ratio
 
 	class atmos_fluxes:
 		'''
