@@ -2,11 +2,12 @@
 """
 Created on Sun Dec  1 13:17:05 2019
 
-@author: Ryan
+@authors: 
+Ryan Boukrouche
+Tim Lichtenberg
 
 This file builds a self-consistent temperature profile from Li, Ingersoll & Oyafuso 2018, from the ground up,
-based the Euler scheme T[i] = T[i-1] + dlnT[i-1]. The temperature profile is not initialized.
-
+using the Runge-Kutta 4 scheme from ClimateUtilities.py
 """
 
 import time
@@ -50,7 +51,10 @@ vol_colors = {
     "O2_3"    : "#2499a7",
     "He_1"    : "#acbbbf",
     "He_2"    : "#768E95",
-    "He_3"    : "#465559"
+    "He_3"    : "#465559",
+    "NH3_1"   : "#acbbbf",
+    "NH3_2"   : "#768E95",
+    "NH3_3"   : "#465559"
 }
 
 # Volatile Latex names
@@ -168,7 +172,6 @@ def L_heat( switch, T ):
         T_triple        = phys.NH3.TriplePointT
         T_crit          = phys.NH3.CriticalPointT
 
-
     # Gas-solid transition
     if T <= T_triple:
         # Conversion from J.kg-1 to J.mol-1 (molecular weight is in g/mol in phys.f90)
@@ -179,7 +182,8 @@ def L_heat( switch, T ):
     # Super-critical state
     else:
         # Numerical issus with 0.
-        L_heat = 1e-30
+        L_heat = 1e-50
+        # L_heat = L_vaporization*MolecularWeight*1e-3 
 
     return L_heat  
     
@@ -217,18 +221,62 @@ def cpv(switch):
         return phys.he.cp*phys.he.MolecularWeight*1e-3
     if switch == 'NH3':
         return phys.nh3.cp*phys.nh3.MolecularWeight*1e-3    
-    
-def slope(lnP, lnT, atm):
-    """Returns the slope dT/dlnP given a temperature T [K], the natural logarithm of a pressure [Pa] lnP and the dictionary atm_chemistry_arrays passed to this function with the ClimateUtilities object params."""
-    
-    # print(lnP, lnT, math.exp(lnP), math.exp(lnT))
 
+def slopeRay( logpa, logT ):
+    eps     = phys.H2O.MolecularWeight/phys.air.MolecularWeight
+    L       = phys.H2O.L_vaporization
+    Ra      = phys.air.R
+    Rc      = phys.H2O.R
+    cpa     = phys.air.cp
+    cpc     = phys.H2O.cp
+    pa      = math.exp(logpa)
+    T       = math.exp(logT)
+    qsat    = eps*(satvp(T)/pa)
+    num     = (1. + (L/(Ra*T))*qsat)*Ra
+    den     = cpa + (cpc + (L/(Rc*T) - 1.)*(L/T))*qsat
+    return num/den
+
+# Define pressure levels for SOCRATES (?)
+def set_pressure_array( atm ):
+   
+    atm.p     = np.ones(atm.nlev)
+    atm.pl    = np.ones(atm.nlev+1)
+    rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
+    logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
+    levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
+    atm.pl    = np.array(logLevels)
+    atm.p     = (atm.pl[1:] + atm.pl[:-1]) / 2
+    
+    return atm
+
+# Dry adiabat as a comparison
+def dry_adiabat( T_surf, p_array, cp_array ):
+
+    T_dry   = np.zeros(len(p_array))
+    P_surf  = np.amax(p_array)
+
+    # Check if scalar or cp array
+    if not isinstance(cp_array, list):
+        cp_array = np.ones(len(p_array))*cp_array
+
+    for idx, prs in enumerate(p_array):
+
+        if cp_array[idx] > 0.:
+
+            T_dry[idx] = T_surf * ( prs / P_surf ) ** ( R_universal / cp_array[idx] )
+
+    return T_dry
+
+
+# dlnT/dlnP slope function from Li, Ingersoll & 
+def moist_slope(lnP, lnT, atm):
+    
     # T instead lnT
     tmp = math.exp(lnT)
 
-    # Kludge for H2 p_sat > 7200 for T > 13.95K
-    if tmp < 13.95: 
-        tmp = 13.95
+    # # Kludge for H2 p_sat > 7200 for T > 13.95K
+    # if tmp < 13.95: 
+    #     tmp = 13.95
 
     # Find current atm index
     idx = int(np.amax(atm.ifatm))
@@ -262,62 +310,17 @@ def slope(lnP, lnT, atm):
     numerator   = 1. + num_sum
     denominator = (atm.cp[idx] / R_universal) + (denom_sum1 + denom_sum2) / (1. + denom_sum3)
 
-    # dT/dlnP
-    dTdlnP = numerator / denominator
+    # dlnT/dlnP
+    dlnTdlnP = numerator / denominator
 
     # Moist adiabat slope
-    return dTdlnP
+    return dlnTdlnP
 
-def slopeRay(logpa,logT):
-    eps = phys.H2O.MolecularWeight/phys.air.MolecularWeight
-    L = phys.H2O.L_vaporization
-    Ra = phys.air.R
-    Rc = phys.H2O.R
-    cpa = phys.air.cp
-    cpc = phys.H2O.cp
-    pa = math.exp(logpa)
-    T = math.exp(logT)
-    qsat = eps*(satvp(T)/pa)
-    num = (1. + (L/(Ra*T))*qsat)*Ra
-    den = cpa + (cpc + (L/(Rc*T) - 1.)*(L/T))*qsat
-    return num/den
-
-# Define pressure levels
-def set_pressure_array(atm):
-   
-    atm.p     = np.ones(atm.nlev)
-    atm.pl    = np.ones(atm.nlev+1)
-    rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
-    logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
-    levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
-    atm.pl    = np.array(logLevels)
-    atm.p     = (atm.pl[1:] + atm.pl[:-1]) / 2
-    
-    return atm
-
-def dry_adiabat( T_surf, p_array, cp_array ):
-
-    T_dry   = np.zeros(len(p_array))
-    P_surf  = np.amax(p_array)
-
-    # Check if scalar or cp array
-    if not isinstance(cp_array, list):
-        cp_array = np.ones(len(p_array))*cp_array
-
-    for idx, prs in enumerate(p_array):
-
-        if cp_array[idx] > 0.:
-
-            T_dry[idx] = T_surf * ( prs / P_surf ) ** ( R_universal / cp_array[idx] )
-
-    return T_dry
-
+# Apply condensation and renormalize volatile abundances in gas and condensed phases
 def condensation( atm ):
 
     # Find current level
     idx = int(np.amax(atm.ifatm))
-
-    # print("Condensation, idx:", idx)
 
     # Temperature floor
     tmp = np.amax([atm.tmp[idx], 20])
@@ -370,14 +373,20 @@ def condensation( atm ):
         # Update total pressure
         P_tot_new           += atm.p_vol[vol][idx]
 
-    # Renormalize total pressure at surface
+    # Reset total pressure due to condensation effects
+    atm.p[idx] = P_tot_new
+
+    # Reset surface total pressure at surface
     if idx == 0:
         atm.p[idx] = P_tot_new
         atm.ps     = P_tot_new
-        atm.ptop   = atm.ps*1e-10
+        atm.ptop   = np.amin([atm.ps*1e-10, 1e-5])
 
     # Renormalize cp w/ molar concentration
     atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
+
+    # Dry concentration floor
+    atm.xd[idx] = np.amax([atm.xd[idx], 1e-10])
 
     ## 'Molar abundance in one mole of heterogeneous gas mixture' (Li, Ingersoll, Oyafuso 2018)
 
@@ -396,87 +405,49 @@ def condensation( atm ):
 
         # print(idx, vol, atm.x_gas[vol][idx]/atm.xd[idx])
 
-    # Dry concentration floor
-    atm.xd[idx] = np.amax([atm.xd[idx], 1e-10])
-
-    # print( idx, atm.p[idx]/p_vol_sat, atm.x_gas[vol][idx], atm.x_cond[vol][idx], atm.xd[idx], atm.xv[idx], atm.xc[idx] )
-
     # Renormalize cp w/ molar abundance
     atm.cp_mr[idx]  = atm.cp[idx] / (atm.mrd[idx] + atm.mrv[idx])
 
-    # print(vol, atm.cp[idx], atm.cp_mr[idx])
-    
-
     return atm
-                        
-def moist_adiabat(atm):
-    """Builds the generalized moist adiabat from slope(lnP,T,params) and plots the adiabat along with the relative abundances."""   
 
-    # for mode in [ "original" ]: # "hybrid", , "ray1"
+# Builds the generalized moist adiabat from slope(lnP, lnT, atm object)
+def general_adiabat( atm ):
 
-    # params = Dummy() # initialize parameter object  
-
-    # print(params)
-
-    # params.atm_chemistry_arrays = {}
-    # for x in atm_chemistry:
-    #     params.atm_chemistry_arrays['%s' % x] = [] 
-          
-    # Initialization
+    ### Initialization
 
     # Initialize the tuple solution
-    moist_w_cond    = [] #[tuple([np.log(atm.ps), atm.ts])] 
-
-    # Initialize the final pressure array   
-    pL              = []                                                  
-    psatL           = []
-
-    # Initialize the exponent of the dry adiabat
-    Rcp             = []    
-
-    # Initialize the final temperature array                                             
-    TL              = []
+    moist_tuple    = [] #[tuple([np.log(atm.ps), atm.ts])] 
    
     # Negative increment to go from ps to ptop < ps       
-    step            = -.01
+    step            = -.1
 
     # Integration counter
     idx             = 0  
 
-    # print(round(atm.p[idx],5), round(atm.tmp[idx],5), round(atm.p_vol["H2"][idx],5), round(atm.p_vol["H2O"][idx],5), round(atm.x_gas["H2"][idx],5), round(atm.x_gas["H2O"][idx],5), round(atm.x_cond["H2"][idx],5), round(atm.x_cond["H2O"][idx],5), round(atm.xd[idx],5), round(atm.xv[idx],5))
-
     # Calculate condensation
     atm             = condensation(atm)
 
-    # print(round(atm.p[idx],5), round(atm.tmp[idx],5), round(atm.p_vol["H2"][idx],5), round(atm.p_vol["H2O"][idx],5), round(atm.x_gas["H2"][idx],5), round(atm.x_gas["H2O"][idx],5), round(atm.x_cond["H2"][idx],5), round(atm.x_cond["H2O"][idx],5), round(atm.xd[idx],5), round(atm.xv[idx],5))
-
     # Create the integrator instance                                              
-    int_slope       = integrator(slope, np.log(atm.ps), np.log(atm.ts), step)
+    int_slope       = integrator(moist_slope, np.log(atm.ps), np.log(atm.ts), step)
 
-    # Integrator for comparison with Ray's slope
-    int_slopeRay    = integrator(slopeRay, np.log(atm.ps), np.log(atm.ts), step)
-
-    # Update parameters used in the slope function dT/dlnP
+    # Update parameters used in the slope function dlntT/dlnP
     int_slope.setParams(atm)
 
-    # logT            = int_slope.y
-    # logP            = int_slope.x
-    # Temperature     = np.exp(logT)
-    # Pressure        = np.exp(logP)
-  
-    ##### Integration
-    while atm.p[idx] > atm.ptop:
+    # # Integrator for comparison with Ray's slope
+    # int_slopeRay    = integrator(slopeRay, np.log(atm.ps), np.log(atm.ts), step)
 
-        # print("RK4 step, idx:", idx, end=" ")
+    ### Integration
+
+    while atm.p[idx] > atm.ptop:
         
         # Execute the Runge-Kutta integrator, fill array of tuples
-        moist_w_cond.append(int_slope.next()) 
+        moist_tuple.append(int_slope.next())
 
         # Fill new T,P values
         atm.p[idx+1]    = np.exp(int_slope.x)
         atm.tmp[idx+1]  = np.exp(int_slope.y)
 
-        # print(round(atm.p[idx+1],5), round(atm.tmp[idx+1],5))
+        # print("RK4 step, idx:", idx, round(atm.p[idx+1],5), round(atm.tmp[idx+1],5))
 
         # Set next level to calculate
         idx             += 1
@@ -485,13 +456,15 @@ def moist_adiabat(atm):
         # Calculate condensation at next level
         atm             = condensation(atm)
 
-        # # Update parameters used in the slope function dT/dlnP
-        # int_slope.setParams(atm)
+        # Update parameters used in the slope function dT/dlnP
+        int_slope.setParams(atm)
 
-    ### Plotting
+    return atm 
 
-    # Pressure array for interpolation scheme
-    p_plot = np.exp(np.linspace(np.log(atm.ptop),np.log(atm.ps),100))
+
+# Plotting
+def plot_adiabats(atm):
+
     sns.set_style("ticks")
     sns.despine()
 
@@ -500,7 +473,6 @@ def moist_adiabat(atm):
     ls_ind      = 1.0
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
-
 
     # # Ray's moist adiabat as comparison
     # # (1 condensible + 1 non-condensible gas, fixed partial pressure of the non-condensible)
@@ -514,16 +486,6 @@ def moist_adiabat(atm):
     # ax1.semilogy(T_ray, p_ray, lw=ls_adiabat, color=vol_colors[ray_vol_cond+"_2"], ls="--", label=vol_latex[ray_vol_cond]+r' adiabat Ray') # label=r'p$_{non-cond.}$ = '+"{:.2f}".format(p_dry_gas)+' Pa'
     # ax2.semilogy(molarCon_ray, p_ray, lw=ls_adiabat, color=vol_colors[ray_vol_cond+"_2"], ls="--", label=r"Ray's function")
 
-
-    # Moist adiabat
-    ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Moist adiabat",alpha=0.99)
-
-    # Dry adiabat as comparison
-    # Condensed abundances
-    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="--", lw=ls_dry, alpha=0.5)
-    # Initial abundances
-    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp[0] ), atm.p , color=vol_colors["black_3"], ls="--", lw=ls_dry, label=r'Dry adiabat')
-    
     
     # For reference p_sat lines
     T_sat_array    = np.linspace(20,3000,1000) 
@@ -532,7 +494,6 @@ def moist_adiabat(atm):
     # Individual species
     for vol in atm.vol_list.keys():
     
-
         # Saturation vapor pressure for given temperature
         Psat_array = [ p_sat(vol, T) for T in T_sat_array ]
         ax1.semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+vol_latex[vol], lw=ls_ind, ls=":", color=vol_colors[vol+"_1"])
@@ -543,31 +504,30 @@ def moist_adiabat(atm):
         # Sum up partial pressures
         p_partial_sum += atm.p_vol[vol]
 
-    # # Plot sum of partial pressures as check
-    # ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p_\mathrm{vol}$',alpha=0.99)
+    # Plot sum of partial pressures as check
+    ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p_\mathrm{vol}$',alpha=0.99)
 
     # Plot individual molar concentrations
     for vol in atm.vol_list.keys():
         ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol+"_2"], ls="-", label=vol_latex[vol]+" gas")
         ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol+"_1"], ls="--", label=vol_latex[vol]+" cloud")
 
-        # print(atm.x_gas[vol], atm.x_cond[vol])
-
     # Plot phase molar concentrations
     ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], ls=":", label=r"$X_\mathrm{gas}$")
 
+    # Dry adiabat as comparison
+    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, alpha=0.5)              # Condensed abundances
+    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp[0] ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, label=r'Dry adiabat')   # Initial abundances
 
-    # # Plot surface pressure lines
-    # ax1.axhline(atm.ps, ls=":", lw=ls_ind, color=vol_colors["black_3"])
-    # ax2.axhline(atm.ps, ls=":", lw=ls_ind, color=vol_colors["black_3"])
+    # General moist adiabat
+    ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Moist adiabat",alpha=0.99)
 
     ax1.invert_yaxis()
     ax1.set_xlabel(r'Temperature $T$ (K)')
     ax1.set_ylabel(r'Total pressure $P$ (Pa)')
-    ax1.set_title('Adiabats + individual Clausius-Clapeyron slopes')
+    ax1.set_title('Adiabats & individual Clausius-Clapeyron slopes')
     ax1.legend(ncol=np.min([len(atm.vol_list)+1,2]))
     ax1.set_xlim([0,np.max(atm.ts)])
-    
 
     ax2.invert_yaxis()
     ax2.set_title('Phase & individual volatile abundances')
@@ -587,51 +547,55 @@ def moist_adiabat(atm):
     ax2.set_xscale("log")
     
     # plt.show()
+
     plt.savefig('./output/general_adiabat.pdf', bbox_inches = 'tight')
-    #plt.close(fig)
+    plt.close(fig)  
 
-    return moist_w_cond   
+    return
 
 
-### Stand-alone initial conditions ###
+##### Stand-alone initial conditions
 
-# # Comparison with Ray's function
-# x_ncond_surf   = (1e+7-p_sat("H2O", 500))/1e+7
-# x_cond_surf    = p_sat("H2O", 500)/1e+7
-# print(x_ncond_surf, x_cond_surf)
+# --> USER INPUT
 
-# Define volatile list and their surface molar/volume mixing ratios
-# ! Must sum to one !
+# Surface pressure & temperature
+P_surf                  = 1e+3          # Pa
+T_surf                  = 280.          # K
+
+# Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-            "H2"  : 0.1, 
-            "H2O" : 0.2, 
-            "CO2" : 0.2,
-            "N2"  : 0.1,  
-            "CH4" : 0.1, 
-            "O2"  : 0.1, 
-            "CO"  : 0.1, 
-            # "NH3" : 0.5, 
-            "He"  : 0.1 
+              "H2O" : 0.2, 
+              "CO2" : 0.2,
+              "H2"  : 0.6, 
+              # "N2"  : 0.1,  
+              # "CH4" : 0.1, 
+              # "O2"  : 0.1, 
+              # "CO"  : 0.1, 
+              # "He"  : 0.1,
+              # "NH3" : 0.1, 
             }
 
+# <-- USER INPUT
+
+# Define the atmosphere object from this input
+
 # Create atmosphere object
-atm              = atmos()
+atm                     = atmos()
 
 # Surface temperature of planet
-atm.ts           = 200.           # K
-atm.tmp[0]       = atm.ts         # K
+atm.ts                  = T_surf         # K
+atm.tmp[0]              = atm.ts         # K
 
 # Surface & top pressure
-atm.ps           = 1e+5           # Pa
-atm.p[0]         = atm.ps         # K
-atm.ptop         = atm.ps*1e-10   # Pa
+atm.ps                  = P_surf         # Pa
+atm.p[0]                = atm.ps         # K
+atm.ptop                = np.amin([atm.ps*1e-10, 1e-5])   # Pa
 
 # Initialize level-dependent quantities
-atm.vol_list        = vol_list # List of all species for looping
+atm.vol_list            = vol_list # List of all species for looping
 
 # Instantiate object dicts and arrays
 for vol in atm.vol_list.keys():
-
     # Instantiate as zero
     atm.p_vol[vol]      = np.zeros(atm.nlev)
     atm.x_gas[vol]      = np.zeros(atm.nlev)
@@ -642,6 +606,9 @@ for vol in atm.vol_list.keys():
     # Surface partial pressures
     atm.p_vol[vol][0]   = atm.ps * vol_list[vol]
 
-# Execut moist adiabat function
-moist_w_cond     = moist_adiabat(atm)
+# Calculate moist adiabat + condensation
+atm                     = general_adiabat(atm)
+
+# Plot adiabat
+plot_adiabats(atm)
 
