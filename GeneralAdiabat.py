@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Dec  1 13:17:05 2019
+'''
+Created 01/12/19
 
 @authors: 
-Ryan Boukrouche
-Tim Lichtenberg
+Ryan Boukrouche (RB)
+Tim Lichtenberg (TL)
 
 This file builds a self-consistent temperature profile from Li, Ingersoll & Oyafuso 2018, from the ground up,
-using the Runge-Kutta 4 scheme from ClimateUtilities.py
-"""
+using the Runge-Kutta 4 scheme from ClimateUtilities.py.
+'''
 
 import time
 import numpy as np
@@ -485,7 +484,6 @@ def plot_adiabats(atm):
     # # Plot Ray's H2O moist adiabat function
     # ax1.semilogy(T_ray, p_ray, lw=ls_adiabat, color=vol_colors[ray_vol_cond+"_2"], ls="--", label=vol_latex[ray_vol_cond]+r' adiabat Ray') # label=r'p$_{non-cond.}$ = '+"{:.2f}".format(p_dry_gas)+' Pa'
     # ax2.semilogy(molarCon_ray, p_ray, lw=ls_adiabat, color=vol_colors[ray_vol_cond+"_2"], ls="--", label=r"Ray's function")
-
     
     # For reference p_sat lines
     T_sat_array    = np.linspace(20,3000,1000) 
@@ -493,27 +491,26 @@ def plot_adiabats(atm):
 
     # Individual species
     for vol in atm.vol_list.keys():
+
+        # Only if volatile is present
+        if atm.vol_list[vol] > 0.:
     
-        # Saturation vapor pressure for given temperature
-        Psat_array = [ p_sat(vol, T) for T in T_sat_array ]
-        ax1.semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+vol_latex[vol], lw=ls_ind, ls=":", color=vol_colors[vol+"_1"])
+            # Saturation vapor pressure for given temperature
+            Psat_array = [ p_sat(vol, T) for T in T_sat_array ]
+            ax1.semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+vol_latex[vol], lw=ls_ind, ls=":", color=vol_colors[vol+"_1"])
 
-        # Plot partial pressures
-        ax1.semilogy(atm.tmp, atm.p_vol[vol], color=vol_colors[vol+"_1"], lw=ls_ind, ls="-", label=r'$p$'+vol_latex[vol],alpha=0.99)
+            # Plot partial pressures
+            ax1.semilogy(atm.tmp, atm.p_vol[vol], color=vol_colors[vol+"_1"], lw=ls_ind, ls="-", label=r'$p$'+vol_latex[vol],alpha=0.99)
 
-        # Sum up partial pressures
-        p_partial_sum += atm.p_vol[vol]
+            # Sum up partial pressures
+            p_partial_sum += atm.p_vol[vol]
+
+            # Plot individual molar concentrations
+            ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol+"_2"], ls="-", label=vol_latex[vol]+" gas")
+            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol+"_1"], ls="--", label=vol_latex[vol]+" cloud")
 
     # Plot sum of partial pressures as check
     ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p_\mathrm{vol}$',alpha=0.99)
-
-    # Plot individual molar concentrations
-    for vol in atm.vol_list.keys():
-        ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol+"_2"], ls="-", label=vol_latex[vol]+" gas")
-        ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol+"_1"], ls="--", label=vol_latex[vol]+" cloud")
-
-    # Plot phase molar concentrations
-    ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], ls=":", label=r"$X_\mathrm{gas}$")
 
     # Dry adiabat as comparison
     ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, alpha=0.5)              # Condensed abundances
@@ -521,6 +518,9 @@ def plot_adiabats(atm):
 
     # General moist adiabat
     ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Moist adiabat",alpha=0.99)
+
+    # Phase molar concentrations
+    ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], ls=":", label=r"$X_\mathrm{gas}$")
 
     ax1.invert_yaxis()
     ax1.set_xlabel(r'Temperature $T$ (K)')
@@ -534,7 +534,7 @@ def plot_adiabats(atm):
     ax2.set_xlabel(r'Molar concentration $X^{\mathrm{vol}}_{\mathrm{phase}}$')
     ax2.set_ylabel(r'Total pressure $P$ (Pa)')
     # ax2.set_title('Relative abundances with condensation')
-    ax2.legend(ncol=np.min([len(atm.vol_list)+1,3]))
+    ax2.legend(ncol=2)
     ax2.set_xlim(left=-0.05, right=1.05)
 
     ax1.set_ylim(top=atm.ptop)
@@ -564,15 +564,15 @@ T_surf                  = 280.          # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : 0.2, 
-              "CO2" : 0.2,
-              "H2"  : 0.6, 
-              # "N2"  : 0.1,  
-              # "CH4" : 0.1, 
-              # "O2"  : 0.1, 
-              # "CO"  : 0.1, 
-              # "He"  : 0.1,
-              # "NH3" : 0.1, 
+              "H2O" : .2, 
+              "CO2" : .2,
+              "H2"  : .6, 
+              "N2"  : .0,  
+              "CH4" : .0, 
+              "O2"  : .0, 
+              "CO"  : .0, 
+              "He"  : .0,
+              "NH3" : .0, 
             }
 
 # <-- USER INPUT
@@ -588,11 +588,11 @@ atm.tmp[0]              = atm.ts         # K
 
 # Surface & top pressure
 atm.ps                  = P_surf         # Pa
-atm.p[0]                = atm.ps         # K
+atm.p[0]                = atm.ps         # Pa
 atm.ptop                = np.amin([atm.ps*1e-10, 1e-5])   # Pa
 
 # Initialize level-dependent quantities
-atm.vol_list            = vol_list # List of all species for looping
+atm.vol_list            = vol_list       # List of all species and initial concentrations
 
 # Instantiate object dicts and arrays
 for vol in atm.vol_list.keys():
