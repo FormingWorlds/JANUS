@@ -328,15 +328,6 @@ def condensation( atm ):
     # Update mixing ratios and partial pressures
     for vol in atm.vol_list.keys():
 
-        # # Rescale mixing ratios
-        # if idx != 0:
-        #     atm.x_gas[vol][idx]  = atm.x_gas[vol][idx-1]
-        #     atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1]
-        # # At surface
-        # else:
-        #     atm.x_gas[vol][idx]  = atm.x_gas[vol][idx]
-        #     atm.x_cond[vol][idx] = atm.x_cond[vol][idx]
-
         # Scaled partial pressure
         atm.p_vol[vol][idx] = atm.vol_list[vol] * atm.p[idx]
 
@@ -383,6 +374,7 @@ def condensation( atm ):
     if idx == 0:
         atm.p[idx] = P_tot_new
         atm.ps     = P_tot_new
+        atm.ptop   = atm.ps*1e-10
 
     # Renormalize cp w/ molar concentration
     atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
@@ -404,7 +396,10 @@ def condensation( atm ):
 
         # print(idx, vol, atm.x_gas[vol][idx]/atm.xd[idx])
 
-    # print(idx, atm.x_gas["H2O"][idx], atm.x_gas["CO2"][idx], atm.xd[idx], atm.xv[idx], atm.x_gas["H2O"][idx]/atm.xd[idx])
+    # Dry concentration floor
+    atm.xd[idx] = np.amax([atm.xd[idx], 1e-10])
+
+    # print( idx, atm.p[idx]/p_vol_sat, atm.x_gas[vol][idx], atm.x_cond[vol][idx], atm.xd[idx], atm.xv[idx], atm.xc[idx] )
 
     # Renormalize cp w/ molar abundance
     atm.cp_mr[idx]  = atm.cp[idx] / (atm.mrd[idx] + atm.mrv[idx])
@@ -532,16 +527,11 @@ def moist_adiabat(atm):
     
     # For reference p_sat lines
     T_sat_array    = np.linspace(20,3000,1000) 
-
-    p_partial_sum = np.zeros(len(atm.tmp))
+    p_partial_sum  = np.zeros(len(atm.tmp))
 
     # Individual species
     for vol in atm.vol_list.keys():
-        
-        # # Dew-point temperature for given pressure
-        # L_use = L_heat( vol, atm.ts )
-        # Tdew_array = Tdew( vol, pL, atm.ts, L_use )
-        # ax1.semilogy( Tdew_array, pL, label=vol_latex[vol]+' dew-point', lw=ls_ind, ls="--", color=vol_colors[vol+"_1"])
+    
 
         # Saturation vapor pressure for given temperature
         Psat_array = [ p_sat(vol, T) for T in T_sat_array ]
@@ -553,30 +543,23 @@ def moist_adiabat(atm):
         # Sum up partial pressures
         p_partial_sum += atm.p_vol[vol]
 
-    # Plot sum of partial pressures
-    ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p_\mathrm{vol}$',alpha=0.99)
-
-    # ax1.semilogy(atm.tmp, atm.p_vol["H2"], color=vol_colors["H2"+"_1"], lw=ls_ind+2, ls="-", label=r'$p$'+vol_latex["H2"],alpha=0.99)
-
-
-    # ax1.semilogy(TL, pL, color=vol_colors["CH4_2"], lw=ls_adiabat,label="Moist adiabat",alpha=alpha) 
+    # # Plot sum of partial pressures as check
+    # ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p_\mathrm{vol}$',alpha=0.99)
 
     # Plot individual molar concentrations
     for vol in atm.vol_list.keys():
-        ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol+"_1"], ls="-", label=vol_latex[vol]+" gas")
-        ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol+"_2"], ls="--", label=vol_latex[vol]+" cloud")
+        ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol+"_2"], ls="-", label=vol_latex[vol]+" gas")
+        ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol+"_1"], ls="--", label=vol_latex[vol]+" cloud")
 
-    # Plot phase molar concentrations in phases
+        # print(atm.x_gas[vol], atm.x_cond[vol])
+
+    # Plot phase molar concentrations
     ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], ls=":", label=r"$X_\mathrm{gas}$")
-    # ax2.semilogy(atm.xv,atm.p, color=vol_colors["black_3"], ls="--", label=r"$X^\mathrm{moist}_\mathrm{gas}$")
-    # ax2.semilogy(atm.xc,atm.p, color=vol_colors["black_3"], ls=":", label=r"$X^\mathrm{moist}_\mathrm{cloud}$")
 
-    #ax2.semilogy(molarCon_interp,p_plot,lw=ls_adiabat, color="blue", ls="--")
-    #ax2.semilogy(molarCon,p_ray,lw=ls_adiabat, color="blue", ls="-",label=r'Ray_molarCon')
 
-    # Plot surface pressure
-    ax1.axhline(atm.ps, ls=":", lw=ls_ind, color=vol_colors["black_3"])
-    ax2.axhline(atm.ps, ls=":", lw=ls_ind, color=vol_colors["black_3"])
+    # # Plot surface pressure lines
+    # ax1.axhline(atm.ps, ls=":", lw=ls_ind, color=vol_colors["black_3"])
+    # ax2.axhline(atm.ps, ls=":", lw=ls_ind, color=vol_colors["black_3"])
 
     ax1.invert_yaxis()
     ax1.set_xlabel(r'Temperature $T$ (K)')
@@ -586,8 +569,6 @@ def moist_adiabat(atm):
     ax1.set_xlim([0,np.max(atm.ts)])
     
 
-    # ax2.semilogy(xHe_array,p_plot,label=r'He')
-    # ax2.semilogy(xNH3_array,p_plot,label=r'NH$_3$')
     ax2.invert_yaxis()
     ax2.set_title('Phase & individual volatile abundances')
     ax2.set_xlabel(r'Molar concentration $X^{\mathrm{vol}}_{\mathrm{phase}}$')
@@ -596,13 +577,12 @@ def moist_adiabat(atm):
     ax2.legend(ncol=np.min([len(atm.vol_list)+1,3]))
     ax2.set_xlim(left=-0.05, right=1.05)
 
-    # ax1.set_ylim([1e5,1e-5])
-    ax1.set_ylim(top=1e-5)
-    ax1.set_ylim(bottom=1e+7)
-    ax2.set_ylim(top=1e-5)
-    ax2.set_ylim(bottom=1e+7)
+    ax1.set_ylim(top=atm.ptop)
+    ax1.set_ylim(bottom=atm.ps)
+    ax2.set_ylim(top=atm.ptop)
+    ax2.set_ylim(bottom=atm.ps)
 
-    ax2.set_xlim([1e-3, 1])
+    ax2.set_xlim([1e-3, 1.05])
 
     ax2.set_xscale("log")
     
@@ -623,28 +603,27 @@ def moist_adiabat(atm):
 # Define volatile list and their surface molar/volume mixing ratios
 # ! Must sum to one !
 vol_list = { 
-            "H2"  : 0.25, 
-            "N2"  : 0.25, 
-            "H2O" : 0.25, 
-            "CO2" : 0.25, 
-            # "CH4" : 0.0, 
-            # "O2"  : 0.0, 
-            # "CO"  : 0.0, 
-            # "NH3" : 0.0, 
-            # "He"  : 0.0 
+            "H2"  : 0.1, 
+            "H2O" : 0.2, 
+            "CO2" : 0.2,
+            "N2"  : 0.1,  
+            "CH4" : 0.1, 
+            "O2"  : 0.1, 
+            "CO"  : 0.1, 
+            # "NH3" : 0.5, 
+            "He"  : 0.1 
             }
 
 # Create atmosphere object
 atm              = atmos()
 
 # Surface temperature of planet
-atm.ts           = 500.           # K
+atm.ts           = 200.           # K
 atm.tmp[0]       = atm.ts         # K
 
-# Surface pressure
+# Surface & top pressure
 atm.ps           = 1e+5           # Pa
-
-# Top pressure
+atm.p[0]         = atm.ps         # K
 atm.ptop         = atm.ps*1e-10   # Pa
 
 # Initialize level-dependent quantities
@@ -662,9 +641,6 @@ for vol in atm.vol_list.keys():
 
     # Surface partial pressures
     atm.p_vol[vol][0]   = atm.ps * vol_list[vol]
-
-    # Total pressure
-    atm.p[0]            += atm.p_vol[vol][0]
 
 # Execut moist adiabat function
 moist_w_cond     = moist_adiabat(atm)
