@@ -1,10 +1,16 @@
 '''
-MDH 28/01/19
-Socrates radiative-convective model
+Created 28/01/19
+
+@authors:
+Mark Hammond (MH)
+Tim Lichtenberg (TL)
+
+SOCRATES radiative-convective model
 '''
+
 import numpy as np
 import math,phys
-import General_adiabat as ga # Moist adiabat with multiple condensibles
+import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
 import SocRadModel
@@ -54,20 +60,20 @@ def surf_Planck_nu(atm):
     B   = B * atm.band_widths/1000.0
     return B
 
-def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, atm_chemistry, loop_counter, SPIDER_options, standalone):
+def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_options, standalone):
 
-    # Instantiate the radiation model
-    atm = atmos()
+    # # Instantiate the radiation model
+    # atm = atmos()
 
-    if standalone == True:
-        atm.ps      = runtime_helpfile[0]*1e5   # bar->Pa
-        atm.ts      = runtime_helpfile[1]       # K   
-    else:
-        atm.ps      = runtime_helpfile.iloc[-1]["P_surf"]*1e5 # bar->Pa
-        atm.ts      = runtime_helpfile.iloc[-1]["T_surf"]
+    # if standalone == True:
+    #     atm.ps      = runtime_helpfile[0]*1e5   # bar->Pa
+    #     atm.ts      = runtime_helpfile[1]       # K   
+    # else:
+    #     atm.ps      = runtime_helpfile.iloc[-1]["P_surf"]*1e5 # bar->Pa
+    #     atm.ts      = runtime_helpfile.iloc[-1]["T_surf"]
 
-    # Avoid math error for moist adiabat
-    atm.ptop        = atm.ps*1e-5   
+    # # Avoid math error for moist adiabat
+    # atm.ptop        = atm.ps*1e-5   
 
     # Set up pressure array (a global)
     pstart          = atm.ps#*.995
@@ -87,15 +93,15 @@ def RadConvEqm(output_dir, time_current, runtime_helpfile, stellar_toa_heating, 
     # Calculate individual moist adiabats
     Moist_adiabat_H2O   = [ Tdew_H2O(pp) for pp in atm.p ]
 
-    TdewH2O = [ ga.Tdew( 'H2O', pressure ) for pressure in atm.p ]
-    TdewCO2 = [ ga.Tdew( 'CO2', pressure ) for pressure in atm.p ]
-    TdewCH4 = [ ga.Tdew( 'CH4', pressure ) for pressure in atm.p ]
-    TdewCO  = [ ga.Tdew( 'CO',  pressure ) for pressure in atm.p ]
-    TdewN2  = [ ga.Tdew( 'N2',  pressure ) for pressure in atm.p ]
-    TdewO2  = [ ga.Tdew( 'O2',  pressure ) for pressure in atm.p ]
-    TdewH2  = [ ga.Tdew( 'H2',  pressure ) for pressure in atm.p ]
-    TdewHe  = [ ga.Tdew( 'He',  pressure ) for pressure in atm.p ]
-    TdewNH3 = [ ga.Tdew( 'NH3', pressure ) for pressure in atm.p ]
+    # TdewH2O = [ ga.Tdew( 'H2O', pressure ) for pressure in atm.p ]
+    # TdewCO2 = [ ga.Tdew( 'CO2', pressure ) for pressure in atm.p ]
+    # TdewCH4 = [ ga.Tdew( 'CH4', pressure ) for pressure in atm.p ]
+    # TdewCO  = [ ga.Tdew( 'CO',  pressure ) for pressure in atm.p ]
+    # TdewN2  = [ ga.Tdew( 'N2',  pressure ) for pressure in atm.p ]
+    # TdewO2  = [ ga.Tdew( 'O2',  pressure ) for pressure in atm.p ]
+    # TdewH2  = [ ga.Tdew( 'H2',  pressure ) for pressure in atm.p ]
+    # TdewHe  = [ ga.Tdew( 'He',  pressure ) for pressure in atm.p ]
+    # TdewNH3 = [ ga.Tdew( 'NH3', pressure ) for pressure in atm.p ]
     
     # Feed mixing ratios
     if standalone == True:
@@ -302,7 +308,7 @@ def steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan):
 
     # Moist adjustment step
     if Moist_Adjustment == True:
-        moist_wo_cond, moist_w_cond = ga.solve_general_adiabat(copy.deepcopy(atm), atm_chemistry, use_vulcan, condensation=True)
+        atm = ga.general_adiabat(copy.deepcopy(atm))
         # print(moist_wo_cond, moist_w_cond)
     else:
         moist_wo_cond, moist_w_cond = np.zeros(len(atm.temp))
@@ -327,22 +333,49 @@ def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_dist
     
     return stellar_toa_heating[0], interpolated_luminosity/L_sun
 
-# If called stand-alone, plot adiabat comparison
-time_current  = 1e+7    # yr
-time_offset   = 1e+7    # yr
-mean_distance = 1.0     # au
-P_surf        = 10      # bar
-T_surf        = 600     # K
-atm_chemistry = { 
-                    "H2O" : 0.999, 
-                    "CO2" : 0.0, 
-                    "H2"  : 0.0, 
-                    "CH4" : 0.0,
-                    "CO"  : 0.0,  
-                    "N2"  : 0.0, 
-                    "O2"  : 0.0,
-                    "He"  : 0.0,  
-                    "NH3" : 0.0
-                }
+##### Stand-alone initial conditions
+
+# Planet age and orbit
+time_current  = 1e+7                # yr
+time_offset   = 1e+7                # yr
+mean_distance = 1.0                 # au
+
+# Surface pressure & temperature
+P_surf                  = 1e+3      # Pa
+T_surf                  = 280.      # K
+
+# Volatile molar concentrations: ! must sum to one !
+vol_list = { 
+              "H2O" : .5, 
+              "CO2" : .5,
+              "H2"  : .0, 
+              "N2"  : .0,  
+              "CH4" : .0, 
+              "O2"  : .0, 
+              "CO"  : .0, 
+              "He"  : .0,
+              "NH3" : .0, 
+            }
+
+# Define the atmosphere object from this input
+
+# Create atmosphere object
+atm                     = atmos()
+
+# Surface temperature of planet
+atm.ts                  = T_surf     # K
+atm.tmp[0]              = atm.ts  
+
+# Surface & top pressure
+atm.ps                  = P_surf     # Pa
+atm.p[0]                = atm.ps     # Pa
+atm.ptop                = np.amin([atm.ps*1e-10, 1e-5])   # Pa
+
+# Initialize level-dependent quantities
+atm.vol_list            = vol_list   # List of all species and initial concentrations
+
+# Compute stellar heating
 toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
-LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, [P_surf,T_surf], toa_heating, atm_chemistry, [], [], standalone=True)
+
+# Construct radiative-convective profile + heat flux
+LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, atm, toa_heating, vol_list, [], [], standalone=True)
