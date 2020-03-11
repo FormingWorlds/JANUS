@@ -235,18 +235,18 @@ def slopeRay( logpa, logT ):
     den     = cpa + (cpc + (L/(Rc*T) - 1.)*(L/T))*qsat
     return num/den
 
-# Define pressure levels for SOCRATES (?)
-def set_pressure_array( atm ):
+# # Define pressure levels for SOCRATES (?)
+# def set_pressure_array( atm ):
    
-    atm.p     = np.ones(atm.nlev)
-    atm.pl    = np.ones(atm.nlev+1)
-    rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
-    logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
-    levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
-    atm.pl    = np.array(logLevels)
-    atm.p     = (atm.pl[1:] + atm.pl[:-1]) / 2
+#     atm.p     = np.ones(atm.nlev)
+#     atm.pl    = np.ones(atm.nlev+1)
+#     rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
+#     logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
+#     levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
+#     atm.pl    = np.array(logLevels)
+#     atm.p     = (atm.pl[1:] + atm.pl[:-1]) / 2
     
-    return atm
+#     return atm
 
 # Dry adiabat as a comparison
 def dry_adiabat( T_surf, p_array, cp_array ):

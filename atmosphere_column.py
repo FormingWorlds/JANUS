@@ -51,8 +51,8 @@ class atmos:
 		self.mrc			= np.zeros(self.nlev)	# Molar mixing ratio of cloud phase (relative to gas)
 		self.vol_list 		= []			     	# names of all species present
 		self.ifatm 			= np.zeros(self.nlev) 	# Defines n level to which atmosphere is calculated
-		self.cp      		= np.zeros(self.nlev)   # Heat capactiy depending on molar concentration ratio
-		self.cp_mr     		= np.zeros(self.nlev)   # Heat capactiy depending on mixing ratio
+		self.cp      		= np.zeros(self.nlev)   # Heat capacity depending on molar concentration ratio
+		self.cp_mr     		= np.zeros(self.nlev)   # Heat capacity depending on mixing ratio
 
 	class atmos_fluxes:
 		'''

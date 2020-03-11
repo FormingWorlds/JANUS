@@ -20,8 +20,7 @@ from scipy import interpolate
 import seaborn as sns
 import copy
 
-# Parameters to run SocRadConv stand-alone
-rad_steps = 100
+
 
 # Thermodynamic constants for moist adjustment
 R         = phys.water.R                  # J/(kg*K) specific gas constant of water vapor
@@ -36,15 +35,17 @@ pref      = esat(Tref)                    # Reference pressure
 L_sun     = 3.828e+26                     # W, IAU definition
 AU        = 1.495978707e+11               # m
 
-# Calculate dew point temperature
-def Tdew_H2O(p):
-    return Tref/(1-(Tref*R/L)*math.log(p/pref))
+R_universal = 8.31446261815324 # Universal gas constant, J.K-1.mol-1
 
-# Moist adjustment switch
-Moist_Adjustment = True
+# # Calculate dew point temperature
+# def Tdew_H2O(p):
+#     return Tref/(1-(Tref*R/L)*math.log(p/pref))
+
+# Number of radiation steps
+rad_steps  = 5
 
 # Number of convective adjustment steps
-convadj_steps = 5
+conv_steps = 0
 
 def surf_Planck_nu(atm):
     h   = 6.63e-34
@@ -88,8 +89,8 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
     # print(plevels2)
     # print(plevels)
 
-    # Initialize on general adiabat
-    atm = ga.general_adiabat(atm)
+    # # Initialize on general adiabat
+    # atm = ga.general_adiabat(atm)
 
     # print(len(atm.p), len(atm.pl), len(atm.tmp), len(atm.tmpl))
     # for idx, val in enumerate(atm.p):
@@ -147,77 +148,51 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
 
     #     use_vulcan = SPIDER_options["use_vulcan"]
 
-    # Initialise previous OLR and TOA heating to zero
-    PrevOLR     = 0.
-    PrevMaxHeat = 0.
-    PrevTemp    = 0.*atm.tmp
+    # # Initialise previous OLR and TOA heating to zero
+    # PrevOLR     = 0.
+    # PrevMaxHeat = 0.
+    # PrevTemp    = 0.*atm.tmp
 
     # Initialization complete
     # Now do the time stepping
     # matplotlib.rc('axes',edgecolor='k')
-    for i in range(0, rad_steps):
+    # for i in range(0, rad_steps):
 
-        atm, moist_wo_cond, moist_w_cond = steps(atm, toa_heating)
+    atm_dry, atm_moist = radiation_timestepping(atm, toa_heating, rad_steps)
 
-        if i % 1 == 0:
+    # if i % 1 == 0:
 
-            sns.set_style("ticks")
-            sns.despine()
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
+    #     sns.set_style("ticks")
+    #     sns.despine()
+    #     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
-            ax1.semilogy(atm.temp,atm.p*1e-5, ls="-", label=r'Dry adiabat')
+    #     ax1.semilogy(atm.temp,atm.p*1e-5, ls="-", label=r'Dry adiabat')
 
-            if Moist_Adjustment == True:
-                # ax1.semilogy(moist_wo_cond, atm.p*1e-5, color="green", ls="-", label=r'Moist adiabat, no cond.')
+    #     ax1.invert_yaxis()
+    #     ax1.set_xlabel('Temperature (K)')
+    #     ax1.set_ylabel('Pressure (bar)')
+    #     ax1.set_xlim([0,np.max(atm.temp)])
+    #     ax1.set_ylim([np.max(atm.p*1e-5),np.min(atm.p*1e-5)])
+    #     ax1.set_xticks([0,0.2*np.max(atm.temp),0.4*np.max(atm.temp),0.6*np.max(atm.temp),0.8*np.max(atm.temp),np.max(atm.temp)])
+    #     ax1.legend()
+        
+    #     ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths)
+    #     ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,color="gray",ls='--',label='Black body ('+str(atm.ts)+" K)")
+    #     ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
+    #     ax2.set_ylabel('Spectral flux density (Jy?)')
+    #     ax2.set_xlabel('Wavenumber (1/cm)')
+    #     ax2.legend()
 
-                # ax1.semilogy(moist_w_cond, atm.p*1e-5, color="green", ls="--", label=r'Moist adiabat')
-                
-                # ax1.semilogy(Moist_adiabat_H2O, atm.p*1e-5, color="red", ls="-.", label=r'H$_2$O moist adiabat')
+    #     plt.savefig(output_dir+'/TP_profile_'+str(round(time_current))+'.pdf', bbox_inches="tight")
+    #     plt.close(fig)
+    #     print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)))
 
-                ax1.semilogy(TdewH2O, atm.p*1e-5, label=r'H$_2$O', lw=0.8, ls=":")
-                ax1.semilogy(TdewCO2, atm.p*1e-5, label=r'CO$_2$', lw=0.8, ls=":")
-                ax1.semilogy(TdewH2,  atm.p*1e-5, label=r'H$_2$',  lw=0.8, ls=":")
-                ax1.semilogy(TdewCH4, atm.p*1e-5, label=r'CH$_4$', lw=0.8, ls=":")
-                ax1.semilogy(TdewCO,  atm.p*1e-5, label=r'CO',     lw=0.8, ls=":")
-                ax1.semilogy(TdewN2,  atm.p*1e-5, label=r'N$_2$',  lw=0.8, ls=":")
-                ax1.semilogy(TdewO2,  atm.p*1e-5, label=r'O$_2$',  lw=0.8, ls=":")
+        # PrevOLR     = atm.LW_flux_up[0]
+        # PrevMaxHeat = abs(np.max(atm.total_heating))
+        # PrevTemp[:] = atm.temp[:]
 
-            ax1.invert_yaxis()
-            ax1.set_xlabel('Temperature (K)')
-            ax1.set_ylabel('Pressure (bar)')
-            ax1.set_xlim([0,np.max(atm.temp)])
-            ax1.set_ylim([np.max(atm.p*1e-5),np.min(atm.p*1e-5)])
-            ax1.set_xticks([0,0.2*np.max(atm.temp),0.4*np.max(atm.temp),0.6*np.max(atm.temp),0.8*np.max(atm.temp),np.max(atm.temp)])
-            ax1.legend()
-            
-            ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths)
-            ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,color="gray",ls='--',label='Black body ('+str(atm.ts)+" K)")
-            ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
-            ax2.set_ylabel('Spectral flux density (Jy?)')
-            ax2.set_xlabel('Wavenumber (1/cm)')
-            ax2.legend()
-
-            plt.savefig(output_dir+'/TP_profile_'+str(round(time_current))+'.pdf', bbox_inches="tight")
-            plt.close(fig)
-            print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)))
-
-        if i % 10 == 0:
-            print("Iteration", i, end =", ")
-            print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)), ", dt =", atm.dt)
-
-        # Reduce timestep if heating is not converging
-        if abs(np.max(atm.temp-PrevTemp[:])) < 0.05 or abs(atm.temp[0]-atm.temp[1]) > 3.0:
-            atm.dt  = atm.dt*0.99
-            # print("Not converging -> reduce timestep to dt =", atm.dt)
-
-        # Sensitivity break condition
-        if (abs(atm.LW_flux_up[0]-PrevOLR) < (0.1*(5.67e-8*atm.ts**4)**0.5)) and i > 5 :
-           print("Break -> deltaOLR =", abs(atm.LW_flux_up[0]-PrevOLR), ", deltaT =", abs(np.max(atm.temp-PrevTemp[:])))
-           break    # break here
-
-        PrevOLR     = atm.LW_flux_up[0]
-        PrevMaxHeat = abs(np.max(atm.total_heating))
-        PrevTemp[:] = atm.temp[:]
+    # # Plot results
+    # plot_heat_balance(atm)
 
     # Write TP and spectral flux profiles for later plotting
     out_a = np.column_stack( ( atm.temp, atm.p*1e-5 ) ) # K, Pa->bar
@@ -226,11 +201,72 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
     np.savetxt( output_dir+str(int(time_current))+"_atm_spectral_flux.dat", out_a )
 
     return atm.LW_flux_up[-1], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
-  
-# Dry convective adjustment routine
-def dryAdj(atm):
 
-    T = atm.temp
+
+# Dry adiabat profile
+def dry_adiabat_atm( atm):
+
+    # Define pressure levels
+    atm     = set_pressure_array(atm)
+
+    # Calculate Rcp from molar concentrations
+    atm.Rcp = 0.
+    for vol in atm.vol_list.keys():
+        atm.Rcp += atm.vol_list[vol] * cpv(vol)
+    atm.Rcp = R_universal / atm.Rcp
+
+    # Calculate dry adiabat profile
+    for idx, prs in enumerate(atm.p):
+
+        atm.tmp[idx] = atm.ts * ( atm.p / np.amax(atm.p[0]) ) ** ( atm.Rcp )
+
+    return atm
+  
+# Dry convective adjustment
+def DryAdj(atm):
+
+    T   = atm.tmp
+    p   = atm.p
+    
+    # Rcp is global
+    # Downward pass
+    for i in range(len(T)-1):
+        T1,p1 = T[i],p[i]
+        T2,p2 = T[i+1],p[i+1]
+        
+        # Adiabat slope
+        pfact = (p1/p2)**atm.Rcp
+        
+        # If slope is shallower than adiabat (unstable), adjust to adiabat
+        if T1 < T2*pfact:
+            Tbar = .5*(T1+T2) # Equal layer masses
+                              # Not quite compatible with how
+                              # heating is computed from flux
+            T2 = 2.*Tbar/(1.+pfact)
+            T1 = T2*pfact
+            atm.temp[i] = T1
+            atm.temp[i+1] = T2
+    
+    # Upward pass
+    for i in range(len(T)-2,-1,-1):
+        T1,p1 = T[i],p[i]
+        T2,p2 = T[i+1],p[i+1]
+        pfact = (p1/p2)**atm.Rcp
+        if T1 < T2*pfact:
+            Tbar = .5*(T1+T2) # Equal layer masses
+                              # Not quite compatible with how
+                              # heating is computed from flux
+            T2 = 2.*Tbar/(1.+pfact)
+            T1 = T2*pfact
+            atm.temp[i]   = T1
+            atm.temp[i+1] = T2 
+
+    return atm      
+
+# Moist convective adjustment
+def MoistAdj(atm):
+
+    T = atm.tmp
     p = atm.p
     
     # Rcp is global
@@ -264,63 +300,118 @@ def dryAdj(atm):
             T2 = 2.*Tbar/(1.+pfact)
             T1 = T2*pfact
             atm.temp[i]   = T1
-            atm.temp[i+1] = T2       
+            atm.temp[i+1] = T2 
 
-# # Moist adjustment routine
-# def moistAdj(atm, atm_chemistry, use_vulcan):
+    return atm 
 
-#     moist_adiabat = ga.solve_general_adiabat(atm, atm_chemistry, use_vulcan)
+def plot_heat_balance(atm):
+
+        sns.set_style("ticks")
+        sns.despine()
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
+
+        ax1.semilogy(atm.temp,atm.p*1e-5, ls="-", label=r'Dry adiabat')
+
+        ax1.invert_yaxis()
+        ax1.set_xlabel('Temperature (K)')
+        ax1.set_ylabel('Pressure (bar)')
+        ax1.set_xlim([0,np.max(atm.temp)])
+        ax1.set_ylim([np.max(atm.p*1e-5),np.min(atm.p*1e-5)])
+        ax1.set_xticks([0,0.2*np.max(atm.temp),0.4*np.max(atm.temp),0.6*np.max(atm.temp),0.8*np.max(atm.temp),np.max(atm.temp)])
+        ax1.legend()
         
-#     # moist_adiabat = ga.General_moist_adiabat(atm.ps,T,xd,xH2O,xCO2,xCH4,xCO,xN2,xO2,xH2,xHe,xNH3)
+        ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths)
+        ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,color="gray",ls='--',label='Black body ('+str(atm.ts)+" K)")
+        ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
+        ax2.set_ylabel('Spectral flux density (Jy?)')
+        ax2.set_xlabel('Wavenumber (1/cm)')
+        ax2.legend()
 
-#     # print(Tdew)
+        plt.savefig(output_dir+'/TP_profile_'+str(round(time_current))+'.pdf', bbox_inches="tight")
+        plt.close(fig)
+        print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)))
 
-#     # # Downward pass
-#     # for i in range(len(T)-1):
-#     #     if T[i] < Tdew(p[i]):
-#     #         T[i] = Tdew(p[i])   # Temperature stays the same during phase change
-#     # # Upward pass
-#     # for i in range(len(T)-2,-1,-1): 
-#     #     if T[i] < Tdew(p[i]):
-#     #         T[i] = Tdew(p[i])
-
-#     return moist_adiabat
 
 # Time integration for n steps
-def steps(atm, toa_heating):
+def radiation_timestepping(atm, toa_heating, rad_steps):
 
-    # Compute radiation
-    atm     = SocRadModel.radCompSoc(atm, toa_heating)
-    dT      = atm.total_heating*atm.dt
-    
-    # Limit the temperature change per step
-    dT      = np.where(dT > 5., 5., dT)
-    dT      = np.where(dT < -5., -5., dT)
-    
-    # Midpoint method time stepping
-    # changed call to r.  Also modified to hold Tg fixed
-    atm     = SocRadModel.radCompSoc(atm, toa_heating)
-    dT      = atm.total_heating*atm.dt
-    
-    # Limit the temperature change per step
-    dT      = np.where(dT >5.,5.,dT)
-    dT      = np.where(dT<-5.,-5.,dT)
+    # Initialise previous OLR and TOA heating to zero
+    PrevOLR     = 0.
+    PrevMaxHeat = 0.
+    PrevTemp    = 0.*atm.tmp
 
-    atm.tmp += dT
-    dTmax   = max(abs(dT)) #To keep track of convergence
+    atm_dry
 
-    # Do the surface balance
-    kturb   = .1
-    atm.temp[-1] += -atm.dt*kturb*(atm.temp[-1] - atm.ts)
-    
-    # Adiabatic adjustment
-    for iadj in range(convadj_steps):
+    for i in range(0, rad_steps):
+
+        # Compute radiation
+        atm     = SocRadModel.radCompSoc(atm, toa_heating)
+        dT      = atm.total_heating*atm.dt
         
-        # Dry adjustment step
-        dryAdj(atm)
+        # Limit the temperature change per step
+        dT      = np.where(dT > 5., 5., dT)
+        dT      = np.where(dT < -5., -5., dT)
+        
+        # Midpoint method time stepping
+        # changed call to r.  Also modified to hold Tg fixed
+        atm     = SocRadModel.radCompSoc(atm, toa_heating)
+        dT      = atm.total_heating*atm.dt
+        
+        # Limit the temperature change per step
+        dT      = np.where(dT > 5., 5., dT)
+        dT      = np.where(dT < -5., -5., dT)
 
-    # Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
+        atm.tmp += dT
+        dTmax   = max(abs(dT)) # To keep track of convergence
+
+        # Do the surface balance
+        kturb       = .1
+        atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
+        
+        # Adiabatic adjustment
+        for iadj in range(conv_steps):
+            
+            # Dry adjustment
+            
+
+            atm_dry  = DryAdj(atm)
+
+            # Moist adjustment
+            atm_moist = MoistAdj(atm)
+
+        # Tad = atm.tmp[-1]*(atm.p/atm.p[-1])**atm.Rcp
+
+        # Inform during runtime
+        if i % 10 == 0:
+            print("Iteration", i, end=", ")
+            print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)), ", dt =", atm.dt)
+
+        # Reduce timestep if heating is not converging
+        if abs(np.max(atm.temp-PrevTemp[:])) < 0.05 or abs(atm.temp[0]-atm.temp[1]) > 3.0:
+            atm.dt  = atm.dt*0.99
+            # print("Not converging -> reduce timestep to dt =", atm.dt)
+
+        # Sensitivity break condition
+        if (abs(atm.LW_flux_up[0]-PrevOLR) < (0.1*(5.67e-8*atm.ts**4)**0.5)) and i > 5 :
+           print("Break -> deltaOLR =", abs(atm.LW_flux_up[0]-PrevOLR), ", deltaT =", abs(np.max(atm.temp-PrevTemp[:])))
+           break    # break here
+
+        PrevOLR     = atm.LW_flux_up[0]
+        PrevMaxHeat = abs(np.max(atm.total_heating))
+        PrevTemp[:] = atm.temp[:]
     
+    return atm
+
+# Define pressure levels for dry adjustment
+def set_pressure_array(atm):
+   
+    rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
+    logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
+    levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
+
+    atm.p     = np.flip(np.array(logLevels))
+    atm.pl    = (atm.p[1:] + atm.p[:-1]) / 2
+
     return atm
 
 def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance):
