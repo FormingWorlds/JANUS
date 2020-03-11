@@ -3,7 +3,7 @@
 
 import numpy as np
 
-surface_pressure 	= 1e5 						# Pa
+surface_pressure 	= 1e+5 						# Pa
 top_pressure 		= 1e-7*surface_pressure 	# Pa
 n_vertical_levels 	= 10000  					# For computation
 timestep 			= 0.5
@@ -21,11 +21,11 @@ class atmos:
 		self.ptop 			= top_pressure 		 	   # Top pressure in Pa
 		self.nlev 			= n_vertical_levels  	   # Number of vertical levels
 		self.p 				= np.zeros(self.nlev) 	   # np.ones(self.nlev)
-		self.pl 			= np.zeros(self.nlev+1)    # np.ones(self.nlev+1)
+		self.pl 			= np.zeros(self.nlev-1)    # np.ones(self.nlev+1)
 		self.dt 			= timestep
 		self.ts 			= 300.0
-		self.tmp 			= self.ts*np.ones(self.nlev)
-		self.tmpl 			= self.ts*np.ones(self.nlev+1)
+		self.tmp 			= np.zeros(self.nlev)      # self.ts*np.ones(self.nlev)
+		self.tmpl 			= np.zeros(self.nlev-1)
 		self.Rcp 			= 2./7.
 		self.n_species 		= n_absorbing_species
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
@@ -37,6 +37,7 @@ class atmos:
 		# Species-dependent quantities
 		self.p_vol 			= {} # Gas phase partial pressures
 		self.x_gas 			= {} # Gas phase molar concentration
+		self.x_gasl 		= {} # Gas phase molar concentration staggered
 		self.x_cond         = {} # Condensed phase molar concentration
 		self.mr_gas 		= {} # Gas phase molar mixing ratio (relative to all gas)
 		self.mr_cond        = {} # Condensed phase molar mixing ratio (relative to all gas)

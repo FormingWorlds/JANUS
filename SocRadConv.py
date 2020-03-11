@@ -75,23 +75,33 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
     # # Avoid math error for moist adiabat
     # atm.ptop        = atm.ps*1e-5   
 
-    # Set up pressure array (a global)
-    pstart          = atm.ps#*.995
-    rat             = (atm.ptop/pstart)**(1./atm.nlev)
-    logLevels       = [pstart*rat**i for i in range(atm.nlev+1)]
-    logLevels.reverse()
-    levels          = [atm.ptop + i*(pstart-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
-    atm.pl          = np.array(logLevels)
-    atm.p           = (atm.pl[1:] + atm.pl[:-1]) / 2
+    # # Set up pressure array (a global)
+    # pstart          = atm.ps#*.995
+    # rat             = (atm.ptop/pstart)**(1./atm.nlev)
+    # logLevels       = [pstart*rat**i for i in range(atm.nlev+1)]
+    # logLevels.reverse()
+    # levels          = [atm.ptop + i*(pstart-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
+    # plevels2          = np.array(logLevels)
+    # plevels           = (plevels2[1:] + plevels2[:-1]) / 2
 
-    # Initialize on adiabat
-    atm.temp        = atm.ts*(atm.p/atm.p[-1])**atm.Rcp
+    # print(atm.ps)
+    # print(plevels2)
+    # print(plevels)
 
-    # Set initial stratosphere guess to isothermal (closer to actual solution)
-    atm.temp        = np.where(atm.temp<atm.ts/4.,atm.ts/4.,atm.temp) 
+    # Initialize on general adiabat
+    atm = ga.general_adiabat(atm)
 
-    # Calculate individual moist adiabats
-    Moist_adiabat_H2O   = [ Tdew_H2O(pp) for pp in atm.p ]
+    # print(len(atm.p), len(atm.pl), len(atm.tmp), len(atm.tmpl))
+    # for idx, val in enumerate(atm.p):
+    #     print(atm.p[idx], atm.pl[idx], atm.tmp[idx], atm.tmpl[idx])
+    # # Initialize on adiabat
+    # atm.tmp        = atm.ts*(atm.p/atm.p[-1])**atm.Rcp
+
+    # # Set initial stratosphere guess to isothermal (closer to actual solution)
+    # atm.tmp        = np.where(atm.temp<atm.ts/4.,atm.ts/4.,atm.temp) 
+
+    # # Calculate individual moist adiabats
+    # Moist_adiabat_H2O   = [ Tdew_H2O(pp) for pp in atm.p ]
 
     # TdewH2O = [ ga.Tdew( 'H2O', pressure ) for pressure in atm.p ]
     # TdewCO2 = [ ga.Tdew( 'CO2', pressure ) for pressure in atm.p ]
@@ -103,51 +113,51 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
     # TdewHe  = [ ga.Tdew( 'He',  pressure ) for pressure in atm.p ]
     # TdewNH3 = [ ga.Tdew( 'NH3', pressure ) for pressure in atm.p ]
     
-    # Feed mixing ratios
-    if standalone == True:
-        atm.mixing_ratios[0] = atm_chemistry["H2O"]    # H2O
-        atm.mixing_ratios[1] = atm_chemistry["CO2"]    # CO2
-        atm.mixing_ratios[2] = atm_chemistry["H2"]     # H2
-        atm.mixing_ratios[3] = atm_chemistry["CH4"]    # CH4
-        atm.mixing_ratios[4] = atm_chemistry["CO"]     # CO
-        atm.mixing_ratios[5] = atm_chemistry["N2"]     # N2
-        atm.mixing_ratios[6] = atm_chemistry["O2"]     # O2
+    # # Feed mixing ratios
+    # if standalone == True:
+    #     atm.mixing_ratios[0] = atm_chemistry["H2O"]    # H2O
+    #     atm.mixing_ratios[1] = atm_chemistry["CO2"]    # CO2
+    #     atm.mixing_ratios[2] = atm_chemistry["H2"]     # H2
+    #     atm.mixing_ratios[3] = atm_chemistry["CH4"]    # CH4
+    #     atm.mixing_ratios[4] = atm_chemistry["CO"]     # CO
+    #     atm.mixing_ratios[5] = atm_chemistry["N2"]     # N2
+    #     atm.mixing_ratios[6] = atm_chemistry["O2"]     # O2
 
-        use_vulcan = 0
-    else:
-        # Varying mixing ratios with height
-        if SPIDER_options["use_vulcan"] == 1 or SPIDER_options["use_vulcan"] == 2:
-            atm_chemistry = atm_chemistry.reindex(index=atm_chemistry.index[::-1])
-            atm.mixing_ratios[0] = atm_chemistry["H2O"]    # H2O
-            atm.mixing_ratios[1] = atm_chemistry["CO2"]    # CO2
-            atm.mixing_ratios[2] = atm_chemistry["H2"]     # H2
-            atm.mixing_ratios[3] = atm_chemistry["CH4"]    # CH4
-            atm.mixing_ratios[4] = atm_chemistry["CO"]     # CO
-            atm.mixing_ratios[5] = atm_chemistry["N2"]     # N2
-            atm.mixing_ratios[6] = atm_chemistry["O2"]     # O2
-        # Constant mixing ratios with SOCRATES
-        else: 
-            atm.mixing_ratios[0] = runtime_helpfile.iloc[-1]["H2O_mr"]    # H2O
-            atm.mixing_ratios[1] = runtime_helpfile.iloc[-1]["CO2_mr"]    # CO2
-            atm.mixing_ratios[2] = runtime_helpfile.iloc[-1]["H2_mr"]     # H2
-            atm.mixing_ratios[3] = runtime_helpfile.iloc[-1]["CH4_mr"]    # CH4
-            atm.mixing_ratios[4] = runtime_helpfile.iloc[-1]["CO_mr"]     # CO
-            atm.mixing_ratios[5] = runtime_helpfile.iloc[-1]["N2_mr"]     # N2
-            atm.mixing_ratios[6] = runtime_helpfile.iloc[-1]["O2_mr"]     # O2
+    #     use_vulcan = 0
+    # else:
+    #     # Varying mixing ratios with height
+    #     if SPIDER_options["use_vulcan"] == 1 or SPIDER_options["use_vulcan"] == 2:
+    #         atm_chemistry = atm_chemistry.reindex(index=atm_chemistry.index[::-1])
+    #         atm.mixing_ratios[0] = atm_chemistry["H2O"]    # H2O
+    #         atm.mixing_ratios[1] = atm_chemistry["CO2"]    # CO2
+    #         atm.mixing_ratios[2] = atm_chemistry["H2"]     # H2
+    #         atm.mixing_ratios[3] = atm_chemistry["CH4"]    # CH4
+    #         atm.mixing_ratios[4] = atm_chemistry["CO"]     # CO
+    #         atm.mixing_ratios[5] = atm_chemistry["N2"]     # N2
+    #         atm.mixing_ratios[6] = atm_chemistry["O2"]     # O2
+    #     # Constant mixing ratios with SOCRATES
+    #     else: 
+    #         atm.mixing_ratios[0] = runtime_helpfile.iloc[-1]["H2O_mr"]    # H2O
+    #         atm.mixing_ratios[1] = runtime_helpfile.iloc[-1]["CO2_mr"]    # CO2
+    #         atm.mixing_ratios[2] = runtime_helpfile.iloc[-1]["H2_mr"]     # H2
+    #         atm.mixing_ratios[3] = runtime_helpfile.iloc[-1]["CH4_mr"]    # CH4
+    #         atm.mixing_ratios[4] = runtime_helpfile.iloc[-1]["CO_mr"]     # CO
+    #         atm.mixing_ratios[5] = runtime_helpfile.iloc[-1]["N2_mr"]     # N2
+    #         atm.mixing_ratios[6] = runtime_helpfile.iloc[-1]["O2_mr"]     # O2
 
-        use_vulcan = SPIDER_options["use_vulcan"]
+    #     use_vulcan = SPIDER_options["use_vulcan"]
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR     = 0.
     PrevMaxHeat = 0.
-    PrevTemp    = 0.*atm.temp[:]
+    PrevTemp    = 0.*atm.tmp[:]
 
     # Initialization complete
     # Now do the time stepping
     # matplotlib.rc('axes',edgecolor='k')
     for i in range(0,rad_steps):
 
-        atm, moist_wo_cond, moist_w_cond = steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan)
+        atm, moist_wo_cond, moist_w_cond = steps(atm, toa_heating)
 
         if i % 1 == 0:
 
@@ -277,8 +287,8 @@ def dryAdj(atm):
 #     return moist_adiabat
 
 # Time integration for n steps
-def steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan):
-    atm     = SocRadModel.radCompSoc(atm, stellar_toa_heating)
+def steps(atm, toa_heating):
+    atm     = SocRadModel.radCompSoc(atm, toa_heating)
     dT      = atm.total_heating*atm.dt
     
     # Limit the temperature change per step
@@ -287,7 +297,7 @@ def steps(atm, stellar_toa_heating, atm_chemistry, use_vulcan):
     
     # Midpoint method time stepping
     # changed call to r.  Also modified to hold Tg fixed
-    atm     = SocRadModel.radCompSoc(atm, stellar_toa_heating)
+    atm     = SocRadModel.radCompSoc(atm, toa_heating)
     dT      = atm.total_heating*atm.dt
     
     # Limit the temperature change per step
@@ -374,8 +384,21 @@ atm.ptop                = np.amin([atm.ps*1e-10, 1e-5])   # Pa
 # Initialize level-dependent quantities
 atm.vol_list            = vol_list   # List of all species and initial concentrations
 
+# Instantiate object dicts and arrays
+for vol in atm.vol_list.keys():
+
+    # Instantiate as zero
+    atm.p_vol[vol]      = np.zeros(atm.nlev)
+    atm.x_gas[vol]      = np.zeros(atm.nlev)
+    atm.x_cond[vol]     = np.zeros(atm.nlev)
+    atm.mr_gas[vol]     = np.zeros(atm.nlev)
+    atm.mr_cond[vol]    = np.zeros(atm.nlev)
+
+    # Surface partial pressures
+    atm.p_vol[vol][0]   = atm.ps * vol_list[vol]
+
 # Compute stellar heating
 toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
 
 # Construct radiative-convective profile + heat flux
-LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, atm, toa_heating, vol_list, [], [], standalone=True)
+LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=True)
