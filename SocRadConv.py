@@ -335,6 +335,7 @@ def plot_heat_balance(atm):
 # Time integration for n steps
 def radiation_timestepping(atm, toa_heating, rad_steps):
 
+<<<<<<< HEAD
     # Initialise previous OLR and TOA heating to zero
     PrevOLR     = 0.
     PrevMaxHeat = 0.
@@ -356,6 +357,34 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
         # changed call to r.  Also modified to hold Tg fixed
         atm     = SocRadModel.radCompSoc(atm, toa_heating)
         dT      = atm.total_heating*atm.dt
+=======
+    # # Compute radiation
+    # atm     = SocRadModel.radCompSoc(atm, toa_heating)
+    # dT      = atm.total_heating*atm.dt
+    
+    # # Limit the temperature change per step
+    # dT      = np.where(dT > 5., 5., dT)
+    # dT      = np.where(dT < -5., -5., dT)
+    
+    # Midpoint method time stepping
+    # changed call to r.  Also modified to hold Tg fixed
+    atm     = SocRadModel.radCompSoc(atm, toa_heating)
+    dT      = atm.total_heating*atm.dt
+    
+    # Limit the temperature change per step
+    dT      = np.where(dT >5.,5.,dT)
+    dT      = np.where(dT<-5.,-5.,dT)
+
+    atm.tmp += dT
+    # dTmax   = max(abs(dT)) #To keep track of convergence
+
+    # # Do the surface balance
+    # kturb   = .1
+    # atm.temp[-1] += -atm.dt*kturb*(atm.temp[-1] - atm.ts)
+    
+    # Adiabatic adjustment
+    for iadj in range(convadj_steps):
+>>>>>>> b143e277eeb63b958d1f0e4421f4ed4c56b6cf5d
         
         # Limit the temperature change per step
         dT      = np.where(dT > 5., 5., dT)
