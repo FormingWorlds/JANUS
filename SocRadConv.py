@@ -289,13 +289,13 @@ def dryAdj(atm):
 # Time integration for n steps
 def steps(atm, toa_heating):
 
-    # Compute radiation
-    atm     = SocRadModel.radCompSoc(atm, toa_heating)
-    dT      = atm.total_heating*atm.dt
+    # # Compute radiation
+    # atm     = SocRadModel.radCompSoc(atm, toa_heating)
+    # dT      = atm.total_heating*atm.dt
     
-    # Limit the temperature change per step
-    dT      = np.where(dT > 5., 5., dT)
-    dT      = np.where(dT < -5., -5., dT)
+    # # Limit the temperature change per step
+    # dT      = np.where(dT > 5., 5., dT)
+    # dT      = np.where(dT < -5., -5., dT)
     
     # Midpoint method time stepping
     # changed call to r.  Also modified to hold Tg fixed
@@ -307,11 +307,11 @@ def steps(atm, toa_heating):
     dT      = np.where(dT<-5.,-5.,dT)
 
     atm.tmp += dT
-    dTmax   = max(abs(dT)) #To keep track of convergence
+    # dTmax   = max(abs(dT)) #To keep track of convergence
 
-    # Do the surface balance
-    kturb   = .1
-    atm.temp[-1] += -atm.dt*kturb*(atm.temp[-1] - atm.ts)
+    # # Do the surface balance
+    # kturb   = .1
+    # atm.temp[-1] += -atm.dt*kturb*(atm.temp[-1] - atm.ts)
     
     # Adiabatic adjustment
     for iadj in range(convadj_steps):

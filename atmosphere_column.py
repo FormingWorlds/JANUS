@@ -62,4 +62,4 @@ class atmos:
 			self.nlev_flux 				= nlev
 			self.LW_flux_up 			= np.zeros(nlev)
 			self.LW_spectral_flux_up 	= np.zeros([n_bands,nlev])
-			self.total_heating 			= np.zeros(nlev)
+			self.total_heating 			= np.zeros(nlev) 				# K s^-1
