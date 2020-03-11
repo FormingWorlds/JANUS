@@ -458,6 +458,13 @@ def general_adiabat( atm ):
         # Update parameters used in the slope function dT/dlnP
         int_slope.setParams(atm)
 
+    # Interpolate staggered nodes
+    atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
+    atm.tmpl    = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
+    for vol in atm.vol_list.keys():
+        atm.x_gasl[vol] = np.zeros(len(atm.pl))
+        atm.x_gasl[vol] = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.x_gas[vol]))  
+
     return atm 
 
 
@@ -467,9 +474,9 @@ def plot_adiabats(atm):
     sns.set_style("ticks")
     sns.despine()
 
-    ls_moist    = 2.0
-    ls_dry      = 1.5
-    ls_ind      = 1.0
+    ls_moist    = 2.5
+    ls_dry      = 2.0
+    ls_ind      = 1.5
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
@@ -489,8 +496,10 @@ def plot_adiabats(atm):
     T_sat_array    = np.linspace(20,3000,1000) 
     p_partial_sum  = np.zeros(len(atm.tmp))
 
+    vol_list_sorted = {k: v for k, v in sorted(atm.vol_list.items(), key=lambda item: item[1])}
+
     # Individual species
-    for vol in atm.vol_list.keys():
+    for vol in vol_list_sorted.keys():
 
         # Only if volatile is present
         if atm.vol_list[vol] > 0.:
@@ -506,9 +515,9 @@ def plot_adiabats(atm):
             p_partial_sum += atm.p_vol[vol]
 
             # Plot individual molar concentrations
-            ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol+"_2"], ls="-", label=vol_latex[vol]+" gas")
-            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol+"_1"], ls="--", label=vol_latex[vol]+" cloud")
-
+            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol+"_2"], lw=ls_ind, ls="--", label=vol_latex[vol]+" cloud")
+            ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol+"_1"], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
+            
     # Plot sum of partial pressures as check
     ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p_\mathrm{vol}$',alpha=0.99)
 
@@ -520,7 +529,7 @@ def plot_adiabats(atm):
     ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Moist adiabat",alpha=0.99)
 
     # Phase molar concentrations
-    ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], ls=":", label=r"$X_\mathrm{gas}$")
+    ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"$X_\mathrm{gas}$")
 
     ax1.invert_yaxis()
     ax1.set_xlabel(r'Temperature $T$ (K)')
@@ -564,8 +573,8 @@ T_surf                  = 280.          # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .2, 
-              "CO2" : .2,
+              "H2O" : .3, 
+              "CO2" : .1,
               "H2"  : .6, 
               "N2"  : .0,  
               "CH4" : .0, 
