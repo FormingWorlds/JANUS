@@ -540,6 +540,9 @@ class satvps_function:
             self.e0 = Gas_or_T0.TriplePointP
             if self.iceFlag == 'ice':
                 self.L = Gas_or_T0.L_sublimation
+                # if Gas_or_T0.L_sublimation is None:
+                #   L_sublimation = Gas_or_T0.L_vaporization
+                #   self.L = L_sublimation
             elif self.iceFlag == 'liquid':
                 self.L = Gas_or_T0.L_vaporization
             else:

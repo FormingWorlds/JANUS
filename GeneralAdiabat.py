@@ -102,11 +102,64 @@ def p_sat(switch,T):
     
     # Return saturation vapor pressure
     return e(T)
+
+## Dew point temperature [K] given a pressure p [Pa]. Select the molecule of interest with the switch argument (a string).
+def Tdew(switch, p): 
+    
+    # Avoid math error for p = 0
+    p = np.max([p, 1e-100])
+
+    if switch == 'H2O':
+        Tref = 373.15 # K, boiling point of H2O at 1 atm 
+        pref = 1e5 # esat('H2O',Tref) returns 121806.3 Pa, should return 1e5       
+        L_H2O=phys.water.L_vaporization*phys.water.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*R_universal/L_H2O)*math.log(p/pref))
+        #return (B(p)/(A(p)-numpy.log10(p/pref)))-C(p)
+    if switch == 'CH4':
+        Tref = 148.15 # K, arbitrary point (148.15K,esat(148.15K)=9.66bar) on the L/G coexistence curve of methane 
+        pref = p_sat('CH4',Tref)
+        L_CH4=phys.CH4.L_vaporization*phys.methane.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*R_universal/L_CH4)*math.log(p/pref))
+    if switch == 'CO2':
+        Tref = 253. # K, arbitrary point (253K,esat(253K)=20.9bar) on the coexistence curve of CO2 
+        pref = p_sat('CO2',Tref)
+        L_CO2=phys.CO2.L_vaporization*phys.co2.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*R_universal/L_CO2)*math.log(p/pref))
+    if switch == 'CO':
+        Tref = 100. # K, arbitrary point (100K,esat(100K)=4.6bar) on the coexistence curve of CO 
+        pref = p_sat('CO',Tref)
+        L_CO=phys.CO.L_vaporization*phys.co.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*R_universal/L_CO)*math.log(p/pref))
+    if switch == 'N2':
+        Tref = 98.15 # K, arbitrary point (98.15K,esat(98.15K)=7.9bar) on the coexistence curve of N2 
+        pref = p_sat('N2',Tref)
+        L_N2=phys.N2.L_vaporization*phys.n2.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*R_universal/L_N2)*math.log(p/pref))
+    if switch == 'O2':
+        Tref = 123.15 # K, arbitrary point (123.15K,esat(123.15K)=21.9bar) on the coexistence curve of O2 
+        pref = p_sat('O2',Tref)
+        L_O2=phys.O2.L_vaporization*phys.o2.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*R_universal/L_O2)*math.log(p/pref))
+    if switch == 'H2':
+        Tref = 23.15 # K, arbitrary point (23.15K,esat(23.15K)=1.7bar) on the coexistence curve of H2 
+        pref = p_sat('H2',Tref)
+        L_H2=phys.H2.L_vaporization*phys.h2.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*R_universal/L_H2)*math.log(p/pref))
+    if switch == 'He':
+        Tref = 4.22 # K, boiling point of He at 1 atm 
+        pref = 1e5 # esat('He',Tref) returns 45196 Pa, should return 1e5
+        L_He=phys.He.L_vaporization*phys.he.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*R_universal/L_He)*math.log(p/pref))
+    if switch == 'NH3':
+        Tref = 273.15 # K, arbitrary point (273.15K,esat(273.15K)=8.6bar) on the coexistence curve of NH3 
+        pref = p_sat('NH3',Tref)
+        L_NH3=phys.NH3.L_vaporization*phys.nh3.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*R_universal/L_NH3)*math.log(p/pref))
     
 
 ## Molar latent heat [J mol-1] for gas phase considered given a temperature T [K]. 
 ## Select the molecule of interest with the switch argument (a string).
-def L_heat( switch, T ):
+def L_heat(switch, T, P):
 
     if switch == 'H2O':
         L_sublimation   = phys.H2O.L_sublimation
@@ -184,21 +237,11 @@ def L_heat( switch, T ):
         L_heat = 1e-50
         # L_heat = L_vaporization*MolecularWeight*1e-3 
 
+    # if P < p_sat(switch, T):
+    # # if T > Tdew(switch, psat):
+    #     L_heat = 0.
+
     return L_heat  
-    
-## Dew point temperature [K] array for given pressure array [Pa] and surface T [K]. 
-## Select the molecule of interest with the switch argument (a string)
-def Tdew(switch, prs, T_surf, L_use): 
-
-    # Calculate dew-point for each pressure
-    T_dew = T_surf / ( 1. - ( T_surf * R_universal / L_use ) * np.log( prs / p_sat(switch,T_surf) ) )
-
-    # # Re-calc with L_heat switch
-    # for idx, T in enumerate(T_dew):
-    #     L_use = L_heat( switch, T )
-    #     T_dew[idx] = T_surf / ( 1. - ( T_surf * R_universal / L_use ) * np.log( prs[idx] / p_sat(switch,T_surf) ) )
-
-    return T_dew
     
 def cpv(switch): 
     """Molar heat capacities [J.K-1.mol-1]. Select the molecule of interest with the switch argument (a string)."""
@@ -293,7 +336,7 @@ def moist_slope(lnP, lnT, atm):
 
         # Coefficients
         eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
-        beta_vol    = L_heat(vol, tmp) / (R_universal * tmp) 
+        beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (R_universal * tmp) 
 
         # Sum in numerator
         num_sum     += eta_vol * beta_vol
@@ -368,12 +411,13 @@ def condensation( atm ):
 
         # Update cp w/ molar concentration
         atm.cp[idx]         += (atm.x_gas[vol][idx] + atm.x_cond[vol][idx]) * cpv(vol)
+        # atm.cp[idx]         += atm.x_gas[vol][idx] * cpv(vol)
 
         # Update total pressure
         P_tot_new           += atm.p_vol[vol][idx]
 
-    # Reset total pressure due to condensation effects
-    atm.p[idx] = P_tot_new
+    # # Reset total pressure due to condensation effects
+    # atm.p[idx] = P_tot_new
 
     # Reset surface total pressure at surface
     if idx == 0:
@@ -382,7 +426,7 @@ def condensation( atm ):
         atm.ptop   = np.amin([atm.ps*1e-10, 1e-5])
 
     # Renormalize cp w/ molar concentration
-    atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
+    atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx])
 
     # Dry concentration floor
     atm.xd[idx] = np.amax([atm.xd[idx], 1e-10])
@@ -455,8 +499,8 @@ def general_adiabat( atm ):
         # Calculate condensation at next level
         atm             = condensation(atm)
 
-        # Update parameters used in the slope function dT/dlnP
-        int_slope.setParams(atm)
+        # # Update parameters used in the slope function dT/dlnP
+        # int_slope.setParams(atm)
 
     # Interpolate staggered nodes
     atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
@@ -568,13 +612,13 @@ def plot_adiabats(atm):
 # --> USER INPUT
 
 # Surface pressure & temperature
-P_surf                  = 1e+3          # Pa
-T_surf                  = 280.          # K
+P_surf                  = 1e+5         # Pa
+T_surf                  = 600.          # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .3, 
-              "CO2" : .1,
+              "H2O" : .2, 
+              "CO2" : .2,
               "H2"  : .6, 
               "N2"  : .0,  
               "CH4" : .0, 
