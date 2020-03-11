@@ -43,8 +43,8 @@ def Tdew_H2O(p):
 # Moist adjustment switch
 Moist_Adjustment = True
 
-# Number of dry adjustment steps
-Nsteps_dry = 5
+# Number of convective adjustment steps
+convadj_steps = 5
 
 def surf_Planck_nu(atm):
     h   = 6.63e-34
@@ -150,12 +150,12 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
     # Initialise previous OLR and TOA heating to zero
     PrevOLR     = 0.
     PrevMaxHeat = 0.
-    PrevTemp    = 0.*atm.tmp[:]
+    PrevTemp    = 0.*atm.tmp
 
     # Initialization complete
     # Now do the time stepping
     # matplotlib.rc('axes',edgecolor='k')
-    for i in range(0,rad_steps):
+    for i in range(0, rad_steps):
 
         atm, moist_wo_cond, moist_w_cond = steps(atm, toa_heating)
 
@@ -288,12 +288,14 @@ def dryAdj(atm):
 
 # Time integration for n steps
 def steps(atm, toa_heating):
+
+    # Compute radiation
     atm     = SocRadModel.radCompSoc(atm, toa_heating)
     dT      = atm.total_heating*atm.dt
     
     # Limit the temperature change per step
-    dT      = np.where(dT>5.,5.,dT)
-    dT      = np.where(dT<-5.,-5.,dT)
+    dT      = np.where(dT > 5., 5., dT)
+    dT      = np.where(dT < -5., -5., dT)
     
     # Midpoint method time stepping
     # changed call to r.  Also modified to hold Tg fixed
@@ -301,9 +303,10 @@ def steps(atm, toa_heating):
     dT      = atm.total_heating*atm.dt
     
     # Limit the temperature change per step
-    dT      = np.where(dT>5.,5.,dT)
+    dT      = np.where(dT >5.,5.,dT)
     dT      = np.where(dT<-5.,-5.,dT)
-    atm.temp += dT
+
+    atm.tmp += dT
     dTmax   = max(abs(dT)) #To keep track of convergence
 
     # Do the surface balance
@@ -311,21 +314,14 @@ def steps(atm, toa_heating):
     atm.temp[-1] += -atm.dt*kturb*(atm.temp[-1] - atm.ts)
     
     # Adiabatic adjustment
-    for iadj in range(Nsteps_dry):
+    for iadj in range(convadj_steps):
         
         # Dry adjustment step
         dryAdj(atm)
 
-    # Moist adjustment step
-    if Moist_Adjustment == True:
-        atm = ga.general_adiabat(copy.deepcopy(atm))
-        # print(moist_wo_cond, moist_w_cond)
-    else:
-        moist_wo_cond, moist_w_cond = np.zeros(len(atm.temp))
-
-    Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
+    # Tad = atm.temp[-1]*(atm.p/atm.p[-1])**atm.Rcp
     
-    return atm, moist_wo_cond, moist_w_cond
+    return atm
 
 def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance):
 
