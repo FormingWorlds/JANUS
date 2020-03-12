@@ -506,7 +506,7 @@ def general_adiabat( atm ):
     atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
     atm.tmpl    = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
     for vol in atm.vol_list.keys():
-        atm.x_gasl[vol] = np.zeros(len(atm.pl))
+        # atm.x_gasl[vol] = np.zeros(len(atm.pl))
         atm.x_gasl[vol] = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.x_gas[vol]))  
 
     return atm 
@@ -608,11 +608,13 @@ def plot_adiabats(atm):
     return
 
 
+####################################
 ##### Stand-alone initial conditions
+####################################
 
 # Surface pressure & temperature
 P_surf                  = 1e+8         # Pa
-T_surf                  = 800.          # K
+T_surf                  = 800.         # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 

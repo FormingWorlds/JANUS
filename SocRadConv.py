@@ -194,6 +194,8 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
     # # Plot results
     # plot_heat_balance(atm)
 
+    plot_heat_balance(atm_dry, atm_moist)
+
     # Write TP and spectral flux profiles for later plotting
     out_a = np.column_stack( ( atm.temp, atm.p*1e-5 ) ) # K, Pa->bar
     np.savetxt( output_dir+str(int(time_current))+"_atm_TP_profile.dat", out_a )
@@ -212,7 +214,7 @@ def dry_adiabat_atm(atm):
     # Calculate cp from molar concentrations
     cp_mix = 0.
     for vol in atm.vol_list.keys():
-        cp_mix += atm.vol_list[vol] * cpv(vol)
+        cp_mix += atm.vol_list[vol] * ga.cpv(vol)
 
     # Calculate dry adiabat slope
     atm.Rcp = R_universal / cp_mix
@@ -220,63 +222,23 @@ def dry_adiabat_atm(atm):
     # Calculate dry adiabat temperature profile
     for idx, prs in enumerate(atm.p):
 
-        atm.tmp[idx] = atm.ts * ( atm.p / np.amax(atm.p[0]) ) ** ( atm.Rcp )
+        atm.tmp[idx] = atm.ts * ( atm.p[idx] / atm.ps ) ** ( atm.Rcp )
+
+    # Fill volatile arrays
+    # Interpolate staggered nodes
+    atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
+    atm.tmpl    = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
+    for vol in atm.vol_list.keys():
+        # atm.x_gasl[vol] = np.zeros(len(atm.pl))
+        atm.x_gasl[vol] = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.x_gas[vol]))
 
     return atm
   
 # Dry convective adjustment
 def DryAdj(atm):
 
-    T   = atm_dry.tmp
-    p   = atm_dry.p
-    
-    # Rcp is global
-    # Downward pass
-    for i in range(len(T)-1):
-        T1,p1 = T[i],p[i]
-        T2,p2 = T[i+1],p[i+1]
-        
-        # Adiabat slope
-        pfact = (p1/p2)**atm_dry.Rcp
-        
-        # If slope is shallower than adiabat (unstable), adjust to adiabat
-        if T1 < T2*pfact:
-            Tbar = .5*(T1+T2) # Equal layer masses
-                              # Not quite compatible with how
-                              # heating is computed from flux
-            T2 = 2.*Tbar/(1.+pfact)
-            T1 = T2*pfact
-            atm_dry.temp[i] = T1
-            atm_dry.temp[i+1] = T2
-    
-    # Upward pass
-    for i in range(len(T)-2,-1,-1):
-        T1,p1 = T[i],p[i]
-        T2,p2 = T[i+1],p[i+1]
-        pfact = (p1/p2)**atm_dry.Rcp
-        if T1 < T2*pfact:
-            Tbar = .5*(T1+T2) # Equal layer masses
-                              # Not quite compatible with how
-                              # heating is computed from flux
-            T2 = 2.*Tbar/(1.+pfact)
-            T1 = T2*pfact
-            atm_dry.temp[i]   = T1
-            atm_dry.temp[i+1] = T2 
-
-    return atm_dry      
-
-# Moist convective adjustment
-def MoistAdj(atm):
-
-    
-    for idx, prs in enumerate(atm_moist.p):
-
-        # Check if 
-
-
-    T = atm.tmp
-    p = atm.p
-
+    T   = atm.tmp
+    p   = atm.p
     
     # Rcp is global
     # Downward pass
@@ -311,27 +273,47 @@ def MoistAdj(atm):
             atm.temp[i]   = T1
             atm.temp[i+1] = T2 
 
-    return atm_moist 
+    return atm      
 
-def plot_heat_balance(atm):
+# Moist convective adjustment
+def MoistAdj(atm, dT):
+
+    # Apply heating
+    tmp_heated = atm.tmp + dT
+
+    # Reset to moist adiabat if convectively unstable
+    for idx, tmp_heated in enumerate(tmp_heated):
+        atm.tmp[idx] = np.amax([tmp_heated, atm.tmp[idx]])
+
+    return atm 
+
+def plot_heat_balance(atm_dry, atm_moist):
 
         sns.set_style("ticks")
         sns.despine()
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
-        ax1.semilogy(atm.temp,atm.p*1e-5, ls="-", label=r'Dry adiabat')
+        ax1.semilogy(atm_dry.temp,atm_dry.p*1e-5, color="red", ls="-", label=r'Dry adiabat')
+        ax1.semilogy(atm_moist.temp,atm_moist.p*1e-5, color="blue", ls="-", label=r'Moist adiabat')
 
         ax1.invert_yaxis()
         ax1.set_xlabel('Temperature (K)')
         ax1.set_ylabel('Pressure (bar)')
-        ax1.set_xlim([0,np.max(atm.temp)])
-        ax1.set_ylim([np.max(atm.p*1e-5),np.min(atm.p*1e-5)])
-        ax1.set_xticks([0,0.2*np.max(atm.temp),0.4*np.max(atm.temp),0.6*np.max(atm.temp),0.8*np.max(atm.temp),np.max(atm.temp)])
+
+        # ax1.set_xlim([0,np.max(atm.temp)])
+        # ax1.set_ylim([np.max(atm.p*1e-5),np.min(atm.p*1e-5)])
+
+        # ax1.set_xticks([0,0.2*np.max(atm.temp),0.4*np.max(atm.temp),0.6*np.max(atm.temp),0.8*np.max(atm.temp),np.max(atm.temp)])
+
         ax1.legend()
         
-        ax2.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths)
-        ax2.plot(atm.band_centres,surf_Planck_nu(atm)/atm.band_widths,color="gray",ls='--',label='Black body ('+str(atm.ts)+" K)")
-        ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
+        ax2.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths,color="gray",ls='--',label='Black body ('+str(atm_moist.ts)+" K)")
+
+        ax2.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths)
+        ax2.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths)
+        
+        # ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
+
         ax2.set_ylabel('Spectral flux density (Jy?)')
         ax2.set_xlabel('Wavenumber (1/cm)')
         ax2.legend()
@@ -372,6 +354,9 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
         dT_dry          = np.where(dT_dry > 5., 5., dT_dry)
         dT_dry          = np.where(dT_dry < -5., -5., dT_dry)
 
+        print(len(atm_dry.tmp), atm_dry.tmp)
+        print(len(dT_dry), dT_dry)
+
         atm_dry.tmp     += dT_dry
 
         # To keep track of convergence
@@ -395,13 +380,11 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
         dT_moist        = np.where(dT_moist > 5., 5., dT_moist)
         dT_moist        = np.where(dT_moist < -5., -5., dT_moist)
 
-        atm_moist.tmp   += dT_moist
-
         # To keep track of convergence
         dTmax_moist     = max(abs(dT_moist)) 
 
         # Moist single-step adjustment
-        atm_moist       = MoistAdj(atm_moist)
+        atm_moist       = MoistAdj(atm_moist, dT_moist)
 
         # Tad = atm.tmp[-1]*(atm.p/atm.p[-1])**atm.Rcp
 
@@ -442,11 +425,12 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
 # Define pressure levels for dry adjustment
 def set_pressure_array(atm):
    
-    rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
-    logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
-    levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
+    # MHD pressure levels
+    # rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
+    # logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
+    # levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev)]
 
-    atm.p     = np.flip(np.array(logLevels))
+    atm.p     = np.flip(np.logspace(np.log10(atm.ptop), np.log10(atm.ps), atm.nlev))
     atm.pl    = (atm.p[1:] + atm.p[:-1]) / 2
 
     return atm
@@ -467,7 +451,9 @@ def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_dist
     
     return stellar_toa_heating[0], interpolated_luminosity/L_sun
 
+####################################
 ##### Stand-alone initial conditions
+####################################
 
 # Planet age and orbit
 time_current  = 1e+7                # yr
@@ -475,51 +461,24 @@ time_offset   = 1e+7                # yr
 mean_distance = 1.0                 # au
 
 # Surface pressure & temperature
-P_surf                  = 1e+3      # Pa
-T_surf                  = 280.      # K
+P_surf        = 1e+5                # Pa
+T_surf        = 800.                # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .5, 
-              "CO2" : .5,
-              "H2"  : .0, 
+              "H2O" : .3, 
+              "CO2" : .3,
+              "H2"  : .2, 
               "N2"  : .0,  
-              "CH4" : .0, 
+              "CH4" : .2, 
               "O2"  : .0, 
               "CO"  : .0, 
               "He"  : .0,
               "NH3" : .0, 
             }
 
-# Define the atmosphere object from this input
-
 # Create atmosphere object
-atm                     = atmos()
-
-# Surface temperature of planet
-atm.ts                  = T_surf     # K
-atm.tmp[0]              = atm.ts  
-
-# Surface & top pressure
-atm.ps                  = P_surf     # Pa
-atm.p[0]                = atm.ps     # Pa
-atm.ptop                = np.amin([atm.ps*1e-10, 1e-5])   # Pa
-
-# Initialize level-dependent quantities
-atm.vol_list            = vol_list   # List of all species and initial concentrations
-
-# Instantiate object dicts and arrays
-for vol in atm.vol_list.keys():
-
-    # Instantiate as zero
-    atm.p_vol[vol]      = np.zeros(atm.nlev)
-    atm.x_gas[vol]      = np.zeros(atm.nlev)
-    atm.x_cond[vol]     = np.zeros(atm.nlev)
-    atm.mr_gas[vol]     = np.zeros(atm.nlev)
-    atm.mr_cond[vol]    = np.zeros(atm.nlev)
-
-    # Surface partial pressures
-    atm.p_vol[vol][0]   = atm.ps * vol_list[vol]
+atm            = atmos(T_surf, P_surf, vol_list)
 
 # Compute stellar heating
 toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
