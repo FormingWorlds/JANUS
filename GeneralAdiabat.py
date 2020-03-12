@@ -610,55 +610,25 @@ def plot_adiabats(atm):
 
 ##### Stand-alone initial conditions
 
-# --> USER INPUT
-
 # Surface pressure & temperature
-P_surf                  = 1e+5         # Pa
-T_surf                  = 600.          # K
+P_surf                  = 1e+8         # Pa
+T_surf                  = 800.          # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .1, 
-              "CO2" : .0,
-              "H2"  : .0, 
-              "N2"  : .9,  
-              "CH4" : .0, 
+              "H2O" : .3, 
+              "CO2" : .3,
+              "H2"  : .2, 
+              "N2"  : .0,  
+              "CH4" : .2, 
               "O2"  : .0, 
               "CO"  : .0, 
               "He"  : .0,
               "NH3" : .0, 
             }
 
-# <-- USER INPUT
-
-# Define the atmosphere object from this input
-
 # Create atmosphere object
-atm                     = atmos()
-
-# Surface temperature of planet
-atm.ts                  = T_surf         # K
-atm.tmp[0]              = atm.ts         # K
-
-# Surface & top pressure
-atm.ps                  = P_surf         # Pa
-atm.p[0]                = atm.ps         # Pa
-atm.ptop                = np.amin([atm.ps*1e-10, 1e-5])   # Pa
-
-# Initialize level-dependent quantities
-atm.vol_list            = vol_list       # List of all species and initial concentrations
-
-# Instantiate object dicts and arrays
-for vol in atm.vol_list.keys():
-    # Instantiate as zero
-    atm.p_vol[vol]      = np.zeros(atm.nlev)
-    atm.x_gas[vol]      = np.zeros(atm.nlev)
-    atm.x_cond[vol]     = np.zeros(atm.nlev)
-    atm.mr_gas[vol]     = np.zeros(atm.nlev)
-    atm.mr_cond[vol]    = np.zeros(atm.nlev)
-
-    # Surface partial pressures
-    atm.p_vol[vol][0]   = atm.ps * vol_list[vol]
+atm                     = atmos(T_surf, P_surf, vol_list)
 
 # Calculate moist adiabat + condensation
 atm                     = general_adiabat(atm)
