@@ -503,11 +503,27 @@ def general_adiabat( atm ):
         # int_slope.setParams(atm)
 
     # Interpolate staggered nodes
-    atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
+    # atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
+    
+    for idx, prs in enumerate(atm.p):
+
+        if idx == 0:
+            atm.pl[idx] = atm.p[idx]
+        else:
+            atm.pl[idx] = (atm.p[idx-1] + atm.p[idx]) / 2.
+        
+        if idx == len(atm.p):
+            atm.pl[-1] = atm.p[idx] - ((atm.p[-2]-atm.p[-1])/2.)
+
+    # print(atm.p)
+    # print(atm.pl)
     atm.tmpl    = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
-    for vol in atm.vol_list.keys():
-        # atm.x_gasl[vol] = np.zeros(len(atm.pl))
-        atm.x_gasl[vol] = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.x_gas[vol]))  
+
+    # print(atm.tmp)
+    # print(atm.tmpl)
+    # for vol in atm.vol_list.keys():
+    #     # atm.x_gasl[vol] = np.zeros(len(atm.pl))
+    #     atm.x_gasl[vol] = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.x_gas[vol]))  
 
     return atm 
 

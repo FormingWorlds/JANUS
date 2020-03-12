@@ -221,16 +221,25 @@ def dry_adiabat_atm(atm):
 
     # Calculate dry adiabat temperature profile
     for idx, prs in enumerate(atm.p):
-
         atm.tmp[idx] = atm.ts * ( atm.p[idx] / atm.ps ) ** ( atm.Rcp )
 
-    # Fill volatile arrays
-    # Interpolate staggered nodes
-    atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
+    # # Interpolate staggered nodes
+    # atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
+    # atm.tmpl    = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
+    # for vol in atm.vol_list.keys():
+    #     # atm.x_gasl[vol] = np.zeros(len(atm.pl))
+    #     atm.x_gasl[vol] = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.x_gas[vol]))
+
+    # # Interpolate staggered nodes
+    # for idx, prs in enumerate(atm.p):
+    #     print(idx, prs)
+    #     if idx == 0:
+    #         atm.pl[idx] = atm.p[idx]
+    #     else:
+    #         atm.pl[idx] = (atm.p[idx-1] + atm.p[idx]) / 2.
+    #     if idx == len(atm.p):
+    #         atm.pl[-1] = atm.p[idx] - ((atm.p[-2]-atm.p[-1])/2.)
     atm.tmpl    = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
-    for vol in atm.vol_list.keys():
-        # atm.x_gasl[vol] = np.zeros(len(atm.pl))
-        atm.x_gasl[vol] = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.x_gas[vol]))
 
     return atm
   
@@ -293,12 +302,12 @@ def plot_heat_balance(atm_dry, atm_moist):
         sns.despine()
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
 
-        ax1.semilogy(atm_dry.temp,atm_dry.p*1e-5, color="red", ls="-", label=r'Dry adiabat')
-        ax1.semilogy(atm_moist.temp,atm_moist.p*1e-5, color="blue", ls="-", label=r'Moist adiabat')
+        ax1.semilogy(atm_dry.tmp,atm_dry.p, color="red", ls="-", label=r'Dry adiabat')
+        ax1.semilogy(atm_moist.tmp,atm_moist.p, color="blue", ls="-", label=r'Moist adiabat')
 
         ax1.invert_yaxis()
         ax1.set_xlabel('Temperature (K)')
-        ax1.set_ylabel('Pressure (bar)')
+        ax1.set_ylabel('Pressure (Pa)')
 
         # ax1.set_xlim([0,np.max(atm.temp)])
         # ax1.set_ylim([np.max(atm.p*1e-5),np.min(atm.p*1e-5)])
@@ -309,8 +318,8 @@ def plot_heat_balance(atm_dry, atm_moist):
         
         ax2.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths,color="gray",ls='--',label='Black body ('+str(atm_moist.ts)+" K)")
 
-        ax2.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths)
-        ax2.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths)
+        # ax2.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths)
+        # ax2.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths)
         
         # ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
 
@@ -318,9 +327,9 @@ def plot_heat_balance(atm_dry, atm_moist):
         ax2.set_xlabel('Wavenumber (1/cm)')
         ax2.legend()
 
-        plt.savefig(output_dir+'/TP_profile_'+str(round(time_current))+'.pdf', bbox_inches="tight")
+        plt.savefig("./output"+'/TP_profile_'+str(round(time_current))+'.pdf', bbox_inches="tight")
         plt.close(fig)
-        print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)))
+        # print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)))
 
 # Time integration for n steps
 def radiation_timestepping(atm, toa_heating, rad_steps):
@@ -340,6 +349,8 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
     # Build dry and moist adiabat structure
     atm_dry             = dry_adiabat_atm(atm_dry)
     atm_moist           = ga.general_adiabat(atm_moist)
+
+    plot_heat_balance(atm_dry, atm_moist)
 
     # Time stepping
     for i in range(0, rad_steps):
@@ -430,8 +441,20 @@ def set_pressure_array(atm):
     # logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
     # levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev)]
 
+    # Logspace pressure levels
     atm.p     = np.flip(np.logspace(np.log10(atm.ptop), np.log10(atm.ps), atm.nlev))
-    atm.pl    = (atm.p[1:] + atm.p[:-1]) / 2
+
+    # Interpolate staggered nodes
+    for idx, prs in enumerate(atm.p):
+        print(idx, prs)
+        if idx == 0:
+            atm.pl[idx] = atm.p[idx]
+        else:
+            atm.pl[idx] = (atm.p[idx-1] + atm.p[idx]) / 2.
+        if idx == len(atm.p):
+            atm.pl[-1] = atm.p[idx] - ((atm.p[-2]-atm.p[-1])/2.)
+
+    # atm.pl    = (atm.p[1:] + atm.p[:-1]) / 2
 
     return atm
 
