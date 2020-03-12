@@ -527,14 +527,15 @@ def plot_adiabats(atm):
     # # Ray's moist adiabat as comparison
     # # (1 condensible + 1 non-condensible gas, fixed partial pressure of the non-condensible)
     # ray_vol_cond        = "H2O"
+    # ray_vol_noncond     = "N2"
     # moist_adiabat_ray   = phys.MoistAdiabat(phys.H2O,phys.N2)
-    # p_dry_gas_surf      = atm.p_vol["N2"][0]
-    # print(p_dry_gas_surf)
+    # p_dry_gas_surf      = atm.p_vol[ray_vol_noncond][0]
+    # print("Ray adiabat settings (P_surf_noncond, T_surf, P_top):", p_dry_gas_surf, atm.ts, atm.ptop)
     # p_ray, T_ray, molarCon_ray, massCon_ray = moist_adiabat_ray( p_dry_gas_surf, atm.ts, atm.ptop )
     # p_ray_interp, T_ray_interp, molarCon_ray_interp, massCon_ray_interp = moist_adiabat_ray(p_dry_gas_surf, atm.ts, atm.ptop, atm.p)
     # # Plot Ray's H2O moist adiabat function
-    # ax1.semilogy(T_ray, p_ray, lw=ls_adiabat, color=vol_colors[ray_vol_cond+"_2"], ls="--", label=vol_latex[ray_vol_cond]+r' adiabat Ray') # label=r'p$_{non-cond.}$ = '+"{:.2f}".format(p_dry_gas)+' Pa'
-    # ax2.semilogy(molarCon_ray, p_ray, lw=ls_adiabat, color=vol_colors[ray_vol_cond+"_2"], ls="--", label=r"Ray's function")
+    # ax1.semilogy(T_ray, p_ray, lw=ls_dry, color=vol_colors[ray_vol_cond+"_3"], ls="-.", label=vol_latex[ray_vol_cond]+"/"+vol_latex[ray_vol_cond]+r' adiabat Ray') # label=r'p$_{non-cond.}$ = '+"{:.2f}".format(p_dry_gas)+' Pa'
+    # ax2.semilogy(molarCon_ray, p_ray, lw=ls_dry, color=vol_colors[ray_vol_cond+"_3"], ls="-.", label=r"Ray's function")
     
     # For reference p_sat lines
     T_sat_array    = np.linspace(20,3000,1000) 
@@ -617,10 +618,10 @@ T_surf                  = 600.          # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .5, 
-              "CO2" : .3,
-              "H2"  : .2, 
-              "N2"  : .0,  
+              "H2O" : .1, 
+              "CO2" : .0,
+              "H2"  : .0, 
+              "N2"  : .9,  
               "CH4" : .0, 
               "O2"  : .0, 
               "CO"  : .0, 
