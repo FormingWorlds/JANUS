@@ -618,8 +618,8 @@ T_surf                  = 600.          # K
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
               "H2O" : .5, 
-              "CO2" : .5,
-              "H2"  : .0, 
+              "CO2" : .3,
+              "H2"  : .2, 
               "N2"  : .0,  
               "CH4" : .0, 
               "O2"  : .0, 
