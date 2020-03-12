@@ -3,8 +3,8 @@
 
 import numpy as np
 
-surface_pressure 	= 1e+5 						# Pa
-top_pressure 		= 1e-7*surface_pressure 	# Pa
+# surface_pressure 	= 1e+5 						# Pa
+# top_pressure 		= 1e-7*surface_pressure 	# Pa
 n_vertical_levels 	= 10000  					# For computation
 timestep 			= 0.5
 n_absorbing_species = 7
@@ -16,14 +16,17 @@ class atmos:
 	'''
 	Atmosphere class
 	'''
-	def __init__(self):
-		self.ps 			= surface_pressure 	 	   # Surface pressure in Pa
-		self.ptop 			= top_pressure 		 	   # Top pressure in Pa
-		self.nlev 			= n_vertical_levels  	   # Number of vertical levels
-		self.p 				= np.zeros(self.nlev) 	   # np.ones(self.nlev)
-		self.pl 			= np.zeros(self.nlev-1)    # np.ones(self.nlev+1)
+	def __init__(self, T_surf, P_surf, vol_list):
+		self.ps 			= P_surf 	 	# Surface pressure, Pa
+		self.ts 			= T_surf		# Surface temperature, K
+		self.vol_list 		= vol_list		# Names + mixing ratios dict
+
+		self.ptop 			= np.amin([P_surf*1e-10, 1e-5]) # Top pressure in Pa
+		self.nlev 			= n_vertical_levels  	   		# Number of vertical levels
+		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
+		self.pl 			= np.zeros(self.nlev-1)    		# np.ones(self.nlev+1)
 		self.dt 			= timestep
-		self.ts 			= 300.0
+		
 		self.tmp 			= np.zeros(self.nlev)      # self.ts*np.ones(self.nlev)
 		self.tmpl 			= np.zeros(self.nlev-1)
 		self.Rcp 			= 2./7.
@@ -49,10 +52,26 @@ class atmos:
 		self.mrd 			= np.zeros(self.nlev)	# Molar mixing ratio of 'dry' gas (relative to gas phase)
 		self.mrv 			= np.zeros(self.nlev)	# Molar mixing ratio of 'condensing' gas (relative to gas)
 		self.mrc			= np.zeros(self.nlev)	# Molar mixing ratio of cloud phase (relative to gas)
-		self.vol_list 		= []			     	# names of all species present
 		self.ifatm 			= np.zeros(self.nlev) 	# Defines n level to which atmosphere is calculated
 		self.cp      		= np.zeros(self.nlev)   # Heat capacity depending on molar concentration ratio
 		self.cp_mr     		= np.zeros(self.nlev)   # Heat capacity depending on mixing ratio
+
+		# Define T and P arrays from surface up
+		self.tmp[0]         = T_surf         		# K
+		self.p[0]           = P_surf         		# Pa
+
+		# Instantiate object dicts and arrays
+		for vol in self.vol_list.keys():
+		    # Instantiate as zero
+		    self.p_vol[vol]      = np.zeros(self.nlev)
+		    self.x_gas[vol]      = np.zeros(self.nlev)
+		    self.x_cond[vol]     = np.zeros(self.nlev)
+		    self.mr_gas[vol]     = np.zeros(self.nlev)
+		    self.mr_cond[vol]    = np.zeros(self.nlev)
+
+		    # Surface partial pressures
+		    self.p_vol[vol][0]   = self.ps * vol_list[vol]
+
 
 	class atmos_fluxes:
 		'''

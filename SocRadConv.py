@@ -269,9 +269,7 @@ def DryAdj(atm):
 def MoistAdj(atm):
 
     
-
-
-    for idx, prs in enumerate(atm_moist.p)
+    for idx, prs in enumerate(atm_moist.p):
 
         # Check if 
 
@@ -346,20 +344,20 @@ def plot_heat_balance(atm):
 def radiation_timestepping(atm, toa_heating, rad_steps):
 
     # Initialise previous OLR and TOA heating to zero
-    PrevOLR_dry       = 0.
-    PrevMaxHeat_dry   = 0.
-    PrevTemp_dry      = atm.tmp * 0.
-    PrevOLR_moist     = 0.
-    PrevMaxHeat_moist = 0.
-    PrevTemp_moist    = atm.tmp * 0.
+    PrevOLR_dry         = 0.
+    PrevMaxHeat_dry     = 0.
+    PrevTemp_dry        = atm.tmp * 0.
+    PrevOLR_moist       = 0.
+    PrevMaxHeat_moist   = 0.
+    PrevTemp_moist      = atm.tmp * 0.
 
     # Create deep copies that are distinct from old dict
-    atm_dry     = copy.deepcopy(atm)
-    atm_moist   = copy.deepcopy(atm)
+    atm_dry             = copy.deepcopy(atm)
+    atm_moist           = copy.deepcopy(atm)
 
     # Build dry and moist adiabat structure
-    atm_dry     = dry_adiabat_atm(atm_dry)
-    atm_moist   = ga.general_adiabat(atm_moist)
+    atm_dry             = dry_adiabat_atm(atm_dry)
+    atm_moist           = ga.general_adiabat(atm_moist)
 
     # Time stepping
     for i in range(0, rad_steps):
@@ -367,17 +365,17 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
         ### Dry calculation
 
         # Compute radiation, midpoint method time stepping
-        atm_dry = SocRadModel.radCompSoc(atm_dry, toa_heating)
-        dT_dry      = atm_dry.total_heating * atm_dry.dt
+        atm_dry         = SocRadModel.radCompSoc(atm_dry, toa_heating)
+        dT_dry          = atm_dry.total_heating * atm_dry.dt
 
         # Limit the temperature change per step
-        dT_dry      = np.where(dT_dry > 5., 5., dT_dry)
-        dT_dry      = np.where(dT_dry < -5., -5., dT_dry)
+        dT_dry          = np.where(dT_dry > 5., 5., dT_dry)
+        dT_dry          = np.where(dT_dry < -5., -5., dT_dry)
 
-        atm_dry.tmp += dT_dry
+        atm_dry.tmp     += dT_dry
 
         # To keep track of convergence
-        dTmax_dry   = max(abs(dT_dry)) 
+        dTmax_dry       = max(abs(dT_dry)) 
 
         # # Do the surface balance
         # kturb       = .1
@@ -385,25 +383,25 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
         
         # Dry adiabatic adjustment
         for iadj in range(conv_steps):
-            atm_dry = DryAdj(atm_dry)
+            atm_dry     = DryAdj(atm_dry)
 
         ### Moist calculation
 
         # Compute radiation, midpoint method time stepping
-        atm_moist     = SocRadModel.radCompSoc(atm_moist, toa_heating)
-        dT_moist      = atm_moist.total_heating * atm_moist.dt
+        atm_moist       = SocRadModel.radCompSoc(atm_moist, toa_heating)
+        dT_moist        = atm_moist.total_heating * atm_moist.dt
 
         # Limit the temperature change per step
-        dT_moist      = np.where(dT_moist > 5., 5., dT_moist)
-        dT_moist      = np.where(dT_moist < -5., -5., dT_moist)
+        dT_moist        = np.where(dT_moist > 5., 5., dT_moist)
+        dT_moist        = np.where(dT_moist < -5., -5., dT_moist)
 
-        atm_moist.tmp += dT_moist
+        atm_moist.tmp   += dT_moist
 
         # To keep track of convergence
-        dTmax_moist   = max(abs(dT_moist)) 
+        dTmax_moist     = max(abs(dT_moist)) 
 
         # Moist single-step adjustment
-        atm_moist = MoistAdj(atm_moist)
+        atm_moist       = MoistAdj(atm_moist)
 
         # Tad = atm.tmp[-1]*(atm.p/atm.p[-1])**atm.Rcp
 
