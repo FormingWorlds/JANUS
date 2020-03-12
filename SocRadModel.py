@@ -68,28 +68,37 @@ def radCompSoc(atm, toa_heating):
 #     nctools.ncout3d('profile.n2',0,0,pres_list,n2_mr_list,'n2',longname="N2",units='PPMV')
 #     nctools.ncout3d('profile.o2',0,0,pres_list,o2_mr_list,'o2',longname="O2",units='PPMV')
 
+    # Solar zenith angle
+    zenith_angle    = 48.2
 
-    solar_zenith_angle = 48.2
+    # Surface albedo
+    surface_albedo  = 0.1
+
+    # Other parameters
+    longitude       = 0
+    latitude        = 0
+    basis_function  = 1
 
     # Write values to netcdf
-    nctools.ncout_surf('profile.surf',0,0,1,0.1)
-    nctools.ncout2d('profile.tstar',0,0,atm.ts,'tstar',longname="Surface Temperature",units='K')
-    nctools.ncout2d('profile.pstar',0,0,atm.ps,'pstar',longname="Surface Pressure",units='PA')
-    nctools.ncout2d('profile.szen',0,0,solar_zenith_angle,'szen',longname="Solar zenith angle",units='Degrees')
-    nctools.ncout2d('profile.stoa',0,0,toa_heating,'stoa',longname="Solar Irradiance at TOA",units='WM-2')
-    nctools.ncout3d('profile.t',0,0,atm.pl,atm.tmpl,'t',longname="Temperature",units='K')
-    nctools.ncout3d('profile.tl',0,0,atm.p,atm.tmp,'tl',longname="Temperature",units='K')
-    nctools.ncout3d('profile.p',0,0,atm.pl,atm.pl,'p',longname="Pressure",units='PA')
+    nctools.ncout_surf('profile.surf', longitude, latitude, basis_function, surface_albedo)
+    nctools.ncout2d('profile.tstar', 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
+    nctools.ncout2d('profile.pstar', 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
+    nctools.ncout2d('profile.szen', 0, 0,  zenith_angle, 'szen', longname="Solar zenith angle", units='Degrees')
+    nctools.ncout2d('profile.stoa', 0, 0,  toa_heating, 'stoa', longname="Solar Irradiance at TOA", units='WM-2')
+    nctools.ncout3d('profile.t', 0, 0,     atm.pl, atm.tmpl, 't', longname="Temperature", units='K')
+    nctools.ncout3d('profile.tl', 0, 0,    atm.p,  atm.tmp, 'tl', longname="Temperature", units='K')
+    nctools.ncout3d('profile.p', 0, 0,     atm.pl, atm.pl, 'p', longname="Pressure", units='PA')
 
-    # nctools.ncout3d('profile.h2o',0,0,atm.pl,atm.x_gasl["H2O"],'h2o',longname="h2o",units='PPMV')
-    nctools.ncout3d('profile.q',0,0,atm.pl,atm.x_gasl["H2O"],'q',longname="q",units='PPMV')
-    nctools.ncout3d('profile.co2',0,0,atm.pl,atm.x_gasl["CO2"],'co2',longname="CO2",units='PPMV')
-    nctools.ncout3d('profile.co',0,0,atm.pl,atm.x_gasl["CO"],'co',longname="CO",units='PPMV')
-    
-    nctools.ncout3d('profile.ch4',0,0,atm.pl,atm.x_gasl["CH4"],'ch4',longname="ch4",units='PPMV')
-    nctools.ncout3d('profile.h2',0,0,atm.pl,atm.x_gasl["H2"],'h2',longname="H2",units='PPMV')
-    nctools.ncout3d('profile.n2',0,0,atm.pl,atm.x_gasl["N2"],'n2',longname="N2",units='PPMV')
-    nctools.ncout3d('profile.o2',0,0,atm.pl,atm.x_gasl["O2"],'o2',longname="O2",units='PPMV')
+    # Volatile definitions
+    nctools.ncout3d('profile.q', 0, 0,    atm.pl, atm.x_gasl["H2O"], 'q', longname="q", units='PPMV')
+    nctools.ncout3d('profile.co2', 0, 0,  atm.pl, atm.x_gasl["CO2"], 'co2', longname="CO2", units='PPMV')
+    nctools.ncout3d('profile.co', 0, 0,   atm.pl, atm.x_gasl["CO"], 'co', longname="CO", units='PPMV')
+    nctools.ncout3d('profile.ch4', 0, 0,  atm.pl, atm.x_gasl["CH4"], 'ch4', longname="ch4", units='PPMV')
+    nctools.ncout3d('profile.h2', 0, 0,   atm.pl, atm.x_gasl["H2"], 'h2', longname="H2", units='PPMV')
+    nctools.ncout3d('profile.n2', 0, 0,   atm.pl, atm.x_gasl["N2"], 'n2', longname="N2", units='PPMV')
+    nctools.ncout3d('profile.o2', 0, 0,   atm.pl, atm.x_gasl["O2"], 'o2', longname="O2", units='PPMV')
+
+    # nctools.ncout3d('profile.h2o',0,0,atm.pl, atm.x_gasl["H2O"],'h2o',longname="h2o",units='PPMV')
 
     basename = 'profile'
     s = " "

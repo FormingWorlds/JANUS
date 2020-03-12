@@ -204,18 +204,20 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
 
 
 # Dry adiabat profile
-def dry_adiabat_atm( atm):
+def dry_adiabat_atm(atm):
 
     # Define pressure levels
     atm     = set_pressure_array(atm)
 
-    # Calculate Rcp from molar concentrations
-    atm.Rcp = 0.
+    # Calculate cp from molar concentrations
+    cp_mix = 0.
     for vol in atm.vol_list.keys():
-        atm.Rcp += atm.vol_list[vol] * cpv(vol)
-    atm.Rcp = R_universal / atm.Rcp
+        cp_mix += atm.vol_list[vol] * cpv(vol)
 
-    # Calculate dry adiabat profile
+    # Calculate dry adiabat slope
+    atm.Rcp = R_universal / cp_mix
+
+    # Calculate dry adiabat temperature profile
     for idx, prs in enumerate(atm.p):
 
         atm.tmp[idx] = atm.ts * ( atm.p / np.amax(atm.p[0]) ) ** ( atm.Rcp )
@@ -225,8 +227,8 @@ def dry_adiabat_atm( atm):
 # Dry convective adjustment
 def DryAdj(atm):
 
-    T   = atm.tmp
-    p   = atm.p
+    T   = atm_dry.tmp
+    p   = atm_dry.p
     
     # Rcp is global
     # Downward pass
@@ -235,7 +237,7 @@ def DryAdj(atm):
         T2,p2 = T[i+1],p[i+1]
         
         # Adiabat slope
-        pfact = (p1/p2)**atm.Rcp
+        pfact = (p1/p2)**atm_dry.Rcp
         
         # If slope is shallower than adiabat (unstable), adjust to adiabat
         if T1 < T2*pfact:
@@ -244,30 +246,39 @@ def DryAdj(atm):
                               # heating is computed from flux
             T2 = 2.*Tbar/(1.+pfact)
             T1 = T2*pfact
-            atm.temp[i] = T1
-            atm.temp[i+1] = T2
+            atm_dry.temp[i] = T1
+            atm_dry.temp[i+1] = T2
     
     # Upward pass
     for i in range(len(T)-2,-1,-1):
         T1,p1 = T[i],p[i]
         T2,p2 = T[i+1],p[i+1]
-        pfact = (p1/p2)**atm.Rcp
+        pfact = (p1/p2)**atm_dry.Rcp
         if T1 < T2*pfact:
             Tbar = .5*(T1+T2) # Equal layer masses
                               # Not quite compatible with how
                               # heating is computed from flux
             T2 = 2.*Tbar/(1.+pfact)
             T1 = T2*pfact
-            atm.temp[i]   = T1
-            atm.temp[i+1] = T2 
+            atm_dry.temp[i]   = T1
+            atm_dry.temp[i+1] = T2 
 
-    return atm      
+    return atm_dry      
 
 # Moist convective adjustment
 def MoistAdj(atm):
 
+    
+
+
+    for idx, prs in enumerate(atm_moist.p)
+
+        # Check if 
+
+
     T = atm.tmp
     p = atm.p
+
     
     # Rcp is global
     # Downward pass
@@ -302,7 +313,7 @@ def MoistAdj(atm):
             atm.temp[i]   = T1
             atm.temp[i+1] = T2 
 
-    return atm 
+    return atm_moist 
 
 def plot_heat_balance(atm):
 
@@ -331,105 +342,104 @@ def plot_heat_balance(atm):
         plt.close(fig)
         print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)))
 
-
 # Time integration for n steps
 def radiation_timestepping(atm, toa_heating, rad_steps):
 
-<<<<<<< HEAD
     # Initialise previous OLR and TOA heating to zero
-    PrevOLR     = 0.
-    PrevMaxHeat = 0.
-    PrevTemp    = 0.*atm.tmp
+    PrevOLR_dry       = 0.
+    PrevMaxHeat_dry   = 0.
+    PrevTemp_dry      = atm.tmp * 0.
+    PrevOLR_moist     = 0.
+    PrevMaxHeat_moist = 0.
+    PrevTemp_moist    = atm.tmp * 0.
 
-    atm_dry
+    # Create deep copies that are distinct from old dict
+    atm_dry     = copy.deepcopy(atm)
+    atm_moist   = copy.deepcopy(atm)
 
+    # Build dry and moist adiabat structure
+    atm_dry     = dry_adiabat_atm(atm_dry)
+    atm_moist   = ga.general_adiabat(atm_moist)
+
+    # Time stepping
     for i in range(0, rad_steps):
 
-        # Compute radiation
-        atm     = SocRadModel.radCompSoc(atm, toa_heating)
-        dT      = atm.total_heating*atm.dt
-        
+        ### Dry calculation
+
+        # Compute radiation, midpoint method time stepping
+        atm_dry = SocRadModel.radCompSoc(atm_dry, toa_heating)
+        dT_dry      = atm_dry.total_heating * atm_dry.dt
+
         # Limit the temperature change per step
-        dT      = np.where(dT > 5., 5., dT)
-        dT      = np.where(dT < -5., -5., dT)
+        dT_dry      = np.where(dT_dry > 5., 5., dT_dry)
+        dT_dry      = np.where(dT_dry < -5., -5., dT_dry)
+
+        atm_dry.tmp += dT_dry
+
+        # To keep track of convergence
+        dTmax_dry   = max(abs(dT_dry)) 
+
+        # # Do the surface balance
+        # kturb       = .1
+        # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
         
-        # Midpoint method time stepping
-        # changed call to r.  Also modified to hold Tg fixed
-        atm     = SocRadModel.radCompSoc(atm, toa_heating)
-        dT      = atm.total_heating*atm.dt
-=======
-    # # Compute radiation
-    # atm     = SocRadModel.radCompSoc(atm, toa_heating)
-    # dT      = atm.total_heating*atm.dt
-    
-    # # Limit the temperature change per step
-    # dT      = np.where(dT > 5., 5., dT)
-    # dT      = np.where(dT < -5., -5., dT)
-    
-    # Midpoint method time stepping
-    # changed call to r.  Also modified to hold Tg fixed
-    atm     = SocRadModel.radCompSoc(atm, toa_heating)
-    dT      = atm.total_heating*atm.dt
-    
-    # Limit the temperature change per step
-    dT      = np.where(dT >5.,5.,dT)
-    dT      = np.where(dT<-5.,-5.,dT)
-
-    atm.tmp += dT
-    # dTmax   = max(abs(dT)) #To keep track of convergence
-
-    # # Do the surface balance
-    # kturb   = .1
-    # atm.temp[-1] += -atm.dt*kturb*(atm.temp[-1] - atm.ts)
-    
-    # Adiabatic adjustment
-    for iadj in range(convadj_steps):
->>>>>>> b143e277eeb63b958d1f0e4421f4ed4c56b6cf5d
-        
-        # Limit the temperature change per step
-        dT      = np.where(dT > 5., 5., dT)
-        dT      = np.where(dT < -5., -5., dT)
-
-        atm.tmp += dT
-        dTmax   = max(abs(dT)) # To keep track of convergence
-
-        # Do the surface balance
-        kturb       = .1
-        atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
-        
-        # Adiabatic adjustment
+        # Dry adiabatic adjustment
         for iadj in range(conv_steps):
-            
-            # Dry adjustment
-            
+            atm_dry = DryAdj(atm_dry)
 
-            atm_dry  = DryAdj(atm)
+        ### Moist calculation
 
-            # Moist adjustment
-            atm_moist = MoistAdj(atm)
+        # Compute radiation, midpoint method time stepping
+        atm_moist     = SocRadModel.radCompSoc(atm_moist, toa_heating)
+        dT_moist      = atm_moist.total_heating * atm_moist.dt
+
+        # Limit the temperature change per step
+        dT_moist      = np.where(dT_moist > 5., 5., dT_moist)
+        dT_moist      = np.where(dT_moist < -5., -5., dT_moist)
+
+        atm_moist.tmp += dT_moist
+
+        # To keep track of convergence
+        dTmax_moist   = max(abs(dT_moist)) 
+
+        # Moist single-step adjustment
+        atm_moist = MoistAdj(atm_moist)
 
         # Tad = atm.tmp[-1]*(atm.p/atm.p[-1])**atm.Rcp
 
         # Inform during runtime
         if i % 10 == 0:
-            print("Iteration", i, end=", ")
-            print("OLR = " + str(PrevOLR)+" W/m^2,", "Max heating = " + str(np.max(atm.total_heating)), ", dt =", atm.dt)
+            print("Iteration ", i, end=" (dry, moist): ")
+            print("OLR: " + str(PrevOLR_dry) + ", " + str(PrevOLR_moist) + " W/m^2,", "dT_max = " + str(dTmax_dry) + ", " + str(dTmax_moist) + " K")
 
         # Reduce timestep if heating is not converging
-        if abs(np.max(atm.temp-PrevTemp[:])) < 0.05 or abs(atm.temp[0]-atm.temp[1]) > 3.0:
-            atm.dt  = atm.dt*0.99
-            # print("Not converging -> reduce timestep to dt =", atm.dt)
+        dTglobal = abs(np.max(atm.tmp_dry-PrevTemp_dry[:]))
+        dTtop    = abs(atm.tmp_dry[0]-atm.tmp_dry[1])
+        if dTglobal < 0.05 or dTtop > 3.0:
+            atm.dt_dry  = atm.dt_dry*0.99
+            print("Dry adiabat structure not converging -> dt_new =", atm.dt_dry)
+        dTglobal = abs(np.max(atm.tmp_dry-PrevTemp_dry[:]))
+        dTtop    = abs(atm.tmp_dry[0]-atm.tmp_dry[1])
+        if dTglobal < 0.05 or dTtop > 3.0:
+            atm.dt_moist  = atm.dt_moist*0.99
+            print("Moist adiabat structure not converging -> dt_new =", atm.dt_dry)
 
         # Sensitivity break condition
-        if (abs(atm.LW_flux_up[0]-PrevOLR) < (0.1*(5.67e-8*atm.ts**4)**0.5)) and i > 5 :
-           print("Break -> deltaOLR =", abs(atm.LW_flux_up[0]-PrevOLR), ", deltaT =", abs(np.max(atm.temp-PrevTemp[:])))
+        if (abs(atm_dry.LW_flux_up[0]-PrevOLR_dry) < (0.1*(5.67e-8*atm_dry.ts**4)**0.5)) and i > 5 :
+           print("Break -> deltaOLR =", abs(atm_dry.LW_flux_up[0]-PrevOLR_dry), ", deltaT =", abs(np.max(atm_dry.tmp-PrevTemp_dry[:])))
+           break    # break here
+        if (abs(atm_moist.LW_flux_up[0]-PrevOLR_moist) < (0.1*(5.67e-8*atm_moist.ts**4)**0.5)) and i > 5 :
+           print("Break -> deltaOLR =", abs(atm_moist.LW_flux_up[0]-PrevOLR_moist), ", deltaT =", abs(np.max(atm_moist.tmp-PrevTemp_moist[:])))
            break    # break here
 
-        PrevOLR     = atm.LW_flux_up[0]
-        PrevMaxHeat = abs(np.max(atm.total_heating))
-        PrevTemp[:] = atm.temp[:]
+        PrevOLR_dry       = atm_dry.LW_flux_up[0]
+        PrevMaxHeat_dry   = abs(np.max(atm_dry.total_heating))
+        PrevTemp_dry[:]   = atm_dry.tmp[:]
+        PrevOLR_moist     = atm_moist.LW_flux_up[0]
+        PrevMaxHeat_moist = abs(np.max(atm_moist.total_heating))
+        PrevTemp_moist[:] = atm_moist.tmp[:]
     
-    return atm
+    return atm_dry, atm_moist
 
 # Define pressure levels for dry adjustment
 def set_pressure_array(atm):
