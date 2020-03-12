@@ -24,11 +24,11 @@ class atmos:
 		self.ptop 			= np.amin([P_surf*1e-10, 1e-5]) # Top pressure in Pa
 		self.nlev 			= n_vertical_levels  	   		# Number of vertical levels
 		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
-		self.pl 			= np.zeros(self.nlev-1)    		# np.ones(self.nlev+1)
+		self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
 		self.dt 			= timestep
 		
 		self.tmp 			= np.zeros(self.nlev)      		# self.ts*np.ones(self.nlev)
-		self.tmpl 			= np.zeros(self.nlev-1)
+		self.tmpl 			= np.zeros(self.nlev+1)
 		self.Rcp 			= 2./7.
 		self.n_species 		= n_absorbing_species
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
