@@ -156,7 +156,6 @@ def Tdew(switch, p):
         L_NH3=phys.NH3.L_vaporization*phys.nh3.MolecularWeight*1e-3
         return Tref/(1.-(Tref*R_universal/L_NH3)*math.log(p/pref))
     
-
 ## Molar latent heat [J mol-1] for gas phase considered given a temperature T [K]. 
 ## Select the molecule of interest with the switch argument (a string).
 def L_heat(switch, T, P):
@@ -233,13 +232,14 @@ def L_heat(switch, T, P):
         L_heat = L_vaporization*MolecularWeight*1e-3 
     # Super-critical state
     else:
-        # Numerical issus with 0.
-        L_heat = 1e-50
+        # Numerical issus with 0.?
+        L_heat = 0.         #1e-50
         # L_heat = L_vaporization*MolecularWeight*1e-3 
 
-    # if P < p_sat(switch, T):
-    # # if T > Tdew(switch, psat):
-    #     L_heat = 0.
+    # No latent heat contribution in moist adiabat if below p_sat
+    if P < p_sat(switch, T):
+    # if T > Tdew(switch, psat):
+        L_heat = 0.
 
     return L_heat  
     
@@ -617,9 +617,9 @@ T_surf                  = 600.          # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .2, 
-              "CO2" : .2,
-              "H2"  : .6, 
+              "H2O" : .5, 
+              "CO2" : .5,
+              "H2"  : .0, 
               "N2"  : .0,  
               "CH4" : .0, 
               "O2"  : .0, 
