@@ -154,10 +154,10 @@ def radCompSoc(atm, toa_heating):
     hrtssw = ncfile6.variables['hrts']
     hrtslw = ncfile10.variables['hrts']
 
-    atm.total_heating = np.flipx(np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0)))
+    atm.total_heating = np.flip(np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0)))
 
     # Sum LW flux over all bands
-    atm.LW_flux_up          = np.flipx(np.sum(uflxlw[:,:],axis=0)[:,0,0])
-    atm.LW_spectral_flux_up = np.flipx(uflxlw[:,:,0,0])
+    atm.LW_flux_up          = np.flip(np.sum(uflxlw[:,:],axis=0)[:,0,0])
+    atm.LW_spectral_flux_up = np.flip(uflxlw[:,:,0,0])
 
     return atm

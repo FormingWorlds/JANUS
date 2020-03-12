@@ -27,7 +27,7 @@ class atmos:
 		self.pl 			= np.zeros(self.nlev-1)    		# np.ones(self.nlev+1)
 		self.dt 			= timestep
 		
-		self.tmp 			= np.zeros(self.nlev)      # self.ts*np.ones(self.nlev)
+		self.tmp 			= np.zeros(self.nlev)      		# self.ts*np.ones(self.nlev)
 		self.tmpl 			= np.zeros(self.nlev-1)
 		self.Rcp 			= 2./7.
 		self.n_species 		= n_absorbing_species
