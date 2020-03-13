@@ -666,16 +666,16 @@ def plot_adiabats(atm):
 ####################################
 
 # Surface pressure & temperature
-P_surf                  = 1e+8         # Pa
-T_surf                  = 800.         # K
+P_surf                  = 1e+5         # Pa
+T_surf                  = 800          # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .3, 
-              "CO2" : .3,
-              "H2"  : .2, 
-              "N2"  : .6,  
-              "CH4" : .2, 
+              "H2O" : 1.0, 
+              "CO2" : .0,
+              "H2"  : .0, 
+              "N2"  : .0,  
+              "CH4" : .0, 
               "O2"  : .0, 
               "CO"  : .0, 
               "He"  : .0,
