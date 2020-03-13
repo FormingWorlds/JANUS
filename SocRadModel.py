@@ -79,23 +79,37 @@ def radCompSoc(atm, toa_heating):
     latitude        = 0
     basis_function  = 1
 
+    # print(np.flip(atm.pl))
+    # print(np.flip(atm.p))
+    # print(np.flip(atm.x_gas["H2O"]))
+
+    atm.p = list(np.flip([ 1e1, 1e2, 1e3, 1e4, 1e5, ]))
+    atm.pl = list(np.flip([ 0.5*1e1, 0.5*1e2, 0.5*1e3, 0.5*1e4, 0.5*1e5, 0.5*1e6 ]))
+
+    atm.tmp = list(np.flip([ 100, 200, 300, 400, 500 ]))
+    atm.tmpl = list(np.flip([ 50, 150, 250, 350, 450, 550 ]))
+
+    atm.x_gas["H2O"] = list(np.flip([ 1, 1, 1, 1, 1 ]))
+    atm.x_gas["CO2"] = list(np.flip([ 0, 0, 0, 0, 0, ]))
+
+
     # Write values to netcdf
     nctools.ncout_surf('profile.surf', longitude, latitude, basis_function, surface_albedo)
-    nctools.ncout2d('profile.tstar', 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
-    nctools.ncout2d('profile.pstar', 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
-    nctools.ncout2d('profile.szen', 0, 0,  zenith_angle, 'szen', longname="Solar zenith angle", units='Degrees')
-    nctools.ncout2d('profile.stoa', 0, 0,  toa_heating, 'stoa', longname="Solar Irradiance at TOA", units='WM-2')
+    nctools.ncout2d('profile.tstar', 0, 0, 250, 'tstar', longname="Surface Temperature", units='K')
+    nctools.ncout2d('profile.pstar', 0, 0, 1e5, 'pstar', longname="Surface Pressure", units='PA')
+    nctools.ncout2d('profile.szen', 0, 0,  0, 'szen', longname="Solar zenith angle", units='Degrees')
+    nctools.ncout2d('profile.stoa', 0, 0,  0, 'stoa', longname="Solar Irradiance at TOA", units='WM-2')
     # T, P, and volatiles
     nctools.ncout3d('profile.t', 0, 0,     np.flip(atm.p), np.flip(atm.tmp), 't', longname="Temperature", units='K')
     nctools.ncout3d('profile.tl', 0, 0,    np.flip(atm.pl),  np.flip(atm.tmpl), 'tl', longname="Temperature", units='K')
     nctools.ncout3d('profile.p', 0, 0,     np.flip(atm.p), np.flip(atm.p), 'p', longname="Pressure", units='PA')
     nctools.ncout3d('profile.q', 0, 0,     np.flip(atm.p), np.flip(atm.x_gas["H2O"]), 'q', longname="q", units='PPMV') 
     nctools.ncout3d('profile.co2', 0, 0,   np.flip(atm.p), np.flip(atm.x_gas["CO2"]), 'co2', longname="CO2", units='PPMV') 
-    nctools.ncout3d('profile.co', 0, 0,    np.flip(atm.p), np.flip(atm.x_gas["CO"]), 'co', longname="CO", units='PPMV') 
-    nctools.ncout3d('profile.ch4', 0, 0,   np.flip(atm.p), np.flip(atm.x_gas["CH4"]), 'ch4', longname="ch4", units='PPMV') 
-    nctools.ncout3d('profile.h2', 0, 0,    np.flip(atm.p), np.flip(atm.x_gas["H2"]), 'h2', longname="H2", units='PPMV') 
-    nctools.ncout3d('profile.n2', 0, 0,    np.flip(atm.p), np.flip(atm.x_gas["N2"]), 'n2', longname="N2", units='PPMV') 
-    nctools.ncout3d('profile.o2', 0, 0,    np.flip(atm.p), np.flip(atm.x_gas["O2"]), 'o2', longname="O2", units='PPMV')
+    # nctools.ncout3d('profile.co', 0, 0,    np.flip(atm.p), np.flip(atm.x_gas["CO"]), 'co', longname="CO", units='PPMV') 
+    # nctools.ncout3d('profile.ch4', 0, 0,   np.flip(atm.p), np.flip(atm.x_gas["CH4"]), 'ch4', longname="ch4", units='PPMV') 
+    # nctools.ncout3d('profile.h2', 0, 0,    np.flip(atm.p), np.flip(atm.x_gas["H2"]), 'h2', longname="H2", units='PPMV') 
+    # nctools.ncout3d('profile.n2', 0, 0,    np.flip(atm.p), np.flip(atm.x_gas["N2"]), 'n2', longname="N2", units='PPMV') 
+    # nctools.ncout3d('profile.o2', 0, 0,    np.flip(atm.p), np.flip(atm.x_gas["O2"]), 'o2', longname="O2", units='PPMV')
 
     # nctools.ncout3d('profile.h2o',0,0,atm.pl, atm.x_gasl["H2O"],'h2o',longname="h2o",units='PPMV')
 
@@ -155,6 +169,7 @@ def radCompSoc(atm, toa_heating):
     hrtslw = ncfile10.variables['hrts']
 
     atm.total_heating = np.flip(np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0)))
+    print("Total heating:", atm.total_heating)
 
     # Sum LW flux over all bands
     atm.LW_flux_up          = np.flip(np.sum(uflxlw[:,:],axis=0)[:,0,0])
