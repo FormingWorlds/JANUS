@@ -40,7 +40,6 @@ class atmos:
 		# Species-dependent quantities
 		self.p_vol 			= {} # Gas phase partial pressures
 		self.x_gas 			= {} # Gas phase molar concentration
-		self.x_gasl 		= {} # Gas phase molar concentration staggered
 		self.x_cond         = {} # Condensed phase molar concentration
 		self.mr_gas 		= {} # Gas phase molar mixing ratio (relative to all gas)
 		self.mr_cond        = {} # Condensed phase molar mixing ratio (relative to all gas)

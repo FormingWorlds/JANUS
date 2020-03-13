@@ -35,14 +35,14 @@ pref      = esat(Tref)                    # Reference pressure
 L_sun     = 3.828e+26                     # W, IAU definition
 AU        = 1.495978707e+11               # m
 
-R_universal = 8.31446261815324 # Universal gas constant, J.K-1.mol-1
+R_universal = 8.31446261815324            # Universal gas constant, J.K-1.mol-1
 
 # # Calculate dew point temperature
 # def Tdew_H2O(p):
 #     return Tref/(1-(Tref*R/L)*math.log(p/pref))
 
 # Number of radiation steps
-rad_steps  = 5
+rad_steps  = 1
 
 # Number of convective adjustment steps
 conv_steps = 0
@@ -208,8 +208,11 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
 # Dry adiabat profile
 def dry_adiabat_atm(atm):
 
-    # Define pressure levels
-    atm     = set_pressure_array(atm)
+    # # Define pressure levels
+    # atm     = set_pressure_array(atm)
+
+    # # Define pressure levels
+    # atm.     = set_pressure_array(atm)
 
     # Calculate cp from molar concentrations
     cp_mix = 0.
@@ -219,27 +222,12 @@ def dry_adiabat_atm(atm):
     # Calculate dry adiabat slope
     atm.Rcp = R_universal / cp_mix
 
-    # Calculate dry adiabat temperature profile
-    for idx, prs in enumerate(atm.p):
-        atm.tmp[idx] = atm.ts * ( atm.p[idx] / atm.ps ) ** ( atm.Rcp )
+    # Calculate dry adiabat temperature profile for staggered nodes (from ground up)
+    for idx, prsl in enumerate(atm.pl):
+        atm.tmpl[idx] = atm.ts * ( prsl / atm.ps ) ** ( atm.Rcp )
 
-    # # Interpolate staggered nodes
-    # atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
-    # atm.tmpl    = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
-    # for vol in atm.vol_list.keys():
-    #     # atm.x_gasl[vol] = np.zeros(len(atm.pl))
-    #     atm.x_gasl[vol] = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.x_gas[vol]))
-
-    # # Interpolate staggered nodes
-    # for idx, prs in enumerate(atm.p):
-    #     print(idx, prs)
-    #     if idx == 0:
-    #         atm.pl[idx] = atm.p[idx]
-    #     else:
-    #         atm.pl[idx] = (atm.p[idx-1] + atm.p[idx]) / 2.
-    #     if idx == len(atm.p):
-    #         atm.pl[-1] = atm.p[idx] - ((atm.p[-2]-atm.p[-1])/2.)
-    atm.tmpl    = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
+    # Interpolate temperature from staggered nodes
+    atm.tmp = np.interp(atm.p, atm.pl, atm.tmpl)
 
     return atm
   
@@ -265,8 +253,8 @@ def DryAdj(atm):
                               # heating is computed from flux
             T2 = 2.*Tbar/(1.+pfact)
             T1 = T2*pfact
-            atm.temp[i] = T1
-            atm.temp[i+1] = T2
+            atm.tmp[i] = T1
+            atm.tmp[i+1] = T2
     
     # Upward pass
     for i in range(len(T)-2,-1,-1):
@@ -279,8 +267,8 @@ def DryAdj(atm):
                               # heating is computed from flux
             T2 = 2.*Tbar/(1.+pfact)
             T1 = T2*pfact
-            atm.temp[i]   = T1
-            atm.temp[i+1] = T2 
+            atm.tmp[i]   = T1
+            atm.tmp[i+1] = T2 
 
     return atm      
 
@@ -342,20 +330,22 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
     PrevMaxHeat_moist   = 0.
     PrevTemp_moist      = atm.tmp * 0.
 
-    # Create deep copies that are distinct from old dict
-    atm_dry             = copy.deepcopy(atm)
-    atm_moist           = copy.deepcopy(atm)
+    # # Create deep copies that are distinct from old dict
+    # atm_dry             = copy.deepcopy(atm)
+    # atm_moist           = copy.deepcopy(atm)
 
-    # Build dry and moist adiabat structure
-    atm_dry             = dry_adiabat_atm(atm_dry)
-    atm_moist           = ga.general_adiabat(atm_moist)
-
+    # Build moist adiabat structure
+    atm_moist           = ga.general_adiabat(atm)
+    atm_dry             = dry_adiabat_atm(copy.deepcopy(atm_moist))
+    
     plot_heat_balance(atm_dry, atm_moist)
 
     # Time stepping
     for i in range(0, rad_steps):
 
         ### Dry calculation
+
+        print(len(atm_dry.tmp), atm_dry.tmp)
 
         # Compute radiation, midpoint method time stepping
         atm_dry         = SocRadModel.radCompSoc(atm_dry, toa_heating)
@@ -381,6 +371,8 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
         for iadj in range(conv_steps):
             atm_dry     = DryAdj(atm_dry)
 
+        # plot_heat_balance(atm_dry, atm_moist)
+
         ### Moist calculation
 
         # Compute radiation, midpoint method time stepping
@@ -405,16 +397,16 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
             print("OLR: " + str(PrevOLR_dry) + ", " + str(PrevOLR_moist) + " W/m^2,", "dT_max = " + str(dTmax_dry) + ", " + str(dTmax_moist) + " K")
 
         # Reduce timestep if heating is not converging
-        dTglobal = abs(np.max(atm.tmp_dry-PrevTemp_dry[:]))
-        dTtop    = abs(atm.tmp_dry[0]-atm.tmp_dry[1])
+        dTglobal = abs(np.max(atm_dry.tmp-PrevTemp_dry[:]))
+        dTtop    = abs(atm_dry.tmp[0]-atm_dry.tmp[1])
         if dTglobal < 0.05 or dTtop > 3.0:
-            atm.dt_dry  = atm.dt_dry*0.99
-            print("Dry adiabat structure not converging -> dt_new =", atm.dt_dry)
-        dTglobal = abs(np.max(atm.tmp_dry-PrevTemp_dry[:]))
-        dTtop    = abs(atm.tmp_dry[0]-atm.tmp_dry[1])
+            atm_dry.dt  = atm_dry.dt*0.99
+            print("Dry adiabat structure not converging -> dt_new =", atm_dry.dt)
+        dTglobal = abs(np.max(atm_moist.tmp-PrevTemp_moist[:]))
+        dTtop    = abs(atm_moist.tmp[0]-atm_moist.tmp[1])
         if dTglobal < 0.05 or dTtop > 3.0:
-            atm.dt_moist  = atm.dt_moist*0.99
-            print("Moist adiabat structure not converging -> dt_new =", atm.dt_dry)
+            atm_moist.dt  = atm_moist.dt*0.99
+            print("Moist adiabat structure not converging -> dt_new =", atm_moist.dt)
 
         # Sensitivity break condition
         if (abs(atm_dry.LW_flux_up[0]-PrevOLR_dry) < (0.1*(5.67e-8*atm_dry.ts**4)**0.5)) and i > 5 :
@@ -489,11 +481,11 @@ T_surf        = 800.                # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .3, 
-              "CO2" : .3,
-              "H2"  : .2, 
+              "H2O" : .5, 
+              "CO2" : .5,
+              "H2"  : .0, 
               "N2"  : .0,  
-              "CH4" : .2, 
+              "CH4" : .0, 
               "O2"  : .0, 
               "CO"  : .0, 
               "He"  : .0,

@@ -503,31 +503,67 @@ def general_adiabat( atm ):
         # # Update parameters used in the slope function dT/dlnP
         # int_slope.setParams(atm)
 
-    # Interpolate staggered nodes
-    # atm.pl      = (atm.p[1:] + atm.p[:-1]) / 2.
-    
-    for idx, prs in enumerate(atm.p):
-
-        if idx == 0:
-            atm.pl[idx] = atm.p[idx]
-        else:
-            atm.pl[idx] = (atm.p[idx-1] + atm.p[idx]) / 2.
-        
-        if idx == len(atm.p):
-            atm.pl[-1] = atm.p[idx] - ((atm.p[-2]-atm.p[-1])/2.)
-
-    # print(atm.p)
-    # print(atm.pl)
-    atm.tmpl    = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
-
-    # print(atm.tmp)
-    # print(atm.tmpl)
-    # for vol in atm.vol_list.keys():
-    #     # atm.x_gasl[vol] = np.zeros(len(atm.pl))
-    #     atm.x_gasl[vol] = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.x_gas[vol]))  
+    # Interpolate
+    atm = interpolate_atm(atm)
 
     return atm 
 
+# Interpolate and flip pressure, temperature and volatile grids to fixed size
+def interpolate_atm(atm):
+
+    # Trim array zeros
+    atm_len     = int(np.max(atm.ifatm)+1)
+    rest_len    = int(len(atm.p)-atm_len)
+    atm.p       = np.flip(np.split(atm.p, [atm_len, rest_len])[0])
+    atm.tmp     = np.flip(np.split(atm.tmp, [atm_len, rest_len])[0])
+
+    # Interpolate staggered nodes
+    atm.pl      = np.logspace(np.log10(np.min(atm.p)), np.log10(np.max(atm.p)), atm.nlev+1)
+    atm.tmpl    = np.interp(atm.pl, atm.p, atm.tmp)
+
+    # Interpolate atmosphere nodes
+    prs_itp     = (atm.pl[1:] + atm.pl[:-1]) / 2.
+    tmp_itp     = (atm.tmpl[1:] + atm.tmpl[:-1]) / 2.
+
+    # Trim & interpolate level-dependent quantities
+    atm.xd      = np.flip(np.split(atm.xd, [atm_len, rest_len])[0])
+    atm.xv      = np.flip(np.split(atm.xv, [atm_len, rest_len])[0])
+    atm.xc      = np.flip(np.split(atm.xc, [atm_len, rest_len])[0])
+    atm.mrd     = np.flip(np.split(atm.mrd, [atm_len, rest_len])[0])
+    atm.mrv     = np.flip(np.split(atm.mrv, [atm_len, rest_len])[0])
+    atm.mrc     = np.flip(np.split(atm.mrc, [atm_len, rest_len])[0])
+    atm.cp      = np.flip(np.split(atm.cp, [atm_len, rest_len])[0])
+    atm.cp_mr   = np.flip(np.split(atm.cp_mr, [atm_len, rest_len])[0])
+
+    atm.xd      = np.interp(prs_itp, atm.p, atm.xd)
+    atm.xv      = np.interp(prs_itp, atm.p, atm.xv)
+    atm.xc      = np.interp(prs_itp, atm.p, atm.xc)
+    atm.mrd     = np.interp(prs_itp, atm.p, atm.mrd)
+    atm.mrv     = np.interp(prs_itp, atm.p, atm.mrv)
+    atm.mrc     = np.interp(prs_itp, atm.p, atm.mrc)
+    atm.cp      = np.interp(prs_itp, atm.p, atm.cp)
+    atm.cp_mr   = np.interp(prs_itp, atm.p, atm.cp_mr)
+
+    # Trim & interpolate species-dependent quantities
+    for vol in atm.vol_list.keys():
+
+        atm.p_vol[vol]   = np.flip(np.split(atm.p_vol[vol], [atm_len, rest_len])[0])
+        atm.x_gas[vol]   = np.flip(np.split(atm.x_gas[vol], [atm_len, rest_len])[0])
+        atm.x_cond[vol]  = np.flip(np.split(atm.x_cond[vol], [atm_len, rest_len])[0])
+        atm.mr_gas[vol]  = np.flip(np.split(atm.mr_gas[vol], [atm_len, rest_len])[0])
+        atm.mr_cond[vol] = np.flip(np.split(atm.mr_cond[vol], [atm_len, rest_len])[0])
+
+        atm.p_vol[vol]   = np.interp(prs_itp, atm.p, atm.p_vol[vol])
+        atm.x_gas[vol]   = np.interp(prs_itp, atm.p, atm.x_gas[vol]) 
+        atm.x_cond[vol]  = np.interp(prs_itp, atm.p, atm.x_cond[vol])
+        atm.mr_gas[vol]  = np.interp(prs_itp, atm.p, atm.mr_gas[vol]) 
+        atm.mr_cond[vol] = np.interp(prs_itp, atm.p, atm.mr_cond[vol]) 
+
+    # Rewrite atmosphere nodes
+    atm.p       = prs_itp
+    atm.tmp     = tmp_itp
+
+    return atm
 
 # Plotting
 def plot_adiabats(atm):
@@ -546,7 +582,7 @@ def plot_adiabats(atm):
     # ray_vol_cond        = "H2O"
     # ray_vol_noncond     = "N2"
     # moist_adiabat_ray   = phys.MoistAdiabat(phys.H2O,phys.N2)
-    # p_dry_gas_surf      = atm.p_vol[ray_vol_noncond][0]
+    # p_dry_gas_surf      = atm.p_vol[ray_vol_noncond][-1]
     # print("Ray adiabat settings (P_surf_noncond, T_surf, P_top):", p_dry_gas_surf, atm.ts, atm.ptop)
     # p_ray, T_ray, molarCon_ray, massCon_ray = moist_adiabat_ray( p_dry_gas_surf, atm.ts, atm.ptop )
     # p_ray_interp, T_ray_interp, molarCon_ray_interp, massCon_ray_interp = moist_adiabat_ray(p_dry_gas_surf, atm.ts, atm.ptop, atm.p)
@@ -585,7 +621,7 @@ def plot_adiabats(atm):
 
     # Dry adiabat as comparison
     ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, alpha=0.5)              # Condensed abundances
-    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp[0] ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, label=r'Dry adiabat')   # Initial abundances
+    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp[-1] ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, label=r'Dry adiabat')   # Initial abundances
 
     # General moist adiabat
     ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Moist adiabat",alpha=0.99)
@@ -638,7 +674,7 @@ vol_list = {
               "H2O" : .3, 
               "CO2" : .3,
               "H2"  : .2, 
-              "N2"  : .0,  
+              "N2"  : .6,  
               "CH4" : .2, 
               "O2"  : .0, 
               "CO"  : .0, 
