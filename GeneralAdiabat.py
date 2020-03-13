@@ -427,6 +427,7 @@ def condensation( atm ):
 
     # Renormalize cp w/ molar concentration
     atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx])
+    # atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
 
     # Dry concentration floor
     atm.xd[idx] = np.amax([atm.xd[idx], 1e-10])
