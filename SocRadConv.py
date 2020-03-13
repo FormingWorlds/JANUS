@@ -222,11 +222,12 @@ def dry_adiabat_atm(atm):
     # Calculate dry adiabat slope
     atm.Rcp = R_universal / cp_mix
 
-    # Calculate dry adiabat temperature profile
-    for idx, prs in enumerate(atm.p):
-        atm.tmp[idx] = atm.ts * ( atm.p[idx] / atm.ps ) ** ( atm.Rcp )
+    # Calculate dry adiabat temperature profile for staggered nodes (from ground up)
+    for idx, prsl in enumerate(atm.pl):
+        atm.tmpl[idx] = atm.ts * ( prsl / atm.ps ) ** ( atm.Rcp )
 
-    atm.tmpl = np.interp(atm.pl, np.flip(atm.p), np.flip(atm.tmp))
+    # Interpolate temperature from staggered nodes
+    atm.tmp = np.interp(atm.p, atm.pl, atm.tmpl)
 
     return atm
   
