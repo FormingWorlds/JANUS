@@ -32,7 +32,7 @@ class atmos:
 		self.Rcp 			= 2./7.
 		self.n_species 		= n_absorbing_species
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
-		self.fluxes 		= self.atmos_fluxes(self.nlev)
+		# self.fluxes 		= self.atmos_fluxes(self.nlev)
 		self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500)))
 		self.band_centres 	= (self.bands[1:] + self.bands[:-1]) / 2
 		self.band_widths 	= np.diff(self.bands)
@@ -71,13 +71,28 @@ class atmos:
 		    # Surface partial pressures
 		    self.p_vol[vol][0]   = self.ps * vol_list[vol]
 
+		# Radiation heating and fluxes
+		self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2
+		self.flux_up				= np.zeros(self.nlev)				# W/m^2
+		self.flux_down				= np.zeros(self.nlev)				# W/m^2
+		self.SW_flux				= np.zeros(self.nlev)				# W/m^2
+		self.LW_flux				= np.zeros(self.nlev)				# W/m^2
+		self.net_flux				= np.zeros(self.nlev)				# W/m^2
+		self.LW_spectral_flux_up 	= np.zeros([n_bands,self.nlev])		# W/m^2/(length)
+		self.total_heating 			= np.zeros(self.nlev) 				# K/time
+		self.sw_heating				= np.zeros(self.nlev)				# K/time
+		self.lw_heating				= np.zeros(self.nlev)				# K/time
 
-	class atmos_fluxes:
-		'''
-		Fluxes class
-		'''
-		def __init__(self,nlev):
-			self.nlev_flux 				= nlev
-			self.LW_flux_up 			= np.zeros(nlev)
-			self.LW_spectral_flux_up 	= np.zeros([n_bands,nlev])
-			self.total_heating 			= np.zeros(nlev) 				# K s^-1
+	# # Radiation heating and fluxes
+	# class atmos_fluxes:
+	# 	def __init__(self, nlev):
+	# 		self.LW_flux_up 			= np.zeros(nlev)				# W/m^2
+	# 		self.flux_up				= np.zeros(nlev)				# W/m^2
+	# 		self.flux_down				= np.zeros(nlev)				# W/m^2
+	# 		self.SW_flux				= np.zeros(nlev)				# W/m^2
+	# 		self.LW_flux				= np.zeros(nlev)				# W/m^2
+	# 		self.net_flux				= np.zeros(nlev)				# W/m^2
+	# 		self.LW_spectral_flux_up 	= np.zeros([n_bands,nlev])		# W/m^2/(length)
+	# 		self.total_heating 			= np.zeros(nlev) 				# K/time
+	# 		self.sw_heating				= np.zeros(nlev)				# K/time
+	# 		self.lw_heating				= np.zeros(nlev)				# K/time
