@@ -1,6 +1,6 @@
 import math
 import numpy as np
-# from ClimateUtilities import * #To get the math methods routines
+from ClimateUtilities import * #To get the math methods routines
 #
 #All units are mks units
 #
@@ -314,7 +314,7 @@ H2.TriplePointP = 7.200000e+03
 H2.L_vaporization_BoilingPoint = 4.540000e+05
 H2.L_vaporization_TriplePoint = None
 H2.L_fusion = 5.820000e+04
-H2.L_sublimation = None
+H2.L_sublimation = 4.540000e+05 # !CAREFUL! Actually: None
 H2.rho_liquid_BoilingPoint = 7.097000e+01
 H2.rho_liquid_TriplePoint = None
 H2.rho_solid = 8.800000e+01
@@ -334,7 +334,7 @@ He.TriplePointP = 5.070000e+03
 He.L_vaporization_BoilingPoint = 2.030000e+04
 He.L_vaporization_TriplePoint = None
 He.L_fusion = None
-He.L_sublimation = None
+He.L_sublimation = 2.030000e+04 # !CAREFUL! Actually: None
 He.rho_liquid_BoilingPoint = 1.249600e+02
 He.rho_liquid_TriplePoint = None
 He.rho_solid = 2.000000e+02
@@ -368,16 +368,16 @@ NH3.rho_liquid=7.342000e+02
 #------------------------
 
 #------------------------
-#Synonym for H2O
-water = H2O
+#Synonyms for volatiles
+water   = H2O
 methane = CH4
-co2 = CO2
-co = CO
-n2 = N2
-o2 = O2
-h2 = H2
-he = He
-nh3 = NH3
+co2     = CO2
+co      = CO
+n2      = N2
+o2      = O2
+h2      = H2
+he      = He
+nh3     = NH3
 
 #Make a list of all the gases
 #
@@ -540,6 +540,9 @@ class satvps_function:
             self.e0 = Gas_or_T0.TriplePointP
             if self.iceFlag == 'ice':
                 self.L = Gas_or_T0.L_sublimation
+                # if Gas_or_T0.L_sublimation is None:
+                #   L_sublimation = Gas_or_T0.L_vaporization
+                #   self.L = L_sublimation
             elif self.iceFlag == 'liquid':
                 self.L = Gas_or_T0.L_vaporization
             else:
@@ -640,16 +643,16 @@ class MoistAdiabat:
             den = self.cpa + (self.cpc + (self.L/(self.Rc*T) - 1.)*(self.L/T))*qsat
             return num/den
         self.slope = slope
-        self.ptop = 1000. #Default top of atmosphere
+        # self.ptop = 1000. #Default top of atmosphere
         self.step = -.05 #Default step size for integration
-    def __call__(self,ps,Ts,pgrid = None):
+    def __call__(self,ps,Ts,ptop,pgrid=[]):
         #Initial conditions
         step = self.step  #Step size for integration
-        ptop = self.ptop #Where to stop integratoin
+        # ptop = self.ptop #Where to stop integration
         #
         logpa = math.log(ps)
         logT = math.log(Ts)
-        ad = integrator(self.slope,logpa,logT,step )
+        ad = integrator(self.slope,logpa,logT,step)
         #Initialize lists to save results
         pL = [math.exp(logpa) + self.satvp(math.exp(logT))]
         molarConL = [self.satvp(math.exp(logT))/pL[0]]
@@ -666,9 +669,9 @@ class MoistAdiabat:
                 TL.append(T)
         #Numeric.array turns lists into arrays that one
         #can do arithmetic on.
-        pL = Numeric.array(pL)
-        TL = Numeric.array(TL)
-        molarConL = Numeric.array(molarConL)
+        pL = numpy.array(pL)
+        TL = numpy.array(TL)
+        molarConL = numpy.array(molarConL)
         #Now compute mass specific concentration
         Mc = self.condensible.MolecularWeight
         Mnc = self.noncon.MolecularWeight
@@ -681,16 +684,16 @@ class MoistAdiabat:
         #which creates a callable object which acts like
         #an interpolation function for the listed data give
         #as arguments.
-        if pgrid == None:
-            return pL,TL,molarConL,qL
+        if not list(pgrid):
+          return pL,TL,molarConL,qL
         else:
-            T1 = interp(pL,TL)
-            mc1 = interp(pL,molarConL)
-            q1 = interp(pL,qL)
-            T = Numeric.array([T1(pp) for pp in pgrid])
-            mc = Numeric.array([mc1(pp) for pp in pgrid])
-            q = Numeric.array([q1(pp) for pp in pgrid])
-            return Numeric.array(pgrid),T, mc, q
+          T1 = interp(pL,TL)
+          mc1 = interp(pL,molarConL)
+          q1 = interp(pL,qL)
+          T = numpy.array([T1(pp) for pp in pgrid])
+          mc = numpy.array([mc1(pp) for pp in pgrid])
+          q = numpy.array([q1(pp) for pp in pgrid])
+          return numpy.array(pgrid),T, mc, q
 
 
 
