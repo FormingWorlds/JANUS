@@ -20,30 +20,14 @@ from scipy import interpolate
 import seaborn as sns
 import copy
 
-# Thermodynamic constants for moist adjustment
-R         = phys.water.R                  # J/(kg*K) specific gas constant of water vapor
-Rcp       = phys.water.Rcp                # cp in J/(kg*K) specific heat constant of water vapor
-L         = phys.water.L_vaporization     # J/kg, latent heat of condensation of water vapor at 300K
-# Saturation vapor pressure, args=T,T0,e0,MolecularWeight,LatentHeat
-esat      = phys.satvps_function(phys.water) 
-Tref      = 2000.                         # Reference temperature
-pref      = esat(Tref)                    # Reference pressure
-
-# Other constants
-L_sun     = 3.828e+26                     # W, IAU definition
-AU        = 1.495978707e+11               # m
-
+# Constants
+L_sun       = 3.828e+26                     # W, IAU definition
+AU          = 1.495978707e+11               # m
 R_universal = 8.31446261815324            # Universal gas constant, J.K-1.mol-1
 
-# # Calculate dew point temperature
-# def Tdew_H2O(p):
-#     return Tref/(1-(Tref*R/L)*math.log(p/pref))
-
-# Number of radiation steps
-rad_steps  = 1
-
-# Number of convective adjustment steps
-conv_steps = 0
+# Number of radiation and dry adjustment steps
+rad_steps   = 100
+conv_steps  = 5
 
 def surf_Planck_nu(atm):
     h   = 6.63e-34
@@ -63,25 +47,24 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
 
     atm_dry, atm_moist = radiation_timestepping(atm, toa_heating, rad_steps)
 
+    print("=> Computed OLR (dry, moist):", str(round(atm_dry.LW_flux_up[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")
+
     plot_heat_balance(atm_dry, atm_moist)
 
-    # Write TP and spectral flux profiles for later plotting
-    out_a = np.column_stack( ( atm.temp, atm.p*1e-5 ) ) # K, Pa->bar
-    np.savetxt( output_dir+str(int(time_current))+"_atm_TP_profile.dat", out_a )
-    out_a = np.column_stack( ( atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths ) )
-    np.savetxt( output_dir+str(int(time_current))+"_atm_spectral_flux.dat", out_a )
+    # # Write TP and spectral flux profiles for later plotting
+    # out_a = np.column_stack( ( atm.temp, atm.p*1e-5 ) ) # K, Pa->bar
+    # np.savetxt( output_dir+str(int(time_current))+"_atm_TP_profile.dat", out_a )
+    # out_a = np.column_stack( ( atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths ) )
+    # np.savetxt( output_dir+str(int(time_current))+"_atm_spectral_flux.dat", out_a )
 
-    return atm.LW_flux_up[-1], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
+    # Profile used in coupled model
+    atm = atm_moist
+
+    return atm.LW_flux_up[0], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
 
 
 # Dry adiabat profile
 def dry_adiabat_atm(atm):
-
-    # # Define pressure levels
-    # atm     = set_pressure_array(atm)
-
-    # # Define pressure levels
-    # atm.     = set_pressure_array(atm)
 
     # Calculate cp from molar concentrations
     cp_mix = 0.
@@ -122,14 +105,16 @@ def DryAdj(atm):
                               # heating is computed from flux
             T2 = 2.*Tbar/(1.+pfact)
             T1 = T2*pfact
-            atm.tmp[i] = T1
+            atm.tmp[i]   = T1
             atm.tmp[i+1] = T2
     
     # Upward pass
     for i in range(len(T)-2,-1,-1):
+
         T1,p1 = T[i],p[i]
         T2,p2 = T[i+1],p[i+1]
         pfact = (p1/p2)**atm.Rcp
+
         if T1 < T2*pfact:
             Tbar = .5*(T1+T2) # Equal layer masses
                               # Not quite compatible with how
@@ -173,10 +158,10 @@ def plot_heat_balance(atm_dry, atm_moist):
 
         ax1.legend()
         
-        ax2.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths,color="gray",ls='--',label='Black body ('+str(atm_moist.ts)+" K)")
+        ax2.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label='Black body ('+str(atm_moist.ts)+" K)")
 
-        # ax2.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths)
-        # ax2.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths)
+        ax2.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths, color="red")
+        ax2.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths, color="blue")
         
         # ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
 
@@ -195,26 +180,16 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
     PrevOLR_dry         = 0.
     PrevMaxHeat_dry     = 0.
     PrevTemp_dry        = atm.tmp * 0.
-    PrevOLR_moist       = 0.
-    PrevMaxHeat_moist   = 0.
-    PrevTemp_moist      = atm.tmp * 0.
-
-    # # Create deep copies that are distinct from old dict
-    # atm_dry             = copy.deepcopy(atm)
-    # atm_moist           = copy.deepcopy(atm)
 
     # Build moist adiabat structure
     atm_moist           = ga.general_adiabat(atm)
-    atm_dry             = dry_adiabat_atm(copy.deepcopy(atm_moist))
-    
-    plot_heat_balance(atm_dry, atm_moist)
 
+    # Copy moist pressure arrays for dry adiabat
+    atm_dry             = dry_adiabat_atm(copy.deepcopy(atm_moist))
+
+    ### Dry calculation
     # Time stepping
     for i in range(0, rad_steps):
-
-        ### Dry calculation
-
-        # print(len(atm_dry.tmp), atm_dry.tmp)
 
         # Compute radiation, midpoint method time stepping
         atm_dry         = SocRadModel.radCompSoc(atm_dry, toa_heating)
@@ -224,9 +199,6 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
         dT_dry          = np.where(dT_dry > 5., 5., dT_dry)
         dT_dry          = np.where(dT_dry < -5., -5., dT_dry)
 
-        # print(len(atm_dry.tmp), atm_dry.tmp)
-        # print(len(dT_dry), dT_dry)
-
         # Apply heating
         atm_dry.tmp     += dT_dry
 
@@ -234,91 +206,57 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
         # kturb       = .1
         # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
         
-        # Dry adiabatic adjustment
+        # Dry convective adjustment
         for iadj in range(conv_steps):
             atm_dry     = DryAdj(atm_dry)
 
-        ### Moist calculation
-
-        # Compute radiation, midpoint method time stepping
-        atm_moist       = SocRadModel.radCompSoc(atm_moist, toa_heating)
-        dT_moist        = atm_moist.total_heating * atm_moist.dt
-
-        # Limit the temperature change per step
-        dT_moist        = np.where(dT_moist > 5., 5., dT_moist)
-        dT_moist        = np.where(dT_moist < -5., -5., dT_moist)
-
-        # Moist single-step adjustment
-        atm_moist       = MoistAdj(atm_moist, dT_moist)
-
-        # Tad = atm.tmp[-1]*(atm.p/atm.p[-1])**atm.Rcp
+        # Convergence criteria
+        dTglobal_dry    = abs(round(np.max(atm_dry.tmp-PrevTemp_dry[:]), 4))
+        dTtop_dry       = abs(round(atm_dry.tmp[0]-atm_dry.tmp[1], 4))
 
         # Inform during runtime
-        # if i % 1 == 0:
-        print("Iteration ", i, end=" (dry, moist): ")
-
-        # Convergence criteria
-        dTglobal_dry    = abs(np.max(atm_dry.tmp-PrevTemp_dry[:]))
-        dTtop_dry       = abs(atm_dry.tmp[0]-atm_dry.tmp[1])
-        dTglobal_moist  = abs(np.max(atm_moist.tmp-PrevTemp_moist[:]))
-        dTtop_moist     = abs(atm_moist.tmp[0]-atm_moist.tmp[1])
-
-        print("OLR: " + str(atm_dry.LW_flux_up[0]) + ", " + str(atm_moist.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + ", " + str(dTglobal_moist) + " K", "dT_top = " + str(dTtop_dry) + ", " + str(dTtop_moist) + " K")
+        if i % 2 == 1:
+            print("Dry adjustment step", i+1, end=": ")
+            print("OLR: " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K")
 
         # Reduce timestep if heating is not converging
         if dTglobal_dry < 0.05 or dTtop_dry > 3.0:
             atm_dry.dt  = atm_dry.dt*0.99
             print("Dry adiabat not converging -> dt_new =", atm_dry.dt)
-        if dTglobal_moist < 0.05 or dTtop_moist > 3.0:
-            atm_moist.dt  = atm_moist.dt*0.99
-            print("Moist adiabat not converging -> dt_new =", atm_moist.dt)
 
         # Break criteria
-        dOLR_dry        = abs(atm_dry.LW_flux_up[0]-PrevOLR_dry)
-        dOLR_moist      = abs(atm_moist.LW_flux_up[0]-PrevOLR_moist)
+        dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 4))
         dbreak_dry      = (0.1*(5.67e-8*atm_dry.ts**4)**0.5)
-        dbreak_moist    = (0.1*(5.67e-8*atm_moist.ts**4)**0.5)
 
         # Sensitivity break condition
-        if ((dOLR_dry < dbreak_dry) or (dOLR_moist < dbreak_moist)) and i > 5:
-            print("Break ->", end=" ")
-            print("dOLR_dry =", dOLR_dry, ", dTglobal_dry =", dTglobal_dry, end=" ")
-            print("dOLR_moist =", dOLR_moist, ", dTglobal_moist =", dTglobal_moist)
+        if (dOLR_dry < dbreak_dry) and i > 5:
+            print("Timestepping break ->", end=" ")
+            print("dOLR/step =", dOLR_dry, "W/m^2, dTglobal_dry =", dTglobal_dry)
             break    # break here
 
         PrevOLR_dry       = atm_dry.LW_flux_up[0]
         PrevMaxHeat_dry   = abs(np.max(atm_dry.total_heating))
         PrevTemp_dry[:]   = atm_dry.tmp[:]
-        PrevOLR_moist     = atm_moist.LW_flux_up[0]
-        PrevMaxHeat_moist = abs(np.max(atm_moist.total_heating))
-        PrevTemp_moist[:] = atm_moist.tmp[:]
+
+    ### Moist outgoing LW only, no heating
+
+    # Compute radiation, midpoint method time stepping
+    atm_moist       = SocRadModel.radCompSoc(atm_moist, toa_heating)
+
+    # dT_moist        = atm_moist.total_heating * atm_moist.dt
+
+    # # Limit the temperature change per step
+    # dT_moist        = np.where(dT_moist > 5., 5., dT_moist)
+    # dT_moist        = np.where(dT_moist < -5., -5., dT_moist)
+
+    # # Apply heating
+    # atm_moist.tmp     += dT_moist
+
+    # # Moist single-step adjustment
+    # atm_moist       = MoistAdj(atm_moist, dT_moist)
     
     return atm_dry, atm_moist
 
-# Define pressure levels for dry adjustment
-def set_pressure_array(atm):
-   
-    # MHD pressure levels
-    # rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
-    # logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
-    # levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev)]
-
-    # Logspace pressure levels
-    atm.p     = np.flip(np.logspace(np.log10(atm.ptop), np.log10(atm.ps), atm.nlev))
-
-    # Interpolate staggered nodes
-    for idx, prs in enumerate(atm.p):
-        print(idx, prs)
-        if idx == 0:
-            atm.pl[idx] = atm.p[idx]
-        else:
-            atm.pl[idx] = (atm.p[idx-1] + atm.p[idx]) / 2.
-        if idx == len(atm.p):
-            atm.pl[-1] = atm.p[idx] - ((atm.p[-2]-atm.p[-1])/2.)
-
-    # atm.pl    = (atm.p[1:] + atm.p[:-1]) / 2
-
-    return atm
 
 def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance):
 
