@@ -22,10 +22,10 @@ path_to_socrates = os.getcwd()+"/socrates/socrates_main"
 def radCompSoc(atm, toa_heating):
 
     # Solar zenith angle
-    zenith_angle    = 48.2
+    zenith_angle    =  54.7 # Hamano+15 # 48.2: Ranjan+18
 
     # Surface albedo
-    surface_albedo  = 0.1
+    surface_albedo  = 0.2   # Hamano+15
 
     # Other parameters
     longitude       = 0
