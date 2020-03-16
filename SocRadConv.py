@@ -26,8 +26,8 @@ AU          = 1.495978707e+11               # m
 R_universal = 8.31446261815324            # Universal gas constant, J.K-1.mol-1
 
 # Number of radiation and dry adjustment steps
-rad_steps   = 100
-conv_steps  = 5
+rad_steps   = 1
+conv_steps  = 2
 
 def surf_Planck_nu(atm):
     h   = 6.63e-34
@@ -147,10 +147,6 @@ def plot_heat_balance(atm_dry, atm_moist):
         ax1.semilogy(atm_dry.tmp,atm_dry.p, color="red", ls="-", label=r'Dry adiabat')
         ax1.semilogy(atm_moist.tmp,atm_moist.p, color="blue", ls="-", label=r'Moist adiabat')
 
-        ax1.invert_yaxis()
-        ax1.set_xlabel('Temperature (K)')
-        ax1.set_ylabel('Pressure (Pa)')
-
         # ax1.set_xlim([0,np.max(atm.temp)])
         # ax1.set_ylim([np.max(atm.p*1e-5),np.min(atm.p*1e-5)])
 
@@ -159,15 +155,51 @@ def plot_heat_balance(atm_dry, atm_moist):
         ax1.legend()
         
         ax2.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label='Black body ('+str(atm_moist.ts)+" K)")
-
         ax2.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths, color="red")
         ax2.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths, color="blue")
-        
-        # ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
+        ax2.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
 
-        ax2.set_ylabel('Spectral flux density (Jy?)')
+        
+        # # Wavelength arrays
+        # OLR_cm = atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths
+        # wavelength  = [ 1e+4*(i**(-1)) for i in atm_moist.band_centres ]    # microns
+        # OLR_micron  = [ 1e+4*i for i in OLR_cm ]                            # microns
+        # ax2.plot(wavelength, OLR_micron, color="blue")
+        # OLR_cm = atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths
+        # wavelength  = [ 1e+4*(i**(-1)) for i in atm_dry.band_centres ]      # microns
+        # OLR_micron  = [ 1e+4*i for i in OLR_cm ]                            # microns
+        # ax2.plot(wavelength, OLR_micron, color="red")
+
+
+        # # Wave length on top x-axis: http://bit.ly/2Pydvb0
+        # def tick_function(wavenumber):
+        #     wavelength = [ (1./i)*1e+4 for i in wavenumber ] # to micrometer
+        #     return ["%.3f" % z for z in wavelength]
+        # ax2b = ax2.twiny()
+        # new_tick_locations = [np.min(atm.band_centres), np.min(atm.band_centres)+0.25*(np.max(atm.band_centres)-np.min(atm.band_centres)), np.min(atm.band_centres)+0.5*(np.max(atm.band_centres)-np.min(atm.band_centres)), np.min(atm.band_centres)+0.75*(np.max(atm.band_centres)-np.min(atm.band_centres)), np.max(atm.band_centres)]
+        # ax2b.set_xlim(ax2.get_xlim())
+        # ax2b.set_xticks(new_tick_locations)
+        # ax2b.set_xticklabels(tick_function(new_tick_locations))
+        # ax2b.set_xlabel(r"Wavelength ($\mu$m)")
+
+        ax1.invert_yaxis()
+        ax1.set_xlabel(r'Temperature $T$ (K)')
+        ax1.set_ylabel(r'Pressure $P$ (Pa)')
+
+        # Wavenumber settings
+        ax2.set_ylabel(r'OLR (W/m$^2$/cm)')
         ax2.set_xlabel('Wavenumber (1/cm)')
         ax2.legend()
+        ax2.set_xlim(left=0, right=4000)
+        ax2.set_ylim(bottom=0)
+
+        # # Wavelength settings
+        # ax2.set_ylabel(r'OLR (W/m$^2$/$\mu$m)')
+        # ax2.set_xlabel(r'Wavelength $\lambda$ ($\mu$m)')
+        # ax2.set_xscale("log")
+        # ax2.set_yscale("log") 
+        # ax2.set_xlim(right=100)
+        # ax2.set_ylim(bottom=1e-14)
 
         plt.savefig("./output"+'/TP_profile_'+str(round(time_current))+'.pdf', bbox_inches="tight")
         plt.close(fig)
@@ -284,13 +316,13 @@ time_offset   = 1e+7                # yr
 mean_distance = 1.0                 # au
 
 # Surface pressure & temperature
-P_surf        = 1e+5                # Pa
-T_surf        = 800.                # K
+P_surf        = 1e+5              # Pa
+T_surf        = 300.               # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .5, 
-              "CO2" : .5,
+              "H2O" : 1.0, 
+              "CO2" : .0,
               "H2"  : .0, 
               "N2"  : .0,  
               "CH4" : .0, 
