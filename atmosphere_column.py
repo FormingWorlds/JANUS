@@ -21,7 +21,7 @@ class atmos:
 		self.ts 			= T_surf		# Surface temperature, K
 		self.vol_list 		= vol_list		# Names + mixing ratios dict
 
-		self.ptop 			= 1e5 # np.amin([P_surf*1e-10, 1e-5]) # Top pressure in Pa
+		self.ptop 			= 1 # np.amin([P_surf*1e-10, 1e-5]) # Top pressure in Pa
 		self.nlev 			= n_vertical_levels  	   		# Number of vertical levels
 		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
 		self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
@@ -73,6 +73,7 @@ class atmos:
 
 		# Radiation heating and fluxes
 		self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2
+		self.SW_flux_down 			= np.zeros(self.nlev)				# W/m^2
 		self.flux_up				= np.zeros(self.nlev)				# W/m^2
 		self.flux_down				= np.zeros(self.nlev)				# W/m^2
 		self.SW_flux				= np.zeros(self.nlev)				# W/m^2

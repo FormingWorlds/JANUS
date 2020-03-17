@@ -423,7 +423,7 @@ def condensation( atm ):
     if idx == 0:
         atm.p[idx] = P_tot_new
         atm.ps     = P_tot_new
-        atm.ptop   = np.amin([atm.ps*1e-10, 1e-5])
+        # atm.ptop   = np.amin([atm.ps*1e-10, 1e-5])
 
     # Renormalize cp w/ molar concentration
     atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx])
@@ -666,13 +666,13 @@ def plot_adiabats(atm):
 ####################################
 
 # Surface pressure & temperature
-P_surf                  = 1e+7         # Pa
-T_surf                  = 3000          # K
+P_surf                  = 1e+5         # Pa
+T_surf                  = 300          # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .9999, 
-              "CO2" : .0,
+              "H2O" : .999, 
+              "CO2" : .0,   
               "H2"  : .0, 
               "N2"  : .0,  
               "CH4" : .0, 

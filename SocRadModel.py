@@ -71,7 +71,7 @@ def radCompSoc(atm, toa_heating):
         os.system(comline3)
         os.system(comline4)
 
-    #open netCDF files produced by SOCRATES
+    # Open netCDF files produced by SOCRATES
     ncfile1  = net.Dataset('currentsw.vflx')
     ncfile2  = net.Dataset('currentsw.sflx')
     ncfile3  = net.Dataset('currentsw.dflx')
@@ -83,52 +83,39 @@ def radCompSoc(atm, toa_heating):
     ncfile9  = net.Dataset('currentlw.uflx')
     ncfile10 = net.Dataset('currentlw.hrts')
 
-    # Create appropriately sized arrays to hold flux data
-    p        = ncfile1.variables['plev'][:]
-    levels   = len(p)
-    vflx     = np.zeros(levels)
-    sflx     = np.zeros(levels)
-    dflx     = np.zeros(levels)
-    uflx     = np.zeros(levels)
-    nflx     = np.zeros(levels)
-    hrts     = np.zeros(levels-1)
-    dflxlw   = np.zeros(levels)
-    nflxlw   = np.zeros(levels)
-    nflxsw   = np.zeros(levels)
-    uflxlw   = np.zeros(levels)
-    hrtslw   = np.zeros(levels-1)
-    hrtssw   = np.zeros(levels-1)
-
     # Loop through netCDF variables and populate arrays
     uflxlw   = ncfile9.variables['uflx']  # Upward flux LW
     uflxsw   = ncfile4.variables['uflx']  # Upward flux SW
-    dflxlw   = ncfile7.variables['dflx']  # Diffuse downward flux LW
-    vflxsw   = ncfile1.variables['vflx']  # Total downward flux SW (direct + diffuse)
+    dflxlw   = ncfile7.variables['dflx']  # Downward flux LW (diffuse)
+    vflxsw   = ncfile1.variables['vflx']  # Downward flux SW (direct + diffuse)
     nflxlw   = ncfile8.variables['nflx']  # Net LW flux 
     nflxsw   = ncfile5.variables['nflx']  # Net SW flux 
     hrtssw   = ncfile6.variables['hrts']  # Heating rate SW (K/time)
     hrtslw   = ncfile10.variables['hrts'] # Heating rate LW (K/time)
 
-    # Save the individual heating contributions, units: K/time
-    atm.total_heating   = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
+    # Individual heating contributions, units: K/time
     atm.sw_heating      = np.sum(hrtssw[:,:],axis=0)
     atm.lw_heating      = np.sum(hrtslw[:,:],axis=0)
+    atm.total_heating   = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
 
-    # Up- and downward fluxes, W/m^2
-    atm.flux_down       = np.squeeze(np.sum(vflxsw[:,:],axis=0)[:,0,0] + np.sum(dflxlw[:,:],axis=0)[:,0,0])
+    # Total up- and downward fluxes (LW+SW), W/m^2
     atm.flux_up         = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0]) 
+    atm.flux_down       = np.squeeze(np.sum(vflxsw[:,:],axis=0)[:,0,0] + np.sum(dflxlw[:,:],axis=0)[:,0,0])
 
-    # Net fluxes, W/m^2
+    # LW + SW net fluxes, W/m^2
     atm.SW_flux         = np.squeeze(np.sum(uflxsw[:,:],axis=0)[:,0,0] - np.sum(vflxsw[:,:],axis=0)[:,0,0])
     atm.LW_flux         = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0])
 
     # Total net flux, W/m^2
     atm.net_flux        = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0] -  np.sum(vflxsw[:,:],axis=0)[:,0,0]) # W/m^2
 
-    # Sum LW flux over all bands, W/m^2
+    # Sum upward LW flux over all bands, W/m^2
     atm.LW_flux_up          = np.sum(uflxlw[:,:],axis=0)[:,0,0] # W/m^2
 
-    # LW flux per band, W/m^2/(length)
+    # Sum downward SW flux over all bands, W/m^2
+    atm.SW_flux_down        = np.sum(vflxsw[:,:],axis=0)[:,0,0] # W/m^2
+
+    # Upward LW flux per band, W/m^2/(length)
     atm.LW_spectral_flux_up = uflxlw[:,:,0,0]
 
     return atm
