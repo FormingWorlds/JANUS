@@ -26,8 +26,8 @@ AU          = 1.495978707e+11               # m
 R_universal = 8.31446261815324            # Universal gas constant, J.K-1.mol-1
 
 # Number of radiation and dry adjustment steps
-rad_steps   = 1
-conv_steps  = 1
+rad_steps   = 100
+conv_steps  = 10
 
 def surf_Planck_nu(atm):
     h   = 6.63e-34
@@ -154,30 +154,30 @@ def plot_heat_balance(atm_dry, atm_moist):
 
         # ISR+OLR vs. pressure
 
+        # LW+SW down
+        ax2.semilogy(atm_dry.flux_down_total*(-1),atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
+        ax2.semilogy(atm_moist.flux_down_total*(-1),atm_moist.pl, color="blue", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
+
+        # SW down
+        ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color="red", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
+        ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color="blue", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
+
         # Net flux
         ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color="red", ls="-", lw=2, label=r'$F_\mathrm{net}$')
         ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color="blue", ls="-", lw=2, label=r'$F_\mathrm{net}$')
+
+        # LW up
+        ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color="red", ls="--", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
+        ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color="blue", ls="--", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
 
         # LW+SW up
         ax2.semilogy(atm_dry.flux_up_total,atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
         ax2.semilogy(atm_moist.flux_up_total,atm_moist.pl, color="blue", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
 
-        # LW+SW down
-        ax2.semilogy(atm_dry.flux_down_total*(-1),atm_dry.pl, color="red", ls="--", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
-        ax2.semilogy(atm_moist.flux_down_total*(-1),atm_moist.pl, color="blue", ls="--", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
-
-        # LW up
-        ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color="red", ls="-.", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
-        ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color="blue", ls="-.", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
-
-        # SW up
-        ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color="red", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
-        ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color="blue", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
-
         ax2.legend(ncol=5, fontsize=9, loc=2)
         ax2.invert_yaxis()
         ax2.set_xscale("symlog") # https://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
-        ax2.set_xlabel(r'Flux $F^{\uparrow}$ (W/m$^2$)')
+        ax2.set_xlabel(r'Flux $F^{\uparrow}$ (W m$^{-2}$)')
         ax2.set_ylabel(r'Pressure $P$ (Pa)')
         ax2.set_ylim(bottom=atm_moist.ps*1.01)
 
@@ -186,7 +186,7 @@ def plot_heat_balance(atm_dry, atm_moist):
         ax3.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths, color="red")
         ax3.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths, color="blue")
         ax3.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
-        ax3.set_ylabel(r'OLR (W/m$^2$/cm)')
+        ax3.set_ylabel(r'OLR (W m$^{-2}$ cm$^{-1}$)')
         ax3.set_xlabel('Wavenumber (1/cm)')
         ax3.legend()
         ax3.set_xlim(left=0, right=4000)
@@ -325,8 +325,8 @@ time_offset   = 1e+9                # yr
 mean_distance = 1.0                 # au
 
 # Surface pressure & temperature
-P_surf        = 1e+5                # Pa
-T_surf        = 300.                # K
+P_surf        = 260e+5                # Pa
+T_surf        = 500.                # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
