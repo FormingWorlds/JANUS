@@ -26,8 +26,8 @@ AU          = 1.495978707e+11               # m
 R_universal = 8.31446261815324            # Universal gas constant, J.K-1.mol-1
 
 # Number of radiation and dry adjustment steps
-rad_steps   = 50
-conv_steps  = 5
+rad_steps   = 1
+conv_steps  = 1
 
 def surf_Planck_nu(atm):
     h   = 6.63e-34
@@ -281,7 +281,7 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
 
     ### Moist outgoing LW only, no heating
 
-    # Compute radiation, midpoint method time stepping
+    # Compute radiation, no moist timestepping
     atm_moist       = SocRadModel.radCompSoc(atm_moist, toa_heating)
 
     # dT_moist        = atm_moist.total_heating * atm_moist.dt
@@ -330,10 +330,10 @@ T_surf        = 300.                # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : .0, 
+              "H2O" : .999, 
               "CO2" : .0,
               "H2"  : .0, 
-              "N2"  : .999,  
+              "N2"  : .0,  
               "CH4" : .0, 
               "O2"  : .0, 
               "CO"  : .0, 
