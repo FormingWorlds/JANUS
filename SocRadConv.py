@@ -187,7 +187,7 @@ def plot_heat_balance(atm_dry, atm_moist):
         ax3.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths, color="blue")
         ax3.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
         ax3.set_ylabel(r'OLR (W m$^{-2}$ cm$^{-1}$)')
-        ax3.set_xlabel('Wavenumber (1/cm)')
+        ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
         ax3.legend()
         ax3.set_xlim(left=0, right=4000)
         ax3.set_ylim(bottom=0)
@@ -202,7 +202,7 @@ def plot_heat_balance(atm_dry, atm_moist):
 
         ax4.plot(wavelength_dry, OLR_micron_dry, color="red")
         ax4.plot(wavelength_moist, OLR_micron_moist, color="blue")
-        ax4.set_ylabel(r'OLR (W/m$^2$/$\mu$m)')
+        ax4.set_ylabel(r'OLR (W m$^{-2}$ $\mu$m$^{-1}$)')
         ax4.set_xlabel(r'Wavelength $\lambda$ ($\mu$m)')
         ax4.set_xscale("log")
         ax4.set_yscale("log") 
