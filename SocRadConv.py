@@ -26,7 +26,7 @@ AU          = 1.495978707e+11               # m
 R_universal = 8.31446261815324            # Universal gas constant, J.K-1.mol-1
 
 # Number of radiation and dry adjustment steps
-rad_steps   = 100
+rad_steps   = 50
 conv_steps  = 5
 
 def surf_Planck_nu(atm):
@@ -39,8 +39,7 @@ def surf_Planck_nu(atm):
     for i in range(len(atm.band_centres)):
         nu      = atm.band_centres[i]
         B[i]    = (c1*nu**3 / (np.exp(c2*nu/atm.ts)-1))
-
-    B   = B * atm.band_widths/1000.0
+    B   = np.pi * B * atm.band_widths/1000.0
     return B
 
 def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_options, standalone):
@@ -151,37 +150,39 @@ def plot_heat_balance(atm_dry, atm_moist):
         ax1.invert_yaxis()
         ax1.set_xlabel(r'Temperature $T$ (K)')
         ax1.set_ylabel(r'Pressure $P$ (Pa)')
+        ax1.set_ylim(bottom=atm_moist.ps*1.01)
 
         # ISR+OLR vs. pressure
-        
-        # ax2.semilogy(atm_dry.SW_flux,atm_dry.pl, color="red", ls="--", label=r'SW net flux')
-        # ax2.semilogy(atm_moist.SW_flux,atm_moist.pl, color="blue", ls="--", label=r'SW net flux')
 
-        # ax2.semilogy(atm_dry.LW_flux,atm_dry.pl, color="red", ls="--", label=r'LW net flux')
-        # ax2.semilogy(atm_moist.LW_flux,atm_moist.pl, color="blue", ls="--", label=r'LW net flux')
+        # Net flux
+        ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color="red", ls="-", lw=2, label=r'$F_\mathrm{net}$')
+        ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color="blue", ls="-", lw=2, label=r'$F_\mathrm{net}$')
 
-        ax2.semilogy(atm_dry.flux_up,atm_dry.pl, color="red", ls="-.", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
-        ax2.semilogy(atm_moist.flux_up,atm_moist.pl, color="blue", ls="-.", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
+        # LW+SW up
+        ax2.semilogy(atm_dry.flux_up_total,atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
+        ax2.semilogy(atm_moist.flux_up_total,atm_moist.pl, color="blue", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
 
-        ax2.semilogy(atm_dry.flux_down*(-1),atm_dry.pl, color="red", ls="-.", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
-        ax2.semilogy(atm_moist.flux_down*(-1),atm_moist.pl, color="blue", ls="-.", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$ flux')
+        # LW+SW down
+        ax2.semilogy(atm_dry.flux_down_total*(-1),atm_dry.pl, color="red", ls="--", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
+        ax2.semilogy(atm_moist.flux_down_total*(-1),atm_moist.pl, color="blue", ls="--", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
 
-        ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color="red", ls="--", label=r'$F_\mathrm{LW}^{\uparrow}$')
-        ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color="blue", ls="--", label=r'$F_\mathrm{LW}^{\uparrow}$')
+        # LW up
+        ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color="red", ls="-.", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
+        ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color="blue", ls="-.", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
 
-        ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color="red", ls=":", label=r'$F_\mathrm{SW}^{\downarrow}$')
-        ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color="blue", ls=":", label=r'$F_\mathrm{SW}^{\downarrow}$')
+        # SW up
+        ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color="red", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
+        ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color="blue", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
 
-        ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color="red", ls="-", label=r'$F_\mathrm{net}^{\uparrow}$')
-        ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color="blue", ls="-", label=r'$F_\mathrm{net}^{\uparrow}$')
-
-        ax2.legend(ncol=5)
+        ax2.legend(ncol=5, fontsize=9, loc=2)
         ax2.invert_yaxis()
+        ax2.set_xscale("symlog") # https://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
         ax2.set_xlabel(r'Flux $F^{\uparrow}$ (W/m$^2$)')
         ax2.set_ylabel(r'Pressure $P$ (Pa)')
+        ax2.set_ylim(bottom=atm_moist.ps*1.01)
 
         # Wavenumber vs. OLR
-        ax3.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label='Black body ('+str(atm_moist.ts)+" K)")
+        ax3.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label=str(round(atm_moist.ts))+' K black body')
         ax3.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths, color="red")
         ax3.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths, color="blue")
         ax3.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
@@ -190,15 +191,14 @@ def plot_heat_balance(atm_dry, atm_moist):
         ax3.legend()
         ax3.set_xlim(left=0, right=4000)
         ax3.set_ylim(bottom=0)
-
         
         # Wavelength versus OLR log plot
         OLR_cm_moist = atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths
-        wavelength_moist  = [ 1e+4*(i**(-1)) for i in atm_moist.band_centres ]    # microns
-        OLR_micron_moist  = [ 1e+4*i for i in OLR_cm_moist ]                            # microns
+        wavelength_moist  = [ 1e+4/i for i in atm_moist.band_centres ]          # microns
+        OLR_micron_moist  = [ 1e+4*i for i in OLR_cm_moist ]                    # microns
         OLR_cm_dry = atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths
-        wavelength_dry  = [ 1e+4*(i**(-1)) for i in atm_dry.band_centres ]      # microns
-        OLR_micron_dry  = [ 1e+4*i for i in OLR_cm_dry ]                            # microns
+        wavelength_dry  = [ 1e+4/i for i in atm_dry.band_centres ]              # microns
+        OLR_micron_dry  = [ 1e+4*i for i in OLR_cm_dry ]                        # microns
 
         ax4.plot(wavelength_dry, OLR_micron_dry, color="red")
         ax4.plot(wavelength_moist, OLR_micron_moist, color="blue")
@@ -263,11 +263,11 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
         # Reduce timestep if heating is not converging
         if dTglobal_dry < 0.05 or dTtop_dry > 3.0:
             atm_dry.dt  = atm_dry.dt*0.99
-            print("Dry adiabat not converging -> dt_new =", atm_dry.dt)
+            print("Dry adiabat not converging -> dt_new =", atm_dry.dt, "days")
 
         # Break criteria
         dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 4))
-        dbreak_dry      = (0.01*(5.67e-8*atm_dry.ts**4)**0.5)
+        dbreak_dry      = (0.05*(5.67e-8*atm_dry.ts**4)**0.5)
 
         # Sensitivity break condition
         if (dOLR_dry < dbreak_dry) and i > 5:
@@ -325,15 +325,15 @@ time_offset   = 1e+9                # yr
 mean_distance = 1.0                 # au
 
 # Surface pressure & temperature
-P_surf        = 1e+6              # Pa
-T_surf        = 300.               # K
+P_surf        = 1e+5                # Pa
+T_surf        = 300.                # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" : 1.0, 
+              "H2O" : .0, 
               "CO2" : .0,
               "H2"  : .0, 
-              "N2"  : .0,  
+              "N2"  : .999,  
               "CH4" : .0, 
               "O2"  : .0, 
               "CO"  : .0, 
@@ -346,6 +346,8 @@ atm            = atmos(T_surf, P_surf, vol_list)
 
 # Compute stellar heating
 toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
+
+# toa_heating = 0.
 
 # Construct radiative-convective profile + heat flux
 LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=True)

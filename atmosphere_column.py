@@ -6,7 +6,7 @@ import numpy as np
 # surface_pressure 	= 1e+5 						# Pa
 # top_pressure 		= 1e-7*surface_pressure 	# Pa
 n_vertical_levels 	= 10000  					# For computation
-timestep 			= 0.5
+timestep 			= 0.5						# days
 n_absorbing_species = 7
 n_bands 			= 300
 
@@ -32,7 +32,6 @@ class atmos:
 		self.Rcp 			= 2./7.
 		self.n_species 		= n_absorbing_species
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
-		# self.fluxes 		= self.atmos_fluxes(self.nlev)
 		self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500)))
 		self.band_centres 	= (self.bands[1:] + self.bands[:-1]) / 2
 		self.band_widths 	= np.diff(self.bands)
@@ -73,17 +72,21 @@ class atmos:
 
 		# Radiation heating and fluxes
 		self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2
+		self.LW_flux_down 			= np.zeros(self.nlev)				# W/m^2
+		self.LW_flux_net			= np.zeros(self.nlev)				# W/m^2
+		self.LW_spectral_flux_up 	= np.zeros([n_bands,self.nlev])		# W/m^2/(band)
+		self.LW_heating				= np.zeros(self.nlev)				# K/day
+		self.SW_flux_up 			= np.zeros(self.nlev)				# W/m^2
 		self.SW_flux_down 			= np.zeros(self.nlev)				# W/m^2
-		self.flux_up				= np.zeros(self.nlev)				# W/m^2
-		self.flux_down				= np.zeros(self.nlev)				# W/m^2
-		self.SW_flux				= np.zeros(self.nlev)				# W/m^2
-		self.LW_flux				= np.zeros(self.nlev)				# W/m^2
+		self.SW_flux_net			= np.zeros(self.nlev)				# W/m^2
+		self.SW_spectral_flux_up 	= np.zeros([n_bands,self.nlev])		# W/m^2/(band)
+		self.SW_heating				= np.zeros(self.nlev)				# K/day
+		self.flux_up_total			= np.zeros(self.nlev)				# W/m^2
+		self.flux_down_total		= np.zeros(self.nlev)				# W/m^2
 		self.net_flux				= np.zeros(self.nlev)				# W/m^2
-		self.LW_spectral_flux_up 	= np.zeros([n_bands,self.nlev])		# W/m^2/(length)
-		self.total_heating 			= np.zeros(self.nlev) 				# K/time
-		self.sw_heating				= np.zeros(self.nlev)				# K/time
-		self.lw_heating				= np.zeros(self.nlev)				# K/time
-
+		self.net_spectral_flux	 	= np.zeros([n_bands,self.nlev])		# W/m^2/(band)
+		self.total_heating 			= np.zeros(self.nlev) 				# K/day
+		
 	# # Radiation heating and fluxes
 	# class atmos_fluxes:
 	# 	def __init__(self, nlev):
