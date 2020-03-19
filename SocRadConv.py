@@ -26,8 +26,8 @@ AU          = 1.495978707e+11               # m
 R_universal = 8.31446261815324            # Universal gas constant, J.K-1.mol-1
 
 # Number of radiation and dry adjustment steps
-rad_steps   = 100
-conv_steps  = 10
+rad_steps   = 1
+conv_steps  = 0
 
 def surf_Planck_nu(atm):
     h   = 6.63e-34
@@ -154,25 +154,27 @@ def plot_heat_balance(atm_dry, atm_moist):
 
         # ISR+OLR vs. pressure
 
-        # LW+SW down
-        ax2.semilogy(atm_dry.flux_down_total*(-1),atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
-        ax2.semilogy(atm_moist.flux_down_total*(-1),atm_moist.pl, color="blue", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
+        # # LW+SW down
+        # ax2.semilogy(atm_dry.flux_down_total*(-1),atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
+        # ax2.semilogy(atm_moist.flux_down_total*(-1),atm_moist.pl, color="blue", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
 
         # SW down
         ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color="red", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
         ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color="blue", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
 
-        # Net flux
-        ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color="red", ls="-", lw=2, label=r'$F_\mathrm{net}$')
-        ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color="blue", ls="-", lw=2, label=r'$F_\mathrm{net}$')
+        # # Net flux
+        # ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color="red", ls="-", lw=2, label=r'$F_\mathrm{net}$')
+        # ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color="blue", ls="-", lw=2, label=r'$F_\mathrm{net}$')
+
+        ax2.semilogy(atm_moist.LW_flux_up-atm_moist.SW_flux_down,atm_moist.pl, color="blue", ls="-", lw=2, label=r'$F_\mathrm{net}$')
 
         # LW up
         ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color="red", ls="--", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
         ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color="blue", ls="--", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
 
-        # LW+SW up
-        ax2.semilogy(atm_dry.flux_up_total,atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
-        ax2.semilogy(atm_moist.flux_up_total,atm_moist.pl, color="blue", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
+        # # LW+SW up
+        # ax2.semilogy(atm_dry.flux_up_total,atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
+        # ax2.semilogy(atm_moist.flux_up_total,atm_moist.pl, color="blue", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
 
         ax2.legend(ncol=5, fontsize=9, loc=2)
         ax2.invert_yaxis()
@@ -206,8 +208,9 @@ def plot_heat_balance(atm_dry, atm_moist):
         ax4.set_xlabel(r'Wavelength $\lambda$ ($\mu$m)')
         ax4.set_xscale("log")
         ax4.set_yscale("log") 
-        ax4.set_xlim(right=100)
-        ax4.set_ylim(bottom=1e-14)
+        ax4.set_xlim(left=0.3, right=100)
+        ax4.set_ylim(bottom=1e-20, top=1e5)
+        # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
 
         plt.savefig("./output"+'/TP_profile_'+str(round(time_current))+'.pdf', bbox_inches="tight")
         plt.close(fig)
@@ -325,7 +328,7 @@ time_offset   = 1e+9                # yr
 mean_distance = 1.0                 # au
 
 # Surface pressure & temperature
-P_surf        = 260e+5                # Pa
+P_surf        = 1e+5                # Pa
 T_surf        = 500.                # K
 
 # Volatile molar concentrations: ! must sum to one !
@@ -347,7 +350,7 @@ atm            = atmos(T_surf, P_surf, vol_list)
 # Compute stellar heating
 toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
 
-# toa_heating = 0.
+toa_heating = 0.
 
 # Construct radiative-convective profile + heat flux
 LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=True)
