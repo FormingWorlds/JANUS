@@ -82,6 +82,10 @@ def radCompSoc(atm, toa_heating):
     ncfile8  = net.Dataset('currentlw.nflx')
     ncfile9  = net.Dataset('currentlw.uflx')
     ncfile10 = net.Dataset('currentlw.hrts')
+    # ncfile11 = net.Dataset('currentlw.cff')
+    # ncfile12 = net.Dataset('currentlw.cfi')
+    # ncfile13 = net.Dataset('currentsw.cff')
+    # ncfile14 = net.Dataset('currentsw.cfi')
 
     # Loop through netCDF variables and populate arrays
     vflxsw   = ncfile1.variables['vflx']  # SW downward flux (direct + diffuse)
@@ -92,6 +96,7 @@ def radCompSoc(atm, toa_heating):
     uflxlw   = ncfile9.variables['uflx']  # LW upward flux 
     nflxlw   = ncfile8.variables['nflx']  # LW net flux 
     hrtslw   = ncfile10.variables['hrts'] # LW heating rate (K/day)
+    # cfflw    = ncfile11.variables['cff'] # Contribution Function flux LW
 
     ##### Fluxes
 
@@ -120,6 +125,9 @@ def radCompSoc(atm, toa_heating):
 
     # Total net flux per band (W/m^2)
     atm.net_spectral_flux   = np.squeeze(nflxlw[:,:,0,0] + nflxsw[:,:,0,0])
+
+    # # Contribution to the outgoing LW flux
+    # atm.contrib_LW_flux_up = np.sum(cfflw[:,:],axis=0)[:,0,0]
 
     ##### Heating rates
 
