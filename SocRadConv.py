@@ -61,14 +61,13 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
 
     return atm.LW_flux_up[0], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
 
-
 # Dry adiabat profile
 def dry_adiabat_atm(atm):
 
     # Calculate cp from molar concentrations
     cp_mix = 0.
     for vol in atm.vol_list.keys():
-        cp_mix += atm.vol_list[vol] * ga.cpv(vol)
+        cp_mix += atm.vol_list[vol] * ga.cpv(vol, atm.ts)
 
     # Calculate dry adiabat slope
     atm.Rcp = R_universal / cp_mix
