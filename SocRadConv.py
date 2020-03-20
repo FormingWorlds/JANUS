@@ -42,13 +42,17 @@ def surf_Planck_nu(atm):
     B   = np.pi * B * atm.band_widths/1000.0
     return B
 
-def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_options, standalone):
+def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_options, standalone, cp_dry):
 
-    atm_dry, atm_moist = radiation_timestepping(atm, toa_heating, rad_steps)
+    atm_dry, atm_moist = radiation_timestepping(atm, toa_heating, rad_steps, cp_dry)
 
-    print("=> Computed OLR (dry, moist):", str(round(atm_dry.LW_flux_up[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")
-
-    plot_heat_balance(atm_dry, atm_moist)
+    # Inform user + plot
+    if standalone == True:
+        plot_heat_balance(atm_dry, atm_moist, cp_dry)
+        print("Computed OLR => moist:", str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
+        if cp_dry == True:
+            print("| dry:", str(round(atm_dry.LW_flux_up[0], 3)) + " W/m^2", end=" ")
+        print()
 
     # # Write TP and spectral flux profiles for later plotting
     # out_a = np.column_stack( ( atm.temp, atm.p*1e-5 ) ) # K, Pa->bar
@@ -136,14 +140,14 @@ def MoistAdj(atm, dT):
 
     return atm 
 
-def plot_heat_balance(atm_dry, atm_moist):
+def plot_heat_balance(atm_dry, atm_moist, cp_dry):
 
         fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(13,12))
         sns.set_style("ticks")
         sns.despine()
 
         # Temperature vs. pressure
-        ax1.semilogy(atm_dry.tmp,atm_dry.p, color="red", ls="-", label=r'Dry adiabat')
+        if cp_dry == True: ax1.semilogy(atm_dry.tmp,atm_dry.p, color="red", ls="-", label=r'Dry adiabat')
         ax1.semilogy(atm_moist.tmp,atm_moist.p, color="blue", ls="-", label=r'Moist adiabat')
         ax1.legend()
         ax1.invert_yaxis()
@@ -154,25 +158,25 @@ def plot_heat_balance(atm_dry, atm_moist):
         # ISR+OLR vs. pressure
 
         # # LW+SW down
-        # ax2.semilogy(atm_dry.flux_down_total*(-1),atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
+        # if cp_dry == True: ax2.semilogy(atm_dry.flux_down_total*(-1),atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
         # ax2.semilogy(atm_moist.flux_down_total*(-1),atm_moist.pl, color="blue", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
 
         # SW down
-        ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color="red", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
+        if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color="red", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
         ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color="blue", ls=":", alpha=0.5, label=r'$F_\mathrm{SW}^{\downarrow}$')
 
         # # Net flux
-        # ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color="red", ls="-", lw=2, label=r'$F_\mathrm{net}$')
+        # if cp_dry == True: ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color="red", ls="-", lw=2, label=r'$F_\mathrm{net}$')
         # ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color="blue", ls="-", lw=2, label=r'$F_\mathrm{net}$')
 
         ax2.semilogy(atm_moist.LW_flux_up-atm_moist.SW_flux_down,atm_moist.pl, color="blue", ls="-", lw=2, label=r'$F_\mathrm{net}$')
 
         # LW up
-        ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color="red", ls="--", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
+        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color="red", ls="--", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
         ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color="blue", ls="--", alpha=0.5, label=r'$F_\mathrm{LW}^{\uparrow}$')
 
         # # LW+SW up
-        # ax2.semilogy(atm_dry.flux_up_total,atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
+        # if cp_dry == True: ax2.semilogy(atm_dry.flux_up_total,atm_dry.pl, color="red", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
         # ax2.semilogy(atm_moist.flux_up_total,atm_moist.pl, color="blue", ls="-", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
 
         ax2.legend(ncol=5, fontsize=9, loc=2)
@@ -184,7 +188,7 @@ def plot_heat_balance(atm_dry, atm_moist):
 
         # Wavenumber vs. OLR
         ax3.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label=str(round(atm_moist.ts))+' K black body')
-        ax3.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths, color="red")
+        if cp_dry == True: ax3.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths, color="red")
         ax3.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths, color="blue")
         ax3.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
         ax3.set_ylabel(r'OLR (W m$^{-2}$ cm$^{-1}$)')
@@ -197,11 +201,12 @@ def plot_heat_balance(atm_dry, atm_moist):
         OLR_cm_moist = atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths
         wavelength_moist  = [ 1e+4/i for i in atm_moist.band_centres ]          # microns
         OLR_micron_moist  = [ 1e+4*i for i in OLR_cm_moist ]                    # microns
-        OLR_cm_dry = atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths
-        wavelength_dry  = [ 1e+4/i for i in atm_dry.band_centres ]              # microns
-        OLR_micron_dry  = [ 1e+4*i for i in OLR_cm_dry ]                        # microns
-
-        ax4.plot(wavelength_dry, OLR_micron_dry, color="red")
+        if cp_dry == True: 
+            OLR_cm_dry = atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths
+            wavelength_dry  = [ 1e+4/i for i in atm_dry.band_centres ]              # microns
+            OLR_micron_dry  = [ 1e+4*i for i in OLR_cm_dry ]                        # microns
+            ax4.plot(wavelength_dry, OLR_micron_dry, color="red")
+        
         ax4.plot(wavelength_moist, OLR_micron_moist, color="blue")
         ax4.set_ylabel(r'OLR (W m$^{-2}$ $\mu$m$^{-1}$)')
         ax4.set_xlabel(r'Wavelength $\lambda$ ($\mu$m)')
@@ -215,7 +220,7 @@ def plot_heat_balance(atm_dry, atm_moist):
         plt.close(fig)
 
 # Time integration for n steps
-def radiation_timestepping(atm, toa_heating, rad_steps):
+def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry         = 0.
@@ -225,61 +230,65 @@ def radiation_timestepping(atm, toa_heating, rad_steps):
     # Build moist adiabat structure
     atm_moist           = ga.general_adiabat(atm)
 
+
+
     # Copy moist pressure arrays for dry adiabat
     atm_dry             = dry_adiabat_atm(copy.deepcopy(atm_moist))
 
-    ### Dry calculation
-    # Time stepping
-    for i in range(0, rad_steps):
+    if cp_dry == True:
 
-        # toa_heating = 0
+        ### Dry calculation
+        # Time stepping
+        for i in range(0, rad_steps):
 
-        # Compute radiation, midpoint method time stepping
-        atm_dry         = SocRadModel.radCompSoc(atm_dry, toa_heating)
-        dT_dry          = atm_dry.total_heating * atm_dry.dt
+            # toa_heating = 0
 
-        # Limit the temperature change per step
-        dT_dry          = np.where(dT_dry > 5., 5., dT_dry)
-        dT_dry          = np.where(dT_dry < -5., -5., dT_dry)
+            # Compute radiation, midpoint method time stepping
+            atm_dry         = SocRadModel.radCompSoc(atm_dry, toa_heating)
+            dT_dry          = atm_dry.total_heating * atm_dry.dt
 
-        # Apply heating
-        atm_dry.tmp     += dT_dry
+            # Limit the temperature change per step
+            dT_dry          = np.where(dT_dry > 5., 5., dT_dry)
+            dT_dry          = np.where(dT_dry < -5., -5., dT_dry)
 
-        # # Do the surface balance
-        # kturb       = .1
-        # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
-        
-        # Dry convective adjustment
-        for iadj in range(conv_steps):
-            atm_dry     = DryAdj(atm_dry)
+            # Apply heating
+            atm_dry.tmp     += dT_dry
 
-        # Convergence criteria
-        dTglobal_dry    = abs(round(np.max(atm_dry.tmp-PrevTemp_dry[:]), 4))
-        dTtop_dry       = abs(round(atm_dry.tmp[0]-atm_dry.tmp[1], 4))
+            # # Do the surface balance
+            # kturb       = .1
+            # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
+            
+            # Dry convective adjustment
+            for iadj in range(conv_steps):
+                atm_dry     = DryAdj(atm_dry)
 
-        # Inform during runtime
-        if i % 2 == 1:
-            print("Dry adjustment step", i+1, end=": ")
-            print("OLR: " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K")
+            # Convergence criteria
+            dTglobal_dry    = abs(round(np.max(atm_dry.tmp-PrevTemp_dry[:]), 4))
+            dTtop_dry       = abs(round(atm_dry.tmp[0]-atm_dry.tmp[1], 4))
 
-        # Reduce timestep if heating is not converging
-        if dTglobal_dry < 0.05 or dTtop_dry > 3.0:
-            atm_dry.dt  = atm_dry.dt*0.99
-            print("Dry adiabat not converging -> dt_new =", atm_dry.dt, "days")
+            # Inform during runtime
+            if i % 2 == 1:
+                print("Dry adjustment step", i+1, end=": ")
+                print("OLR: " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K")
 
-        # Break criteria
-        dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 4))
-        dbreak_dry      = (0.05*(5.67e-8*atm_dry.ts**4)**0.5)
+            # Reduce timestep if heating is not converging
+            if dTglobal_dry < 0.05 or dTtop_dry > 3.0:
+                atm_dry.dt  = atm_dry.dt*0.99
+                print("Dry adiabat not converging -> dt_new =", atm_dry.dt, "days")
 
-        # Sensitivity break condition
-        if (dOLR_dry < dbreak_dry) and i > 5:
-            print("Timestepping break ->", end=" ")
-            print("dOLR/step =", dOLR_dry, "W/m^2, dTglobal_dry =", dTglobal_dry)
-            break    # break here
+            # Break criteria
+            dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 4))
+            dbreak_dry      = (0.05*(5.67e-8*atm_dry.ts**4)**0.5)
 
-        PrevOLR_dry       = atm_dry.LW_flux_up[0]
-        PrevMaxHeat_dry   = abs(np.max(atm_dry.total_heating))
-        PrevTemp_dry[:]   = atm_dry.tmp[:]
+            # Sensitivity break condition
+            if (dOLR_dry < dbreak_dry) and i > 5:
+                print("Timestepping break ->", end=" ")
+                print("dOLR/step =", dOLR_dry, "W/m^2, dTglobal_dry =", dTglobal_dry)
+                break    # break here
+
+            PrevOLR_dry       = atm_dry.LW_flux_up[0]
+            PrevMaxHeat_dry   = abs(np.max(atm_dry.total_heating))
+            PrevTemp_dry[:]   = atm_dry.tmp[:]
 
     ### Moist outgoing LW only, no heating
 
@@ -320,36 +329,37 @@ def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_dist
 ####################################
 ##### Stand-alone initial conditions
 ####################################
+if __name__ == "__main__":
 
-# Planet age and orbit
-time_current  = 1e+7                # yr
-time_offset   = 1e+9                # yr
-mean_distance = 1.0                 # au
+    # Planet age and orbit
+    time_current  = 1e+7                # yr
+    time_offset   = 1e+9                # yr
+    mean_distance = 1.0                 # au
 
-# Surface pressure & temperature
-P_surf        = 1e+5                # Pa
-T_surf        = 500.                # K
+    # Surface pressure & temperature
+    P_surf        = 1e+5                # Pa
+    T_surf        = 220.                # K
 
-# Volatile molar concentrations: ! must sum to one !
-vol_list = { 
-              "H2O" : .999, 
-              "CO2" : .0,
-              "H2"  : .0, 
-              "N2"  : .0,  
-              "CH4" : .0, 
-              "O2"  : .0, 
-              "CO"  : .0, 
-              "He"  : .0,
-              "NH3" : .0, 
-            }
+    # Volatile molar concentrations: ! must sum to one !
+    vol_list = { 
+                  "H2O" : .9999, 
+                  "CO2" : .0,
+                  "H2"  : .0, 
+                  "N2"  : .0,  
+                  "CH4" : .0, 
+                  "O2"  : .0, 
+                  "CO"  : .0, 
+                  "He"  : .0,
+                  "NH3" : .0, 
+                }
 
-# Create atmosphere object
-atm            = atmos(T_surf, P_surf, vol_list)
+    # Create atmosphere object
+    atm            = atmos(T_surf, P_surf, vol_list)
 
-# Compute stellar heating
-toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
+    # Compute stellar heating
+    toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
 
-toa_heating = 0.
+    # toa_heating = 0.
 
-# Construct radiative-convective profile + heat flux
-LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=True)
+    # Compute heat flux
+    LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=True, cp_dry=False)

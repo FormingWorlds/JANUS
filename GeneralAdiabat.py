@@ -835,30 +835,31 @@ def plot_adiabats(atm):
 ####################################
 ##### Stand-alone initial conditions
 ####################################
+if __name__ == "__main__":
 
-# Surface pressure & temperature
-P_surf                  = 1e+5         # Pa
-T_surf                  = 1000          # K
+    # Surface pressure & temperature
+    P_surf                  = 1e+5         # Pa
+    T_surf                  = 1000          # K
 
-# Volatile molar concentrations: ! must sum to one !
-vol_list = { 
-              "H2O" : .5, 
-              "CO2" : .5,   
-              "H2"  : .0, 
-              "N2"  : .0,  
-              "CH4" : .0, 
-              "O2"  : .0, 
-              "CO"  : .0, 
-              "He"  : .0,
-              "NH3" : .0, 
-            }
+    # Volatile molar concentrations: ! must sum to one !
+    vol_list = { 
+                  "H2O" : .5, 
+                  "CO2" : .5,   
+                  "H2"  : .0, 
+                  "N2"  : .0,  
+                  "CH4" : .0, 
+                  "O2"  : .0, 
+                  "CO"  : .0, 
+                  "He"  : .0,
+                  "NH3" : .0, 
+                }
 
-# Create atmosphere object
-atm                     = atmos(T_surf, P_surf, vol_list)
+    # Create atmosphere object
+    atm                     = atmos(T_surf, P_surf, vol_list)
 
-# Calculate moist adiabat + condensation
-atm                     = general_adiabat(atm)
+    # Calculate moist adiabat + condensation
+    atm                     = general_adiabat(atm)
 
-# Plot adiabat
-plot_adiabats(atm)
+    # Plot adiabat
+    plot_adiabats(atm)
 
