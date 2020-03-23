@@ -11,6 +11,44 @@ import seaborn as sns
 import copy
 import SocRadConv
 
+# Color definitions: https://www.codecademy.com/articles/seaborn-design-ii
+no_colors   = 7
+vol_colors = {
+    "H2O"     : sns.color_palette("Blues", no_colors),
+    "CO2"     : sns.color_palette("Reds", no_colors),
+    "H2"      : sns.color_palette("Greens", no_colors),
+    "N2"      : sns.cubehelix_palette(7),
+    "O2"      : sns.light_palette("darkturquoise", no_colors),
+    "CH4"     : sns.color_palette("Oranges", no_colors),
+    "CO"      : sns.light_palette("#731d1d", no_colors),
+    "S"       : sns.light_palette("#EBB434", no_colors),
+    "black_1" : "#000000",
+    "black_2" : "#323232",
+    "black_3" : "#7f7f7f",
+    "qgray"          : "#768E95",
+    "qgray2"         : "#888888",
+    "qblue"          : "#4283A9", # http://www.color-hex.com/color/4283a9
+    "qgreen"         : "#62B4A9", # http://www.color-hex.com/color/62b4a9
+    "qred"           : "#E6767A",
+    "qturq"          : "#2EC0D1",
+    "qorange"        : "#ff7f0e",
+    "qmagenta"       : "#9A607F",
+    "qyellow"        : "#EBB434",
+    "qgray_dark"     : "#465559",
+    "qblue_dark"     : "#274e65",
+    "qgreen_dark"    : "#3a6c65",
+    "qred_dark"      : "#b85e61",
+    "qturq_dark"     : "#2499a7",
+    "qmagenta_dark"  : "#4d303f",
+    "qyellow_dark"   : "#a47d24",
+    "qgray_light"    : "#acbbbf",
+    "qblue_light"    : "#8db4cb",
+    "qgreen_light"   : "#a0d2cb",
+    "qred_light"     : "#eb9194",
+    "qturq_light"    : "#57ccda",
+    "qmagenta_light" : "#c29fb2",
+    "qyellow_light"  : "#f1ca70",
+}
 
 ### Initial conditions
 
@@ -45,14 +83,14 @@ sns.set_style("ticks")
 sns.despine()
 
 ls_list = [ "-", "--", ":", "-." ]
-
 lw      = 2.0
+col_idx = 3
 
 legend1_handles = []
 legend2_handles = []
 
 # Loop through volatiles
-for vol in [ "H2O", "CO2", "H2", "N2", "CO", "O2"  ]: # "H2O", "CO2", "H2", "N2", "CO", "O2"
+for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"  ]): # "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
 
     # Set current volatile to 1, others to zero
     for vol1 in vol_list.keys():
@@ -77,16 +115,18 @@ for vol in [ "H2O", "CO2", "H2", "N2", "CO", "O2"  ]: # "H2O", "CO2", "H2", "N2"
 
             OLR_array.append(LW_flux_up)
 
-        # Print + plot OLR
+        # OLR
         print(vol, "@", round(P_surf)/1e+5, "bar, OLRs:", OLR_array, "W/m^2")
         if prs_idx == 0:
-            l1, = ax1.plot(tmp_range,OLR_array, color=ga.vol_colors[vol+"_1"], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
+            l1, = ax1.plot(tmp_range,OLR_array, color=vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
         else:
-            l1, = ax1.plot(tmp_range,OLR_array, color=ga.vol_colors[vol+"_1"], ls=ls_list[prs_idx], lw=lw)
-        
-        l2, = ax1.plot([0],[0], color="gray", ls=ls_list[prs_idx], lw=lw, label=r"$P_\mathrm{surf}$ = "+str(round(P_surf/1e+5))+" bar")
+            l1, = ax1.plot(tmp_range,OLR_array, color=vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw)
         legend1_handles.append(l1)
-        legend2_handles.append(l2)
+        
+        # Add P_surf legend
+        if vol_idx == 0: 
+            l2, = ax1.plot([0],[0], color="gray", ls=ls_list[prs_idx], lw=lw, label=r"$P_\mathrm{surf}$ = "+str(round(P_surf/1e+5))+" bar")
+            legend2_handles.append(l2)
 
 # ax1.legend()
 
@@ -98,8 +138,8 @@ ax = plt.gca().add_artist(legend1)
 ax1.legend(handles=legend2_handles, loc=4)
 
 # Plot settings
-ax1.set_xlabel(r'Surface temperature $T_\mathrm{surf}$ (K)')
-ax1.set_ylabel(r'OLR (W m$^{-2}$)')
+ax1.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)')
+ax1.set_ylabel(r'Outgoing Longwave Radiation, OLR (W m$^{-2}$)')
 ax1.set_yscale("log") 
 
 # ax1.set_xscale("log")
