@@ -63,7 +63,8 @@ def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_
     # Profile used in coupled model
     atm = atm_moist
 
-    return atm.LW_flux_up[0], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
+    # return atm.LW_flux_up[0], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
+    return atm
 
 # Dry adiabat profile
 def dry_adiabat_atm(atm):
@@ -333,16 +334,16 @@ if __name__ == "__main__":
 
     # Planet age and orbit
     time_current  = 1e+7                # yr
-    time_offset   = 1e+9                # yr
+    time_offset   = 0.100e+9            # yr
     mean_distance = 1.0                 # au
 
     # Surface pressure & temperature
-    P_surf        = 1e+5                # Pa
-    T_surf        = 220.                # K
+    P_surf        = 260e+5                # Pa
+    T_surf        = 1000.                # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .9999, 
+                  "H2O" : 1.0, 
                   "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
@@ -359,7 +360,7 @@ if __name__ == "__main__":
     # Compute stellar heating
     toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, time_current, time_offset, mean_distance)
 
-    # toa_heating = 0.
+    toa_heating = 0.
 
     # Compute heat flux
-    LW_flux_up, band_centres, LW_spectral_flux_up_per_band_widths = RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=True, cp_dry=False)
+    atm = RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=True, cp_dry=False)
