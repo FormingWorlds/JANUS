@@ -20,41 +20,47 @@ from atmosphere_column import atmos
 import seaborn as sns
 import copy
 
-# Color definitions
+# Color definitions: 
+# https://www.codecademy.com/articles/seaborn-design-ii
+# https://python-graph-gallery.com/python-colors/
+no_colors   = 7
 vol_colors = {
+    "H2O"     : sns.color_palette("PuBu", no_colors),
+    "CO2"     : sns.color_palette("Reds", no_colors),
+    "H2"      : sns.color_palette("Greens", no_colors),
+    "N2"      : sns.color_palette("Purples", no_colors), # sns.cubehelix_palette(7)
+    "O2"      : sns.light_palette("darkturquoise", no_colors),
+    "CH4"     : sns.color_palette("PuRd", no_colors),
+    "CO"      : sns.light_palette("#731d1d", no_colors),
+    "S"       : sns.light_palette("#EBB434", no_colors),
+    "He"      : sns.color_palette("Greys", no_colors),
+    "NH3"     : sns.light_palette("teal", no_colors),
     "black_1" : "#000000",
     "black_2" : "#323232",
     "black_3" : "#7f7f7f",
-    "H2O_1"   : "#8db4cb",
-    "H2O_2"   : "#4283A9",
-    "H2O_3"   : "#274e65",
-    "CO2_1"   : "#ce5e5e",
-    "CO2_2"   : "#B91919",
-    "CO2_3"   : "#811111",
-    "H2_1"    : "#a0d2cb",
-    "H2_2"    : "#62B4A9",
-    "H2_3"    : "#3a6c65",
-    "CH4_1"   : "#eb9194",
-    "CH4_2"   : "#E6767A",
-    "CH4_3"   : "#b85e61",
-    "CO_1"    : "#eab597",
-    "CO_2"    : "#DD8452",
-    "CO_3"    : "#844f31",
-    "N2_1"    : "#c29fb2",
-    "N2_2"    : "#9A607F",
-    "N2_3"    : "#4d303f",  
-    "S_1"     : "#f1ca70",
-    "S_2"     : "#EBB434",
-    "S_3"     : "#a47d24",    
-    "O2_1"    : "#57ccda",
-    "O2_2"    : "#2EC0D1",
-    "O2_3"    : "#2499a7",
-    "He_1"    : "#acbbbf",
-    "He_2"    : "#768E95",
-    "He_3"    : "#465559",
-    "NH3_1"   : "#acbbbf",
-    "NH3_2"   : "#768E95",
-    "NH3_3"   : "#465559"
+    "qgray"          : "#768E95",
+    "qgray2"         : "#888888",
+    "qblue"          : "#4283A9", # http://www.color-hex.com/color/4283a9
+    "qgreen"         : "#62B4A9", # http://www.color-hex.com/color/62b4a9
+    "qred"           : "#E6767A",
+    "qturq"          : "#2EC0D1",
+    "qorange"        : "#ff7f0e",
+    "qmagenta"       : "#9A607F",
+    "qyellow"        : "#EBB434",
+    "qgray_dark"     : "#465559",
+    "qblue_dark"     : "#274e65",
+    "qgreen_dark"    : "#3a6c65",
+    "qred_dark"      : "#b85e61",
+    "qturq_dark"     : "#2499a7",
+    "qmagenta_dark"  : "#4d303f",
+    "qyellow_dark"   : "#a47d24",
+    "qgray_light"    : "#acbbbf",
+    "qblue_light"    : "#8db4cb",
+    "qgreen_light"   : "#a0d2cb",
+    "qred_light"     : "#eb9194",
+    "qturq_light"    : "#57ccda",
+    "qmagenta_light" : "#c29fb2",
+    "qyellow_light"  : "#f1ca70",
 }
 
 # Volatile Latex names
@@ -237,10 +243,10 @@ def L_heat(switch, T, P):
         L_heat = 0.         #1e-50
         # L_heat = L_vaporization*MolecularWeight*1e-3 
 
-    # No latent heat contribution in moist adiabat if below p_sat
-    if P < p_sat(switch, T):
-    # if T > Tdew(switch, psat):
-        L_heat = 0.
+    # # No latent heat contribution in moist adiabat if below p_sat
+    # if P < p_sat(switch, T):
+    # # if T > Tdew(switch, psat):
+    #     L_heat = 0.
 
     return L_heat  
 
@@ -452,7 +458,7 @@ def slopeRay( logpa, logT ):
     return num/den
 
 
-# Dry adiabat as a comparison
+# Dry adiabat function from p. 91 of RTP book as a comparison
 def dry_adiabat( T_surf, P_array, cp_array ):
 
     T_dry   = np.zeros(len(P_array))
@@ -474,7 +480,7 @@ def dry_adiabat( T_surf, P_array, cp_array ):
 def dry_slope( lnP, lnT, atm_dry ):
 
     # Find current atm index
-    idx      = int(np.amax(atm.ifatm))
+    idx      = int(np.amax(atm_dry.ifatm))
 
     dlnTdlnP = R_universal / atm_dry.cp[idx]
 
@@ -509,6 +515,9 @@ def moist_slope(lnP, lnT, atm):
         eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
         beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (R_universal * tmp) 
 
+        # Beta terms zero if below saturation vapor pressure
+        if atm.p[idx] < p_sat(vol, tmp): beta_vol = 0.
+
         # Sum in numerator
         num_sum     += eta_vol * beta_vol
 
@@ -525,6 +534,8 @@ def moist_slope(lnP, lnT, atm):
 
     # dlnT/dlnP
     dlnTdlnP = numerator / denominator
+
+    # dlnTdlnP = R_universal / atm.cp[idx]
 
     # Moist adiabat slope
     return dlnTdlnP
@@ -783,6 +794,8 @@ def plot_adiabats(atm, atm_dry):
     ls_ind      = 1.5
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
+    sns.set_style("ticks")
+    sns.despine()
    
     # For reference p_sat lines
     T_sat_array    = np.linspace(20,3000,1000) 
@@ -798,45 +811,49 @@ def plot_adiabats(atm, atm_dry):
     
             # Saturation vapor pressure for given temperature
             Psat_array = [ p_sat(vol, T) for T in T_sat_array ]
-            ax1.semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+vol_latex[vol], lw=ls_ind, ls=":", color=vol_colors[vol+"_1"])
+            ax1.semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+vol_latex[vol], lw=ls_ind, ls=":", color=vol_colors[vol][4])
 
             # Plot partial pressures
-            ax1.semilogy(atm.tmp, atm.p_vol[vol], color=vol_colors[vol+"_1"], lw=ls_ind, ls="-", label=r'$p$'+vol_latex[vol],alpha=0.99)
+            ax1.semilogy(atm.tmp, atm.p_vol[vol], color=vol_colors[vol][4], lw=ls_ind, ls="-", label=r'$p$'+vol_latex[vol],alpha=0.99)
 
             # Sum up partial pressures
             p_partial_sum += atm.p_vol[vol]
 
             # Plot individual molar concentrations
-            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol+"_2"], lw=ls_ind, ls="--", label=vol_latex[vol]+" cloud")
-            ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol+"_1"], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
+            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol][2], lw=ls_ind, ls="--", label=vol_latex[vol]+" cloud")
+            ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
             
-    # Plot sum of partial pressures as check
-    ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p_\mathrm{vol}$',alpha=0.99)
-
     # Dry adiabat as comparison
-    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_1"], ls="--", lw=ls_dry, label=r'Dry function') # Condensed abundances
-    # ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp[-1] ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, label=r'Dry adiabat')   # Initial abundances
-    ax1.semilogy( atm_dry.tmp, atm_dry.p , color=vol_colors["black_3"], ls="--", lw=ls_dry, alpha=0.5, label=r'Dry slope') # Condensed abundances
+    ax1.semilogy( atm_dry.tmp, atm_dry.p , color=vol_colors["black_3"], ls="--", lw=ls_dry, label=r'Dry adiabat') # Integrated
+
+    # # Plot sum of partial pressures as check
+    # ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
+
+    # # Dry adiabat function from RTB book
+    # ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
 
     # General moist adiabat
     ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Moist adiabat",alpha=0.99)
 
     # Phase molar concentrations
-    ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"$X_\mathrm{gas}$")
+    ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Total gas")
+
+    fs_l = 16
+    fs_m = 14
+    fs_s = 12
 
     ax1.invert_yaxis()
-    ax1.set_xlabel(r'Temperature $T$ (K)')
-    ax1.set_ylabel(r'Total pressure $P$ (Pa)')
-    ax1.set_title('Adiabats & individual Clausius-Clapeyron slopes')
-    ax1.legend(ncol=np.min([len(atm.vol_list)+1,2]))
+    ax1.set_xlabel(r'Temperature, $T$ (K)', fontsize=fs_l)
+    ax1.set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
+    # ax1.set_title('Adiabats & individual Clausius-Clapeyron slopes', fontsize=fs_l)
+    ax1.legend(loc=1, ncol=np.min([len(atm.vol_list)+1,2]), fontsize=fs_s)
     ax1.set_xlim([0,np.max(atm.ts)])
 
     ax2.invert_yaxis()
-    ax2.set_title('Phase & individual volatile abundances')
-    ax2.set_xlabel(r'Molar concentration $X^{\mathrm{vol}}_{\mathrm{phase}}$')
-    ax2.set_ylabel(r'Total pressure $P$ (Pa)')
-    # ax2.set_title('Relative abundances with condensation')
-    ax2.legend(ncol=2)
+    # ax2.set_title('Phase & species abundances', fontsize=fs_l)
+    ax2.set_xlabel(r'Molar concentration, $X^{\mathrm{i}}_{\mathrm{phase}}$', fontsize=fs_l)
+    ax2.set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
+    ax2.legend(loc=2, ncol=3, fontsize=fs_s)
     ax2.set_xlim(left=-0.05, right=1.05)
 
     ax1.set_ylim(top=atm.ptop)
@@ -845,12 +862,21 @@ def plot_adiabats(atm, atm_dry):
     ax2.set_ylim(bottom=atm.ps)
 
     ax2.set_xlim([1e-3, 1.05])
-
     ax2.set_xscale("log")
+    ax2.set_xticks([1e-3, 1e-2, 1e-1, 1e0])
+    ax2.set_xticklabels(["0.001", "0.01", "0.1", "1"])
+
+    ax1.tick_params(axis='both', which='major', labelsize=fs_m)
+    ax1.tick_params(axis='both', which='minor', labelsize=fs_m)
+    ax2.tick_params(axis='both', which='major', labelsize=fs_m)
+    ax2.tick_params(axis='both', which='minor', labelsize=fs_m)
     
+    ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax1.transAxes)
+    ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax2.transAxes)
+
     # plt.show()
 
-    plt.savefig('./output/general_adiabat.pdf', bbox_inches = 'tight')
+    plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
     plt.close(fig)  
 
     return
@@ -862,13 +888,13 @@ def plot_adiabats(atm, atm_dry):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    P_surf                  = 1e+5         # Pa
-    T_surf                  = 1000          # K
+    P_surf                  = 260e+5         # Pa
+    T_surf                  = 400          # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .5, 
-                  "CO2" : .5,   
+                  "H2O" : .8, 
+                  "CO2" : .2,   
                   "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
