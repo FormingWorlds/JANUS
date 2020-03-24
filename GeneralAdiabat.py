@@ -249,7 +249,7 @@ def cpv( vol, tmp ):
 
     # Choose cp functions
     cp_mode = "constant"    # RTP book
-    # cp_mode = "T-dependent" # NIST Chemistry WebBook
+    cp_mode = "T-dependent" # NIST Chemistry WebBook
 
     if cp_mode == "T-dependent":
 
@@ -843,8 +843,8 @@ if __name__ == "__main__":
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .5, 
-                  "CO2" : .5,   
+                  "H2O" : .9999, 
+                  "CO2" : .0,   
                   "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
