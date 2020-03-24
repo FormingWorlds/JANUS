@@ -18,6 +18,7 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from atmosphere_column import atmos
 import seaborn as sns
+import copy
 
 # Color definitions
 vol_colors = {
@@ -450,18 +451,6 @@ def slopeRay( logpa, logT ):
     den     = cpa + (cpc + (L/(Rc*T) - 1.)*(L/T))*qsat
     return num/den
 
-# # Define pressure levels for SOCRATES (?)
-# def set_pressure_array( atm ):
-   
-#     atm.p     = np.ones(atm.nlev)
-#     atm.pl    = np.ones(atm.nlev+1)
-#     rat       = (atm.ptop/atm.ps)**(1./atm.nlev)
-#     logLevels = [atm.ps*rat**i for i in range(atm.nlev+1)]
-#     levels    = [atm.ptop + i*(atm.ps-atm.ptop)/(atm.nlev-1) for i in range(atm.nlev+1)]
-#     atm.pl    = np.array(logLevels)
-#     atm.p     = (atm.pl[1:] + atm.pl[:-1]) / 2
-    
-#     return atm
 
 # Dry adiabat as a comparison
 def dry_adiabat( T_surf, P_array, cp_array ):
@@ -480,6 +469,17 @@ def dry_adiabat( T_surf, P_array, cp_array ):
             T_dry[idx] = T_surf * ( prs / P_surf ) ** ( R_universal / cp_array[idx] )
 
     return T_dry
+
+# Dry adiabat slope for comparison
+def dry_slope( lnP, lnT, atm_dry ):
+
+    # Find current atm index
+    idx      = int(np.amax(atm.ifatm))
+
+    dlnTdlnP = R_universal / atm_dry.cp[idx]
+
+    # Dry adiabat slope
+    return dlnTdlnP
 
 # dlnT/dlnP slope function from Li, Ingersoll 2018
 def moist_slope(lnP, lnT, atm):
@@ -648,9 +648,6 @@ def general_adiabat( atm ):
     # Update parameters used in the slope function dlntT/dlnP
     int_slope.setParams(atm)
 
-    # # Integrator for comparison with Ray's slope
-    # int_slopeRay    = integrator(slopeRay, np.log(atm.ps), np.log(atm.ts), step)
-
     ### Integration
 
     while atm.p[idx] > atm.ptop:
@@ -674,10 +671,49 @@ def general_adiabat( atm ):
         # # Update parameters used in the slope function dT/dlnP
         # int_slope.setParams(atm)
 
+    ## Compute dry adiabat as comparison
+
+    # Initialize the tuple solution
+    dry_tuple    = []
+
+    # Dry adiabat atmosphere structure
+    atm_dry         = copy.deepcopy(atm)
+
+    # Create the dry integrator instance                                              
+    int_slope_dry   = integrator(dry_slope, np.log(atm_dry.ps), np.log(atm_dry.ts), step)
+
+    # Update parameters used in the slope function dlntT/dlnP
+    int_slope_dry.setParams(atm_dry)
+
+    # Set indices from moist structure to zero
+    atm_dry.ifatm  = atm_dry.ifatm*0.
+
+    # Integration counter
+    idx             = 0  
+
+    while atm_dry.p[idx] > atm_dry.ptop:
+        
+        # Execute the Runge-Kutta integrator, fill array of tuples
+        dry_tuple.append(int_slope_dry.next())
+
+        # Fill new T,P values
+        atm_dry.p[idx+1]    = np.exp(int_slope_dry.x)
+        atm_dry.tmp[idx+1]  = np.exp(int_slope_dry.y)
+
+        # print("RK4 step, idx:", idx, round(atm.p[idx+1],5), round(atm.tmp[idx+1],5))
+
+        # Set next level to calculate
+        idx             += 1
+        atm_dry.ifatm[idx]  = idx
+
+
     # Interpolate
     atm = interpolate_atm(atm)
 
-    return atm 
+    # Interpolate
+    atm_dry = interpolate_atm(atm_dry)
+
+    return atm, atm_dry
 
 # Interpolate and flip pressure, temperature and volatile grids to fixed size
 def interpolate_atm(atm):
@@ -737,7 +773,7 @@ def interpolate_atm(atm):
     return atm
 
 # Plotting
-def plot_adiabats(atm):
+def plot_adiabats(atm, atm_dry):
 
     sns.set_style("ticks")
     sns.despine()
@@ -747,20 +783,7 @@ def plot_adiabats(atm):
     ls_ind      = 1.5
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
-
-    # # Ray's moist adiabat as comparison
-    # # (1 condensible + 1 non-condensible gas, fixed partial pressure of the non-condensible)
-    # ray_vol_cond        = "H2O"
-    # ray_vol_noncond     = "N2"
-    # moist_adiabat_ray   = phys.MoistAdiabat(phys.H2O,phys.N2)
-    # p_dry_gas_surf      = atm.p_vol[ray_vol_noncond][-1]
-    # print("Ray adiabat settings (P_surf_noncond, T_surf, P_top):", p_dry_gas_surf, atm.ts, atm.ptop)
-    # p_ray, T_ray, molarCon_ray, massCon_ray = moist_adiabat_ray( p_dry_gas_surf, atm.ts, atm.ptop )
-    # p_ray_interp, T_ray_interp, molarCon_ray_interp, massCon_ray_interp = moist_adiabat_ray(p_dry_gas_surf, atm.ts, atm.ptop, atm.p)
-    # # Plot Ray's H2O moist adiabat function
-    # ax1.semilogy(T_ray, p_ray, lw=ls_dry, color=vol_colors[ray_vol_cond+"_3"], ls="-.", label=vol_latex[ray_vol_cond]+"/"+vol_latex[ray_vol_cond]+r' adiabat Ray') # label=r'p$_{non-cond.}$ = '+"{:.2f}".format(p_dry_gas)+' Pa'
-    # ax2.semilogy(molarCon_ray, p_ray, lw=ls_dry, color=vol_colors[ray_vol_cond+"_3"], ls="-.", label=r"Ray's function")
-    
+   
     # For reference p_sat lines
     T_sat_array    = np.linspace(20,3000,1000) 
     p_partial_sum  = np.zeros(len(atm.tmp))
@@ -791,8 +814,9 @@ def plot_adiabats(atm):
     ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p_\mathrm{vol}$',alpha=0.99)
 
     # Dry adiabat as comparison
-    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, alpha=0.5)                  # Condensed abundances
-    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp[-1] ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, label=r'Dry adiabat')   # Initial abundances
+    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_1"], ls="--", lw=ls_dry, label=r'Dry function') # Condensed abundances
+    # ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp[-1] ), atm.p , color=vol_colors["black_2"], ls="--", lw=ls_dry, label=r'Dry adiabat')   # Initial abundances
+    ax1.semilogy( atm_dry.tmp, atm_dry.p , color=vol_colors["black_3"], ls="--", lw=ls_dry, alpha=0.5, label=r'Dry slope') # Condensed abundances
 
     # General moist adiabat
     ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Moist adiabat",alpha=0.99)
@@ -843,8 +867,8 @@ if __name__ == "__main__":
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .9999, 
-                  "CO2" : .0,   
+                  "H2O" : .5, 
+                  "CO2" : .5,   
                   "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
@@ -858,8 +882,8 @@ if __name__ == "__main__":
     atm                     = atmos(T_surf, P_surf, vol_list)
 
     # Calculate moist adiabat + condensation
-    atm                     = general_adiabat(atm)
+    atm, atm_dry                     = general_adiabat(atm)
 
     # Plot adiabat
-    plot_adiabats(atm)
+    plot_adiabats(atm, atm_dry)
 
