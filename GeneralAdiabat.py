@@ -476,26 +476,11 @@ def dry_adiabat( T_surf, P_array, cp_array ):
 
     return T_dry
 
-# Dry adiabat slope for comparison
-def dry_slope( lnP, lnT, atm_dry ):
-
-    # Find current atm index
-    idx      = int(np.amax(atm_dry.ifatm))
-
-    dlnTdlnP = R_universal / atm_dry.cp[idx]
-
-    # Dry adiabat slope
-    return dlnTdlnP
-
 # dlnT/dlnP slope function from Li, Ingersoll 2018
 def moist_slope(lnP, lnT, atm):
     
     # T instead lnT
     tmp = math.exp(lnT)
-
-    # # Kludge for H2 p_sat > 7200 for T > 13.95K
-    # if tmp < 13.95: 
-    #     tmp = 13.95
 
     # Find current atm index
     idx = int(np.amax(atm.ifatm))
@@ -535,8 +520,6 @@ def moist_slope(lnP, lnT, atm):
     # dlnT/dlnP
     dlnTdlnP = numerator / denominator
 
-    # dlnTdlnP = R_universal / atm.cp[idx]
-
     # Moist adiabat slope
     return dlnTdlnP
 
@@ -549,7 +532,57 @@ def condensation( atm ):
     # Temperature floor
     tmp = np.amax([atm.tmp[idx], 20])
 
-    # Recalculated total pressure
+    # Recalculate surface total pressure
+    P_tot_base = 0.
+
+    # If surface node, reset input abundances to sane values
+    if idx == 0:
+
+        # Update total pressure
+        for vol in atm.vol_list.keys():
+
+            # Partial pressure scaled from total pressure and molar concentration
+            p_vol_scaled = atm.vol_list[vol]*atm.p[idx]
+
+            # Saturation vapor pressure
+            p_vol_sat = p_sat(vol, tmp)
+
+            # Actual partial pressure
+            p_vol     = np.min([ p_vol_scaled, p_vol_sat ])
+
+            # Add to new total pressure
+            P_tot_base += p_vol
+
+        # Update mixing ratios, needs realistic total pressure
+        for vol in atm.vol_list.keys():
+
+            # Old mixing ratio
+            x_gas_old   = atm.vol_list[vol]
+
+            # As scaled from initial set total pressure
+            p_vol_scaled = x_gas_old * atm.p[idx]
+
+            # Saturation vapor pressure
+            p_vol_sat = p_sat(vol, tmp)
+
+            # Actual partial pressure
+            p_vol     = np.min([ p_vol_scaled, p_vol_sat ])
+
+            # Molar concentration scaled from new total and partial pressures
+            atm.vol_list[vol] = p_vol / P_tot_base
+
+            # Add to 'ocean' mass and inform user
+            if p_vol_scaled > p_vol_sat:
+
+                atm.x_ocean[vol] = (p_vol_scaled - p_vol_sat) / atm.p[idx]
+
+                print("Rescale surface "+vol+" (old, new): X_gas =", round(x_gas_old,3), round(atm.vol_list[vol],3), "| p =", round(p_vol_scaled/1e5,3), round(p_vol/1e5,3), "bar", "| X_ocean =", round(atm.x_ocean[vol],3) )
+
+        # Update total pressure
+        atm.p[idx] = P_tot_base
+        atm.ps     = P_tot_base
+
+    # Recalculate total pressure
     P_tot_new = 0.
 
     # Update mixing ratios and partial pressures
@@ -598,21 +631,15 @@ def condensation( atm ):
         # Update total pressure
         P_tot_new           += atm.p_vol[vol][idx]
 
-    # # Reset total pressure due to condensation effects
-    # atm.p[idx] = P_tot_new
-
-    # Reset surface total pressure at surface
-    if idx == 0:
-        atm.p[idx] = P_tot_new
-        atm.ps     = P_tot_new
-        # atm.ptop   = np.amin([atm.ps*1e-10, 1e-5])
+    # Reset total pressure due to condensation effects
+    atm.p[idx] = P_tot_new
 
     # Renormalize cp w/ molar concentration
     atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx]) # w/ cond
     # atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])             # w/o cond
 
     # Dry concentration floor
-    atm.xd[idx] = np.amax([atm.xd[idx], 1e-10])
+    atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
 
     ## 'Molar abundance in one mole of heterogeneous gas mixture' (Li, Ingersoll, Oyafuso 2018)
 
@@ -645,7 +672,7 @@ def general_adiabat( atm ):
     moist_tuple    = [] #[tuple([np.log(atm.ps), atm.ts])] 
    
     # Negative increment to go from ps to ptop < ps       
-    step            = -.1
+    step            = -.01
 
     # Integration counter
     idx             = 0  
@@ -679,52 +706,10 @@ def general_adiabat( atm ):
         # Calculate condensation at next level
         atm             = condensation(atm)
 
-        # # Update parameters used in the slope function dT/dlnP
-        # int_slope.setParams(atm)
-
-    ## Compute dry adiabat as comparison
-
-    # Initialize the tuple solution
-    dry_tuple    = []
-
-    # Dry adiabat atmosphere structure
-    atm_dry         = copy.deepcopy(atm)
-
-    # Create the dry integrator instance                                              
-    int_slope_dry   = integrator(dry_slope, np.log(atm_dry.ps), np.log(atm_dry.ts), step)
-
-    # Update parameters used in the slope function dlntT/dlnP
-    int_slope_dry.setParams(atm_dry)
-
-    # Set indices from moist structure to zero
-    atm_dry.ifatm  = atm_dry.ifatm*0.
-
-    # Integration counter
-    idx             = 0  
-
-    while atm_dry.p[idx] > atm_dry.ptop:
-        
-        # Execute the Runge-Kutta integrator, fill array of tuples
-        dry_tuple.append(int_slope_dry.next())
-
-        # Fill new T,P values
-        atm_dry.p[idx+1]    = np.exp(int_slope_dry.x)
-        atm_dry.tmp[idx+1]  = np.exp(int_slope_dry.y)
-
-        # print("RK4 step, idx:", idx, round(atm.p[idx+1],5), round(atm.tmp[idx+1],5))
-
-        # Set next level to calculate
-        idx             += 1
-        atm_dry.ifatm[idx]  = idx
-
-
     # Interpolate
     atm = interpolate_atm(atm)
 
-    # Interpolate
-    atm_dry = interpolate_atm(atm_dry)
-
-    return atm, atm_dry
+    return atm
 
 # Interpolate and flip pressure, temperature and volatile grids to fixed size
 def interpolate_atm(atm):
@@ -784,7 +769,7 @@ def interpolate_atm(atm):
     return atm
 
 # Plotting
-def plot_adiabats(atm, atm_dry):
+def plot_adiabats(atm):
 
     sns.set_style("ticks")
     sns.despine()
@@ -820,17 +805,14 @@ def plot_adiabats(atm, atm_dry):
             p_partial_sum += atm.p_vol[vol]
 
             # Plot individual molar concentrations
-            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol][2], lw=ls_ind, ls="--", label=vol_latex[vol]+" cloud")
+            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="--", label=vol_latex[vol]+" cloud")
             ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
             
-    # Dry adiabat as comparison
-    ax1.semilogy( atm_dry.tmp, atm_dry.p , color=vol_colors["black_3"], ls="--", lw=ls_dry, label=r'Dry adiabat') # Integrated
+    # Plot sum of partial pressures as check
+    ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
 
-    # # Plot sum of partial pressures as check
-    # ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
-
-    # # Dry adiabat function from RTB book
-    # ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
+    # Dry adiabat function from RTB book
+    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
 
     # General moist adiabat
     ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Moist adiabat",alpha=0.99)
@@ -854,17 +836,17 @@ def plot_adiabats(atm, atm_dry):
     ax2.set_xlabel(r'Molar concentration, $X^{\mathrm{i}}_{\mathrm{phase}}$', fontsize=fs_l)
     ax2.set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
     ax2.legend(loc=2, ncol=3, fontsize=fs_s)
-    ax2.set_xlim(left=-0.05, right=1.05)
 
     ax1.set_ylim(top=atm.ptop)
     ax1.set_ylim(bottom=atm.ps)
     ax2.set_ylim(top=atm.ptop)
     ax2.set_ylim(bottom=atm.ps)
 
-    ax2.set_xlim([1e-3, 1.05])
     ax2.set_xscale("log")
+    ax2.set_xlim([1e-3, 1.05])
     ax2.set_xticks([1e-3, 1e-2, 1e-1, 1e0])
     ax2.set_xticklabels(["0.001", "0.01", "0.1", "1"])
+    # ax2.set_xlim(right=1.1)
 
     ax1.tick_params(axis='both', which='major', labelsize=fs_m)
     ax1.tick_params(axis='both', which='minor', labelsize=fs_m)
@@ -888,28 +870,28 @@ def plot_adiabats(atm, atm_dry):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    P_surf                  = 260e+5         # Pa
-    T_surf                  = 400          # K
+    P_surf                  = 10000e+5       # Pa
+    T_surf                  = 450          # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .8, 
-                  "CO2" : .2,   
-                  "H2"  : .0, 
-                  "N2"  : .0,  
-                  "CH4" : .0, 
-                  "O2"  : .0, 
-                  "CO"  : .0, 
-                  "He"  : .0,
-                  "NH3" : .0, 
+                  "H2O" : .1, 
+                  "CO2" : .1,   
+                  "H2"  : .2, 
+                  "N2"  : .1,  
+                  "CH4" : .1, 
+                  "O2"  : .1, 
+                  "CO"  : .1, 
+                  "He"  : .1,
+                  "NH3" : .1, 
                 }
 
     # Create atmosphere object
     atm                     = atmos(T_surf, P_surf, vol_list)
 
     # Calculate moist adiabat + condensation
-    atm, atm_dry                     = general_adiabat(atm)
+    atm                     = general_adiabat(atm)
 
     # Plot adiabat
-    plot_adiabats(atm, atm_dry)
+    plot_adiabats(atm)
 

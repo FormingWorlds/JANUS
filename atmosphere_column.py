@@ -42,6 +42,7 @@ class atmos:
 		self.x_cond         = {} # Condensed phase molar concentration
 		self.mr_gas 		= {} # Gas phase molar mixing ratio (relative to all gas)
 		self.mr_cond        = {} # Condensed phase molar mixing ratio (relative to all gas)
+		self.x_ocean		= {} # Surface condensed 'overpressure'
 		
 		# Level-dependent quantities
 		self.xd 			= np.zeros(self.nlev)	# Molar concentration of dry gas
@@ -66,6 +67,7 @@ class atmos:
 		    self.x_cond[vol]     = np.zeros(self.nlev)
 		    self.mr_gas[vol]     = np.zeros(self.nlev)
 		    self.mr_cond[vol]    = np.zeros(self.nlev)
+		    self.x_ocean[vol]    = 0.
 
 		    # Surface partial pressures
 		    self.p_vol[vol][0]   = self.ps * vol_list[vol]
@@ -87,16 +89,3 @@ class atmos:
 		self.net_spectral_flux	 	= np.zeros([n_bands,self.nlev])		# W/m^2/(band)
 		self.total_heating 			= np.zeros(self.nlev) 				# K/day
 		
-	# # Radiation heating and fluxes
-	# class atmos_fluxes:
-	# 	def __init__(self, nlev):
-	# 		self.LW_flux_up 			= np.zeros(nlev)				# W/m^2
-	# 		self.flux_up				= np.zeros(nlev)				# W/m^2
-	# 		self.flux_down				= np.zeros(nlev)				# W/m^2
-	# 		self.SW_flux				= np.zeros(nlev)				# W/m^2
-	# 		self.LW_flux				= np.zeros(nlev)				# W/m^2
-	# 		self.net_flux				= np.zeros(nlev)				# W/m^2
-	# 		self.LW_spectral_flux_up 	= np.zeros([n_bands,nlev])		# W/m^2/(length)
-	# 		self.total_heating 			= np.zeros(nlev) 				# K/time
-	# 		self.sw_heating				= np.zeros(nlev)				# K/time
-	# 		self.lw_heating				= np.zeros(nlev)				# K/time
