@@ -805,20 +805,20 @@ def plot_adiabats(atm):
             p_partial_sum += atm.p_vol[vol]
 
             # Plot individual molar concentrations
-            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="--", label=vol_latex[vol]+" cloud")
+            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="--", label=vol_latex[vol]+" cond.")
             ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
             
-    # Plot sum of partial pressures as check
-    ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
+    # # Plot sum of partial pressures as check
+    # ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
 
-    # Dry adiabat function from RTB book
-    ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
+    # # Dry adiabat function from RTB book
+    # ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
 
     # General moist adiabat
-    ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Moist adiabat",alpha=0.99)
+    ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="General\nadiabat",alpha=0.99)
 
     # Phase molar concentrations
-    ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Total gas")
+    ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Gas phase")
 
     fs_l = 16
     fs_m = 14
@@ -835,7 +835,7 @@ def plot_adiabats(atm):
     # ax2.set_title('Phase & species abundances', fontsize=fs_l)
     ax2.set_xlabel(r'Molar concentration, $X^{\mathrm{i}}_{\mathrm{phase}}$', fontsize=fs_l)
     ax2.set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
-    ax2.legend(loc=2, ncol=3, fontsize=fs_s)
+    ax2.legend(loc=2, ncol=2, fontsize=fs_s)
 
     ax1.set_ylim(top=atm.ptop)
     ax1.set_ylim(bottom=atm.ps)
@@ -870,20 +870,20 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    P_surf                  = 10000e+5       # Pa
-    T_surf                  = 450          # K
+    P_surf                  = 401e+5       # Pa
+    T_surf                  = 780          # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .1, 
-                  "CO2" : .1,   
-                  "H2"  : .2, 
-                  "N2"  : .1,  
-                  "CH4" : .1, 
-                  "O2"  : .1, 
-                  "CO"  : .1, 
-                  "He"  : .1,
-                  "NH3" : .1, 
+                  "H2O" : 300e+5/P_surf, 
+                  "CO2" : 100e+5/P_surf,   
+                  "H2"  : .0, 
+                  "N2"  : 1e+5/P_surf,  
+                  "CH4" : .0, 
+                  "O2"  : .0, 
+                  "CO"  : .0, 
+                  "He"  : .0,
+                  "NH3" : .0, 
                 }
 
     # Create atmosphere object
