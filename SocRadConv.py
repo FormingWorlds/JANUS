@@ -42,6 +42,17 @@ def surf_Planck_nu(atm):
     B   = np.pi * B * atm.band_widths/1000.0
     return B
 
+# def SpectralExitance_nu(atm):
+#     h   = 6.62607015e-34
+#     c   = 2.99792458e+8
+#     kb  = 1.380649e-23
+#     B   = np.zeros(len(atm.band_centres))
+#     for i, nu in enumerate(atm.band_centres[i]):
+#         B[i] = ( 2.*h*(c**2.)*(nu**3) / ( np.exp( h*c*nu / (kb*atm.ts) ) - 1 ) )
+#     B   *= 
+#     B   *= atm.band_widths
+#     return B
+
 def RadConvEqm(output_dir, time_current, atm, toa_heating, loop_counter, SPIDER_options, standalone, cp_dry):
 
     atm_dry, atm_moist = radiation_timestepping(atm, toa_heating, rad_steps, cp_dry)
