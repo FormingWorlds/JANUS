@@ -14,8 +14,7 @@ import SocRadConv
 ### Initial conditions
 
 # Planet age and orbit
-time_current  = 1e+7                # yr
-time_offset   = 1e+9                # yr
+star_age      = 100e+6              # yr
 mean_distance = 1.0                 # au
 toa_heating   = 0.                  # W m^-2
 
@@ -32,7 +31,7 @@ distance_range = [ 1.0, 0.01 ]
 prs_range   = [ 1e+5 ]
 
 # Surface temperature range (K)
-tmp_range   = [ 800 ]
+tmp_range   = [ 1000 ]
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list    = { 
@@ -67,7 +66,7 @@ legendA2_handles = []
 ##### PLOT A
 
 # Loop through volatiles, options: "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
-for vol_idx, vol in enumerate(reversed([ "CO2", "N2" ])): 
+for vol_idx, vol in enumerate(reversed([ "H2O", "CO2", "CH4" ])): 
 
     # Set current volatile to 1, others to zero
     for vol1 in vol_list.keys():
@@ -86,12 +85,12 @@ for vol_idx, vol in enumerate(reversed([ "CO2", "N2" ])):
             atm = atmos(T_surf, P_surf, vol_list)
 
             # Compute heat flux
-            atm = SocRadConv.RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=False, cp_dry=False)
+            atm = SocRadConv.RadConvEqm("./output", star_age, atm, toa_heating, [], [], standalone=False, cp_dry=False)
 
             print(vol, "@", round(P_surf)/1e+5, "bar,", T_surf, "K")
 
             if prs_idx == 0:
-                l1, = ax1.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol]) 
+                l1, = ax1.plot(atm.band_centres,atm.net_spectral_flux[:,0]/atm.band_widths, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol]) 
                 legendA1_handles.append(l1)
             else:
                 l1, = ax1.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw) 
@@ -115,8 +114,8 @@ ax1.add_artist(legendA1)
 ax1.text(0.02, 0.98, r'$T_\mathrm{s}$ = '+str(round(atm.ts))+' K\n$P_\mathrm{s}$ = '+str(round(P_surf/1e+5))+' bar', color="k", rotation=0, ha="left", va="top", fontsize=fs_m, transform=ax1.transAxes)
 
 ax1.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
-ax1.set_ylabel(r'Spectral exitance (W m$^{-2}$ cm$^{-1}$)', fontsize=fs_l)
-ax1.set_xlabel(r'Wavenumber $\tilde{\nu}$ (cm$^{-1}$)', fontsize=fs_l)
+ax1.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)', fontsize=fs_l)
+ax1.set_xlabel(r'Wavenumber (cm$^{-1}$)', fontsize=fs_l) #  $\tilde{\nu}$
 
 ax1.set_xlim(left=0, right=5000)
 ax1.set_ylim(bottom=0)
