@@ -21,15 +21,18 @@ class atmos:
 		self.ts 			= T_surf		# Surface temperature, K
 		self.vol_list 		= vol_list		# Names + mixing ratios dict
 
-		self.ptop 			= 1 # np.amin([P_surf*1e-10, 1e-5]) # Top pressure in Pa
+		self.ptop 			= 1 			# Top pressure in Pa
 		self.nlev 			= n_vertical_levels  	   		# Number of vertical levels
 		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
 		self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
 		self.dt 			= timestep
+
+		self.albedo_s   	= 0.2 							# surface albedo
+		self.zenith_angle  	= 54.7 							# solar zenith angle
 		
 		self.tmp 			= np.zeros(self.nlev)      		# self.ts*np.ones(self.nlev)
 		self.tmpl 			= np.zeros(self.nlev+1)
-		self.Rcp 			= 2./7.
+		self.Rcp    		= 2./7. 						# standard earth air
 		self.n_species 		= n_absorbing_species
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
 		self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500))) # cm

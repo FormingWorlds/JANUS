@@ -22,10 +22,10 @@ path_to_socrates = os.getcwd()+"/socrates/socrates_main"
 def radCompSoc(atm, toa_heating):
 
     # Solar zenith angle
-    zenith_angle    =  54.7 # Hamano+15 # 48.2: Ranjan+18
+    zenith_angle    = atm.zenith_angle  # Hamano+15: 54.7 # Ranjan+18: 48.2
 
     # Surface albedo
-    surface_albedo  = 0.2   # Hamano+15
+    surface_albedo  = atm.albedo_s      # Hamano+15: 0.2, Schaefer+16: 0.75
 
     # Other parameters
     longitude       = 0
@@ -123,8 +123,8 @@ def radCompSoc(atm, toa_heating):
     # Total net flux (W/m^2)
     atm.net_flux            = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0] -  np.sum(vflxsw[:,:],axis=0)[:,0,0])
 
-    # Total net flux per band (W/m^2)
-    atm.net_spectral_flux   = np.squeeze(nflxlw[:,:,0,0] + nflxsw[:,:,0,0])
+    # Total net flux per band (W/m^2/(band))
+    atm.net_spectral_flux   = uflxlw[:,:,0,0] + uflxsw[:,:,0,0] - dflxlw[:,:,0,0] - vflxsw[:,:,0,0]
 
     # # Contribution to the outgoing LW flux
     # atm.contrib_LW_flux_up = np.sum(cfflw[:,:],axis=0)[:,0,0]
