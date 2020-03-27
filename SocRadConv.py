@@ -161,42 +161,65 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age):
         # Line settings
         col_idx  = 3
         col_vol1 = "H2O"
-        col_vol2 = "CO2"
+        col_vol2 = "N2"
         col_vol3 = "H2"
+        col_vol4 = "O2"
 
         # Temperature vs. pressure
         ax1.semilogy(atm_moist.tmp,atm_moist.p, color=ga.vol_colors[col_vol1][col_idx+1], ls="-", label=r'Moist adiabat')
-        if cp_dry == True: ax1.semilogy(atm_dry.tmp,atm_dry.p, color=ga.vol_colors[col_vol2][col_idx+1], ls="-", label=r'Dry adiabat')
+        if cp_dry == True: ax1.semilogy(atm_dry.tmp,atm_dry.p, color=ga.vol_colors[col_vol3][col_idx+1], ls="-", label=r'Dry adiabat')
         ax1.legend()
         ax1.invert_yaxis()
         ax1.set_xlabel(r'Temperature $T$ (K)')
         ax1.set_ylabel(r'Pressure $P$ (Pa)')
         ax1.set_ylim(bottom=atm_moist.ps*1.01)
 
-        # ISR+OLR vs. pressure
+        # Fluxes vs. pressure
+
+        # Zero line
+        ax2.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
 
         # LW down
-        ax2.semilogy(atm_moist.flux_down_total*(-1),atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx+1], ls=(0, (3, 1, 1, 1)), label=r'$F_\mathrm{LW}^{\downarrow}$')
-        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol2][col_idx+1], ls=(0, (3, 1, 1, 1)), label=r'$F_\mathrm{LW+SW}^{\downarrow}$')
+        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx+1], ls=(0, (3, 1, 1, 1)))
+        ax2.semilogy(atm_moist.LW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx+1], ls=(0, (3, 1, 1, 1)), label=r'$F_\mathrm{LW}^{\downarrow}$')
         
         # SW down
+        if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx-1], ls="--")
         ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx-1], ls="--", label=r'$F_\mathrm{SW}^{\downarrow}$')
-        if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol2][col_idx-1], ls="--", label=r'$F_\mathrm{SW}^{\downarrow}$')
         
         # Net flux
+        if cp_dry == True: ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color=ga.vol_colors[col_vol3][6], ls="-", lw=2)
         ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color=ga.vol_colors[col_vol1][6], ls="-", lw=2, label=r'$F_\mathrm{net}$')
-        if cp_dry == True: ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color=ga.vol_colors[col_vol2][6], ls="-", lw=2, label=r'$F_\mathrm{net}$')
-        
+    
+        # LW_up - SW_down
+        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_up-atm_dry.SW_flux_down,atm_dry.pl, color=ga.vol_colors[col_vol4][col_idx], ls="-")
+        net_heating_profile = atm_moist.LW_flux_up - atm_moist.SW_flux_down
+        ax2.semilogy(net_heating_profile,atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx], ls="-", label=r'$F_\mathrm{LW}^{\uparrow}$-$F_\mathrm{SW}^{\downarrow}$')
+
+        # Find tropopause
+        signchange = ((np.roll(np.sign(net_heating_profile), 1) - np.sign(net_heating_profile)) != 0).astype(int)
+        signchange[0] = 0
+        if len(np.nonzero(signchange)) > 1:
+            print("Error: more than one tropopause solution!")
+        for idx, switch in enumerate(signchange):
+            if switch == 1:
+                print("Tropopause P (Pa), T (K):", round(atm_moist.pl[idx],2), round(atm_moist.tmpl[idx],2))
+                ax2.axhline(atm_moist.pl[idx], color=ga.vol_colors[col_vol2][col_idx], lw=0.5, ls="--")
+
         # SW up
-        ax2.semilogy(atm_moist.flux_up_total,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx-1], ls=":", label=r'$F_\mathrm{SW}^{\uparrow}$')
-        if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol2][col_idx-1], ls=":", alpha=0.5, label=r'$F_\mathrm{LW+SW}^{\uparrow}$')
+        if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx-1], ls=":")
+        ax2.semilogy(atm_moist.SW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx-1], ls=":", label=r'$F_\mathrm{SW}^{\uparrow}$')
         
         # LW up
+        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx+1], ls=(0, (5, 1)))
         ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx+1], ls=(0, (5, 1)), label=r'$F_\mathrm{LW}^{\uparrow}$')
-        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol2][col_idx+1], ls=(0, (5, 1)), label=r'$F_\mathrm{LW}^{\uparrow}$')
-        
 
-        ax2.legend(ncol=5, fontsize=9, loc=2)
+
+
+        # Heating rate
+        # ax2.semilogy(atm_moist.total_heating,atm_moist.p, color=ga.vol_colors[col_vol2][1], ls=":", label=r'Total heating')
+        
+        ax2.legend(ncol=6, fontsize=8, loc=3)
         ax2.invert_yaxis()
         ax2.set_xscale("symlog") # https://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
         ax2.set_xlabel(r'Outgoing flux $F^{\uparrow}$ (W m$^{-2}$)')
@@ -222,7 +245,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age):
             OLR_cm_dry = atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths
             wavelength_dry  = [ 1e+4/i for i in atm_dry.band_centres ]              # microns
             OLR_micron_dry  = [ 1e+4*i for i in OLR_cm_dry ]                        # microns
-            ax4.plot(wavelength_dry, OLR_micron_dry, color=ga.vol_colors[col_vol2][col_idx+1])
+            ax4.plot(wavelength_dry, OLR_micron_dry, color=ga.vol_colors[col_vol3][col_idx+1])
         
         ax4.plot(wavelength_moist, OLR_micron_moist, color=ga.vol_colors[col_vol1][col_idx+1])
         ax4.set_ylabel(r'Spectral flux density (W m$^{-2}$ $\mu$m$^{-1}$)')
@@ -296,8 +319,8 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
                 print("Dry adiabat not converging -> dt_new =", atm_dry.dt, "days")
 
             # Break criteria
-            dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 4))
-            dbreak_dry      = (0.05*(5.67e-8*atm_dry.ts**4)**0.5)
+            dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 6))
+            dbreak_dry      = (0.01*(5.67e-8*atm_dry.ts**4)**0.5)
 
             # Sensitivity break condition
             if (dOLR_dry < dbreak_dry) and i > 5:
@@ -356,13 +379,13 @@ if __name__ == "__main__":
     mean_distance = 1.0                 # au
 
     # Surface pressure & temperature
-    P_surf        = 1e+5                # Pa
-    T_surf        = 1000.                # K
+    P_surf        = 500e+5              # Pa
+    T_surf        = 1500.               # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : 1.0, 
-                  "CO2" : .0,
+                  "H2O" : .5, 
+                  "CO2" : .5,
                   "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
@@ -372,8 +395,11 @@ if __name__ == "__main__":
                   "NH3" : .0, 
                 }
 
-    # Set stellar heating on or off
+    # Stellar heating on/off
     stellar_heating = True
+
+    # Compare to the dry adiabat w/ time stepping
+    cp_dry = False
 
     ##### Function calls
 
