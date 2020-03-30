@@ -335,26 +335,29 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
     print("OLR w/o stratosphere:", str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
     # Redo calculation w/ stratosphere
-    net_heating_profile = atm_moist.LW_flux_up - atm_moist.SW_flux_down
+    net_LW_SW = atm_moist.LW_flux_up - atm_moist.SW_flux_down
 
     # Find tropopause index
-    signchange = ((np.roll(np.sign(net_heating_profile), 1) - np.sign(net_heating_profile)) != 0).astype(int)
+    signchange = ((np.roll(np.sign(net_LW_SW), 1) - np.sign(net_LW_SW)) != 0).astype(int)
     signchange[0] = 0
     
     if len(np.nonzero(signchange)) > 1:
         print("Error: found more than one tropopause solution!")
+    elif (np.max(signchange) == 0):
+        print("No tropopause")
     
     # Adjust all values above tropopause level    
     else:
-        
+
         # Tropopause index, pressure and temperature
         trpp_idx          = np.nonzero(signchange)[0][0]
+
+        # Inform user
+        print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],2), round(atm_moist.tmpl[trpp_idx],2))
+
         atm_moist.trpp[0] = trpp_idx                  # index
         atm_moist.trpp[1] = atm_moist.pl[trpp_idx]    # pressure 
         atm_moist.trpp[2] = atm_moist.tmpl[trpp_idx]  # temperature
-
-        # Inform user
-        print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.trpp[1],2), round(atm_moist.trpp[2],2))
         
         # Reset stratosphere temperature and abundance levels
         atm_moist = set_stratosphere(atm_moist)
@@ -382,34 +385,43 @@ def set_stratosphere(atm):
         if prls < trpp_prs:
             atm.tmpl[prsl_idx] = trpp_tmp
 
-    # Volatile abundances
-    for vol in atm.vol_list.keys():
+    # Set mixing ratios to same as tropopause
+    for idx in reversed(range(0, trpp_idx)):
+    
+        atm.cp[idx] = 0.
 
-        # Set mixing ratios to same as tropopause
-        for idx in reversed(range(0, trpp_idx)):
-
-            atm.cp[idx] = 0.
+        # Volatile abundances
+        for vol in atm.vol_list.keys():
         
             # Saturation vapor pressure
             p_vol_sat     = ga.p_sat(vol, atm.tmp[idx])
 
             # If still condensible
             if atm.p[idx] > p_vol_sat:
+
+                cond_diff            = (atm.x_cond[vol][idx] - atm.x_cond[vol][trpp_idx])
+
+                atm.xc[idx]          -= cond_diff
+                atm.xv[idx]          += cond_diff
+
                 atm.x_cond[vol][idx] = atm.x_cond[vol][trpp_idx]
                 atm.x_gas[vol][idx]  = atm.x_gas[vol][trpp_idx]
                 atm.p_vol[vol][idx]  = atm.x_gas[vol][idx] * atm.p[idx]
 
             # If not anymore
             else:
-                atm.x_cond[vol][idx] = 0.
-                atm.x_gas[vol][idx]  = atm.x_gas[vol][trpp_idx]
-                atm.p_vol[vol][idx]  = atm.x_gas[vol][trpp_idx] * atm.p[idx]
                 atm.xc[idx]          -= atm.x_cond[vol][idx]
+                atm.x_gas[vol][idx]  = atm.x_gas[vol][trpp_idx]
+                atm.xd[idx]          += atm.x_gas[vol][idx] + atm.x_cond[vol][idx]
                 atm.xv[idx]          -= atm.x_gas[vol][idx]
-                atm.xd[idx]          += atm.x_gas[vol][idx]
+
+                atm.x_cond[vol][idx] = 0.
+                
+                atm.p_vol[vol][idx]  = atm.x_gas[vol][trpp_idx] * atm.p[idx]
+                
 
             # Renormalize cp w/ molar concentration
-            atm.cp[idx]   = (atm.x_gas[vol][idx] + atm.x_cond[vol][idx]) * ga.cpv(vol, atm.tmp[idx]) / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx]) # w/ cond
+            atm.cp[idx]   += (atm.x_gas[vol][idx] + atm.x_cond[vol][idx]) * ga.cpv(vol, atm.tmp[idx]) / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx]) # w/ cond
 
     return atm
 
@@ -440,13 +452,13 @@ if __name__ == "__main__":
     mean_distance = 1.0                 # au
 
     # Surface pressure & temperature
-    P_surf        = 1e+5              # Pa
-    T_surf        = 350.               # K
+    P_surf        = 100e+5              # Pa
+    T_surf        = 1450.               # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .5, 
-                  "CO2" : .5,
+                  "H2O" : .7, 
+                  "CO2" : .3,
                   "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
