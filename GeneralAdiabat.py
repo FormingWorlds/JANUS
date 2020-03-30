@@ -844,9 +844,9 @@ def plot_adiabats(atm):
     ax2.set_ylim(bottom=atm.ps)
 
     ax2.set_xscale("log")
-    # ax2.set_xlim([1e-3, 1.05])
-    # ax2.set_xticks([1e-3, 1e-2, 1e-1, 1e0])
-    # ax2.set_xticklabels(["0.001", "0.01", "0.1", "1"])
+    ax2.set_xlim([1e-4, 1.05])
+    ax2.set_xticks([1e-4, 1e-3, 1e-2, 1e-1, 1e0])
+    ax2.set_xticklabels(["0.0001", "0.001", "0.01", "0.1", "1"])
     # ax2.set_xlim(right=1.1)
 
     ax1.tick_params(axis='both', which='major', labelsize=fs_m)
