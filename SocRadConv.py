@@ -354,7 +354,7 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
         atm_moist.trpp[2] = atm_moist.tmpl[trpp_idx]  # temperature
 
         # Inform user
-        print("Tropopause @ (P/Pa), T/K):", round(atm_moist.trpp[1],2), round(atm_moist.trpp[2],2))
+        print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.trpp[1],2), round(atm_moist.trpp[2],2))
         
         # Reset stratosphere temperature and abundance levels
         atm_moist = set_stratosphere(atm_moist)
@@ -382,9 +382,34 @@ def set_stratosphere(atm):
         if prls < trpp_prs:
             atm.tmpl[prsl_idx] = trpp_tmp
 
-    # Condensation
-    for idx in range(0, trpp_idx):
-        atm = ga.condensation(atm, idx, prs_reset=False)
+    # Volatile abundances
+    for vol in atm.vol_list.keys():
+
+        # Set mixing ratios to same as tropopause
+        for idx in reversed(range(0, trpp_idx)):
+
+            atm.cp[idx] = 0.
+        
+            # Saturation vapor pressure
+            p_vol_sat     = ga.p_sat(vol, atm.tmp[idx])
+
+            # If still condensible
+            if atm.p[idx] > p_vol_sat:
+                atm.x_cond[vol][idx] = atm.x_cond[vol][trpp_idx]
+                atm.x_gas[vol][idx]  = atm.x_gas[vol][trpp_idx]
+                atm.p_vol[vol][idx]  = atm.x_gas[vol][idx] * atm.p[idx]
+
+            # If not anymore
+            else:
+                atm.x_cond[vol][idx] = 0.
+                atm.x_gas[vol][idx]  = atm.x_gas[vol][trpp_idx]
+                atm.p_vol[vol][idx]  = atm.x_gas[vol][trpp_idx] * atm.p[idx]
+                atm.xc[idx]          -= atm.x_cond[vol][idx]
+                atm.xv[idx]          -= atm.x_gas[vol][idx]
+                atm.xd[idx]          += atm.x_gas[vol][idx]
+
+            # Renormalize cp w/ molar concentration
+            atm.cp[idx]   = (atm.x_gas[vol][idx] + atm.x_cond[vol][idx]) * ga.cpv(vol, atm.tmp[idx]) / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx]) # w/ cond
 
     return atm
 
@@ -415,8 +440,8 @@ if __name__ == "__main__":
     mean_distance = 1.0                 # au
 
     # Surface pressure & temperature
-    P_surf        = 10e+5              # Pa
-    T_surf        = 600.               # K
+    P_surf        = 1e+5              # Pa
+    T_surf        = 350.               # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
