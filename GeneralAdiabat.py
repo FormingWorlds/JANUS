@@ -524,10 +524,10 @@ def moist_slope(lnP, lnT, atm):
     return dlnTdlnP
 
 # Apply condensation and renormalize volatile abundances in gas and condensed phases
-def condensation( atm ):
+def condensation( atm, idx, prs_reset ):
 
-    # Find current level
-    idx = int(np.amax(atm.ifatm))
+    # # Find current level
+    # idx = int(np.amax(atm.ifatm))
 
     # Temperature floor
     tmp = np.amax([atm.tmp[idx], 20])
@@ -536,7 +536,7 @@ def condensation( atm ):
     P_tot_base = 0.
 
     # If surface node, reset input abundances to sane values
-    if idx == 0:
+    if (atm.p[idx] == atm.ps): # (idx == 0) and 
 
         # Update total pressure
         for vol in atm.vol_list.keys():
@@ -632,7 +632,8 @@ def condensation( atm ):
         P_tot_new           += atm.p_vol[vol][idx]
 
     # Reset total pressure due to condensation effects
-    atm.p[idx] = P_tot_new
+    if prs_reset == True:
+        atm.p[idx] = P_tot_new
 
     # Renormalize cp w/ molar concentration
     atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx]) # w/ cond
@@ -678,7 +679,7 @@ def general_adiabat( atm ):
     idx             = 0  
 
     # Calculate condensation
-    atm             = condensation(atm)
+    atm             = condensation(atm, idx, prs_reset=True)
 
     # Create the integrator instance                                              
     int_slope       = integrator(moist_slope, np.log(atm.ps), np.log(atm.ts), step)
@@ -704,7 +705,7 @@ def general_adiabat( atm ):
         atm.ifatm[idx]  = idx
 
         # Calculate condensation at next level
-        atm             = condensation(atm)
+        atm             = condensation(atm, idx, prs_reset=True)
 
     # Interpolate
     atm = interpolate_atm(atm)
@@ -843,9 +844,9 @@ def plot_adiabats(atm):
     ax2.set_ylim(bottom=atm.ps)
 
     ax2.set_xscale("log")
-    ax2.set_xlim([1e-3, 1.05])
-    ax2.set_xticks([1e-3, 1e-2, 1e-1, 1e0])
-    ax2.set_xticklabels(["0.001", "0.01", "0.1", "1"])
+    # ax2.set_xlim([1e-3, 1.05])
+    # ax2.set_xticks([1e-3, 1e-2, 1e-1, 1e0])
+    # ax2.set_xticklabels(["0.001", "0.01", "0.1", "1"])
     # ax2.set_xlim(right=1.1)
 
     ax1.tick_params(axis='both', which='major', labelsize=fs_m)
@@ -870,15 +871,15 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    P_surf                  = 401e+5       # Pa
-    T_surf                  = 780          # K
+    P_surf                  = 100e+5       # Pa
+    T_surf                  = 1000          # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : 300e+5/P_surf, 
-                  "CO2" : 100e+5/P_surf,   
+                  "H2O" : 0.999,    # 300e+5/P_surf
+                  "CO2" : .0,       # 100e+5/P_surf
                   "H2"  : .0, 
-                  "N2"  : 1e+5/P_surf,  
+                  "N2"  : .0,       # 1e+5/P_surf
                   "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 

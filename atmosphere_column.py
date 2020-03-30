@@ -25,6 +25,9 @@ class atmos:
 		self.nlev 			= n_vertical_levels  	   		# Number of vertical levels
 		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
 		self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
+
+		self.trpp 			= np.zeros(3) 				 	# Tropopause: idx, prs, tmp
+		
 		self.dt 			= timestep
 
 		self.albedo_s   	= 0.2 							# surface albedo
