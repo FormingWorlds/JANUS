@@ -816,7 +816,7 @@ def plot_adiabats(atm):
     # ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
 
     # General moist adiabat
-    ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="General\nadiabat",alpha=0.99)
+    ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Adiabat",alpha=0.99)
 
     # Phase molar concentrations
     ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Gas phase")

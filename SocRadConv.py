@@ -452,13 +452,13 @@ if __name__ == "__main__":
     mean_distance = 1.0                 # au
 
     # Surface pressure & temperature
-    P_surf        = 100e+5              # Pa
-    T_surf        = 1450.               # K
+    P_surf        = 10e+5              # Pa
+    T_surf        = 300.               # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .7, 
-                  "CO2" : .3,
+                  "H2O" : .9999, 
+                  "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
