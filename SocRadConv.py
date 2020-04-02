@@ -182,8 +182,9 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age):
         # ax2.axvline(1e+3, color=ga.vol_colors["qgray_light"], lw=0.5)
 
         # LW down
-        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=(0, (3, 1, 1, 1)))
-        ax2.semilogy(atm_moist.LW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx+1], ls=(0, (3, 1, 1, 1)), label=r'$F_\mathrm{LW}^{\downarrow}$')
+        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls="--")
+        ax2.semilogy(atm_moist.LW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx+1], ls="--", label=r'$F_\mathrm{LW}^{\downarrow}$')
+        # ls=(0, (3, 1, 1, 1))
         
         # SW down
         if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
@@ -193,10 +194,6 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age):
         if cp_dry == True: ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color=ga.vol_colors[col_vol3][6], ls="-", lw=2)
         ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color=ga.vol_colors[col_vol1][6], ls="-", lw=2, label=r'$F_\mathrm{net}$')
 
-        # Plot tropopause
-        trpp_idx = int(atm_moist.trpp[0])
-        if trpp_idx > 0:
-            ax2.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol2][col_idx], lw=0.5, ls="--")
         # SW up
         if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
         ax2.semilogy(atm_moist.SW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=":", label=r'$F_\mathrm{SW}^{\uparrow}$')
@@ -204,9 +201,6 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age):
         # LW up
         if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=(0, (5, 1)))
         ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=(0, (5, 1)), label=r'$F_\mathrm{LW}^{\uparrow}$')
-
-        # Heating rate
-        # ax2.semilogy(atm_moist.total_heating,atm_moist.p, color=ga.vol_colors[col_vol2][1], ls=":", label=r'Total heating')
         
         ax2.legend(ncol=6, fontsize=10, loc=3)
         ax2.invert_yaxis()
@@ -232,14 +226,20 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age):
         ax4.plot(atm_moist.LW_heating, atm_moist.p, ls="--", color=ga.vol_colors[col_vol1][col_idx+1], label=r'LW')
         ax4.plot(atm_moist.net_heating, atm_moist.p, lw=2, color=ga.vol_colors[col_vol1][col_idx+1], label=r'Net')
         ax4.plot(atm_moist.SW_heating, atm_moist.p, ls=":", color=ga.vol_colors[col_vol1][col_idx+1], label=r'SW')
+
+        # Plot tropopause
+        trpp_idx = int(atm_moist.trpp[0])
+        if trpp_idx > 0:
+            ax4.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol2][col_idx], lw=0.8, ls="-.", label=r'Tropopause')
         
         ax4.invert_yaxis()
-        ax4.legend(ncol=3, fontsize=10, loc=3)
+        ax4.legend(ncol=4, fontsize=10, loc=3)
         ax4.set_ylabel(r'Pressure $P$ (Pa)')
         ax4.set_xlabel(r'Heating (K/day)')
         # ax4.set_xscale("log")
         ax4.set_yscale("log") 
-        ax4.set_xlim(left=-1000, right=1000)
+        x_minmax = np.max([abs(np.min(atm_moist.net_heating[50:])), abs(np.max(atm_moist.net_heating[50:]))])
+        ax4.set_xlim(left=-x_minmax, right=x_minmax)
         ax4.set_ylim(bottom=atm_moist.ps*1.01)
         # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
         # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
@@ -279,8 +279,6 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
 
     # Build moist adiabat structure
     atm_moist           = ga.general_adiabat(atm)
-
-
 
     # Copy moist pressure arrays for dry adiabat
     atm_dry             = dry_adiabat_atm(copy.deepcopy(atm_moist))
@@ -347,38 +345,26 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
 
     print("OLR w/o stratosphere:", str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
-    # Redo calculation w/ stratosphere
-    net_LW_SW = atm_moist.LW_flux_up - atm_moist.SW_flux_down
-
-    # # Find tropopause index
-    # signchange = ((np.roll(np.sign(net_LW_SW), 1) - np.sign(net_LW_SW)) != 0).astype(int)
-    # signchange[0] = 0
+    # Find tropopause index
+    heat_idx = [ idx for idx, heating in enumerate(atm_moist.net_heating) if heating > 0 ][1:]
+    cool_idx = [ idx for idx, heating in enumerate(atm_moist.net_heating) if heating < 0 ][1:]
+    trpp_idx = cool_idx[0]
+    if trpp_idx > round(len(atm_moist.net_heating)/20):
+        print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],2), round(atm_moist.tmpl[trpp_idx],2))
     
-    # if len(np.nonzero(signchange)) > 1:
-    #     print("Error: found more than one tropopause solution!")
-    # elif (np.max(signchange) == 0):
-    #     print("No tropopause")
-    
-    # # Adjust all values above tropopause level    
-    # else:
-
-    #     # Tropopause index, pressure and temperature
-    #     trpp_idx          = np.nonzero(signchange)[0][0]
-
-    #     # Inform user
-    #     print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],2), round(atm_moist.tmpl[trpp_idx],2))
-
-    #     atm_moist.trpp[0] = trpp_idx                  # index
-    #     atm_moist.trpp[1] = atm_moist.pl[trpp_idx]    # pressure 
-    #     atm_moist.trpp[2] = atm_moist.tmpl[trpp_idx]  # temperature
+        atm_moist.trpp[0] = trpp_idx                  # index
+        atm_moist.trpp[1] = atm_moist.pl[trpp_idx]    # pressure 
+        atm_moist.trpp[2] = atm_moist.tmpl[trpp_idx]  # temperature
         
-    #     # Reset stratosphere temperature and abundance levels
-    #     atm_moist = set_stratosphere(atm_moist)
+        # Reset stratosphere temperature and abundance levels
+        atm_moist = set_stratosphere(atm_moist)
 
-    #     # Rerun SOCRATES on new atmosphere structure
-    #     atm_moist       = SocRadModel.radCompSoc(atm_moist, toa_heating)
+        # Rerun SOCRATES on new atmosphere structure
+        atm_moist       = SocRadModel.recalc_fluxes(atm_moist, toa_heating)
 
-    #     print("OLR w/ stratosphere:", str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+        print("OLR w/ stratosphere:", str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+    else:
+        print("No tropopause")
 
     return atm_dry, atm_moist
 
@@ -465,12 +451,12 @@ if __name__ == "__main__":
     mean_distance = 1.0                 # au
 
     # Surface pressure & temperature
-    P_surf        = 100e+5              # Pa
+    P_surf        = 10e+5              # Pa
     T_surf        = 1000.               # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .9999, 
+                  "H2O" : .999, 
                   "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
