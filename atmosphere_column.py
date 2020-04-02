@@ -30,8 +30,9 @@ class atmos:
 		
 		self.dt 			= timestep
 
-		self.albedo_s   	= 0.2 							# surface albedo
-		self.zenith_angle  	= 54.7 							# solar zenith angle
+		self.albedo_s   	= 0.1 							# surface albedo
+		self.albedo_pl   	= 0.2 							# planetary albedo (scattering)
+		self.zenith_angle  	= 38							# solar zenith angle
 		
 		self.tmp 			= np.zeros(self.nlev)      		# self.ts*np.ones(self.nlev)
 		self.tmpl 			= np.zeros(self.nlev+1)

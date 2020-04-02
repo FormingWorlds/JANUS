@@ -23,7 +23,7 @@ path_to_spectral_file = os.getcwd()+"/spectral-files/gen_all_2020/sp_spider"
 def radCompSoc(atm, toa_heating):
 
     # Solar zenith angle
-    zenith_angle    = atm.zenith_angle  # Hamano+15: 54.7 # Ranjan+18: 48.2
+    zenith_angle    = atm.zenith_angle  # Hamano+15: 54.7, Ranjan+18: 48.2, Katyal+19: 38
 
     # Surface albedo
     surface_albedo  = atm.albedo_s      # Hamano+15: 0.2, Schaefer+16: 0.75
