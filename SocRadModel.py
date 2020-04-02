@@ -17,7 +17,8 @@ from subprocess import call
 from netCDF4 import Dataset
 from atmosphere_column import atmos
 
-path_to_socrates = os.getcwd()+"/socrates/socrates_main"
+path_to_socrates      = os.getcwd()+"/socrates/socrates_main"
+path_to_spectral_file = os.getcwd()+"/spectral-files/gen_all_2020/sp_spider"
 
 def radCompSoc(atm, toa_heating):
 
@@ -45,19 +46,18 @@ def radCompSoc(atm, toa_heating):
     nctools.ncout3d('profile.q', 0, 0,   atm.p,  atm.x_gas["H2O"], 'q', longname="q", units='PPMV') 
     nctools.ncout3d('profile.co2', 0, 0, atm.p,  atm.x_gas["CO2"], 'co2', longname="CO2", units='PPMV') 
     nctools.ncout3d('profile.co', 0, 0,  atm.p,  atm.x_gas["CO"], 'co', longname="CO", units='PPMV') 
-    nctools.ncout3d('profile.ch4', 0, 0, atm.p,  atm.x_gas["CH4"], 'ch4', longname="ch4", units='PPMV') 
+    nctools.ncout3d('profile.ch4', 0, 0, atm.p,  atm.x_gas["CH4"], 'ch4', longname="CH4", units='PPMV') 
     nctools.ncout3d('profile.h2', 0, 0,  atm.p,  atm.x_gas["H2"], 'h2', longname="H2", units='PPMV') 
     nctools.ncout3d('profile.n2', 0, 0,  atm.p,  atm.x_gas["N2"], 'n2', longname="N2", units='PPMV') 
     nctools.ncout3d('profile.o2', 0, 0,  atm.p,  atm.x_gas["O2"], 'o2', longname="O2", units='PPMV')
-    # nctools.ncout3d('profile.h2o',0,0,atm.pl, atm.x_gasl["H2O"],'h2o',longname="h2o",units='PPMV')
 
     basename = 'profile'
     s = " "
 
     # Anchor spectral files and run SOCRATES
-    seq4 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_all_2020/sp_spider -R 1 300 -ch 300 -S -g 2 -C 5 -u")
+    seq4 = ("Cl_run_cdf -B", basename,"-s", path_to_spectral_file, "-R 1 300 -ch 300 -S -g 2 -C 5 -u")
     seq5 = ("fmove", basename,"currentsw")
-    seq6 = ("Cl_run_cdf -B", basename,"-s spectral-files/gen_all_2020/sp_spider -R 1 300 -ch 300 -I -g 2 -C 5 -u")
+    seq6 = ("Cl_run_cdf -B", basename,"-s", path_to_spectral_file, "-R 1 300 -ch 300 -I -g 2 -C 5 -u")
     seq7 = ("fmove", basename,"currentlw")
 
     comline1 = s.join(seq4)
@@ -82,10 +82,6 @@ def radCompSoc(atm, toa_heating):
     ncfile8  = net.Dataset('currentlw.nflx')
     ncfile9  = net.Dataset('currentlw.uflx')
     ncfile10 = net.Dataset('currentlw.hrts')
-    # ncfile11 = net.Dataset('currentlw.cff')
-    # ncfile12 = net.Dataset('currentlw.cfi')
-    # ncfile13 = net.Dataset('currentsw.cff')
-    # ncfile14 = net.Dataset('currentsw.cfi')
 
     # Loop through netCDF variables and populate arrays
     vflxsw   = ncfile1.variables['vflx']  # SW downward flux (direct + diffuse)
@@ -96,7 +92,6 @@ def radCompSoc(atm, toa_heating):
     uflxlw   = ncfile9.variables['uflx']  # LW upward flux 
     nflxlw   = ncfile8.variables['nflx']  # LW net flux 
     hrtslw   = ncfile10.variables['hrts'] # LW heating rate (K/day)
-    # cfflw    = ncfile11.variables['cff'] # Contribution Function flux LW
 
     ##### Fluxes
 
@@ -126,16 +121,13 @@ def radCompSoc(atm, toa_heating):
     # Total net flux per band (W/m^2/(band))
     atm.net_spectral_flux   = uflxlw[:,:,0,0] + uflxsw[:,:,0,0] - dflxlw[:,:,0,0] - vflxsw[:,:,0,0]
 
-    # # Contribution to the outgoing LW flux
-    # atm.contrib_LW_flux_up = np.sum(cfflw[:,:],axis=0)[:,0,0]
-
     ##### Heating rates
 
     # Individual heating contributions (K/day)
-    atm.SW_heating          = np.sum(hrtssw[:,:],axis=0)
-    atm.LW_heating          = np.sum(hrtslw[:,:],axis=0)
+    atm.SW_heating          = np.sum(hrtssw[:,:],axis=0)[:,0,0]
+    atm.LW_heating          = np.sum(hrtslw[:,:],axis=0)[:,0,0]
 
     # Total heating (K/day)
-    atm.total_heating       = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
+    atm.net_heating       = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
 
     return atm
