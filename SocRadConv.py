@@ -57,12 +57,14 @@ def RadConvEqm(output_dir, star_age, atm, toa_heating, loop_counter, SPIDER_opti
 
     atm_dry, atm_moist = radiation_timestepping(atm, toa_heating, rad_steps, cp_dry)
 
-    # Inform user + plot
+    # Plot
     if standalone == True:
         plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age)
-        print("Computed OLR => moist:", str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
-        if cp_dry == True:
-            print("| dry:", str(round(atm_dry.LW_flux_up[0], 3)) + " W/m^2", end=" ")
+    
+    if cp_dry == True:
+        plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age)
+        print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
+        print("| dry:", str(round(atm_dry.net_flux[0], 3)), str(round(atm_dry.LW_flux_up[0], 3)) + " W/m^2", end=" ")
         print()
 
     # # Write TP and spectral flux profiles for later plotting
@@ -343,16 +345,31 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
     # Compute radiation, no moist timestepping
     atm_moist       = SocRadModel.radCompSoc(atm_moist, toa_heating)
 
-    print("OLR w/o stratosphere:", str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+    print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
     # Find tropopause index
+    trpp_idx   = 0 
     signchange = ((np.roll(np.sign(atm_moist.net_heating), 1) - np.sign(atm_moist.net_heating)) != 0).astype(int)[1:]
-    trpp_idx = np.nonzero(signchange)[0][0]
-    # Detect upper atmosphere inversion
-    if atm_moist.net_heating[trpp_idx-1] < 0:
-        trpp_idx = np.nonzero(signchange)[0][1]
+    
+    # If heating sign change
+    if np.max(signchange) > 0:
+        trpp_idx = np.nonzero(signchange)[0][0]
+        
+        # Detect upper atmosphere inversion
+        if atm_moist.net_heating[trpp_idx-1] < 0:
+            trpp_idx = np.nonzero(signchange)[0][1]
+        
+        # Detect insignificant heating
+        if np.max(atm_moist.net_heating[10:trpp_idx]) < 100:
+            trpp_idx = 0
+
+    # If heating everywhere (close to star)
+    if np.min(atm_moist.net_heating) > 0:
+        trpp_idx = np.size(atm_moist.tmp)-1
+    
+    # Tropopause stable
     if trpp_idx > round(len(atm_moist.net_heating)/30):
-        print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],2), round(atm_moist.tmpl[trpp_idx],2))
+        print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],3), round(atm_moist.tmpl[trpp_idx],3))
     
         atm_moist.trpp[0] = trpp_idx                  # index
         atm_moist.trpp[1] = atm_moist.pl[trpp_idx]    # pressure 
@@ -364,7 +381,7 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
         # Recalculate fluxes w/ new atmosphere structure
         atm_moist       = SocRadModel.recalc_fluxes(atm_moist, toa_heating)
 
-        print("OLR w/ stratosphere:", str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+        print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
     else:
         print("No tropopause")
 
@@ -426,7 +443,7 @@ def set_stratosphere(atm):
 
     return atm
 
-def InterpolateStellarLuminosity(star_mass, star_age, mean_distance):
+def InterpolateStellarLuminosity(star_mass, star_age, mean_distance, albedo):
 
     luminosity_df           = pd.read_csv("luminosity_tracks/Lum_m"+str(star_mass)+".txt")
     star_age                = star_age/1e+6         # Myr
@@ -437,9 +454,13 @@ def InterpolateStellarLuminosity(star_mass, star_age, mean_distance):
     interpolate_luminosity  = interpolate.interp1d(ages, luminosities)
     interpolated_luminosity = interpolate_luminosity([star_age])*L_sun
 
-    stellar_toa_heating     = interpolated_luminosity / ( 4. * np.pi * (mean_distance*AU)**2. )
+    S_0                     = interpolated_luminosity / ( 4. * np.pi * (mean_distance*AU)**2. )
+    S_0                     = S_0[0]
+
+    # Mean flux
+    toa_heating     = ( 1. - albedo ) * S_0 / 4.
     
-    return stellar_toa_heating[0], interpolated_luminosity/L_sun
+    return toa_heating, interpolated_luminosity/L_sun
 
 ####################################
 ##### Stand-alone initial conditions
@@ -449,14 +470,15 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet age and orbit
-    star_age      = 4567e+6              # yr
+    star_age      = 4567e+6             # yr
+    star_mass     = 1.0                 # M_sun
     mean_distance = 1.0                 # au
 
     # Surface pressure & temperature
-    P_surf        = 10e+5              # Pa
+    P_surf        = 260e+5              # Pa
     T_surf        = 1000.               # K
 
-    # Volatile molar concentrations: ! must sum to one !
+    # Volatile molar concentrations: ! must sum to ~1 !
     vol_list = { 
                   "H2O" : .999, 
                   "CO2" : .0,
@@ -481,10 +503,13 @@ if __name__ == "__main__":
     atm            = atmos(T_surf, P_surf, vol_list)
 
     # Compute stellar heating
-    toa_heating, star_luminosity = InterpolateStellarLuminosity(1.0, star_age, mean_distance)
+    toa_heating, star_luminosity = InterpolateStellarLuminosity(star_mass, star_age, mean_distance, atm.albedo_pl)
 
     # Set stellar heating on or off
-    if stellar_heating == False: toa_heating = 0.
+    if stellar_heating == False: 
+        toa_heating = 0.
+    else:
+        print("TOA heating:", round(toa_heating), "W/m^2")
 
     # Compute heat flux
     atm = RadConvEqm("./output", star_age, atm, toa_heating, [], [], standalone=True, cp_dry=False)
