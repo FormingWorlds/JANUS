@@ -346,10 +346,12 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
     print("OLR w/o stratosphere:", str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
     # Find tropopause index
-    heat_idx = [ idx for idx, heating in enumerate(atm_moist.net_heating) if heating > 0 ][1:]
-    cool_idx = [ idx for idx, heating in enumerate(atm_moist.net_heating) if heating < 0 ][1:]
-    trpp_idx = cool_idx[0]
-    if trpp_idx > round(len(atm_moist.net_heating)/20):
+    signchange = ((np.roll(np.sign(atm_moist.net_heating), 1) - np.sign(atm_moist.net_heating)) != 0).astype(int)[1:]
+    trpp_idx = np.nonzero(signchange)[0][0]
+    # Detect upper atmosphere inversion
+    if atm_moist.net_heating[trpp_idx-1] < 0:
+        trpp_idx = np.nonzero(signchange)[0][1]
+    if trpp_idx > round(len(atm_moist.net_heating)/30):
         print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],2), round(atm_moist.tmpl[trpp_idx],2))
     
         atm_moist.trpp[0] = trpp_idx                  # index
@@ -359,7 +361,7 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
         # Reset stratosphere temperature and abundance levels
         atm_moist = set_stratosphere(atm_moist)
 
-        # Rerun SOCRATES on new atmosphere structure
+        # Recalculate fluxes w/ new atmosphere structure
         atm_moist       = SocRadModel.recalc_fluxes(atm_moist, toa_heating)
 
         print("OLR w/ stratosphere:", str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
