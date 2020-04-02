@@ -93,5 +93,5 @@ class atmos:
 		self.flux_down_total		= np.zeros(self.nlev)				# W/m^2
 		self.net_flux				= np.zeros(self.nlev)				# W/m^2
 		self.net_spectral_flux	 	= np.zeros([n_bands,self.nlev])		# W/m^2/(band)
-		self.total_heating 			= np.zeros(self.nlev) 				# K/day
+		self.net_heating 			= np.zeros(self.nlev) 				# K/day
 		
