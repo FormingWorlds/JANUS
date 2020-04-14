@@ -8,7 +8,6 @@ import numpy as np
 n_vertical_levels 	= 10000  					# For computation
 timestep 			= 0.5						# days
 n_absorbing_species = 7
-n_bands 			= 300
 
 R_universal = 8.31446261815324 # Universal gas constant, J.K-1.mol-1
 
@@ -39,9 +38,11 @@ class atmos:
 		self.Rcp    		= 2./7. 						# standard earth air
 		self.n_species 		= n_absorbing_species
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
-		self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500))) # cm
+		# self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500))) # cm
+		self.bands 			= np.concatenate((np.arange(0,3000,25),np.arange(3000,11000,50),np.arange(11000,30500,500))) # cm, 318 bands: HITEMP-compatible spacing
 		self.band_centres 	= (self.bands[1:] + self.bands[:-1]) / 2
 		self.band_widths 	= np.diff(self.bands)
+		self.nbands 	    = np.size(self.bands)-1
 
 		# Species-dependent quantities
 		self.p_vol 			= {} # Gas phase partial pressures
@@ -83,16 +84,16 @@ class atmos:
 		self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2
 		self.LW_flux_down 			= np.zeros(self.nlev)				# W/m^2
 		self.LW_flux_net			= np.zeros(self.nlev)				# W/m^2
-		self.LW_spectral_flux_up 	= np.zeros([n_bands,self.nlev])		# W/m^2/(band)
+		self.LW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])		# W/m^2/(band)
 		self.LW_heating				= np.zeros(self.nlev)				# K/day
 		self.SW_flux_up 			= np.zeros(self.nlev)				# W/m^2
 		self.SW_flux_down 			= np.zeros(self.nlev)				# W/m^2
 		self.SW_flux_net			= np.zeros(self.nlev)				# W/m^2
-		self.SW_spectral_flux_up 	= np.zeros([n_bands,self.nlev])		# W/m^2/(band)
+		self.SW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])		# W/m^2/(band)
 		self.SW_heating				= np.zeros(self.nlev)				# K/day
 		self.flux_up_total			= np.zeros(self.nlev)				# W/m^2
 		self.flux_down_total		= np.zeros(self.nlev)				# W/m^2
 		self.net_flux				= np.zeros(self.nlev)				# W/m^2
-		self.net_spectral_flux	 	= np.zeros([n_bands,self.nlev])		# W/m^2/(band)
+		self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])		# W/m^2/(band)
 		self.net_heating 			= np.zeros(self.nlev) 				# K/day
 		

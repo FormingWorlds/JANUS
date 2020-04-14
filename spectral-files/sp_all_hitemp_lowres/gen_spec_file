@@ -1,0 +1,2860 @@
+prep_spec <<EOF
+sp_all_hitemp_318
+318
+7
+1
+2
+5
+6
+7
+13
+23
+14
+7
+7
+13
+13
+23
+23
+1
+1
+2
+2
+6
+6
+2
+23
+2
+6
+7
+13
+7
+2
+13
+6
+13
+23
+13
+1
+23
+6
+0
+c
+1
+25
+25
+50
+50
+75
+75
+100
+100
+125
+125
+150
+150
+175
+175
+200
+200
+225
+225
+250
+250
+275
+275
+300
+300
+325
+325
+350
+350
+375
+375
+400
+400
+425
+425
+450
+450
+475
+475
+500
+500
+525
+525
+550
+550
+575
+575
+600
+600
+625
+625
+650
+650
+675
+675
+700
+700
+725
+725
+750
+750
+775
+775
+800
+800
+825
+825
+850
+850
+875
+875
+900
+900
+925
+925
+950
+950
+975
+975
+1000
+1000
+1025
+1025
+1050
+1050
+1075
+1075
+1100
+1100
+1125
+1125
+1150
+1150
+1175
+1175
+1200
+1200
+1225
+1225
+1250
+1250
+1275
+1275
+1300
+1300
+1325
+1325
+1350
+1350
+1375
+1375
+1400
+1400
+1425
+1425
+1450
+1450
+1475
+1475
+1500
+1500
+1525
+1525
+1550
+1550
+1575
+1575
+1600
+1600
+1625
+1625
+1650
+1650
+1675
+1675
+1700
+1700
+1725
+1725
+1750
+1750
+1775
+1775
+1800
+1800
+1825
+1825
+1850
+1850
+1875
+1875
+1900
+1900
+1925
+1925
+1950
+1950
+1975
+1975
+2000
+2000
+2025
+2025
+2050
+2050
+2075
+2075
+2100
+2100
+2125
+2125
+2150
+2150
+2175
+2175
+2200
+2200
+2225
+2225
+2250
+2250
+2275
+2275
+2300
+2300
+2325
+2325
+2350
+2350
+2375
+2375
+2400
+2400
+2425
+2425
+2450
+2450
+2475
+2475
+2500
+2500
+2525
+2525
+2550
+2550
+2575
+2575
+2600
+2600
+2625
+2625
+2650
+2650
+2675
+2675
+2700
+2700
+2725
+2725
+2750
+2750
+2775
+2775
+2800
+2800
+2825
+2825
+2850
+2850
+2875
+2875
+2900
+2900
+2925
+2925
+2950
+2950
+2975
+2975
+3000
+3000
+3050
+3050
+3100
+3100
+3150
+3150
+3200
+3200
+3250
+3250
+3300
+3300
+3350
+3350
+3400
+3400
+3450
+3450
+3500
+3500
+3550
+3550
+3600
+3600
+3650
+3650
+3700
+3700
+3750
+3750
+3800
+3800
+3850
+3850
+3900
+3900
+3950
+3950
+4000
+4000
+4050
+4050
+4100
+4100
+4150
+4150
+4200
+4200
+4250
+4250
+4300
+4300
+4350
+4350
+4400
+4400
+4450
+4450
+4500
+4500
+4550
+4550
+4600
+4600
+4650
+4650
+4700
+4700
+4750
+4750
+4800
+4800
+4850
+4850
+4900
+4900
+4950
+4950
+5000
+5000
+5050
+5050
+5100
+5100
+5150
+5150
+5200
+5200
+5250
+5250
+5300
+5300
+5350
+5350
+5400
+5400
+5450
+5450
+5500
+5500
+5550
+5550
+5600
+5600
+5650
+5650
+5700
+5700
+5750
+5750
+5800
+5800
+5850
+5850
+5900
+5900
+5950
+5950
+6000
+6000
+6050
+6050
+6100
+6100
+6150
+6150
+6200
+6200
+6250
+6250
+6300
+6300
+6350
+6350
+6400
+6400
+6450
+6450
+6500
+6500
+6550
+6550
+6600
+6600
+6650
+6650
+6700
+6700
+6750
+6750
+6800
+6800
+6850
+6850
+6900
+6900
+6950
+6950
+7000
+7000
+7050
+7050
+7100
+7100
+7150
+7150
+7200
+7200
+7250
+7250
+7300
+7300
+7350
+7350
+7400
+7400
+7450
+7450
+7500
+7500
+7550
+7550
+7600
+7600
+7650
+7650
+7700
+7700
+7750
+7750
+7800
+7800
+7850
+7850
+7900
+7900
+7950
+7950
+8000
+8000
+8050
+8050
+8100
+8100
+8150
+8150
+8200
+8200
+8250
+8250
+8300
+8300
+8350
+8350
+8400
+8400
+8450
+8450
+8500
+8500
+8550
+8550
+8600
+8600
+8650
+8650
+8700
+8700
+8750
+8750
+8800
+8800
+8850
+8850
+8900
+8900
+8950
+8950
+9000
+9000
+9050
+9050
+9100
+9100
+9150
+9150
+9200
+9200
+9250
+9250
+9300
+9300
+9350
+9350
+9400
+9400
+9450
+9450
+9500
+9500
+9550
+9550
+9600
+9600
+9650
+9650
+9700
+9700
+9750
+9750
+9800
+9800
+9850
+9850
+9900
+9900
+9950
+9950
+10000
+10000
+10050
+10050
+10100
+10100
+10150
+10150
+10200
+10200
+10250
+10250
+10300
+10300
+10350
+10350
+10400
+10400
+10450
+10450
+10500
+10500
+10550
+10550
+10600
+10600
+10650
+10650
+10700
+10700
+10750
+10750
+10800
+10800
+10850
+10850
+10900
+10900
+10950
+10950
+11000
+11000
+11500
+11500
+12000
+12000
+12500
+12500
+13000
+13000
+13500
+13500
+14000
+14000
+14500
+14500
+15000
+15000
+15500
+15500
+16000
+16000
+16500
+16500
+17000
+17000
+17500
+17500
+18000
+18000
+18500
+18500
+19000
+19000
+19500
+19500
+20000
+20000
+20500
+20500
+21000
+21000
+21500
+21500
+22000
+22000
+22500
+22500
+23000
+23000
+23500
+23500
+24000
+24000
+24500
+24500
+25000
+25000
+25500
+25500
+26000
+26000
+26500
+26500
+27000
+27000
+27500
+27500
+28000
+28000
+28500
+28500
+29000
+29000
+29500
+29500
+30000
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+n
+-1
+EOF
+echo '###############   H2O lines – HITEMP   ###############'
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 1-2 '|' HITEMP edges: 0-50
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_0-50_HITEMP2010.par -R 1 2 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_1-2map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 1-2 '|' HITEMP edges: 0-50
+Ccorr_k -F pt_cont_reslow -R 1 2 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_1-2c -m h2o-h2o_l318_1-2cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_1-2map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_1-2c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 3-6 '|' HITEMP edges: 50-150
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_50-150_HITEMP2010.par -R 3 6 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_3-6map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 3-6 '|' HITEMP edges: 50-150
+Ccorr_k -F pt_cont_reslow -R 3 6 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_3-6c -m h2o-h2o_l318_3-6cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_3-6map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_3-6c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 7-10 '|' HITEMP edges: 150-250
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_150-250_HITEMP2010.par -R 7 10 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_7-10map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 7-10 '|' HITEMP edges: 150-250
+Ccorr_k -F pt_cont_reslow -R 7 10 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_7-10c -m h2o-h2o_l318_7-10cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_7-10map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_7-10c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 11-14 '|' HITEMP edges: 250-350
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_250-350_HITEMP2010.par -R 11 14 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_11-14map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 11-14 '|' HITEMP edges: 250-350
+Ccorr_k -F pt_cont_reslow -R 11 14 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_11-14c -m h2o-h2o_l318_11-14cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_11-14map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_11-14c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 15-20 '|' HITEMP edges: 350-500
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_350-500_HITEMP2010.par -R 15 20 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_15-20map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 15-20 '|' HITEMP edges: 350-500
+Ccorr_k -F pt_cont_reslow -R 15 20 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_15-20c -m h2o-h2o_l318_15-20cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_15-20map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_15-20c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 21-24 '|' HITEMP edges: 500-600
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_500-600_HITEMP2010.par -R 21 24 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_21-24map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 21-24 '|' HITEMP edges: 500-600
+Ccorr_k -F pt_cont_reslow -R 21 24 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_21-24c -m h2o-h2o_l318_21-24cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_21-24map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_21-24c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 25-28 '|' HITEMP edges: 600-700
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_600-700_HITEMP2010.par -R 25 28 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_25-28map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 25-28 '|' HITEMP edges: 600-700
+Ccorr_k -F pt_cont_reslow -R 25 28 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_25-28c -m h2o-h2o_l318_25-28cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_25-28map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_25-28c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 29-32 '|' HITEMP edges: 700-800
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_700-800_HITEMP2010.par -R 29 32 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_29-32map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 29-32 '|' HITEMP edges: 700-800
+Ccorr_k -F pt_cont_reslow -R 29 32 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_29-32c -m h2o-h2o_l318_29-32cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_29-32map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_29-32c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 33-36 '|' HITEMP edges: 800-900
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_800-900_HITEMP2010.par -R 33 36 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_33-36map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 33-36 '|' HITEMP edges: 800-900
+Ccorr_k -F pt_cont_reslow -R 33 36 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_33-36c -m h2o-h2o_l318_33-36cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_33-36map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_33-36c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 37-40 '|' HITEMP edges: 900-1000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_900-1000_HITEMP2010.par -R 37 40 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_37-40map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 37-40 '|' HITEMP edges: 900-1000
+Ccorr_k -F pt_cont_reslow -R 37 40 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_37-40c -m h2o-h2o_l318_37-40cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_37-40map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_37-40c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 41-46 '|' HITEMP edges: 1000-1150
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_1000-1150_HITEMP2010.par -R 41 46 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_41-46map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 41-46 '|' HITEMP edges: 1000-1150
+Ccorr_k -F pt_cont_reslow -R 41 46 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_41-46c -m h2o-h2o_l318_41-46cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_41-46map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_41-46c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 47-52 '|' HITEMP edges: 1150-1300
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_1150-1300_HITEMP2010.par -R 47 52 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_47-52map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 47-52 '|' HITEMP edges: 1150-1300
+Ccorr_k -F pt_cont_reslow -R 47 52 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_47-52c -m h2o-h2o_l318_47-52cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_47-52map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_47-52c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 53-60 '|' HITEMP edges: 1300-1500
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_1300-1500_HITEMP2010.par -R 53 60 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_53-60map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 53-60 '|' HITEMP edges: 1300-1500
+Ccorr_k -F pt_cont_reslow -R 53 60 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_53-60c -m h2o-h2o_l318_53-60cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_53-60map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_53-60c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 61-70 '|' HITEMP edges: 1500-1750
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_1500-1750_HITEMP2010.par -R 61 70 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_61-70map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 61-70 '|' HITEMP edges: 1500-1750
+Ccorr_k -F pt_cont_reslow -R 61 70 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_61-70c -m h2o-h2o_l318_61-70cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_61-70map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_61-70c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 71-80 '|' HITEMP edges: 1750-2000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_1750-2000_HITEMP2010.par -R 71 80 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_71-80map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 71-80 '|' HITEMP edges: 1750-2000
+Ccorr_k -F pt_cont_reslow -R 71 80 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_71-80c -m h2o-h2o_l318_71-80cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_71-80map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_71-80c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 81-90 '|' HITEMP edges: 2000-2250
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_2000-2250_HITEMP2010.par -R 81 90 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_81-90map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 81-90 '|' HITEMP edges: 2000-2250
+Ccorr_k -F pt_cont_reslow -R 81 90 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_81-90c -m h2o-h2o_l318_81-90cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_81-90map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_81-90c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 91-100 '|' HITEMP edges: 2250-2500
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_2250-2500_HITEMP2010.par -R 91 100 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_91-100map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 91-100 '|' HITEMP edges: 2250-2500
+Ccorr_k -F pt_cont_reslow -R 91 100 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_91-100c -m h2o-h2o_l318_91-100cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_91-100map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_91-100c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 101-110 '|' HITEMP edges: 2500-2750
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_2500-2750_HITEMP2010.par -R 101 110 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_101-110map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 101-110 '|' HITEMP edges: 2500-2750
+Ccorr_k -F pt_cont_reslow -R 101 110 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_101-110c -m h2o-h2o_l318_101-110cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_101-110map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_101-110c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 111-120 '|' HITEMP edges: 2750-3000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_2750-3000_HITEMP2010.par -R 111 120 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_111-120map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 111-120 '|' HITEMP edges: 2750-3000
+Ccorr_k -F pt_cont_reslow -R 111 120 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_111-120c -m h2o-h2o_l318_111-120cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_111-120map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_111-120c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 121-125 '|' HITEMP edges: 3000-3250
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_3000-3250_HITEMP2010.par -R 121 125 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_121-125map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 121-125 '|' HITEMP edges: 3000-3250
+Ccorr_k -F pt_cont_reslow -R 121 125 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_121-125c -m h2o-h2o_l318_121-125cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_121-125map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_121-125c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 126-130 '|' HITEMP edges: 3250-3500
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_3250-3500_HITEMP2010.par -R 126 130 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_126-130map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 126-130 '|' HITEMP edges: 3250-3500
+Ccorr_k -F pt_cont_reslow -R 126 130 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_126-130c -m h2o-h2o_l318_126-130cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_126-130map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_126-130c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 131-143 '|' HITEMP edges: 3500-4150
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_3500-4150_HITEMP2010.par -R 131 143 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_131-143map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 131-143 '|' HITEMP edges: 3500-4150
+Ccorr_k -F pt_cont_reslow -R 131 143 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_131-143c -m h2o-h2o_l318_131-143cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_131-143map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_131-143c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 144-150 '|' HITEMP edges: 4150-4500
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_4150-4500_HITEMP2010.par -R 144 150 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_144-150map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 144-150 '|' HITEMP edges: 4150-4500
+Ccorr_k -F pt_cont_reslow -R 144 150 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_144-150c -m h2o-h2o_l318_144-150cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_144-150map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_144-150c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 151-160 '|' HITEMP edges: 4500-5000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_4500-5000_HITEMP2010.par -R 151 160 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_151-160map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 151-160 '|' HITEMP edges: 4500-5000
+Ccorr_k -F pt_cont_reslow -R 151 160 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_151-160c -m h2o-h2o_l318_151-160cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_151-160map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_151-160c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 161-170 '|' HITEMP edges: 5000-5500
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_5000-5500_HITEMP2010.par -R 161 170 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_161-170map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 161-170 '|' HITEMP edges: 5000-5500
+Ccorr_k -F pt_cont_reslow -R 161 170 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_161-170c -m h2o-h2o_l318_161-170cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_161-170map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_161-170c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 171-180 '|' HITEMP edges: 5500-6000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_5500-6000_HITEMP2010.par -R 171 180 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_171-180map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 171-180 '|' HITEMP edges: 5500-6000
+Ccorr_k -F pt_cont_reslow -R 171 180 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_171-180c -m h2o-h2o_l318_171-180cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_171-180map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_171-180c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 181-190 '|' HITEMP edges: 6000-6500
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_6000-6500_HITEMP2010.par -R 181 190 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_181-190map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 181-190 '|' HITEMP edges: 6000-6500
+Ccorr_k -F pt_cont_reslow -R 181 190 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_181-190c -m h2o-h2o_l318_181-190cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_181-190map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_181-190c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 191-200 '|' HITEMP edges: 6500-7000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_6500-7000_HITEMP2010.par -R 191 200 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_191-200map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 191-200 '|' HITEMP edges: 6500-7000
+Ccorr_k -F pt_cont_reslow -R 191 200 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_191-200c -m h2o-h2o_l318_191-200cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_191-200map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_191-200c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 201-210 '|' HITEMP edges: 7000-7500
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_7000-7500_HITEMP2010.par -R 201 210 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_201-210map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 201-210 '|' HITEMP edges: 7000-7500
+Ccorr_k -F pt_cont_reslow -R 201 210 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_201-210c -m h2o-h2o_l318_201-210cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_201-210map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_201-210c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 211-220 '|' HITEMP edges: 7500-8000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_7500-8000_HITEMP2010.par -R 211 220 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_211-220map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 211-220 '|' HITEMP edges: 7500-8000
+Ccorr_k -F pt_cont_reslow -R 211 220 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_211-220c -m h2o-h2o_l318_211-220cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_211-220map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_211-220c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 221-230 '|' HITEMP edges: 8000-8500
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_8000-8500_HITEMP2010.par -R 221 230 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_221-230map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 221-230 '|' HITEMP edges: 8000-8500
+Ccorr_k -F pt_cont_reslow -R 221 230 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_221-230c -m h2o-h2o_l318_221-230cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_221-230map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_221-230c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 231-240 '|' HITEMP edges: 8500-9000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_8500-9000_HITEMP2010.par -R 231 240 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_231-240map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 231-240 '|' HITEMP edges: 8500-9000
+Ccorr_k -F pt_cont_reslow -R 231 240 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_231-240c -m h2o-h2o_l318_231-240cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_231-240map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_231-240c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 241-280 '|' HITEMP edges: 9000-11000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_9000-11000_HITEMP2010.par -R 241 280 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_241-280map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 241-280 '|' HITEMP edges: 9000-11000
+Ccorr_k -F pt_cont_reslow -R 241 280 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_241-280c -m h2o-h2o_l318_241-280cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_241-280map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_241-280c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo Delete:
+echo ls *h2o_*
+rm -rf *h2o_*
+echo '##########' H2O bands 281-318 '|' HITEMP edges: 11000-30000
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/01_11000-30000_HITEMP2010.par -R 281 318 -c 3000.0 -i 1.0 -l 1 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o h2o_l318_l -m h2o_l318_lm -L h2o_lbl_lwf_pt48_reslow.nc -sm h2o_l318_281-318map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2o_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' H2O-H2O MT_CKD 281-318 '|' HITEMP edges: 11000-30000
+Ccorr_k -F pt_cont_reslow -R 281 318 -c 2500.0 -i 1.0 -ct 1 1 10.0 -t 1.0e-3 -e ../dat_continua/mt_ckd_v3.0_s296 ../dat_continua/mt_ckd_v3.0_s260 -k -s sp_all_hitemp_318 +p -lk -o h2o-h2o_l318_281-318c -m h2o-h2o_l318_281-318cm -L h2o-h2o_lbl_lw.nc -lw h2o_l318_281-318map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2o-h2o_l318_281-318c
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   CO2 lines – HITEMP   ###############'
+echo '##########' CO2 bands 1-20 '|' HITEMP edges: 0-500
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_0-500_HITEMP2010.par -R 1 20 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_1-20map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 21-25 '|' HITEMP edges: 500-625
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_500-625_HITEMP2010.par -R 21 25 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_21-25map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 26-30 '|' HITEMP edges: 625-750
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_625-750_HITEMP2010.par -R 26 30 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_26-30map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 31-40 '|' HITEMP edges: 750-1000
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_750-1000_HITEMP2010.par -R 31 40 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_31-40map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 41-60 '|' HITEMP edges: 1000-1500
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_1000-1500_HITEMP2010.par -R 41 60 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_41-60map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 61-80 '|' HITEMP edges: 1500-2000
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_1500-2000_HITEMP2010.par -R 61 80 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_61-80map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 81-85 '|' HITEMP edges: 2000-2125
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_2000-2125_HITEMP2010.par -R 81 85 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_81-85map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 86-90 '|' HITEMP edges: 2125-2250
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_2125-2250_HITEMP2010.par -R 86 90 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_86-90map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 91-100 '|' HITEMP edges: 2250-2500
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_2250-2500_HITEMP2010.par -R 91 100 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_91-100map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 101-120 '|' HITEMP edges: 2500-3000
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_2500-3000_HITEMP2010.par -R 101 120 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_101-120map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 121-125 '|' HITEMP edges: 3000-3250
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_3000-3250_HITEMP2010.par -R 121 125 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_121-125map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 126-130 '|' HITEMP edges: 3250-3500
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_3250-3500_HITEMP2010.par -R 126 130 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_126-130map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 131-135 '|' HITEMP edges: 3500-3750
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_3500-3750_HITEMP2010.par -R 131 135 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_131-135map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 136-140 '|' HITEMP edges: 3750-4000
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_3750-4000_HITEMP2010.par -R 136 140 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_136-140map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 141-150 '|' HITEMP edges: 4000-4500
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_4000-4500_HITEMP2010.par -R 141 150 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_141-150map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 151-160 '|' HITEMP edges: 4500-5000
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_4500-5000_HITEMP2010.par -R 151 160 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_151-160map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 161-170 '|' HITEMP edges: 5000-5500
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_5000-5500_HITEMP2010.par -R 161 170 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_161-170map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 171-180 '|' HITEMP edges: 5500-6000
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_5500-6000_HITEMP2010.par -R 171 180 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_171-180map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 181-190 '|' HITEMP edges: 6000-6500
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_6000-6500_HITEMP2010.par -R 181 190 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_181-190map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '##########' CO2 bands 191-318 '|' HITEMP edges: 6500-12785
+echo Delete:
+echo ls *co2_*
+rm -rf *co2_*
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/02_6500-12785_HITEMP2010.par -R 191 318 -c 3000.0 -i 1.0 -l 2 1.0e1 -b 1.5e-3 -s sp_all_hitemp_318 +p -lk -k -o co2_l318_l -m co2_l318_lm -L co2_lbl_lwf_pt48_reslow.nc -sm co2_l318_191-318map.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co2_l318_l
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   CH4 lines – HITEMP   ###############'
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/06_HITEMP2020_provisional_all.par -R 1 318 -c 3000.0 -i 1.0 -l 6 1.0e1 -t 1.0e-2 -k -s sp_all_hitemp_318 +p -lk -o ch4_o -m ch4_m -L ch4_lbl.nc -np 2
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+ch4_o
+-1
+EOF
+echo '###############   CO lines – HITEMP   ###############'
+Ccorr_k -F pt48_reslow -D ../dat_hitemp/05_HITEMP2019.par -R 1 318 -c 3000.0 -i 1.0 -l 5 1.0e1 -t 1.0e-2 -k -s sp_all_hitemp_318 +p -lk -o co_o -m co_m -L co_lbl.nc -np 2
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+co_o
+-1
+EOF
+echo '###############   O2 lines   ###############'
+Ccorr_k -F pt48_reslow -D ../dat_hitran/o2_hitran.par -R 1 318 -c 3000.0 -i 1.0 -l 7 1.0e1 -t 1.0e-2 -k -s sp_all_hitemp_318 +p -lk -o o2_o -m o2_m -L o2_lbl.nc -np 2
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+o2_o
+-1
+EOF
+echo '###############   H2 lines   ###############'
+Ccorr_k -F pt48_reslow -D ../dat_hitran/h2_hitran.par -R 1 318 -c 3000.0 -i 1.0 -l 23 1.0e1 -t 1.0e-2 -k -s sp_all_hitemp_318 +p -lk -o h2_o -m h2_m -L h2_lbl.nc -np 2
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+h2_o
+-1
+EOF
+echo '###############   N2 lines   ###############'
+Ccorr_k -F pt48_reslow -D ../dat_hitran/n2_hitran.par -R 1 318 -c 3000.0 -i 1.0 -l 13 1.0e1 -t 1.0e-2 -k -s sp_all_hitemp_318 +p -lk -o n2_o -m n2_m -L n2_lbl.nc -np 2
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+5
+y
+n2_o
+-1
+EOF
+echo '###############   N2-N2 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/N2-N2_2018_fixed.cia -R 1 318 -i 1.0 -ct 13 13 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o n2n2_o -m n2n2_m -L n2n2_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+n2n2_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   O2-O2 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/O2-O2_2018b_fixed.cia -R 1 318 -i 1.0 -ct 7 7 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o o2o2_o -m o2o2_m -L o2o2_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+o2o2_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   H2-H2 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/H2-H2_CIA_Borysow_combined.cia -R 1 318 -i 1.0 -ct 23 23 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o h2h2_o -m h2h2_m -L h2h2_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2h2_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   CO2-CO2 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/CO2-CO2_2018_fixed.cia -R 1 318 -i 1.0 -ct 2 2 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o co2co2_o -m co2co2_m -L co2co2_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+co2co2_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   CH4-CH4 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/CH4-CH4_2011.cia -R 1 318 -i 1.0 -ct 6 6 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o ch4ch4_o -m ch4ch4_m -L ch4ch4_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+ch4ch4_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   CO2-H2 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/CO2-H2_2018.cia -R 1 318 -i 1.0 -ct 2 23 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o co2h2_o -m co2h2_m -L co2h2_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+co2h2_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+sed -i -e 's/          51/           0/g' sp_all_hitemp_318
+echo '###############   CO2-CH4 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/CO2-CH4_2018.cia -R 1 318 -i 1.0 -ct 2 6 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o co2ch4_o -m co2ch4_m -L co2ch4_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+co2ch4_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+sed -i -e 's/          51/           0/g' sp_all_hitemp_318
+echo '###############   O2-N2 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/O2-N2_2018_fixed.cia -R 1 318 -i 1.0 -ct 7 13 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o o2n2_o -m o2n2_m -L o2n2_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+o2n2_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   O2-CO2 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/O2-CO2_2011.cia -R 1 318 -i 1.0 -ct 7 2 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o o2co2_o -m o2co2_m -L o2co2_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+o2co2_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   N2-CH4 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/N2-CH4_2011.cia -R 1 318 -i 1.0 -ct 13 6 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o n2ch4_o -m n2ch4_m -L n2ch4_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+n2ch4_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   N2-H2 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/N2-H2_2011.cia -R 1 318 -i 1.0 -ct 13 23 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o n2h2_o -m n2h2_m -L n2h2_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+n2h2_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   N2-H2O CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/N2-H2O_2018.cia -R 1 318 -i 1.0 -ct 13 1 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o n2h2o_o -m n2h2o_m -L n2h2o_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+n2h2o_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+echo '###############   H2-CH4 CIA   ###############'
+Ccorr_k -F pt_cont_reslow -CIA ../dat_continua/H2-CH4_eq_2011.cia -R 1 318 -i 1.0 -ct 23 6 1.0e2 -t 1.0e-2 -s sp_all_hitemp_318 +p -lk -o h2ch4_o -m h2ch4_m -L h2ch4_lbl.nc
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+19
+y
+h2ch4_o
+-1
+EOF
+sed -i -e 's/\*\*\*\*\*/0/g' sp_all_hitemp_318
+sed -i -e 's/\*\*\*//g' sp_all_hitemp_318
+sed -i -e 's/            NaN/0.000000000E+00/g' sp_all_hitemp_318
+prep_spec <<EOF
+sp_all_hitemp_318
+a
+6
+n
+T
+100 4000
+100
+2
+n
+/Users/tim/bitbucket/pcd_couple-interior-atmosphere/socrates/socrates_main/data/solar/kurucz_95
+y
+-1
+EOF

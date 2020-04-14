@@ -219,7 +219,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age):
         ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)')
         ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
         ax3.legend()
-        ax3.set_xlim(left=0, right=5000)
+        ax3.set_xlim(left=0, right=30000)
         ax3.set_ylim(bottom=0)
 
         # Heating versus pressure
@@ -476,11 +476,11 @@ if __name__ == "__main__":
 
     # Surface pressure & temperature
     P_surf        = 260e+5              # Pa
-    T_surf        = 1000.               # K
+    T_surf        = 1500.               # K
 
-    # Volatile molar concentrations: ! must sum to ~1 !
+    # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : .999, 
+                  "H2O" : 1.0, 
                   "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
@@ -516,3 +516,7 @@ if __name__ == "__main__":
 
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm)
+
+#     TOA heating: 267.0 W/m^2
+# w/o stratosphere (net, OLR): 228.496 438.886 W/m^2
+# No tropopause
