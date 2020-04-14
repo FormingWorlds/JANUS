@@ -21,7 +21,8 @@ path_to_socrates      = os.getcwd()+"/socrates/socrates_main"
 
 path_to_spectral_file = os.getcwd()+"/spectral-files/sp_all_2020/sp_spider"
 # path_to_spectral_file = os.getcwd()+"/spectral-files/sp_all_hitemp_lowres/sp_all_hitemp_318"
-path_to_spectral_file = os.getcwd()+"/spectral-files/sp_all_hitran_highres/sp_all_318_hitran"
+# path_to_spectral_file = os.getcwd()+"/spectral-files/sp_all_hitran_highres/sp_all_318_hitran"
+path_to_spectral_file = os.getcwd()+"/spectral-files/sp_all_hitran_lowres/sp_all_318_hitran"
 
 def radCompSoc(atm, toa_heating):
 
