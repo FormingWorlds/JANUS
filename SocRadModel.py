@@ -18,7 +18,10 @@ from netCDF4 import Dataset
 from atmosphere_column import atmos
 
 path_to_socrates      = os.getcwd()+"/socrates/socrates_main"
-path_to_spectral_file = os.getcwd()+"/spectral-files/gen_all_2020/sp_spider"
+
+path_to_spectral_file = os.getcwd()+"/spectral-files/sp_all_2020/sp_spider"
+# path_to_spectral_file = os.getcwd()+"/spectral-files/sp_all_hitemp_lowres/sp_all_hitemp_318"
+path_to_spectral_file = os.getcwd()+"/spectral-files/sp_all_hitran_highres/sp_all_318_hitran"
 
 def radCompSoc(atm, toa_heating):
 
@@ -55,9 +58,9 @@ def radCompSoc(atm, toa_heating):
     s = " "
 
     # Anchor spectral files and run SOCRATES
-    seq4 = ("Cl_run_cdf -B", basename,"-s", path_to_spectral_file, "-R 1 300 -ch 300 -S -g 2 -C 5 -u")
+    seq4 = ("Cl_run_cdf -B", basename,"-s", path_to_spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u")
     seq5 = ("fmove", basename,"currentsw")
-    seq6 = ("Cl_run_cdf -B", basename,"-s", path_to_spectral_file, "-R 1 300 -ch 300 -I -g 2 -C 5 -u")
+    seq6 = ("Cl_run_cdf -B", basename,"-s", path_to_spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u")
     seq7 = ("fmove", basename,"currentlw")
 
     comline1 = s.join(seq4)
