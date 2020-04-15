@@ -8,6 +8,7 @@ Tim Lichtenberg (TL)
 SOCRATES radiative-convective model
 '''
 
+import os
 import numpy as np
 import math,phys
 import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
@@ -23,7 +24,7 @@ import copy
 # Constants
 L_sun       = 3.828e+26                     # W, IAU definition
 AU          = 1.495978707e+11               # m
-R_universal = 8.31446261815324            # Universal gas constant, J.K-1.mol-1
+R_universal = 8.31446261815324              # Universal gas constant, J.K-1.mol-1
 
 # Number of radiation and dry adjustment steps
 rad_steps   = 1
@@ -42,27 +43,16 @@ def surf_Planck_nu(atm):
     B   = (1.-atm.albedo_s) * np.pi * B * atm.band_widths/1000.0
     return B
 
-# def SpectralExitance_nu(atm):
-#     h   = 6.62607015e-34
-#     c   = 2.99792458e+8
-#     kb  = 1.380649e-23
-#     B   = np.zeros(len(atm.band_centres))
-#     for i, nu in enumerate(atm.band_centres[i]):
-#         B[i] = ( 2.*h*(c**2.)*(nu**3) / ( np.exp( h*c*nu / (kb*atm.ts) ) - 1 ) )
-#     B   *= 
-#     B   *= atm.band_widths
-#     return B
+def RadConvEqm(dirs, time_current, time_offset, atm, loop_counter, SPIDER_options, standalone, cp_dry):
 
-def RadConvEqm(output_dir, star_age, atm, toa_heating, loop_counter, SPIDER_options, standalone, cp_dry):
-
-    atm_dry, atm_moist = radiation_timestepping(atm, toa_heating, rad_steps, cp_dry)
+    atm_dry, atm_moist = radiation_timestepping(atm, rad_steps, cp_dry, dirs)
 
     # Plot
     if standalone == True:
-        plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age)
+        plot_flux_balance(atm_dry, atm_moist, cp_dry, time_current, time_offset)
     
     if cp_dry == True:
-        plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age)
+        plot_flux_balance(atm_dry, atm_moist, cp_dry, time_current, time_offset)
         print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
         print("| dry:", str(round(atm_dry.net_flux[0], 3)), str(round(atm_dry.LW_flux_up[0], 3)) + " W/m^2", end=" ")
         print()
@@ -154,125 +144,127 @@ def MoistAdj(atm, dT):
 
     return atm 
 
-def plot_flux_balance(atm_dry, atm_moist, cp_dry, star_age):
+def plot_flux_balance(atm_dry, atm_moist, cp_dry, time_current, time_offset):
 
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(13,10))
-        sns.set_style("ticks")
-        sns.despine()
+    star_age = time_current+time_offset # yr
 
-        # Line settings
-        col_idx  = 3
-        col_vol1 = "H2O"
-        col_vol2 = "N2"
-        col_vol3 = "H2"
-        col_vol4 = "O2"
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(13,10))
+    sns.set_style("ticks")
+    sns.despine()
 
-        # Temperature vs. pressure
-        ax1.semilogy(atm_moist.tmp,atm_moist.p, color=ga.vol_colors[col_vol1][col_idx+1], ls="-", label=r'Moist adiabat')
-        if cp_dry == True: ax1.semilogy(atm_dry.tmp,atm_dry.p, color=ga.vol_colors[col_vol3][col_idx+1], ls="-", label=r'Dry adiabat')
-        ax1.legend()
-        ax1.invert_yaxis()
-        ax1.set_xlabel(r'Temperature $T$ (K)')
-        ax1.set_ylabel(r'Pressure $P$ (Pa)')
-        ax1.set_ylim(bottom=atm_moist.ps*1.01)
+    # Line settings
+    col_idx  = 3
+    col_vol1 = "H2O"
+    col_vol2 = "N2"
+    col_vol3 = "H2"
+    col_vol4 = "O2"
 
-        # Fluxes vs. pressure
+    # Temperature vs. pressure
+    ax1.semilogy(atm_moist.tmp,atm_moist.p, color=ga.vol_colors[col_vol1][col_idx+1], ls="-", label=r'Moist adiabat')
+    if cp_dry == True: ax1.semilogy(atm_dry.tmp,atm_dry.p, color=ga.vol_colors[col_vol3][col_idx+1], ls="-", label=r'Dry adiabat')
+    ax1.legend()
+    ax1.invert_yaxis()
+    ax1.set_xlabel(r'Temperature $T$ (K)')
+    ax1.set_ylabel(r'Pressure $P$ (Pa)')
+    ax1.set_ylim(bottom=atm_moist.ps*1.01)
 
-        # Zero line
-        ax2.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
-        # ax2.axvline(-1e+3, color=ga.vol_colors["qgray_light"], lw=0.5)
-        # ax2.axvline(1e+3, color=ga.vol_colors["qgray_light"], lw=0.5)
+    # Fluxes vs. pressure
 
-        # LW down
-        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls="--")
-        ax2.semilogy(atm_moist.LW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx+1], ls="--", label=r'$F_\mathrm{LW}^{\downarrow}$')
-        # ls=(0, (3, 1, 1, 1))
-        
-        # SW down
-        if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
-        ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx], ls=":", label=r'$F_\mathrm{SW}^{\downarrow}$')
-        
-        # Net flux
-        if cp_dry == True: ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color=ga.vol_colors[col_vol3][6], ls="-", lw=2)
-        ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color=ga.vol_colors[col_vol1][6], ls="-", lw=2, label=r'$F_\mathrm{net}$')
+    # Zero line
+    ax2.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
+    # ax2.axvline(-1e+3, color=ga.vol_colors["qgray_light"], lw=0.5)
+    # ax2.axvline(1e+3, color=ga.vol_colors["qgray_light"], lw=0.5)
 
-        # SW up
-        if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
-        ax2.semilogy(atm_moist.SW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=":", label=r'$F_\mathrm{SW}^{\uparrow}$')
-        
-        # LW up
-        if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=(0, (5, 1)))
-        ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=(0, (5, 1)), label=r'$F_\mathrm{LW}^{\uparrow}$')
-        
-        ax2.legend(ncol=6, fontsize=10, loc=3)
-        ax2.invert_yaxis()
-        ax2.set_xscale("symlog") # https://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
-        ax2.set_xlabel(r'Outgoing flux $F^{\uparrow}$ (W m$^{-2}$)')
-        ax2.set_ylabel(r'Pressure $P$ (Pa)')
-        ax2.set_ylim(bottom=atm_moist.ps*1.01)
+    # LW down
+    if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls="--")
+    ax2.semilogy(atm_moist.LW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx+1], ls="--", label=r'$F_\mathrm{LW}^{\downarrow}$')
+    # ls=(0, (3, 1, 1, 1))
+    
+    # SW down
+    if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
+    ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx], ls=":", label=r'$F_\mathrm{SW}^{\downarrow}$')
+    
+    # Net flux
+    if cp_dry == True: ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color=ga.vol_colors[col_vol3][6], ls="-", lw=2)
+    ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color=ga.vol_colors[col_vol1][6], ls="-", lw=2, label=r'$F_\mathrm{net}$')
 
-        # Wavenumber vs. OLR
-        ax3.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label=str(round(atm_moist.ts))+' K blackbody')
-        if cp_dry == True: ax3.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths, color=ga.vol_colors[col_vol2][col_idx+1])
-        ax3.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol1][col_idx+1])
-        ax3.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
-        ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)')
-        ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
-        ax3.legend()
-        ax3.set_xlim(left=0, right=30000)
-        ax3.set_ylim(bottom=0)
+    # SW up
+    if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
+    ax2.semilogy(atm_moist.SW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=":", label=r'$F_\mathrm{SW}^{\uparrow}$')
+    
+    # LW up
+    if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=(0, (5, 1)))
+    ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=(0, (5, 1)), label=r'$F_\mathrm{LW}^{\uparrow}$')
+    
+    ax2.legend(ncol=6, fontsize=10, loc=3)
+    ax2.invert_yaxis()
+    ax2.set_xscale("symlog") # https://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
+    ax2.set_xlabel(r'Outgoing flux $F^{\uparrow}$ (W m$^{-2}$)')
+    ax2.set_ylabel(r'Pressure $P$ (Pa)')
+    ax2.set_ylim(bottom=atm_moist.ps*1.01)
 
-        # Heating versus pressure
-        ax4.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
+    # Wavenumber vs. OLR
+    ax3.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label=str(round(atm_moist.ts))+' K blackbody')
+    if cp_dry == True: ax3.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths, color=ga.vol_colors[col_vol2][col_idx+1])
+    ax3.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol1][col_idx+1])
+    ax3.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
+    ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)')
+    ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
+    ax3.legend()
+    ax3.set_xlim(left=0, right=30000)
+    ax3.set_ylim(bottom=0)
 
-        ax4.plot(atm_moist.LW_heating, atm_moist.p, ls="--", color=ga.vol_colors[col_vol1][col_idx+1], label=r'LW')
-        ax4.plot(atm_moist.net_heating, atm_moist.p, lw=2, color=ga.vol_colors[col_vol1][col_idx+1], label=r'Net')
-        ax4.plot(atm_moist.SW_heating, atm_moist.p, ls=":", color=ga.vol_colors[col_vol1][col_idx+1], label=r'SW')
+    # Heating versus pressure
+    ax4.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
 
-        # Plot tropopause
-        trpp_idx = int(atm_moist.trpp[0])
-        if trpp_idx > 0:
-            ax4.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol2][col_idx], lw=0.8, ls="-.", label=r'Tropopause')
-        
-        ax4.invert_yaxis()
-        ax4.legend(ncol=4, fontsize=10, loc=3)
-        ax4.set_ylabel(r'Pressure $P$ (Pa)')
-        ax4.set_xlabel(r'Heating (K/day)')
-        # ax4.set_xscale("log")
-        ax4.set_yscale("log") 
-        x_minmax = np.max([abs(np.min(atm_moist.net_heating[50:])), abs(np.max(atm_moist.net_heating[50:]))])
-        ax4.set_xlim(left=-x_minmax, right=x_minmax)
-        ax4.set_ylim(bottom=atm_moist.ps*1.01)
-        # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
-        # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
-        # ax4.set_xticklabels(["0.1", "0.3", "1", "3", "10", "30", "100"])
-        
-        # # Wavelength versus OLR log plot
-        # OLR_cm_moist = atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths
-        # wavelength_moist  = [ 1e+4/i for i in atm_moist.band_centres ]          # microns
-        # OLR_micron_moist  = [ 1e+4*i for i in OLR_cm_moist ]                    # microns
-        # if cp_dry == True: 
-        #     OLR_cm_dry = atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths
-        #     wavelength_dry  = [ 1e+4/i for i in atm_dry.band_centres ]              # microns
-        #     OLR_micron_dry  = [ 1e+4*i for i in OLR_cm_dry ]                        # microns
-        #     ax4.plot(wavelength_dry, OLR_micron_dry, color=ga.vol_colors[col_vol3][col_idx+1])
-        
-        # ax4.plot(wavelength_moist, OLR_micron_moist, color=ga.vol_colors[col_vol1][col_idx+1])
-        # ax4.set_ylabel(r'Spectral flux density (W m$^{-2}$ $\mu$m$^{-1}$)')
-        # ax4.set_xlabel(r'Wavelength $\lambda$ ($\mu$m)')
-        # ax4.set_xscale("log")
-        # ax4.set_yscale("log") 
-        # ax4.set_xlim(left=0.1, right=100)
-        # ax4.set_ylim(bottom=1e-20, top=1e5)
-        # # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
-        # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
-        # ax4.set_xticklabels(["0.1", "0.3", "1", "3", "10", "30", "100"])
+    ax4.plot(atm_moist.LW_heating, atm_moist.p, ls="--", color=ga.vol_colors[col_vol1][col_idx+1], label=r'LW')
+    ax4.plot(atm_moist.net_heating, atm_moist.p, lw=2, color=ga.vol_colors[col_vol1][col_idx+1], label=r'Net')
+    ax4.plot(atm_moist.SW_heating, atm_moist.p, ls=":", color=ga.vol_colors[col_vol1][col_idx+1], label=r'SW')
 
-        plt.savefig("./output"+'/TP_profile_'+str(round(star_age))+'.pdf', bbox_inches="tight")
-        plt.close(fig)
+    # Plot tropopause
+    trpp_idx = int(atm_moist.trpp[0])
+    if trpp_idx > 0:
+        ax4.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol2][col_idx], lw=0.8, ls="-.", label=r'Tropopause')
+    
+    ax4.invert_yaxis()
+    ax4.legend(ncol=4, fontsize=10, loc=3)
+    ax4.set_ylabel(r'Pressure $P$ (Pa)')
+    ax4.set_xlabel(r'Heating (K/day)')
+    # ax4.set_xscale("log")
+    ax4.set_yscale("log") 
+    x_minmax = np.max([abs(np.min(atm_moist.net_heating[50:])), abs(np.max(atm_moist.net_heating[50:]))])
+    ax4.set_xlim(left=-x_minmax, right=x_minmax)
+    ax4.set_ylim(bottom=atm_moist.ps*1.01)
+    # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
+    # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
+    # ax4.set_xticklabels(["0.1", "0.3", "1", "3", "10", "30", "100"])
+    
+    # # Wavelength versus OLR log plot
+    # OLR_cm_moist = atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths
+    # wavelength_moist  = [ 1e+4/i for i in atm_moist.band_centres ]          # microns
+    # OLR_micron_moist  = [ 1e+4*i for i in OLR_cm_moist ]                    # microns
+    # if cp_dry == True: 
+    #     OLR_cm_dry = atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths
+    #     wavelength_dry  = [ 1e+4/i for i in atm_dry.band_centres ]              # microns
+    #     OLR_micron_dry  = [ 1e+4*i for i in OLR_cm_dry ]                        # microns
+    #     ax4.plot(wavelength_dry, OLR_micron_dry, color=ga.vol_colors[col_vol3][col_idx+1])
+    
+    # ax4.plot(wavelength_moist, OLR_micron_moist, color=ga.vol_colors[col_vol1][col_idx+1])
+    # ax4.set_ylabel(r'Spectral flux density (W m$^{-2}$ $\mu$m$^{-1}$)')
+    # ax4.set_xlabel(r'Wavelength $\lambda$ ($\mu$m)')
+    # ax4.set_xscale("log")
+    # ax4.set_yscale("log") 
+    # ax4.set_xlim(left=0.1, right=100)
+    # ax4.set_ylim(bottom=1e-20, top=1e5)
+    # # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
+    # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
+    # ax4.set_xticklabels(["0.1", "0.3", "1", "3", "10", "30", "100"])
+
+    plt.savefig("./output"+'/TP_profile_'+str(round(star_age))+'.pdf', bbox_inches="tight")
+    plt.close(fig)
 
 # Time integration for n steps
-def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
+def radiation_timestepping(atm, rad_steps, cp_dry, dirs):
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry         = 0.
@@ -291,10 +283,10 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
         # Time stepping
         for i in range(0, rad_steps):
 
-            # toa_heating = 0
+            # atm.toa_heating = 0
 
             # Compute radiation, midpoint method time stepping
-            atm_dry         = SocRadModel.radCompSoc(atm_dry, toa_heating)
+            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False)
             dT_dry          = atm_dry.total_heating * atm_dry.dt
 
             # Limit the temperature change per step
@@ -343,7 +335,7 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
     ### Moist outgoing LW only, no heating
 
     # Compute radiation, no moist timestepping
-    atm_moist       = SocRadModel.radCompSoc(atm_moist, toa_heating)
+    atm_moist       = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False)
 
     print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
@@ -379,7 +371,7 @@ def radiation_timestepping(atm, toa_heating, rad_steps, cp_dry):
         atm_moist = set_stratosphere(atm_moist)
 
         # Recalculate fluxes w/ new atmosphere structure
-        atm_moist       = SocRadModel.recalc_fluxes(atm_moist, toa_heating)
+        atm_moist       = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True)
 
         print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
     else:
@@ -443,24 +435,25 @@ def set_stratosphere(atm):
 
     return atm
 
-def InterpolateStellarLuminosity(star_mass, star_age, mean_distance, albedo):
+def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance, albedo):
 
     luminosity_df           = pd.read_csv("luminosity_tracks/Lum_m"+str(star_mass)+".txt")
-    star_age                = star_age/1e+6         # Myr
-    ages                    = luminosity_df["age"]*1e+3 # Myr
-    luminosities            = luminosity_df["lum"]      # L_sol
+    star_age                = (time_current+time_offset)/1e+6   # Myr
+    ages                    = luminosity_df["age"]*1e+3         # Myr
+    luminosities            = luminosity_df["lum"]              # L_sol
 
     # Interpolate luminosity for current time
     interpolate_luminosity  = interpolate.interp1d(ages, luminosities)
     interpolated_luminosity = interpolate_luminosity([star_age])*L_sun
 
+    # Stellar constant
     S_0                     = interpolated_luminosity / ( 4. * np.pi * (mean_distance*AU)**2. )
     S_0                     = S_0[0]
 
-    # Mean flux
-    toa_heating     = ( 1. - albedo ) * S_0 / 4.
+    # Mean flux averaged over surface area
+    toa_heating             = ( 1. - albedo ) * S_0 / 4.
     
-    return toa_heating, interpolated_luminosity/L_sun
+    return toa_heating
 
 ####################################
 ##### Stand-alone initial conditions
@@ -470,9 +463,10 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet age and orbit
-    star_age      = 4567e+6             # yr
-    star_mass     = 1.0                 # M_sun
-    mean_distance = 1.0                 # au
+    time_current  = 0                   # yr, time after start of MO
+    time_offset   = 4567e+6             # yr, time relative to star formation
+    star_mass     = 1.0                 # M_sun, mass of star
+    mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
     P_surf        = 260e+5              # Pa
@@ -497,26 +491,24 @@ if __name__ == "__main__":
     # Compare to the dry adiabat w/ time stepping
     cp_dry = False
 
+
+
     ##### Function calls
 
     # Create atmosphere object
     atm            = atmos(T_surf, P_surf, vol_list)
 
     # Compute stellar heating
-    toa_heating, star_luminosity = InterpolateStellarLuminosity(star_mass, star_age, mean_distance, atm.albedo_pl)
+    atm.toa_heating = InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance, atm.albedo_pl)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
-        toa_heating = 0.
+        atm.toa_heating = 0.
     else:
-        print("TOA heating:", round(toa_heating), "W/m^2")
+        print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm = RadConvEqm("./output", star_age, atm, toa_heating, [], [], standalone=True, cp_dry=False)
+    atm = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time_current, time_offset, atm, [], [], standalone=True, cp_dry=False)
 
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm)
-
-#     TOA heating: 267.0 W/m^2
-# w/o stratosphere (net, OLR): 228.496 438.886 W/m^2
-# No tropopause

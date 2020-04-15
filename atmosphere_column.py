@@ -3,8 +3,6 @@
 
 import numpy as np
 
-# surface_pressure 	= 1e+5 						# Pa
-# top_pressure 		= 1e-7*surface_pressure 	# Pa
 n_vertical_levels 	= 10000  					# For computation
 timestep 			= 0.5						# days
 n_absorbing_species = 7
@@ -29,6 +27,9 @@ class atmos:
 		
 		self.dt 			= timestep
 
+		self.toa_heating    = 0. 							# W/m^2
+		self.star_lum       = 0. 							# L_sun
+
 		self.albedo_s   	= 0.1 							# surface albedo
 		self.albedo_pl   	= 0.2 							# planetary albedo (scattering)
 		self.zenith_angle  	= 38							# solar zenith angle
@@ -38,8 +39,10 @@ class atmos:
 		self.Rcp    		= 2./7. 						# standard earth air
 		self.n_species 		= n_absorbing_species
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
-		# self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500))) # cm
-		self.bands 			= np.concatenate((np.arange(0,3000,25),np.arange(3000,11000,50),np.arange(11000,30500,500))) # cm, 318 bands: HITEMP-compatible spacing
+		
+		self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500))) # cm
+		# self.bands 			= np.concatenate((np.arange(0,3000,25),np.arange(3000,11000,50),np.arange(11000,30500,500))) # cm, 318 bands: HITEMP-compatible spacing
+		
 		self.band_centres 	= (self.bands[1:] + self.bands[:-1]) / 2
 		self.band_widths 	= np.diff(self.bands)
 		self.nbands 	    = np.size(self.bands)-1
