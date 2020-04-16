@@ -20,6 +20,7 @@ import pandas as pd
 from scipy import interpolate
 import seaborn as sns
 import copy
+import pathlib
 
 # Constants
 L_sun       = 3.828e+26                     # W, IAU definition
@@ -347,12 +348,15 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs):
     if np.max(signchange) > 0:
         trpp_idx = np.nonzero(signchange)[0][0]
         
-        # Detect upper atmosphere inversion
-        if atm_moist.net_heating[trpp_idx-1] < 0:
+        # If TOA is cooled but majority of upper atmosphere is heated, then trpp at second idx
+        if atm_moist.net_heating[trpp_idx-1] < 0 and np.size(np.nonzero(signchange)[0]) > 1:
             trpp_idx = np.nonzero(signchange)[0][1]
-        
-        # Detect insignificant heating
-        if np.max(atm_moist.net_heating[10:trpp_idx]) < 100:
+        # If only one index and TOA is indeed heated
+        elif atm_moist.net_heating[trpp_idx-1] > 0 and np.size(np.nonzero(signchange)[0]) == 1:
+            trpp_idx = np.nonzero(signchange)[0][0]
+
+        # If heating is insignificant, don't bother
+        if trpp_idx > 10 and np.max(atm_moist.net_heating[10:trpp_idx]) < 100:
             trpp_idx = 0
 
     # If heating everywhere (close to star)
@@ -437,7 +441,7 @@ def set_stratosphere(atm):
 
 def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance, albedo):
 
-    luminosity_df           = pd.read_csv("luminosity_tracks/Lum_m"+str(star_mass)+".txt")
+    luminosity_df           = pd.read_csv(str(pathlib.Path(__file__).parent.absolute())+"/luminosity_tracks/Lum_m"+str(star_mass)+".txt")
     star_age                = (time_current+time_offset)/1e+6   # Myr
     ages                    = luminosity_df["age"]*1e+3         # Myr
     luminosities            = luminosity_df["lum"]              # L_sol
@@ -466,10 +470,10 @@ if __name__ == "__main__":
     time_current  = 0                   # yr, time after start of MO
     time_offset   = 4567e+6             # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                 # au, orbital distance
+    mean_distance = 0.5                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 260e+5              # Pa
+    P_surf        = 1e+5              # Pa
     T_surf        = 1500.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
