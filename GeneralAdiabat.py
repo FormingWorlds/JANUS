@@ -722,14 +722,14 @@ def interpolate_atm(atm):
     atm.tmp     = np.flip(np.split(atm.tmp, [atm_len, rest_len])[0])
 
     # Interpolate staggered nodes
-    atm.pl      = np.logspace(np.log10(np.min(atm.p)), np.log10(np.max(atm.p)), atm.nlev+1)
+    atm.pl      = np.logspace(np.log10(np.min(atm.p)), np.log10(np.max(atm.p)), atm.nlev_save+1)
     atm.tmpl    = np.interp(atm.pl, atm.p, atm.tmp)
 
     # Interpolate atmosphere nodes
     prs_itp     = (atm.pl[1:] + atm.pl[:-1]) / 2.
     tmp_itp     = (atm.tmpl[1:] + atm.tmpl[:-1]) / 2.
 
-    # Trim & interpolate level-dependent quantities
+    # Trim level-dependent quantities
     atm.xd      = np.flip(np.split(atm.xd, [atm_len, rest_len])[0])
     atm.xv      = np.flip(np.split(atm.xv, [atm_len, rest_len])[0])
     atm.xc      = np.flip(np.split(atm.xc, [atm_len, rest_len])[0])
@@ -739,6 +739,7 @@ def interpolate_atm(atm):
     atm.cp      = np.flip(np.split(atm.cp, [atm_len, rest_len])[0])
     atm.cp_mr   = np.flip(np.split(atm.cp_mr, [atm_len, rest_len])[0])
 
+    # Interpolate level-dependent quantities
     atm.xd      = np.interp(prs_itp, atm.p, atm.xd)
     atm.xv      = np.interp(prs_itp, atm.p, atm.xv)
     atm.xc      = np.interp(prs_itp, atm.p, atm.xc)

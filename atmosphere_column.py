@@ -3,10 +3,6 @@
 
 import numpy as np
 
-n_vertical_levels 	= 10000  					# For computation
-timestep 			= 0.5						# days
-n_absorbing_species = 7
-
 R_universal = 8.31446261815324 # Universal gas constant, J.K-1.mol-1
 
 class atmos:
@@ -19,13 +15,14 @@ class atmos:
 		self.vol_list 		= vol_list		# Names + mixing ratios dict
 
 		self.ptop 			= 1 			# Top pressure in Pa
-		self.nlev 			= n_vertical_levels  	   		# Number of vertical levels
+		self.nlev 			= 10000  	   	# Number of vertical levels for adiabat integration
+		self.nlev_save		= 100   		# Number of levels to save object
 		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
 		self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
 
 		self.trpp 			= np.zeros(3) 				 	# Tropopause: idx, prs, tmp
 		
-		self.dt 			= timestep
+		self.dt 			= 0.5 							# days
 
 		self.toa_heating    = 0. 							# W/m^2
 		self.star_lum       = 0. 							# L_sun
@@ -37,7 +34,7 @@ class atmos:
 		self.tmp 			= np.zeros(self.nlev)      		# self.ts*np.ones(self.nlev)
 		self.tmpl 			= np.zeros(self.nlev+1)
 		self.Rcp    		= 2./7. 						# standard earth air
-		self.n_species 		= n_absorbing_species
+		self.n_species 		= 7
 		self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
 		
 		self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500))) # cm
