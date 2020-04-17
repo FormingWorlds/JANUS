@@ -29,3 +29,4 @@ output10000000_atm_spectral_flux.dat
 output10000000_atm_TP_profile.dat
 general_adiabat.pdf
 *.pdf
+*.pkl

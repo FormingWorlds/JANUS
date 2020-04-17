@@ -21,6 +21,8 @@ from scipy import interpolate
 import seaborn as sns
 import copy
 import pathlib
+import pickle as pkl
+import json
 
 # Constants
 L_sun       = 3.828e+26                     # W, IAU definition
@@ -44,16 +46,16 @@ def surf_Planck_nu(atm):
     B   = (1.-atm.albedo_s) * np.pi * B * atm.band_widths/1000.0
     return B
 
-def RadConvEqm(dirs, time_current, time_offset, atm, loop_counter, SPIDER_options, standalone, cp_dry):
+def RadConvEqm(dirs, time, atm, loop_counter, SPIDER_options, standalone, cp_dry):
 
     atm_dry, atm_moist = radiation_timestepping(atm, rad_steps, cp_dry, dirs)
 
     # Plot
     if standalone == True:
-        plot_flux_balance(atm_dry, atm_moist, cp_dry, time_current, time_offset)
+        plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs)
     
     if cp_dry == True:
-        plot_flux_balance(atm_dry, atm_moist, cp_dry, time_current, time_offset)
+        plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs)
         print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
         print("| dry:", str(round(atm_dry.net_flux[0], 3)), str(round(atm_dry.LW_flux_up[0], 3)) + " W/m^2", end=" ")
         print()
@@ -145,9 +147,7 @@ def MoistAdj(atm, dT):
 
     return atm 
 
-def plot_flux_balance(atm_dry, atm_moist, cp_dry, time_current, time_offset):
-
-    star_age = time_current+time_offset # yr
+def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
 
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(13,10))
     sns.set_style("ticks")
@@ -225,7 +225,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time_current, time_offset):
     # Plot tropopause
     trpp_idx = int(atm_moist.trpp[0])
     if trpp_idx > 0:
-        ax4.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol2][col_idx], lw=0.8, ls="-.", label=r'Tropopause')
+        ax4.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol2][col_idx], lw=1.0, ls="-.", label=r'Tropopause')
     
     ax4.invert_yaxis()
     ax4.legend(ncol=4, fontsize=10, loc=3)
@@ -261,8 +261,16 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time_current, time_offset):
     # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
     # ax4.set_xticklabels(["0.1", "0.3", "1", "3", "10", "30", "100"])
 
-    plt.savefig("./output"+'/TP_profile_'+str(round(star_age))+'.pdf', bbox_inches="tight")
+    plt.savefig(dirs["output"]+"/"+str(round(time["planet"]))+'_TP.pdf', bbox_inches="tight")
     plt.close(fig)
+
+    with open(dirs["output"]+"/"+str(int(time["planet"]))+"_atm.pkl", "wb") as atm_file: 
+        pkl.dump(atm, atm_file, protocol=pkl.HIGHEST_PROTOCOL)
+
+    # # Save atm object to .json file
+    # json_atm = json.dumps(atm.__dict__)
+    # with open(dirs["output"]+"/"+str(int(time_current))+"_atm.json", "wb") as atm_file:
+    #     json.dump(json_atm, atm_file)
 
 # Time integration for n steps
 def radiation_timestepping(atm, rad_steps, cp_dry, dirs):
@@ -439,10 +447,10 @@ def set_stratosphere(atm):
 
     return atm
 
-def InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance, albedo):
+def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo):
 
     luminosity_df           = pd.read_csv(str(pathlib.Path(__file__).parent.absolute())+"/luminosity_tracks/Lum_m"+str(star_mass)+".txt")
-    star_age                = (time_current+time_offset)/1e+6   # Myr
+    star_age                = (time["star"])/1e+6   # Myr
     ages                    = luminosity_df["age"]*1e+3         # Myr
     luminosities            = luminosity_df["lum"]              # L_sol
 
@@ -467,10 +475,11 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet age and orbit
-    time_current  = 0                   # yr, time after start of MO
-    time_offset   = 4567e+6             # yr, time relative to star formation
+    time = { "planet": 0., "star": 4567e+6 } # yr,
+    # time_current  = 0                   # yr, time after start of MO
+    # time_offset   = 4567e+6             # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 0.5                 # au, orbital distance
+    mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
     P_surf        = 1e+5              # Pa
@@ -503,7 +512,7 @@ if __name__ == "__main__":
     atm            = atmos(T_surf, P_surf, vol_list)
 
     # Compute stellar heating
-    atm.toa_heating = InterpolateStellarLuminosity(star_mass, time_current, time_offset, mean_distance, atm.albedo_pl)
+    atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
@@ -512,7 +521,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time_current, time_offset, atm, [], [], standalone=True, cp_dry=False)
+    atm = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False) 
 
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm)
