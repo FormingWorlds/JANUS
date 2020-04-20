@@ -20,8 +20,8 @@ from atmosphere_column import atmos
 def radCompSoc(atm, dirs, recalc):
 
     # Define path to spectral file
-    spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_2020/sp_spider"
-    # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_hitran_highres/sp_all_318_hitran"
+    # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_2020/sp_spider"
+    spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_hitran_highres/sp_all_318_hitran"
     # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_hitran_lowres/sp_all_318_hitran"
 
     print("SOCRATES spectral file:", spectral_file)
