@@ -496,13 +496,13 @@ if __name__ == "__main__":
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : .0, 
+                  "H2O" : 1.0, 
                   "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
-                  "CH4" : .5, 
+                  "CH4" : .0, 
                   "O2"  : .0, 
-                  "CO"  : .5, 
+                  "CO"  : .0, 
                 }
 
     # Stellar heating on/off
