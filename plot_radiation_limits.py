@@ -17,22 +17,21 @@ dirs = {"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}
 
 # Planet age and orbit
 time = { "planet": 0., "star": 4567e+6 } # yr,
-mean_distance = 1.0                 # au
 
 # Star age range, yr
-star_age_range = [ 0.100e+9 ]          # yr , 4.567e+9
+star_age_range = [ 4.567e+9 ]          # yr: 0.100e+9, 4.567e+9
 
 # Star mass range, M_sun
 Mstar_range = [ 1.0 ]
 
 # Planet-star distance range, au
-distance_range = [ 1.0 ]
+distance_range = [ 1.0, 0.1 ]
 
 # Surface pressure range (Pa)
-prs_range   = [ 260e+5  ]
+prs_range   = [ 260e+5, 1e+5 ]
 
 # Surface temperature range (K)
-tmp_range   = np.linspace(200, 3000, 3)
+tmp_range   = np.linspace(200, 2500, 50)
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list    = { 
@@ -60,16 +59,19 @@ legendB1_handles = []
 legendB2_handles = []
 
 ##### PLOT A
+print("########## PLOT A ##########")
 
 # Loop through volatiles, options: "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
-for vol_idx, vol in enumerate([ "CO2" ]): 
+for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]): 
 
     # Set current volatile to 1, others to zero
     for vol1 in vol_list.keys():
+        
+        # Pure cases
         if vol1 == vol:
             vol_list[vol1] = 1.0
         else:
-            vol_list[vol1] = 1e-10
+            vol_list[vol1] = 0.0
 
     # Loop through surface pressures
     for prs_idx, P_surf in enumerate(prs_range):
@@ -87,14 +89,15 @@ for vol_idx, vol in enumerate([ "CO2" ]):
             # Compute heat flux
             atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
 
-            OLR_array.append(atm.net_flux[0])
+            # OLR !
+            OLR_array.append(atm.LW_flux_up[0])
 
         # OLR
         print(vol, "@", round(P_surf)/1e+5, "bar, OLRs:", OLR_array, "W/m^2")
         if prs_idx == 0:
-            l1, = ax1.plot(tmp_range,OLR_array, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
+            l1, = ax1.plot(tmp_range, OLR_array, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
         else:
-            l1, = ax1.plot(tmp_range,OLR_array, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw)
+            l1, = ax1.plot(tmp_range, OLR_array, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw)
         legendA1_handles.append(l1)
         
         # Add P_surf legend
@@ -102,14 +105,14 @@ for vol_idx, vol in enumerate([ "CO2" ]):
             l2, = ax1.plot([0],[0], color="gray", ls=ls_list[prs_idx], lw=lw, label=r"$P_\mathrm{s}$ = "+str(round(P_surf/1e+5))+" bar")
             legendA2_handles.append(l2)
 
-
 ##### PLOT B
+print("########## PLOT B ##########")
 
 ## Vary star parameters
-P_surf  = 260e+5     # Pa
+P_surf  = 10e+5    # Pa
 
-# Loop through volatiles
-for vol_idx, vol in enumerate([ "H2O", "CO2" ]): # "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
+# Loop through volatiles, options: "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
+for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]):
 
     # Set current volatile to 1, others to zero
     for vol1 in vol_list.keys():
@@ -134,20 +137,20 @@ for vol_idx, vol in enumerate([ "H2O", "CO2" ]): # "H2O", "CO2", "H2", "N2", "CH
             # Loop through star ages
             for star_age_idx, star_age in enumerate(star_age_range):
 
-                print("###", vol, distance, star_age)
-
                 time["star"] = star_age
 
                 LW_flux_up_array    = []
                 net_flux_array      = []
 
-                atm.toa_heating = SocRadConv.InterpolateStellarLuminosity(Mstar, time, distance, atm.albedo_pl)
-
                 # Loop through surface temperatures
                 for T_surf in tmp_range:
 
+                    print("###", vol, distance, star_age, T_surf)
+
                     # Create atmosphere object
                     atm = atmos(T_surf, P_surf, vol_list)
+
+                    atm.toa_heating = SocRadConv.InterpolateStellarLuminosity(Mstar, time, distance, atm.albedo_pl)
 
                     # Compute heat flux
                     atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
@@ -157,7 +160,7 @@ for vol_idx, vol in enumerate([ "H2O", "CO2" ]): # "H2O", "CO2", "H2", "N2", "CH
 
                 print(vol, "@", distance, Mstar, star_age/1e+6, atm.toa_heating, LW_flux_up_array, net_flux_array)
 
-                l1, = ax2.plot(tmp_range, net_flux_array, color=ga.vol_colors[vol][col_idx-Mstar_idx*2], ls=ls_list[distance_idx], lw=lw, label=ga.vol_latex[vol]+", "+str(Mstar)+" $M_{\odot}$")
+                l1, = ax2.plot(tmp_range, net_flux_array, color=ga.vol_colors[vol][col_idx-Mstar_idx*2], ls=ls_list[distance_idx], lw=lw, label=ga.vol_latex[vol]) #+", "+str(Mstar)+" $M_{\odot}$"
                 l2, = ax2.plot([0],[0], color=ga.vol_colors["qgray"], ls=ls_list[distance_idx], lw=lw, label=r"$a$ = "+str(distance)+" au")
 
                 if distance_idx == 0: legendB1_handles.append(l1)
@@ -169,11 +172,11 @@ for vol_idx, vol in enumerate([ "H2O", "CO2" ]): # "H2O", "CO2", "H2", "N2", "CH
 legendA1 = ax1.legend(handles=legendA1_handles, loc=2, ncol=2, fontsize=10)
 ax1.add_artist(legendA1)
 # Legend for the line styles
-legendA1 = ax1.legend(handles=legendA2_handles, loc=4, ncol=1, fontsize=10)
+legendA1 = ax1.legend(handles=legendA2_handles, loc=4, ncol=2, fontsize=10)
 
 ax1.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)')
-ax1.set_ylabel(r'Net outgoing radiation, $F^{\uparrow}_\mathrm{net}$ (W m$^{-2}$)')
-ax1.set_yscale("symlog")
+ax1.set_ylabel(r'Outgoing longwave radiation, $F^{\uparrow}_\mathrm{OLR}$ (W m$^{-2}$)')
+ax1.set_yscale("log")
 ax1.set_xlim(left=np.min(tmp_range), right=np.max(tmp_range))
 ax1.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range)])
 # ax1.set_ylim(bottom=1e-20, top=1e5)
@@ -185,14 +188,19 @@ ax1.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range
 legendB1 = ax2.legend(handles=legendB1_handles, loc=2, ncol=2, fontsize=10)
 ax2.add_artist(legendB1)
 # Legend for the line styles
-legendB1 = ax2.legend(handles=legendB2_handles, loc=4, ncol=1, fontsize=10)
-
+legendB1 = ax2.legend(handles=legendB2_handles, loc=4, ncol=2, fontsize=10)
 
 ax2.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)')
 ax2.set_ylabel(r'Net outgoing radiation, $F^{\uparrow}_\mathrm{net}$ (W m$^{-2}$)')
 ax2.set_yscale("symlog")
 ax2.set_xlim(left=np.min(tmp_range), right=np.max(tmp_range))
 ax2.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range)])
+
+# Annotate surface pressure
+ax2.text(0.95, 0.98, r'$P_{\mathrm{s}} = $'+str(round(P_surf/1e+5))+" bar", va="top", ha="right", fontsize=10, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.1), color=ga.vol_colors["qgray_dark"] )
+
+ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=20, transform=ax1.transAxes)
+ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=20, transform=ax2.transAxes)
 
 plt.savefig(dirs["output"]+'/radiation_limits.pdf', bbox_inches="tight")
 plt.close(fig)
