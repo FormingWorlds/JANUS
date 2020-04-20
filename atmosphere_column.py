@@ -67,6 +67,10 @@ class atmos:
 		self.tmp[0]         = T_surf         		# K
 		self.p[0]           = P_surf         		# Pa
 
+
+		# H2O floor to prevent NaNs
+		self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-30 ] )
+
 		# Instantiate object dicts and arrays
 		for vol in self.vol_list.keys():
 		    # Instantiate as zero
@@ -79,6 +83,8 @@ class atmos:
 
 		    # Surface partial pressures
 		    self.p_vol[vol][0]   = self.ps * vol_list[vol]
+
+		    
 
 		# Radiation heating and fluxes
 		self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2

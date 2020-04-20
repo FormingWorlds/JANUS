@@ -233,8 +233,10 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     ax4.set_xlabel(r'Heating (K/day)')
     # ax4.set_xscale("log")
     ax4.set_yscale("log") 
-    x_minmax = np.max([abs(np.min(atm_moist.net_heating[50:])), abs(np.max(atm_moist.net_heating[50:]))])
-    ax4.set_xlim(left=-x_minmax, right=x_minmax)
+    x_minmax = np.max([abs(np.min(atm_moist.net_heating[10:])), abs(np.max(atm_moist.net_heating[10:]))])
+    x_minmax = np.max([ 20, x_minmax ])
+    if not math.isnan(x_minmax):
+        ax4.set_xlim(left=-x_minmax, right=x_minmax)
     ax4.set_ylim(bottom=atm_moist.ps*1.01)
     # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
     # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
@@ -351,9 +353,14 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs):
     # Find tropopause index
     trpp_idx   = 0 
     signchange = ((np.roll(np.sign(atm_moist.net_heating), 1) - np.sign(atm_moist.net_heating)) != 0).astype(int)[1:]
+
+    # Criteria for "significant " heating
+    DeltaT_max_sign  = 50.
+    DeltaT_mean_sign = 10.
     
     # If heating sign change
     if np.max(signchange) > 0:
+        
         trpp_idx = np.nonzero(signchange)[0][0]
         
         # If TOA is cooled but majority of upper atmosphere is heated, then trpp at second idx
@@ -364,16 +371,18 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs):
             trpp_idx = np.nonzero(signchange)[0][0]
 
         # If heating is insignificant, don't bother
-        if trpp_idx > 10 and np.max(atm_moist.net_heating[10:trpp_idx]) < 100:
+        if trpp_idx > 10 and np.max(atm_moist.net_heating[5:trpp_idx]) < DeltaT_max_sign and np.mean(atm_moist.net_heating) < DeltaT_mean_sign:
             trpp_idx = 0
 
-    # If heating everywhere (close to star)
-    if np.min(atm_moist.net_heating) > 0:
+    # If heating everywhere (close to star) & heating is significant
+    if np.min(atm_moist.net_heating) > 0 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
         trpp_idx = np.size(atm_moist.tmp)-1
     
     # Tropopause stable
-    if trpp_idx > round(len(atm_moist.net_heating)/30):
-        print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],3), round(atm_moist.tmpl[trpp_idx],3))
+    if trpp_idx > round(len(atm_moist.net_heating)/20):
+        
+        # # Print tropopause index for debugging
+        # print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],3), round(atm_moist.tmpl[trpp_idx],3))
     
         atm_moist.trpp[0] = trpp_idx                  # index
         atm_moist.trpp[1] = atm_moist.pl[trpp_idx]    # pressure 
@@ -386,8 +395,8 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs):
         atm_moist       = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True)
 
         print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
-    else:
-        print("No tropopause")
+    # else:
+    #     print("No tropopause")
 
     return atm_dry, atm_moist
 
@@ -476,26 +485,24 @@ if __name__ == "__main__":
 
     # Planet age and orbit
     time = { "planet": 0., "star": 4567e+6 } # yr,
-    # time_current  = 0                   # yr, time after start of MO
-    # time_offset   = 4567e+6             # yr, time relative to star formation
+    # time_current  = 0                 # yr, time after start of MO
+    # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
     mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 1e+5              # Pa
+    P_surf        = 260e+5              # Pa
     T_surf        = 1500.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : 1.0, 
+                  "H2O" : .0, 
                   "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
-                  "CH4" : .0, 
+                  "CH4" : .5, 
                   "O2"  : .0, 
-                  "CO"  : .0, 
-                  "He"  : .0,
-                  "NH3" : .0, 
+                  "CO"  : .5, 
                 }
 
     # Stellar heating on/off
@@ -503,8 +510,6 @@ if __name__ == "__main__":
 
     # Compare to the dry adiabat w/ time stepping
     cp_dry = False
-
-
 
     ##### Function calls
 

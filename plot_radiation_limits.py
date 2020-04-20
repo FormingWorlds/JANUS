@@ -1,5 +1,5 @@
 import numpy as np
-import math,phys
+import math, phys, os
 import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
@@ -13,26 +13,26 @@ import SocRadConv
 
 ### Initial conditions
 
+dirs = {"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}
+
 # Planet age and orbit
-time_current  = 1e+7                # yr
-time_offset   = 1e+9                # yr
+time = { "planet": 0., "star": 4567e+6 } # yr,
 mean_distance = 1.0                 # au
-toa_heating   = 0.                  # W m^-2
 
 # Star age range, yr
-Tstar_range = [ 0.100e+9 ]          # yr , 4.567e+9
+star_age_range = [ 0.100e+9 ]          # yr , 4.567e+9
 
 # Star mass range, M_sun
-Mstar_range = [ 1.0, 0.1 ]
+Mstar_range = [ 1.0 ]
 
 # Planet-star distance range, au
-distance_range = [ 1.0, 0.01 ]
+distance_range = [ 1.0 ]
 
 # Surface pressure range (Pa)
-prs_range   = [ 260e+5, 10e5  ]
+prs_range   = [ 260e+5  ]
 
 # Surface temperature range (K)
-tmp_range   = np.linspace(100, 3000, 20)
+tmp_range   = np.linspace(200, 3000, 3)
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list    = { 
@@ -62,14 +62,14 @@ legendB2_handles = []
 ##### PLOT A
 
 # Loop through volatiles, options: "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
-for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]): 
+for vol_idx, vol in enumerate([ "CO2" ]): 
 
     # Set current volatile to 1, others to zero
     for vol1 in vol_list.keys():
         if vol1 == vol:
             vol_list[vol1] = 1.0
         else:
-            vol_list[vol1] = 0.0
+            vol_list[vol1] = 1e-10
 
     # Loop through surface pressures
     for prs_idx, P_surf in enumerate(prs_range):
@@ -79,11 +79,13 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]):
         # Loop through surface temperatures
         for T_surf in tmp_range:
 
+            print("###", vol, P_surf, T_surf)
+
             # Create atmosphere object
             atm = atmos(T_surf, P_surf, vol_list)
 
             # Compute heat flux
-            atm = SocRadConv.RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=False, cp_dry=False)
+            atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
 
             OLR_array.append(atm.net_flux[0])
 
@@ -107,7 +109,7 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]):
 P_surf  = 260e+5     # Pa
 
 # Loop through volatiles
-for vol_idx, vol in enumerate([ "H2O", "H2" ]): # "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
+for vol_idx, vol in enumerate([ "H2O", "CO2" ]): # "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
 
     # Set current volatile to 1, others to zero
     for vol1 in vol_list.keys():
@@ -130,12 +132,16 @@ for vol_idx, vol in enumerate([ "H2O", "H2" ]): # "H2O", "CO2", "H2", "N2", "CH4
                     vol_list[vol1] = 0.0
 
             # Loop through star ages
-            for Tstar_idx, Tstar in enumerate(Tstar_range):
+            for star_age_idx, star_age in enumerate(star_age_range):
+
+                print("###", vol, distance, star_age)
+
+                time["star"] = star_age
 
                 LW_flux_up_array    = []
                 net_flux_array      = []
 
-                toa_heating, star_luminosity = SocRadConv.InterpolateStellarLuminosity(Mstar, time_current, Tstar, distance)
+                atm.toa_heating = SocRadConv.InterpolateStellarLuminosity(Mstar, time, distance, atm.albedo_pl)
 
                 # Loop through surface temperatures
                 for T_surf in tmp_range:
@@ -144,19 +150,18 @@ for vol_idx, vol in enumerate([ "H2O", "H2" ]): # "H2O", "CO2", "H2", "N2", "CH4
                     atm = atmos(T_surf, P_surf, vol_list)
 
                     # Compute heat flux
-                    atm = SocRadConv.RadConvEqm("./output", time_current, atm, toa_heating, [], [], standalone=False, cp_dry=False)
+                    atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
 
                     LW_flux_up_array.append(atm.LW_flux_up[0])
                     net_flux_array.append(atm.net_flux[0])
 
-                print(vol, "@", distance, Mstar, Tstar, toa_heating, LW_flux_up_array, net_flux_array)
+                print(vol, "@", distance, Mstar, star_age/1e+6, atm.toa_heating, LW_flux_up_array, net_flux_array)
 
                 l1, = ax2.plot(tmp_range, net_flux_array, color=ga.vol_colors[vol][col_idx-Mstar_idx*2], ls=ls_list[distance_idx], lw=lw, label=ga.vol_latex[vol]+", "+str(Mstar)+" $M_{\odot}$")
                 l2, = ax2.plot([0],[0], color=ga.vol_colors["qgray"], ls=ls_list[distance_idx], lw=lw, label=r"$a$ = "+str(distance)+" au")
 
                 if distance_idx == 0: legendB1_handles.append(l1)
                 if Mstar_idx == 0 and vol_idx == 0: legendB2_handles.append(l2)
-
 
 
 ##### PLOT A settings
@@ -189,6 +194,6 @@ ax2.set_yscale("symlog")
 ax2.set_xlim(left=np.min(tmp_range), right=np.max(tmp_range))
 ax2.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range)])
 
-plt.savefig("./output"+'/radiation_limits.pdf', bbox_inches="tight")
+plt.savefig(dirs["output"]+'/radiation_limits.pdf', bbox_inches="tight")
 plt.close(fig)
 
