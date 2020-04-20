@@ -576,7 +576,7 @@ def condensation( atm, idx, prs_reset ):
 
                 atm.x_ocean[vol] = (p_vol_scaled - p_vol_sat) / atm.p[idx]
 
-                print("Rescale surface "+vol+" (old, new): X_gas =", round(x_gas_old,3), round(atm.vol_list[vol],3), "| p =", round(p_vol_scaled/1e5,3), round(p_vol/1e5,3), "bar", "| X_ocean =", round(atm.x_ocean[vol],3) )
+                print("Rescale surface "+vol+" (old, new): X_gas =", round(x_gas_old,3), "->", round(atm.vol_list[vol],3), "| p =", round(p_vol_scaled/1e5,3), "->", round(p_vol/1e5,3), "bar", "| X_ocean =", round(atm.x_ocean[vol],3) )
 
         # Update total pressure
         atm.p[idx] = P_tot_base
@@ -794,7 +794,7 @@ def plot_adiabats(atm):
     for vol in vol_list_sorted.keys():
 
         # Only if volatile is present
-        if atm.vol_list[vol] > 0.:
+        if atm.vol_list[vol] > 1e-10:
     
             # Saturation vapor pressure for given temperature
             Psat_array = [ p_sat(vol, T) for T in T_sat_array ]
