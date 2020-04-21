@@ -30,7 +30,7 @@ vol_colors = {
     "H2"      : sns.color_palette("Greens", no_colors),
     "N2"      : sns.color_palette("Purples", no_colors), # sns.cubehelix_palette(7)
     "O2"      : sns.light_palette("darkturquoise", no_colors),
-    "CH4"     : sns.color_palette("PuRd", no_colors),
+    "CH4"     : sns.color_palette("RdPu", no_colors),
     "CO"      : sns.light_palette("#731d1d", no_colors),
     "S"       : sns.light_palette("#EBB434", no_colors),
     "He"      : sns.color_palette("Greys", no_colors),
