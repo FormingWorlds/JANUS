@@ -12,6 +12,8 @@ import copy
 import SocRadConv
 from natsort import natsorted # https://pypi.python.org/pypi/natsort
 import pickle as pkl
+import matplotlib.transforms as mtransforms # https://matplotlib.org/examples/pylab_examples/fancybox_demo.html
+from matplotlib.patches import FancyBboxPatch
 
 def CleanOutputDir( output_dir ):
 
@@ -70,7 +72,7 @@ sns.set_style("ticks")
 sns.despine()
 
 ls_list = [ "-", "--", ":", "-." ]
-lw      = 2.0
+lw      = 1.5
 col_idx = 5
 
 legendA1_handles = []
@@ -82,7 +84,7 @@ legendB2_handles = []
 print("############# PLOT A #############")
 
 # Loop through volatiles, options: "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
-for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]): 
+for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "CH4" ]): 
 
     # Set current volatile to 1, others to zero
     for vol1 in vol_list.keys():
@@ -156,8 +158,11 @@ print("############# PLOT B #############")
 ## Vary star parameters
 P_surf  = 10e+5    # Pa
 
+b_ymax = 0
+b_ymin = 0
+
 # Loop through volatiles, options: "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
-for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]):
+for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "CH4" ]):
 
     # Set current volatile to 1, others to zero
     for vol1 in vol_list.keys():
@@ -183,7 +188,7 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]):
             for star_age_idx, star_age in enumerate(star_age_range):
 
                 # Check if data present, otherwise create
-                file_name = "b_"+vol+"_Ps"+str(round(P_surf))+"_d"+str(round(distance))+"_Mstar"+str(Mstar)+"_tstar"+str(np.size(star_age))+"_nT"+str(np.size(tmp_range))+".pkl"
+                file_name = "b_"+vol+"_Ps"+str(round(P_surf))+"_d"+str(distance)+"_Mstar"+str(Mstar)+"_tstar"+str(np.size(star_age))+"_nT"+str(np.size(tmp_range))+".pkl"
                 file_path = dirs["data_dir"]+"/"+file_name
 
                 # If data exists, read it from file
@@ -232,15 +237,49 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]):
                 if distance_idx == 0: legendB1_handles.append(l1)
                 if Mstar_idx == 0 and vol_idx == 0: legendB2_handles.append(l2)
 
+                # Set ylim range
+                b_ymin = np.min([ b_ymin, np.min(b_dict[vol]) ])
+                b_ymax = np.max([ b_ymax, np.max(b_dict[vol]) ])
+
         # Clean SOCRATES dir
         CleanOutputDir( dirs["rad_conv"] )
 
+########## Read in literature data
+
+Goldblatt13_Ts  = []
+Goldblatt13_OLR = []
+with open(dirs["rad_conv"]+"/plotting_tools/comparison_data/Goldblatt13_data.txt", 'r') as data_file:
+    for line in data_file:
+        if not line.startswith('#'):
+            line = line.rstrip('\n')
+            line = line.split(",")
+            Goldblatt13_Ts.append(float(line[0]))
+            Goldblatt13_OLR.append(float(line[1]))
+Kopparapu13_Ts  = []
+Kopparapu13_OLR = []
+with open(dirs["rad_conv"]+"/plotting_tools/comparison_data/Kopparapu13_data.txt", 'r') as data_file:
+    for line in data_file:
+        if not line.startswith('#'):
+            line = line.rstrip('\n')
+            line = line.split(",")
+            Kopparapu13_Ts.append(float(line[0]))
+            Kopparapu13_OLR.append(float(line[1]))
+Hamano15_Ts  = []
+Hamano15_OLR = []
+with open(dirs["rad_conv"]+"/plotting_tools/comparison_data/Hamano15_data.txt", 'r') as data_file:
+    for line in data_file:
+        if not line.startswith('#'):
+            line = line.rstrip('\n')
+            line = line.split(",")
+            Hamano15_Ts.append(float(line[0]))
+            Hamano15_OLR.append(float(line[1]))
 
 ########## GENERAL PLOT SETTINGS
+
 label_fs    = 12
 legend_fs   = 11
 ticks_fs    = 10
-annotate_fs = 12
+annotate_fs = 14
 
 ##### PLOT A settings
 # Legend for the main volatiles
@@ -268,13 +307,28 @@ ax2.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)', fontsize=label_fs)
 ax2.set_ylabel(r'Net outgoing radiation, $F^{\uparrow}_\mathrm{net}$ (W m$^{-2}$)', fontsize=label_fs)
 ax2.set_yscale("symlog")
 ax2.set_xlim(left=np.min(tmp_range), right=np.max(tmp_range))
+ax2.set_ylim(bottom=b_ymin*2., top=b_ymax*10)
 ax2.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range)])
 
 # Annotate surface pressure
-ax2.text(0.5, 0.97, r'$P_{\mathrm{s}} = $'+str(round(P_surf/1e+5))+" bar", va="top", ha="left", fontsize=annotate_fs, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.1), color=ga.vol_colors["black_1"] )
+ax2.text(0.98, 0.98, r'$P_{\mathrm{s}} = $'+str(round(P_surf/1e+5))+" bar", va="top", ha="right", fontsize=annotate_fs, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.9, boxstyle='round', pad=0.1), color=ga.vol_colors["black_1"] )
 
-ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=annotate_fs+8, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.7, pad=0.3))
-ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=annotate_fs+8, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.7, pad=0.3))
+ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=20, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.7, pad=0.1, boxstyle='round'))
+ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=20, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.7, pad=0.1, boxstyle='round'))
+
+# Indicate cooling/heating regimes
+ax2.fill_between(tmp_range, 0, +1e+10, alpha=0.05, color="blue")
+ax2.text(np.max(tmp_range)*0.99, 0.3, "Net cooling", va="bottom", ha="right", fontsize=legend_fs, color=ga.vol_colors["qblue_dark"])
+ax2.text(np.max(tmp_range)*0.99, -0.3, "Net heating", va="top", ha="right", fontsize=legend_fs, color=ga.vol_colors["qred_dark"])
+ax2.fill_between(tmp_range, 0, -1e+10, alpha=0.05, color="red")
+
+### Plot and annotate literature comparison
+ax1.plot(Goldblatt13_Ts, Goldblatt13_OLR, color=ga.vol_colors["qgray"], ls=":", lw=1.0, zorder=0.1)
+ax1.text(1900, 320, "Goldblatt+ 13", va="bottom", ha="right", fontsize=legend_fs-3, color=ga.vol_colors["qgray"])
+# ax1.plot(Kopparapu13_Ts, Kopparapu13_OLR, color=ga.vol_colors["qgray"], ls="-.", lw=1.0, zorder=0.1)
+ax1.plot(Hamano15_Ts, Hamano15_OLR, color=ga.vol_colors["qgray"], ls="-.", lw=1.0, zorder=0.1)
+ax1.text(2180, 330, "Hamano+ 15", va="top", ha="left", fontsize=legend_fs-3, color=ga.vol_colors["qgray"])
+
 
 plt.savefig(dirs["output"]+'/radiation_limits.pdf', bbox_inches="tight")
 plt.close(fig)

@@ -29,9 +29,10 @@ L_sun       = 3.828e+26                     # W, IAU definition
 AU          = 1.495978707e+11               # m
 R_universal = 8.31446261815324              # Universal gas constant, J.K-1.mol-1
 
-# Number of radiation and dry adjustment steps
-rad_steps   = 1
-conv_steps  = 0
+# Dry adiabat settings 
+rad_steps   = 100  # Number of radiation steps
+conv_steps  = 20   # Number of dry convective adjustment steps
+dT_max      = 50.  # Maximum temperature change per radiation step
 
 def surf_Planck_nu(atm):
     h   = 6.63e-34
@@ -205,15 +206,15 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     ax2.set_ylim(bottom=atm_moist.ps*1.01)
 
     # Wavenumber vs. OLR
-    ax3.plot(atm_moist.band_centres,surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label=str(round(atm_moist.ts))+' K blackbody')
-    if cp_dry == True: ax3.plot(atm_dry.band_centres,atm_dry.LW_spectral_flux_up[:,0]/atm_dry.band_widths, color=ga.vol_colors[col_vol2][col_idx+1])
-    ax3.plot(atm_moist.band_centres,atm_moist.LW_spectral_flux_up[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol1][col_idx+1])
+    ax3.plot(atm_moist.band_centres, surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label=str(round(atm_moist.ts))+' K blackbody')
+    if cp_dry == True: ax3.plot(atm_dry.band_centres, atm_dry.net_spectral_flux[:,0]/atm_dry.band_widths, color=ga.vol_colors[col_vol3][col_idx])
+    ax3.plot(atm_moist.band_centres, atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol1][col_idx+1])
     ax3.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
     ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)')
     ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
     ax3.legend()
     ax3.set_xlim(left=0, right=30000)
-    ax3.set_ylim(bottom=0)
+    ax3.set_ylim(bottom=0, top=1.2*np.max(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths))
 
     # Heating versus pressure
     ax4.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
@@ -277,16 +278,16 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
 # Time integration for n steps
 def radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone):
 
-    # Initialise previous OLR and TOA heating to zero
-    PrevOLR_dry         = 0.
-    PrevMaxHeat_dry     = 0.
-    PrevTemp_dry        = atm.tmp * 0.
-
     # Build moist adiabat structure
     atm_moist           = ga.general_adiabat(atm)
 
     # Copy moist pressure arrays for dry adiabat
     atm_dry             = dry_adiabat_atm(copy.deepcopy(atm_moist))
+
+    # Initialise previous OLR and TOA heating to zero
+    PrevOLR_dry         = 0.
+    PrevMaxHeat_dry     = 0.
+    PrevTemp_dry        = atm.tmp * 0.
 
     if cp_dry == True:
 
@@ -298,11 +299,11 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone):
 
             # Compute radiation, midpoint method time stepping
             atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False)
-            dT_dry          = atm_dry.total_heating * atm_dry.dt
+            dT_dry          = atm_dry.net_heating * atm_dry.dt
 
             # Limit the temperature change per step
-            dT_dry          = np.where(dT_dry > 5., 5., dT_dry)
-            dT_dry          = np.where(dT_dry < -5., -5., dT_dry)
+            dT_dry          = np.where(dT_dry > dT_max, dT_max, dT_dry)
+            dT_dry          = np.where(dT_dry < -dT_max, -dT_max, dT_dry)
 
             # Apply heating
             atm_dry.tmp     += dT_dry
@@ -331,7 +332,7 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone):
 
             # Break criteria
             dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 6))
-            dbreak_dry      = (0.01*(5.67e-8*atm_dry.ts**4)**0.5)
+            dbreak_dry      = (0.001*(5.67e-8*atm_dry.ts**4)**0.5)
 
             # Sensitivity break condition
             if (dOLR_dry < dbreak_dry) and i > 5:
@@ -340,7 +341,7 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone):
                 break    # break here
 
             PrevOLR_dry       = atm_dry.LW_flux_up[0]
-            PrevMaxHeat_dry   = abs(np.max(atm_dry.total_heating))
+            PrevMaxHeat_dry   = abs(np.max(atm_dry.net_heating))
             PrevTemp_dry[:]   = atm_dry.tmp[:]
 
     ### Moist outgoing LW only, no heating
@@ -357,13 +358,14 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone):
 
     # Criteria for "significant " heating
     DeltaT_max_sign  = 50.
+    DeltaT_at_trpp   = 40.
     DeltaT_mean_sign = 10.
     
     # If heating sign change
     if np.max(signchange) > 0:
-        
+
         trpp_idx = np.nonzero(signchange)[0][0]
-        
+
         # If TOA is cooled but majority of upper atmosphere is heated, then trpp at second idx
         if atm_moist.net_heating[trpp_idx-1] < 0 and np.size(np.nonzero(signchange)[0]) > 1:
             trpp_idx = np.nonzero(signchange)[0][1]
@@ -378,6 +380,10 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone):
     # If heating everywhere (close to star) & heating is significant
     if np.min(atm_moist.net_heating) > 0 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
         trpp_idx = np.size(atm_moist.tmp)-1
+
+    # Increase trpp height until heating @ trpp index is significant
+    while atm_moist.net_heating[trpp_idx] < DeltaT_at_trpp and trpp_idx > 0:
+        trpp_idx -= 1
     
     # Tropopause stable
     if trpp_idx > round(len(atm_moist.net_heating)/20):
@@ -490,10 +496,10 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                 # au, orbital distance
+    mean_distance = 0.1                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 260e+5              # Pa
+    P_surf        = 10e+5               # Pa
     T_surf        = 1500.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
@@ -509,9 +515,6 @@ if __name__ == "__main__":
 
     # Stellar heating on/off
     stellar_heating = True
-
-    # Compare to the dry adiabat w/ time stepping
-    cp_dry = False
 
     ##### Function calls
 
