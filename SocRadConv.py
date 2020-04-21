@@ -48,7 +48,7 @@ def surf_Planck_nu(atm):
 
 def RadConvEqm(dirs, time, atm, loop_counter, SPIDER_options, standalone, cp_dry):
 
-    atm_dry, atm_moist = radiation_timestepping(atm, rad_steps, cp_dry, dirs)
+    atm_dry, atm_moist = radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone)
 
     # Plot
     if standalone == True:
@@ -275,7 +275,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     #     json.dump(json_atm, atm_file)
 
 # Time integration for n steps
-def radiation_timestepping(atm, rad_steps, cp_dry, dirs):
+def radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone):
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry         = 0.
@@ -348,7 +348,8 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs):
     # Compute radiation, no moist timestepping
     atm_moist       = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False)
 
-    print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+    if standalone == True:
+        print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
     # Find tropopause index
     trpp_idx   = 0 
@@ -394,7 +395,8 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs):
         # Recalculate fluxes w/ new atmosphere structure
         atm_moist       = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True)
 
-        print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+        if standalone == True:
+            print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
     # else:
     #     print("No tropopause")
 

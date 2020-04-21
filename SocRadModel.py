@@ -137,4 +137,16 @@ def radCompSoc(atm, dirs, recalc):
         # Total heating (K/day)
         atm.net_heating       = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
 
+    # Close netCDF files
+    ncfile1.close()
+    ncfile2.close()
+    ncfile3.close()
+    ncfile4.close()
+    ncfile5.close()
+    ncfile6.close()
+    ncfile7.close()
+    ncfile8.close()
+    ncfile9.close()
+    ncfile10.close()
+
     return atm

@@ -1,5 +1,5 @@
 import numpy as np
-import math, phys, os
+import math, phys, os, glob
 import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
@@ -10,10 +10,30 @@ from scipy import interpolate
 import seaborn as sns
 import copy
 import SocRadConv
+from natsort import natsorted # https://pypi.python.org/pypi/natsort
+import pickle as pkl
+
+def CleanOutputDir( output_dir ):
+
+    types = ("*.json", "*.log", "*.csv", "*.pkl", "current??.????", "profile.*") 
+    files_to_delete = []
+    for files in types:
+        files_to_delete.extend(glob.glob(output_dir+"/"+files))
+
+    # print("Remove old output files:")
+    for file in natsorted(files_to_delete):
+        os.remove(file)
+    #     print(os.path.basename(file), end =" ")
+    # print("\n==> Done.")
 
 ### Initial conditions
 
-dirs = {"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}
+dirs = {"output": os.getcwd()+"/output", "data_dir": os.getcwd()+"/output/radiation_limits_data", "rad_conv": os.getcwd()}
+
+# Check if data dirs exists, otherwise create
+if not os.path.exists(dirs["data_dir"]):
+    os.makedirs(dirs["data_dir"])
+    print("--> Create data directory:", dirs["data_dir"])
 
 # Planet age and orbit
 time = { "planet": 0., "star": 4567e+6 } # yr,
@@ -59,7 +79,7 @@ legendB1_handles = []
 legendB2_handles = []
 
 ##### PLOT A
-print("########## PLOT A ##########")
+print("############# PLOT A #############")
 
 # Loop through volatiles, options: "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
 for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]): 
@@ -76,28 +96,50 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]):
     # Loop through surface pressures
     for prs_idx, P_surf in enumerate(prs_range):
 
-        OLR_array = []
+        # Check if data present, otherwise create
+        file_name = "a_"+vol+"_Ps"+str(round(P_surf))+"_p"+str(np.size(prs_range))+"_T"+str(np.size(tmp_range))+".pkl"
+        file_path = dirs["data_dir"]+"/"+file_name
 
-        # Loop through surface temperatures
-        for T_surf in tmp_range:
+        # If data exists, read it from file
+        if os.path.isfile(file_path):
 
-            print("###", vol, P_surf, T_surf)
+            # Read pickle file
+            a_dict_stream = open(file_path, 'rb')
+            a_dict = pkl.load(a_dict_stream)
+            a_dict_stream.close()
 
-            # Create atmosphere object
-            atm = atmos(T_surf, P_surf, vol_list)
+            print("--> Read in file:", file_name)
 
-            # Compute heat flux
-            atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
+        # Else: calculate it
+        else:
 
-            # OLR !
-            OLR_array.append(atm.LW_flux_up[0])
+            OLR_array = []
+
+            # Loop through surface temperatures
+            for T_surf in tmp_range:
+
+                print("###", vol, P_surf, T_surf)
+
+                # Create atmosphere object
+                atm = atmos(T_surf, P_surf, vol_list)
+
+                # Compute heat flux
+                atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
+
+                # OLR !
+                OLR_array.append(atm.LW_flux_up[0])
+
+            # Save data to disk
+            a_dict = { vol: OLR_array, "tmp_range": tmp_range }
+            with open(file_path, "wb") as dict_file: 
+                pkl.dump(a_dict, dict_file)
 
         # OLR
-        print(vol, "@", round(P_surf)/1e+5, "bar, OLRs:", OLR_array, "W/m^2")
+        print(vol, "@", round(P_surf)/1e+5, "bar, OLRs:", a_dict[vol], "W/m^2")
         if prs_idx == 0:
-            l1, = ax1.plot(tmp_range, OLR_array, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
+            l1, = ax1.plot(a_dict["tmp_range"], a_dict[vol], color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
         else:
-            l1, = ax1.plot(tmp_range, OLR_array, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw)
+            l1, = ax1.plot(a_dict["tmp_range"], a_dict[vol], color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw)
         legendA1_handles.append(l1)
         
         # Add P_surf legend
@@ -105,8 +147,11 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]):
             l2, = ax1.plot([0],[0], color="gray", ls=ls_list[prs_idx], lw=lw, label=r"$P_\mathrm{s}$ = "+str(round(P_surf/1e+5))+" bar")
             legendA2_handles.append(l2)
 
+        # Clean SOCRATES dir
+        CleanOutputDir( dirs["rad_conv"] )
+
 ##### PLOT B
-print("########## PLOT B ##########")
+print("############# PLOT B #############")
 
 ## Vary star parameters
 P_surf  = 10e+5    # Pa
@@ -137,70 +182,99 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]):
             # Loop through star ages
             for star_age_idx, star_age in enumerate(star_age_range):
 
-                time["star"] = star_age
+                # Check if data present, otherwise create
+                file_name = "b_"+vol+"_Ps"+str(round(P_surf))+"_d"+str(round(distance))+"_Mstar"+str(Mstar)+"_tstar"+str(np.size(star_age))+"_nT"+str(np.size(tmp_range))+".pkl"
+                file_path = dirs["data_dir"]+"/"+file_name
 
-                LW_flux_up_array    = []
-                net_flux_array      = []
+                # If data exists, read it from file
+                if os.path.isfile(file_path):
 
-                # Loop through surface temperatures
-                for T_surf in tmp_range:
+                    # Read pickle file
+                    b_dict_stream = open(file_path, 'rb')
+                    b_dict = pkl.load(b_dict_stream)
+                    b_dict_stream.close()
 
-                    print("###", vol, distance, star_age, T_surf)
+                    print("--> Read in file:", file_name)
 
-                    # Create atmosphere object
-                    atm = atmos(T_surf, P_surf, vol_list)
+                else:
 
-                    atm.toa_heating = SocRadConv.InterpolateStellarLuminosity(Mstar, time, distance, atm.albedo_pl)
+                    time["star"] = star_age
 
-                    # Compute heat flux
-                    atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
+                    LW_flux_up_array    = []
+                    net_flux_array      = []
 
-                    LW_flux_up_array.append(atm.LW_flux_up[0])
-                    net_flux_array.append(atm.net_flux[0])
+                    # Loop through surface temperatures
+                    for T_surf in tmp_range:
 
-                print(vol, "@", distance, Mstar, star_age/1e+6, atm.toa_heating, LW_flux_up_array, net_flux_array)
+                        print("###", vol, distance, star_age, T_surf)
 
-                l1, = ax2.plot(tmp_range, net_flux_array, color=ga.vol_colors[vol][col_idx-Mstar_idx*2], ls=ls_list[distance_idx], lw=lw, label=ga.vol_latex[vol]) #+", "+str(Mstar)+" $M_{\odot}$"
+                        # Create atmosphere object
+                        atm = atmos(T_surf, P_surf, vol_list)
+
+                        atm.toa_heating = SocRadConv.InterpolateStellarLuminosity(Mstar, time, distance, atm.albedo_pl)
+
+                        # Compute heat flux
+                        atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
+
+                        LW_flux_up_array.append(atm.LW_flux_up[0])
+                        net_flux_array.append(atm.net_flux[0])
+
+                    # Save data to disk
+                    b_dict = { vol: net_flux_array, "tmp_range": tmp_range }
+                    with open(file_path, "wb") as dict_file: 
+                        pkl.dump(b_dict, dict_file)
+
+                print(vol, "@", distance, Mstar, star_age/1e+6, b_dict[vol])
+
+                l1, = ax2.plot(b_dict["tmp_range"], b_dict[vol], color=ga.vol_colors[vol][col_idx-Mstar_idx*2], ls=ls_list[distance_idx], lw=lw, label=ga.vol_latex[vol])
                 l2, = ax2.plot([0],[0], color=ga.vol_colors["qgray"], ls=ls_list[distance_idx], lw=lw, label=r"$a$ = "+str(distance)+" au")
 
                 if distance_idx == 0: legendB1_handles.append(l1)
                 if Mstar_idx == 0 and vol_idx == 0: legendB2_handles.append(l2)
 
+        # Clean SOCRATES dir
+        CleanOutputDir( dirs["rad_conv"] )
+
+
+########## GENERAL PLOT SETTINGS
+label_fs    = 12
+legend_fs   = 11
+ticks_fs    = 10
+annotate_fs = 12
 
 ##### PLOT A settings
 # Legend for the main volatiles
-legendA1 = ax1.legend(handles=legendA1_handles, loc=2, ncol=2, fontsize=10)
+legendA1 = ax1.legend(handles=legendA1_handles, loc=2, ncol=2, fontsize=legend_fs)
 ax1.add_artist(legendA1)
 # Legend for the line styles
-legendA1 = ax1.legend(handles=legendA2_handles, loc=4, ncol=2, fontsize=10)
+legendA2 = ax1.legend(handles=legendA2_handles, loc=4, ncol=2, fontsize=legend_fs)
 
-ax1.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)')
-ax1.set_ylabel(r'Outgoing longwave radiation, $F^{\uparrow}_\mathrm{OLR}$ (W m$^{-2}$)')
+ax1.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)', fontsize=label_fs)
+ax1.set_ylabel(r'Outgoing longwave radiation, $F^{\uparrow}_\mathrm{OLR}$ (W m$^{-2}$)', fontsize=label_fs)
 ax1.set_yscale("log")
 ax1.set_xlim(left=np.min(tmp_range), right=np.max(tmp_range))
 ax1.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range)])
 # ax1.set_ylim(bottom=1e-20, top=1e5)
 # ax1.set_yticks([1e-10, 1e-5, 1e0, 1e5])
 
-
 ##### PLOT B settings
 # Legend for the main volatiles
-legendB1 = ax2.legend(handles=legendB1_handles, loc=2, ncol=2, fontsize=10)
+legendB1 = ax2.legend(handles=legendB1_handles, loc=2, ncol=2, fontsize=legend_fs)
 ax2.add_artist(legendB1)
 # Legend for the line styles
-legendB1 = ax2.legend(handles=legendB2_handles, loc=4, ncol=2, fontsize=10)
+legendB2 = ax2.legend(handles=legendB2_handles, loc=4, ncol=2, fontsize=legend_fs)
 
-ax2.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)')
-ax2.set_ylabel(r'Net outgoing radiation, $F^{\uparrow}_\mathrm{net}$ (W m$^{-2}$)')
+ax2.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)', fontsize=label_fs)
+ax2.set_ylabel(r'Net outgoing radiation, $F^{\uparrow}_\mathrm{net}$ (W m$^{-2}$)', fontsize=label_fs)
 ax2.set_yscale("symlog")
 ax2.set_xlim(left=np.min(tmp_range), right=np.max(tmp_range))
 ax2.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range)])
 
 # Annotate surface pressure
-ax2.text(0.95, 0.98, r'$P_{\mathrm{s}} = $'+str(round(P_surf/1e+5))+" bar", va="top", ha="right", fontsize=10, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.1), color=ga.vol_colors["qgray_dark"] )
+ax2.text(0.5, 0.97, r'$P_{\mathrm{s}} = $'+str(round(P_surf/1e+5))+" bar", va="top", ha="left", fontsize=annotate_fs, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.1), color=ga.vol_colors["black_1"] )
 
-ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=20, transform=ax1.transAxes)
-ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=20, transform=ax2.transAxes)
+ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=annotate_fs+8, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.7, pad=0.3))
+ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=annotate_fs+8, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.7, pad=0.3))
 
 plt.savefig(dirs["output"]+'/radiation_limits.pdf', bbox_inches="tight")
 plt.close(fig)
