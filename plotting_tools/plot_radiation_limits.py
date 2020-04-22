@@ -83,6 +83,9 @@ legendA2_handles = []
 legendB1_handles = []
 legendB2_handles = []
 
+a_ymax = 0
+a_ymin = 0
+
 ##### PLOT A
 print("############# PLOT A #############")
 
@@ -177,6 +180,10 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "CH4" ]):
             l2, = ax1.plot([0],[0], color="gray", ls=ls_list[prs_idx], lw=lw, label=r"$P_\mathrm{s}$ = "+str(round(P_surf/1e+5))+" bar")
             legendA2_handles.append(l2)
 
+        # Set ylim range
+        a_ymin = np.min([ a_ymin, np.min(a_dict[vol]) ])
+        a_ymax = np.max([ a_ymax, np.max(a_dict[vol]) ])
+
         # Clean SOCRATES dir
         CleanOutputDir( dirs["rad_conv"] )
 
@@ -184,7 +191,7 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "CH4" ]):
 print("############# PLOT B #############")
 
 ## Vary star parameters
-P_surf  = 10e+5    # Pa
+P_surf  = 100e+5    # Pa
 
 b_ymax = 0
 b_ymin = 0
@@ -260,7 +267,7 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "CH4" ]):
                 print(vol, "@", distance, Mstar, star_age/1e+6, b_dict[vol])
 
                 l1, = ax2.plot(b_dict["tmp_range"], b_dict[vol], color=ga.vol_colors[vol][col_idx-Mstar_idx*2], ls=ls_list[distance_idx], lw=lw, label=ga.vol_latex[vol])
-                l2, = ax2.plot([0],[0], color=ga.vol_colors["qgray"], ls=ls_list[distance_idx], lw=lw, label=r"$a$ = "+str(distance)+" au")
+                l2, = ax2.plot([0],[0], color=ga.vol_colors["qgray"], ls=ls_list[distance_idx], lw=lw, label=r"$a$ = "+str(distance)+" au, $P_\mathrm{s}$ = "+str(round(P_surf/1e+5))+" bar")
 
                 if distance_idx == 0: legendB1_handles.append(l1)
                 if Mstar_idx == 0 and vol_idx == 0: legendB2_handles.append(l2)
@@ -305,31 +312,33 @@ with open(dirs["rad_conv"]+"/plotting_tools/comparison_data/Hamano15_data.txt", 
 ########## GENERAL PLOT SETTINGS
 
 label_fs    = 12
-legend_fs   = 11
-ticks_fs    = 10
-annotate_fs = 14
+legend_fs   = 12
+ticks_fs    = 12
+annotate_fs = 12
 
 ##### PLOT A settings
 # Legend for the main volatiles
 legendA1 = ax1.legend(handles=legendA1_handles, loc=2, ncol=2, fontsize=legend_fs)
 ax1.add_artist(legendA1)
 # Legend for the line styles
-legendA2 = ax1.legend(handles=legendA2_handles, loc=4, ncol=2, fontsize=legend_fs)
+legendA2 = ax1.legend(handles=legendA2_handles, loc=4, ncol=1, fontsize=legend_fs)
 
 ax1.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)', fontsize=label_fs)
 ax1.set_ylabel(r'Outgoing longwave radiation, $F^{\uparrow}_\mathrm{OLR}$ (W m$^{-2}$)', fontsize=label_fs)
 ax1.set_yscale("log")
 ax1.set_xlim(left=np.min(tmp_range), right=np.max(tmp_range))
+ax1.set_ylim(bottom=a_ymin*2., top=a_ymax*10)
 ax1.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range)])
-# ax1.set_ylim(bottom=1e-20, top=1e5)
 # ax1.set_yticks([1e-10, 1e-5, 1e0, 1e5])
+ax1.tick_params(axis='both', which='major', labelsize=ticks_fs)
+ax1.tick_params(axis='both', which='minor', labelsize=ticks_fs)
 
 ##### PLOT B settings
 # Legend for the main volatiles
 legendB1 = ax2.legend(handles=legendB1_handles, loc=2, ncol=2, fontsize=legend_fs)
 ax2.add_artist(legendB1)
 # Legend for the line styles
-legendB2 = ax2.legend(handles=legendB2_handles, loc=4, ncol=2, fontsize=legend_fs)
+legendB2 = ax2.legend(handles=legendB2_handles, loc=4, ncol=1, fontsize=legend_fs)
 
 ax2.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)', fontsize=label_fs)
 ax2.set_ylabel(r'Net outgoing radiation, $F^{\uparrow}_\mathrm{net}$ (W m$^{-2}$)', fontsize=label_fs)
@@ -337,13 +346,16 @@ ax2.set_yscale("symlog")
 ax2.set_xlim(left=np.min(tmp_range), right=np.max(tmp_range))
 ax2.set_ylim(bottom=b_ymin*2., top=b_ymax*10)
 ax2.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range)])
+ax2.tick_params(axis='both', which='major', labelsize=ticks_fs)
+ax2.tick_params(axis='both', which='minor', labelsize=ticks_fs)
 
-# Annotate fixed value: orbit / surface pressure
-ax1.text(0.98, 0.98, r"$a = $ 1.0 au", va="top", ha="right", fontsize=annotate_fs, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.9, boxstyle='round', pad=0.1), color=ga.vol_colors["black_1"] )
-ax2.text(0.98, 0.98, r'$P_{\mathrm{s}} = $'+str(round(P_surf/1e+5))+" bar", va="top", ha="right", fontsize=annotate_fs, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.9, boxstyle='round', pad=0.1), color=ga.vol_colors["black_1"] )
+# # Annotate fixed value: orbit / surface pressure
+# ax1.text(0.83, 0.15, r"$a = $ 1.0 au", va="bottom", ha="center", fontsize=annotate_fs, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.8, boxstyle='round', pad=0.1), color=ga.vol_colors["black_1"] )
+# ax2.text(0.85, 0.15, r'$P_{\mathrm{s}} = $'+str(round(P_surf/1e+5))+" bar", va="bottom", ha="center", fontsize=annotate_fs, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.8, boxstyle='round', pad=0.1), color=ga.vol_colors["black_1"] )
 
-ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=20, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.7, pad=0.1, boxstyle='round'))
-ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=20, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.7, pad=0.1, boxstyle='round'))
+# Annotate subplot numbering
+ax1.text(0.98, 0.985, 'A', color="k", rotation=0, ha="right", va="top", fontsize=20, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.01, pad=0.1, boxstyle='round'))
+ax2.text(0.98, 0.985, 'B', color="k", rotation=0, ha="right", va="top", fontsize=20, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.01, pad=0.1, boxstyle='round'))
 
 # Indicate cooling/heating regimes
 ax2.fill_between(tmp_range, 0, +1e+10, alpha=0.05, color="blue")
@@ -353,10 +365,10 @@ ax2.fill_between(tmp_range, 0, -1e+10, alpha=0.05, color="red")
 
 ### Plot and annotate literature comparison
 ax1.plot(Goldblatt13_Ts, Goldblatt13_OLR, color=ga.vol_colors["qgray"], ls=":", lw=1.0, zorder=0.1)
-ax1.text(1900, 320, "Goldblatt+ 13", va="bottom", ha="right", fontsize=legend_fs-3, color=ga.vol_colors["qgray"])
+ax1.text(1900, 320, "Goldblatt+ 13", va="bottom", ha="right", fontsize=legend_fs-3, color=ga.vol_colors["qgray"], bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.05, boxstyle='round'))
 # ax1.plot(Kopparapu13_Ts, Kopparapu13_OLR, color=ga.vol_colors["qgray"], ls="-.", lw=1.0, zorder=0.1)
 ax1.plot(Hamano15_Ts, Hamano15_OLR, color=ga.vol_colors["qgray"], ls="-.", lw=1.0, zorder=0.1)
-ax1.text(2180, 330, "Hamano+ 15", va="top", ha="left", fontsize=legend_fs-3, color=ga.vol_colors["qgray"])
+ax1.text(2180, 330, "Hamano+ 15", va="top", ha="left", fontsize=legend_fs-3, color=ga.vol_colors["qgray"], bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.05, boxstyle='round'))
 
 
 plt.savefig(dirs["output"]+'/radiation_limits.pdf', bbox_inches="tight")
