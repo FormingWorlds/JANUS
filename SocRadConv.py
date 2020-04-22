@@ -167,6 +167,14 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     ax1.set_ylabel(r'Pressure $P$ (Pa)')
     ax1.set_ylim(bottom=atm_moist.ps*1.01)
 
+    # Print active species
+    active_species = r""
+    for vol in atm_moist.vol_list:
+        if atm_moist.vol_list[vol] > 1e-5:
+            active_species = active_species + ga.vol_latex[vol] + ", "
+    active_species = active_species[:-2]
+    ax1.text(0.02, 0.02, r"Active species: "+active_species, va="bottom", ha="left", fontsize=10, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.5, boxstyle='round', pad=0.1), color=ga.vol_colors["black_1"] )
+
     # Fluxes vs. pressure
 
     # Zero line
@@ -511,17 +519,17 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 0.3                 # au, orbital distance
+    mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 10e+5               # Pa
-    T_surf        = 2150.               # K
+    P_surf        = 260e+5               # Pa
+    T_surf        = 700.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : 1.0, 
-                  "CO2" : .0,
-                  "H2"  : .0, 
+                  "H2O" : .5, 
+                  "CO2" : .5,
+                  "H2"  : .5, 
                   "N2"  : .0,  
                   "CH4" : .0, 
                   "O2"  : .0, 
