@@ -81,10 +81,6 @@ def define_mixing_ratios(vol, vol_list):
         ### Pure cases
         if vol1 == vol:
             vol_list[vol1] = 1.0
-
-            # Standard color for pure species
-            vol_color = ga.vol_colors[vol][5]
-
         else:
             vol_list[vol1] = 0.0
 
@@ -94,37 +90,38 @@ def define_mixing_ratios(vol, vol_list):
                 vol_list[vol1] = 0.5
             else:
                 vol_list[vol1] = 0.0
-            vol_color = ga.vol_colors["mixtures"][0]
         if vol == "H2-CO":
             if vol1 == "H2" or vol1 == "CO":
                 vol_list[vol1] = 0.5
             else:
                 vol_list[vol1] = 0.0
-            vol_color = ga.vol_colors["mixtures"][6] # idx 1 is bright yellow...
         if vol == "H2-CH4":
             if vol1 == "H2" or vol1 == "CH4":
                 vol_list[vol1] = 0.5
             else:
                 vol_list[vol1] = 0.0
-            vol_color = ga.vol_colors["mixtures"][2]
         if vol == "H2O-H2":
             if vol1 == "H2O" or vol1 == "H2":
                 vol_list[vol1] = 0.5
             else:
                 vol_list[vol1] = 0.0
-            vol_color = ga.vol_colors["mixtures"][3]
         if vol == "H2-N2":
             if vol1 == "H2" or vol1 == "N2":
                 vol_list[vol1] = 0.5
             else:
                 vol_list[vol1] = 0.0
-            vol_color = ga.vol_colors["mixtures"][4]
         if vol == "CO2-N2":
             if vol1 == "CO2" or vol1 == "N2":
                 vol_list[vol1] = 0.5
             else:
                 vol_list[vol1] = 0.0
-            vol_color = ga.vol_colors["mixtures"][5]
+
+    # Color ranges for pure species
+    if vol in vol_list.keys(): 
+        vol_color = ga.vol_colors[vol][5]
+    # Specific ones for mixtures
+    else:
+        vol_color = ga.vol_colors[vol]
 
     return vol_list, vol_color
 
@@ -156,7 +153,7 @@ prs_range   = [ 260e+5, 1e+5 ]
 P_surfB      = 10e+5
 
 # Surface temperature range (K)
-tmp_range   = np.linspace(200, 3000, 4)
+tmp_range   = np.linspace(200, 3000, 100)
 
 # With / without stratosphere?
 trpp        = True
