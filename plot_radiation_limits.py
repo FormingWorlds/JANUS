@@ -47,13 +47,16 @@ star_age_range = [ 4.567e+9 ]          # yr: 0.100e+9, 4.567e+9
 Mstar_range = [ 1.0 ]
 
 # Planet-star distance range, au
-distance_range = [ 1.0, 0.1 ]
+distance_range = [ 1.0, 0.5 ]
 
 # Surface pressure range (Pa)
 prs_range   = [ 260e+5, 1e+5 ]
 
 # Surface temperature range (K)
-tmp_range   = np.linspace(200, 2500, 50)
+tmp_range   = np.linspace(200, 3000, 100)
+
+# With / without stratosphere?
+trpp        = True
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list    = { 
@@ -94,6 +97,31 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "CH4" ]):
             vol_list[vol1] = 1.0
         else:
             vol_list[vol1] = 0.0
+        if vol == "H2O-CO2":
+            if vol1 == "H2O" or vol1 == "CO2":
+                vol_list[vol1] = 0.5
+            else:
+                vol_list[vol1] = 0.0
+        if vol == "H2-CO":
+            if vol1 == "H2" or vol1 == "CO":
+                vol_list[vol1] = 0.5
+            else:
+                vol_list[vol1] = 0.0
+        if vol == "H2-CH4":
+            if vol1 == "H2" or vol1 == "CH4":
+                vol_list[vol1] = 0.5
+            else:
+                vol_list[vol1] = 0.0
+        if vol == "H2O-H2":
+            if vol1 == "H2O" or vol1 == "H2":
+                vol_list[vol1] = 0.5
+            else:
+                vol_list[vol1] = 0.0
+        if vol == "H2-N2":
+            if vol1 == "H2" or vol1 == "N2":
+                vol_list[vol1] = 0.5
+            else:
+                vol_list[vol1] = 0.0
 
     # Loop through surface pressures
     for prs_idx, P_surf in enumerate(prs_range):
@@ -126,7 +154,7 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "CH4" ]):
                 atm = atmos(T_surf, P_surf, vol_list)
 
                 # Compute heat flux
-                atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
+                atm_dry, atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False, trpp=trpp)
 
                 # OLR !
                 OLR_array.append(atm.LW_flux_up[0])
@@ -219,7 +247,7 @@ for vol_idx, vol in enumerate([ "H2O", "CO2", "H2", "CH4" ]):
                         atm.toa_heating = SocRadConv.InterpolateStellarLuminosity(Mstar, time, distance, atm.albedo_pl)
 
                         # Compute heat flux
-                        atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False)
+                        atm_dry, atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=False, trpp=trpp)
 
                         LW_flux_up_array.append(atm.LW_flux_up[0])
                         net_flux_array.append(atm.net_flux[0])

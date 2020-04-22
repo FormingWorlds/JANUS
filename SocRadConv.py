@@ -47,31 +47,31 @@ def surf_Planck_nu(atm):
     B   = (1.-atm.albedo_s) * np.pi * B * atm.band_widths/1000.0
     return B
 
-def RadConvEqm(dirs, time, atm, loop_counter, SPIDER_options, standalone, cp_dry):
+def RadConvEqm(dirs, time, atm, loop_counter, SPIDER_options, standalone, cp_dry, trpp):
 
-    atm_dry, atm_moist = radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone)
+    # Build adiabat structure
+    atm       = ga.general_adiabat(atm)
 
+    ### Moist adiabat
+    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trpp)
+
+    ### Dry adiabat
+    if cp_dry == True:
+
+        # Compute dry adiabat  w/ timestepping
+        atm_dry   = compute_dry_adiabat(atm, rad_steps, dirs, standalone)
+
+        if standalone == True:
+            print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
+            print("| dry:", str(round(atm_dry.net_flux[0], 3)), str(round(atm_dry.LW_flux_up[0], 3)) + " W/m^2", end=" ")
+            print()
+    else: atm_dry = {}
+    
     # Plot
     if standalone == True:
         plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs)
-    
-    if cp_dry == True:
-        plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs)
-        print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
-        print("| dry:", str(round(atm_dry.net_flux[0], 3)), str(round(atm_dry.LW_flux_up[0], 3)) + " W/m^2", end=" ")
-        print()
 
-    # # Write TP and spectral flux profiles for later plotting
-    # out_a = np.column_stack( ( atm.temp, atm.p*1e-5 ) ) # K, Pa->bar
-    # np.savetxt( output_dir+str(int(time_current))+"_atm_TP_profile.dat", out_a )
-    # out_a = np.column_stack( ( atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths ) )
-    # np.savetxt( output_dir+str(int(time_current))+"_atm_spectral_flux.dat", out_a )
-
-    # Profile used in coupled model
-    atm = atm_moist
-
-    # return atm.LW_flux_up[0], atm.band_centres, atm.LW_spectral_flux_up[:,0]/atm.band_widths
-    return atm
+    return atm_dry, atm_moist
 
 # Dry adiabat profile
 def dry_adiabat_atm(atm):
@@ -209,15 +209,22 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     ax3.plot(atm_moist.band_centres, surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label=str(round(atm_moist.ts))+' K blackbody')
     if cp_dry == True: ax3.plot(atm_dry.band_centres, atm_dry.net_spectral_flux[:,0]/atm_dry.band_widths, color=ga.vol_colors[col_vol3][col_idx])
     ax3.plot(atm_moist.band_centres, atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol1][col_idx+1])
-    ax3.set_xlim([np.min(atm.band_centres),np.max(atm.band_centres)])
     ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)')
     ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
     ax3.legend()
-    ax3.set_xlim(left=0, right=30000)
-    ax3.set_ylim(bottom=0, top=1.2*np.max(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths))
+    ymax_plot = 1.2*np.max(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths)
+    ax3.set_ylim(bottom=0, top=ymax_plot)
+    ax3.set_xlim(left=0, right=np.max(np.where(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths > ymax_plot/1000., atm_moist.band_centres, 0.)))
+    # ax3.set_xlim(left=0, right=30000)
+    
 
     # Heating versus pressure
     ax4.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
+
+    if cp_dry == True: 
+        ax4.plot(atm_dry.LW_heating, atm_dry.p, ls="--", color=ga.vol_colors[col_vol3][col_idx+1])
+        ax4.plot(atm_dry.net_heating, atm_dry.p, lw=2, color=ga.vol_colors[col_vol3][col_idx+1])
+        ax4.plot(atm_dry.SW_heating, atm_dry.p, ls=":", color=ga.vol_colors[col_vol3][col_idx+1])
 
     ax4.plot(atm_moist.LW_heating, atm_moist.p, ls="--", color=ga.vol_colors[col_vol1][col_idx+1], label=r'LW')
     ax4.plot(atm_moist.net_heating, atm_moist.p, lw=2, color=ga.vol_colors[col_vol1][col_idx+1], label=r'Net')
@@ -276,81 +283,99 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     #     json.dump(json_atm, atm_file)
 
 # Time integration for n steps
-def radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone):
-
-    # Build moist adiabat structure
-    atm_moist           = ga.general_adiabat(atm)
+def compute_dry_adiabat(atm, rad_steps, dirs, standalone):
 
     # Copy moist pressure arrays for dry adiabat
-    atm_dry             = dry_adiabat_atm(copy.deepcopy(atm_moist))
+    atm_dry             = dry_adiabat_atm(copy.deepcopy(atm))
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry         = 0.
     PrevMaxHeat_dry     = 0.
     PrevTemp_dry        = atm.tmp * 0.
 
-    if cp_dry == True:
+    # Time stepping
+    for i in range(0, rad_steps):
 
-        ### Dry calculation
-        # Time stepping
-        for i in range(0, rad_steps):
+        # atm.toa_heating = 0
 
-            # atm.toa_heating = 0
+        # Compute radiation, midpoint method time stepping
+        atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False)
+        dT_dry          = atm_dry.net_heating * atm_dry.dt
 
-            # Compute radiation, midpoint method time stepping
-            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False)
-            dT_dry          = atm_dry.net_heating * atm_dry.dt
+        # Limit the temperature change per step
+        dT_dry          = np.where(dT_dry > dT_max, dT_max, dT_dry)
+        dT_dry          = np.where(dT_dry < -dT_max, -dT_max, dT_dry)
 
-            # Limit the temperature change per step
-            dT_dry          = np.where(dT_dry > dT_max, dT_max, dT_dry)
-            dT_dry          = np.where(dT_dry < -dT_max, -dT_max, dT_dry)
+        # Apply heating
+        atm_dry.tmp     += dT_dry
 
-            # Apply heating
-            atm_dry.tmp     += dT_dry
+        # # Do the surface balance
+        # kturb       = .1
+        # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
+        
+        # Dry convective adjustment
+        for iadj in range(conv_steps):
+            atm_dry     = DryAdj(atm_dry)
 
-            # # Do the surface balance
-            # kturb       = .1
-            # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
-            
-            # Dry convective adjustment
-            for iadj in range(conv_steps):
-                atm_dry     = DryAdj(atm_dry)
+        # Convergence criteria
+        dTglobal_dry    = abs(round(np.max(atm_dry.tmp-PrevTemp_dry[:]), 4))
+        dTtop_dry       = abs(round(atm_dry.tmp[0]-atm_dry.tmp[1], 4))
 
-            # Convergence criteria
-            dTglobal_dry    = abs(round(np.max(atm_dry.tmp-PrevTemp_dry[:]), 4))
-            dTtop_dry       = abs(round(atm_dry.tmp[0]-atm_dry.tmp[1], 4))
+        # Inform during runtime
+        if i % 2 == 1:
+            print("Dry adjustment step", i+1, end=": ")
+            print("OLR: " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K")
 
-            # Inform during runtime
-            if i % 2 == 1:
-                print("Dry adjustment step", i+1, end=": ")
-                print("OLR: " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K")
+        # Reduce timestep if heating is not converging
+        if dTglobal_dry < 0.05 or dTtop_dry > 3.0:
+            atm_dry.dt  = atm_dry.dt*0.99
+            print("Dry adiabat not converging -> dt_new =", atm_dry.dt, "days")
 
-            # Reduce timestep if heating is not converging
-            if dTglobal_dry < 0.05 or dTtop_dry > 3.0:
-                atm_dry.dt  = atm_dry.dt*0.99
-                print("Dry adiabat not converging -> dt_new =", atm_dry.dt, "days")
+        # Break criteria
+        dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 6))
+        dbreak_dry      = (0.001*(5.67e-8*atm_dry.ts**4)**0.5)
 
-            # Break criteria
-            dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 6))
-            dbreak_dry      = (0.001*(5.67e-8*atm_dry.ts**4)**0.5)
+        # Sensitivity break condition
+        if (dOLR_dry < dbreak_dry) and i > 5:
+            print("Timestepping break ->", end=" ")
+            print("dOLR/step =", dOLR_dry, "W/m^2, dTglobal_dry =", dTglobal_dry)
+            break    # break here
 
-            # Sensitivity break condition
-            if (dOLR_dry < dbreak_dry) and i > 5:
-                print("Timestepping break ->", end=" ")
-                print("dOLR/step =", dOLR_dry, "W/m^2, dTglobal_dry =", dTglobal_dry)
-                break    # break here
+        PrevOLR_dry       = atm_dry.LW_flux_up[0]
+        PrevMaxHeat_dry   = abs(np.max(atm_dry.net_heating))
+        PrevTemp_dry[:]   = atm_dry.tmp[:]
 
-            PrevOLR_dry       = atm_dry.LW_flux_up[0]
-            PrevMaxHeat_dry   = abs(np.max(atm_dry.net_heating))
-            PrevTemp_dry[:]   = atm_dry.tmp[:]
+    return atm_dry
 
-    ### Moist outgoing LW only, no heating
 
-    # Compute radiation, no moist timestepping
-    atm_moist       = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False)
+def compute_moist_adiabat(atm_moist, dirs, standalone, trpp):
+
+    # # Build general adiabat structure
+    # atm_moist = ga.general_adiabat(atm)
+
+    # Run SOCRATES
+    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False)
 
     if standalone == True:
         print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+
+    if trpp == True:
+        
+        # Find tropopause index
+        atm_moist = find_tropopause(atm_moist)
+
+        # Reset stratosphere temperature and abundance levels
+        atm_moist = set_stratosphere(atm_moist)
+
+        # Recalculate fluxes w/ new atmosphere structure
+        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True)
+
+        if standalone == True:
+            print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+
+    return atm_moist
+
+def find_tropopause(atm_moist):
 
     # Find tropopause index
     trpp_idx   = 0 
@@ -394,19 +419,9 @@ def radiation_timestepping(atm, rad_steps, cp_dry, dirs, standalone):
         atm_moist.trpp[0] = trpp_idx                  # index
         atm_moist.trpp[1] = atm_moist.pl[trpp_idx]    # pressure 
         atm_moist.trpp[2] = atm_moist.tmpl[trpp_idx]  # temperature
-        
-        # Reset stratosphere temperature and abundance levels
-        atm_moist = set_stratosphere(atm_moist)
 
-        # Recalculate fluxes w/ new atmosphere structure
-        atm_moist       = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True)
+    return atm_moist
 
-        if standalone == True:
-            print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
-    # else:
-    #     print("No tropopause")
-
-    return atm_dry, atm_moist
 
 def set_stratosphere(atm):
 
@@ -496,11 +511,11 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 0.1                 # au, orbital distance
+    mean_distance = 0.3                 # au, orbital distance
 
     # Surface pressure & temperature
     P_surf        = 10e+5               # Pa
-    T_surf        = 1500.               # K
+    T_surf        = 2150.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
@@ -531,7 +546,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True) 
 
     # Plot abundances w/ TP structure
-    ga.plot_adiabats(atm)
+    ga.plot_adiabats(atm_moist)
