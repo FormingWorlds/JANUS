@@ -31,7 +31,7 @@ R_universal = 8.31446261815324              # Universal gas constant, J.K-1.mol-
 
 # Dry adiabat settings 
 rad_steps   = 100  # Number of radiation steps
-conv_steps  = 20   # Number of dry convective adjustment steps
+conv_steps  = 30   # Number of dry convective adjustment steps
 dT_max      = 50.  # Maximum temperature change per radiation step
 
 def surf_Planck_nu(atm):
@@ -50,16 +50,19 @@ def surf_Planck_nu(atm):
 def RadConvEqm(dirs, time, atm, loop_counter, SPIDER_options, standalone, cp_dry, trpp):
 
     # Build adiabat structure
-    atm       = ga.general_adiabat(atm)
+    atm_moist       = ga.general_adiabat(atm)
 
     ### Moist adiabat
-    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trpp)
+    atm_moist = compute_moist_adiabat(atm_moist, dirs, standalone, trpp)
 
     ### Dry adiabat
     if cp_dry == True:
 
+        # Build adiabat structure
+        atm_dry       = ga.general_adiabat(atm)
+
         # Compute dry adiabat  w/ timestepping
-        atm_dry   = compute_dry_adiabat(atm, rad_steps, dirs, standalone)
+        atm_dry   = compute_dry_adiabat(atm_dry, rad_steps, dirs, standalone)
 
         if standalone == True:
             print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
