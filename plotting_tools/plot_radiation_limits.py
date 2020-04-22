@@ -47,7 +47,7 @@ star_age_range = [ 4.567e+9 ]          # yr: 0.100e+9, 4.567e+9
 Mstar_range = [ 1.0 ]
 
 # Planet-star distance range, au
-distance_range = [ 1.0, 0.5 ]
+distance_range = [ 1.0, 0.4 ]
 
 # Surface pressure range (Pa)
 prs_range   = [ 260e+5, 1e+5 ]
@@ -338,7 +338,8 @@ ax2.set_xlim(left=np.min(tmp_range), right=np.max(tmp_range))
 ax2.set_ylim(bottom=b_ymin*2., top=b_ymax*10)
 ax2.set_xticks([np.min(tmp_range), 500, 1000, 1500, 2000, 2500, np.max(tmp_range)])
 
-# Annotate surface pressure
+# Annotate fixed value: orbit / surface pressure
+ax1.text(0.98, 0.98, r"$a = $ 1.0 au", va="top", ha="right", fontsize=annotate_fs, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.9, boxstyle='round', pad=0.1), color=ga.vol_colors["black_1"] )
 ax2.text(0.98, 0.98, r'$P_{\mathrm{s}} = $'+str(round(P_surf/1e+5))+" bar", va="top", ha="right", fontsize=annotate_fs, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.9, boxstyle='round', pad=0.1), color=ga.vol_colors["black_1"] )
 
 ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=20, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.7, pad=0.1, boxstyle='round'))
