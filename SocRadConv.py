@@ -522,14 +522,14 @@ if __name__ == "__main__":
     mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 260e+5               # Pa
-    T_surf        = 700.               # K
+    P_surf        = 10e+5               # Pa
+    T_surf        = 1133.33               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
                   "H2O" : .5, 
                   "CO2" : .5,
-                  "H2"  : .5, 
+                  "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
                   "O2"  : .0, 

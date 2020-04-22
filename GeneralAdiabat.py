@@ -25,19 +25,26 @@ import copy
 # https://python-graph-gallery.com/python-colors/
 no_colors   = 7
 vol_colors = {
-    "H2O"     : sns.color_palette("PuBu", no_colors),
-    "CO2"     : sns.color_palette("Reds", no_colors),
-    "H2"      : sns.color_palette("Greens", no_colors),
-    "N2"      : sns.color_palette("Purples", no_colors), # sns.cubehelix_palette(7)
-    "O2"      : sns.light_palette("darkturquoise", no_colors),
-    "CH4"     : sns.color_palette("RdPu", no_colors),
-    "CO"      : sns.light_palette("#731d1d", no_colors),
-    "S"       : sns.light_palette("#EBB434", no_colors),
-    "He"      : sns.color_palette("Greys", no_colors),
-    "NH3"     : sns.light_palette("teal", no_colors),
-    "black_1" : "#000000",
-    "black_2" : "#323232",
-    "black_3" : "#7f7f7f",
+    "H2O"            : sns.color_palette("PuBu", no_colors),
+    "CO2"            : sns.color_palette("Reds", no_colors),
+    "H2"             : sns.color_palette("Greens", no_colors),
+    "N2"             : sns.color_palette("Purples", no_colors), # sns.cubehelix_palette(7)
+    "O2"             : sns.light_palette("darkturquoise", no_colors),
+    "CH4"            : sns.color_palette("RdPu", no_colors),
+    "CO"             : sns.light_palette("#731d1d", no_colors),
+    "S"              : sns.light_palette("#EBB434", no_colors),
+    "He"             : sns.color_palette("Greys", no_colors),
+    "NH3"            : sns.light_palette("teal", no_colors),
+    "mixtures"       : sns.color_palette("Set3", 11),
+    "H2O-CO2"        : sns.color_palette("Set3", 11)[3],
+    "H2-CO"          : sns.color_palette("Set3", 11)[7],
+    "H2-CH4"         : sns.color_palette("Set3", 11)[5],
+    "H2O-H2"         : sns.color_palette("Set3", 11)[0],
+    "H2-N2"          : sns.color_palette("Set3", 11)[6],
+    "CO2-N2"         : sns.color_palette("Set3", 11)[2],
+    "black_1"        : "#000000",
+    "black_2"        : "#323232",
+    "black_3"        : "#7f7f7f",
     "qgray"          : "#768E95",
     "qgray2"         : "#888888",
     "qblue"          : "#4283A9", # http://www.color-hex.com/color/4283a9
@@ -65,16 +72,22 @@ vol_colors = {
 
 # Volatile Latex names
 vol_latex = {
-    "H2O"   : r"H$_2$O",
-    "CO2"   : r"CO$_2$",
-    "H2"    : r"H$_2$" ,
-    "CH4"   : r"CH$_4$",
-    "CO"    : r"CO" ,
-    "N2"    : r"N$_2$" ,
-    "S"     : r"S"  ,
-    "O2"    : r"O$_2$" ,
-    "He"    : r"He" ,
-    "NH3"   : r"NH$_3$"
+    "H2O"     : r"H$_2$O",
+    "CO2"     : r"CO$_2$",
+    "H2"      : r"H$_2$" ,
+    "CH4"     : r"CH$_4$",
+    "CO"      : r"CO",
+    "N2"      : r"N$_2$",
+    "S"       : r"S",
+    "O2"      : r"O$_2$",
+    "He"      : r"He",
+    "NH3"     : r"NH$_3$",
+    "H2O-CO2" : r"H$_2$O–CO$_2$",
+    "H2-CO"   : r"H$_2$O–CO",
+    "H2-CH4"  : r"H$_2$O–CH$_4$",
+    "H2O-H2"  : r"H$_2$O–H$_2$",
+    "H2-N2"   : r"H$_2$–N$_2$",
+    "CO2-N2"  : r"CO$_2$–N$_2$",
 }
 
 #--------- Importing thermodynamical properties of gases -----------
@@ -640,7 +653,7 @@ def condensation( atm, idx, prs_reset ):
     # atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])             # w/o cond
 
     # Dry concentration floor
-    atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
+    atm.xd[idx]  = np.amax([atm.xd[idx], 1e-5])
 
     ## 'Molar abundance in one mole of heterogeneous gas mixture' (Li, Ingersoll, Oyafuso 2018)
 
