@@ -4,7 +4,7 @@ Returns heating rates
 MDH 25/01/19
 '''
 
-import os
+import os, glob
 import netCDF4 as net
 import sys
 import numpy as np
@@ -16,6 +16,7 @@ import nctools
 from subprocess import call
 from netCDF4 import Dataset
 from atmosphere_column import atmos
+from natsort import natsorted # https://pypi.python.org/pypi/natsort
 
 def radCompSoc(atm, dirs, recalc):
 
@@ -37,7 +38,8 @@ def radCompSoc(atm, dirs, recalc):
     latitude        = 0
     basis_function  = 1
 
-    # Write values to netcdf
+    # Write values to netcdf: SOCRATES Userguide p. 45
+    blockPrint()
     nctools.ncout_surf('profile.surf', longitude, latitude, basis_function, surface_albedo)
     nctools.ncout2d('profile.tstar', 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
     nctools.ncout2d('profile.pstar', 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
@@ -54,6 +56,7 @@ def radCompSoc(atm, dirs, recalc):
     nctools.ncout3d('profile.h2', 0, 0,  atm.p,  atm.x_gas["H2"], 'h2', longname="H2", units='PPMV') 
     nctools.ncout3d('profile.n2', 0, 0,  atm.p,  atm.x_gas["N2"], 'n2', longname="N2", units='PPMV') 
     nctools.ncout3d('profile.o2', 0, 0,  atm.p,  atm.x_gas["O2"], 'o2', longname="O2", units='PPMV')
+    enablePrint()
 
     basename = 'profile'
     s = " "
@@ -69,11 +72,10 @@ def radCompSoc(atm, dirs, recalc):
     comline3 = s.join(seq6)
     comline4 = s.join(seq7)
 
-    if 1==1:
-        os.system(comline1)
-        os.system(comline2)
-        os.system(comline3)
-        os.system(comline4)
+    os.system(comline1)
+    os.system(comline2)
+    os.system(comline3)
+    os.system(comline4)
 
     # Open netCDF files produced by SOCRATES
     ncfile1  = net.Dataset('currentsw.vflx')
@@ -149,4 +151,28 @@ def radCompSoc(atm, dirs, recalc):
     ncfile9.close()
     ncfile10.close()
 
+    # Remove auxiliary files
+    CleanOutputDir( os.getcwd() )
+
     return atm
+
+# Clean SOCRATES output files after run
+def CleanOutputDir( output_dir ):
+
+    types = ("current??.????", "profile.*") 
+    files_to_delete = []
+    for files in types:
+        files_to_delete.extend(glob.glob(output_dir+"/"+files))
+
+    # print("Remove old output files:")
+    for file in natsorted(files_to_delete):
+        os.remove(file)
+    #     print(os.path.basename(file), end =" ")
+    # print("\n==> Done.")
+
+
+# Disable and enable print: https://stackoverflow.com/questions/8391411/suppress-calls-to-print-python
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+def enablePrint():
+    sys.stdout = sys.__stdout__
