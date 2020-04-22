@@ -49,20 +49,14 @@ def surf_Planck_nu(atm):
 
 def RadConvEqm(dirs, time, atm, loop_counter, SPIDER_options, standalone, cp_dry, trpp):
 
-    # Build adiabat structure
-    atm_moist       = ga.general_adiabat(atm)
-
-    ### Moist adiabat
-    atm_moist = compute_moist_adiabat(atm_moist, dirs, standalone, trpp)
+    ### Moist/general adiabat
+    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trpp)
 
     ### Dry adiabat
     if cp_dry == True:
 
-        # Build adiabat structure
-        atm_dry       = ga.general_adiabat(atm)
-
         # Compute dry adiabat  w/ timestepping
-        atm_dry   = compute_dry_adiabat(atm_dry, rad_steps, dirs, standalone)
+        atm_dry   = compute_dry_adiabat(atm, rad_steps, dirs, standalone)
 
         if standalone == True:
             print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
@@ -139,17 +133,17 @@ def DryAdj(atm):
 
     return atm      
 
-# Moist convective adjustment
-def MoistAdj(atm, dT):
+# # Moist convective adjustment
+# def MoistAdj(atm, dT):
 
-    # Apply heating
-    tmp_heated = atm.tmp + dT
+#     # Apply heating
+#     tmp_heated = atm.tmp + dT
 
-    # Reset to moist adiabat if convectively unstable
-    for idx, tmp_heated in enumerate(tmp_heated):
-        atm.tmp[idx] = np.amax([tmp_heated, atm.tmp[idx]])
+#     # Reset to moist adiabat if convectively unstable
+#     for idx, tmp_heated in enumerate(tmp_heated):
+#         atm.tmp[idx] = np.amax([tmp_heated, atm.tmp[idx]])
 
-    return atm 
+#     return atm 
 
 def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
 
@@ -274,7 +268,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
     # ax4.set_xticklabels(["0.1", "0.3", "1", "3", "10", "30", "100"])
 
-    plt.savefig(dirs["output"]+"/"+str(round(time["planet"]))+'_TP.pdf', bbox_inches="tight")
+    plt.savefig(dirs["output"]+"/"+"TP_"+str(round(time["planet"]))+'.pdf', bbox_inches="tight")
     plt.close(fig)
 
     with open(dirs["output"]+"/"+str(int(time["planet"]))+"_atm.pkl", "wb") as atm_file: 
@@ -288,8 +282,11 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
 # Time integration for n steps
 def compute_dry_adiabat(atm, rad_steps, dirs, standalone):
 
+    # Build general adiabat structure
+    atm                 = ga.general_adiabat(copy.deepcopy(atm))
+
     # Copy moist pressure arrays for dry adiabat
-    atm_dry             = dry_adiabat_atm(copy.deepcopy(atm))
+    atm_dry             = dry_adiabat_atm(atm)
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry         = 0.
@@ -332,11 +329,11 @@ def compute_dry_adiabat(atm, rad_steps, dirs, standalone):
         # Reduce timestep if heating is not converging
         if dTglobal_dry < 0.05 or dTtop_dry > 3.0:
             atm_dry.dt  = atm_dry.dt*0.99
-            print("Dry adiabat not converging -> dt_new =", atm_dry.dt, "days")
+            print("Dry adiabat not converging -> dt_new =", round(atm_dry.dt,5), "days")
 
         # Break criteria
         dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 6))
-        dbreak_dry      = (0.001*(5.67e-8*atm_dry.ts**4)**0.5)
+        dbreak_dry      = (0.01*(5.67e-8*atm_dry.ts**4)**0.5)
 
         # Sensitivity break condition
         if (dOLR_dry < dbreak_dry) and i > 5:
@@ -351,10 +348,10 @@ def compute_dry_adiabat(atm, rad_steps, dirs, standalone):
     return atm_dry
 
 
-def compute_moist_adiabat(atm_moist, dirs, standalone, trpp):
+def compute_moist_adiabat(atm, dirs, standalone, trpp):
 
-    # # Build general adiabat structure
-    # atm_moist = ga.general_adiabat(atm)
+    # Build general adiabat structure
+    atm_moist = ga.general_adiabat(copy.deepcopy(atm))
 
     # Run SOCRATES
     atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False)
