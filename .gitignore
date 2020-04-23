@@ -3,11 +3,6 @@
 *.pyc
 *.par
 
-# .txt files
-############
-# *.txt
-
-
 # Model files
 #############
 current*
@@ -21,12 +16,8 @@ radiation_code.lock
 Tprofile.pdf
 .DS_Store
 __pycache__/
-socrates/
-general_adiabat_TP.pdf
-general_adiabat_XP.pdf
-TP_profile_10000000.pdf
+rad_trans/socrates_code/
 output10000000_atm_spectral_flux.dat
 output10000000_atm_TP_profile.dat
-general_adiabat.pdf
 *.pdf
 *.pkl
