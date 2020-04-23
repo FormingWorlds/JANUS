@@ -189,7 +189,7 @@ a_ymin = 0
 # Define volatile combinations plotted, options: 
 # Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
 # Mixtures: "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2"
-vol_array = [ "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2" ]
+vol_array = [ "H2O", "CO2", "H2", "CH4", "H2O-CO2", "H2O-H2", "H2-CO", "H2-CH4" ]
 
 ##### PLOT A
 print("############# PLOT A #############")
@@ -244,6 +244,7 @@ for vol_idx, vol in enumerate(vol_array):
         print(vol, "@", round(P_surf)/1e+5, "bar, OLRs:", a_dict[vol], "W/m^2")
         
         # Plot
+        # if prs_idx == 0: 
         l1, = ax1.plot(a_dict["tmp_range"], a_dict[vol], color=vol_color, ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
 
         # Add to color legend only once
