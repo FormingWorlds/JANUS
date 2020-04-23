@@ -83,9 +83,9 @@ vol_latex = {
     "He"      : r"He",
     "NH3"     : r"NH$_3$",
     "H2O-CO2" : r"H$_2$O–CO$_2$",
-    "H2-CO"   : r"H$_2$O–CO",
-    "H2-CH4"  : r"H$_2$O–CH$_4$",
     "H2O-H2"  : r"H$_2$O–H$_2$",
+    "H2-CO"   : r"H$_2$–CO",
+    "H2-CH4"  : r"H$_2$–CH$_4$",
     "H2-N2"   : r"H$_2$–N$_2$",
     "CO2-N2"  : r"CO$_2$–N$_2$",
 }
