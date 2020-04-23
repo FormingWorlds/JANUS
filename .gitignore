@@ -21,3 +21,7 @@ output10000000_atm_spectral_flux.dat
 output10000000_atm_TP_profile.dat
 *.pdf
 *.pkl
+
+# Ignore SOCRATES code files
+rad_trans/socrates_code/
+
