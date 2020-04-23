@@ -189,7 +189,7 @@ a_ymin = 0
 # Define volatile combinations plotted, options: 
 # Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
 # Mixtures: "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2"
-vol_array = [ "H2O", "CO2", "H2", "CH4", "H2O-CO2", "H2O-H2", "H2-CO", "H2-CH4" ]
+vol_array = [ "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2", "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2" ]
 
 ##### PLOT A
 print("############# PLOT A #############")
@@ -204,7 +204,7 @@ for vol_idx, vol in enumerate(vol_array):
     for prs_idx, P_surf in enumerate(prs_range):
 
         # Check if data present, otherwise create
-        file_name = "a_"+vol+"_Ps"+str(round(P_surf))+"_p"+str(np.size(prs_range))+"_T"+str(np.size(tmp_range))+".pkl"
+        file_name = "a_"+vol+"_Ps"+str(round(P_surf))+"_nT"+str(np.size(tmp_range))+".pkl"
         file_path = dirs["data_dir"]+"/"+file_name
 
         # If data exists, read it from file
