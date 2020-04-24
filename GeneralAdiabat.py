@@ -653,7 +653,7 @@ def condensation( atm, idx, prs_reset ):
     # atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])             # w/o cond
 
     # Dry concentration floor
-    atm.xd[idx]  = np.amax([atm.xd[idx], 1e-5])
+    atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
 
     ## 'Molar abundance in one mole of heterogeneous gas mixture' (Li, Ingersoll, Oyafuso 2018)
 

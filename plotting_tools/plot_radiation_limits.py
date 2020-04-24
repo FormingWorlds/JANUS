@@ -159,8 +159,10 @@ prs_rangeA    = [ 260e+5, 1e+5 ]
 prs_rangeB    = [ 10e+5 ]
 
 # Surface temperature range (K)
-tmp_range   = np.linspace(200, 3000, 3)
-tmp_range   = [ round(Ts) for Ts in tmp_range ]
+tmp_range   = np.arange(200, 3001, 50)
+# KLUDGE UNTIL SPECTRAL FILE RANGE EXTENDED TO LOWER T
+tmp_range   = [ Ts for Ts in tmp_range if Ts >= 300 ]
+tmp_range   = [ int(round(Ts)) for Ts in tmp_range ]
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list    = { 
@@ -190,7 +192,7 @@ b_ymin = 0
 # Define volatile combinations plotted, options: 
 #   Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
 #   Mixtures: "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2"
-vol_array = [ "H2O" ]
+vol_array = [ "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2", "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2" ]
 
 ##### PLOT A
 # print("############# PLOT A #############")
@@ -200,7 +202,7 @@ vol_array = [ "H2O" ]
 #       "trpp"  : With tropopause/stratosphere included
 #       "moist" : Pure moist adiabat structure 
 #       "tstep" : With timestepping
-for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
+for setting in [ "trpp", "moist" ]: # "trpp", "moist", "tstep"
 
     # Set up plot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,6))
@@ -245,7 +247,7 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                         # Loop through surface temperatures
                         for T_surf in tmp_range:
 
-                            print("###", setting, ":", vol, "@", round(P_surf/1e+5), "bar,", dist, "au,", round(Mstar), "M_sun,", round(tstar/1e+6), "Myr,", int(T_surf), "K", end=" ")
+                            print("###", setting, ":", vol, "@", round(P_surf/1e+5), "bar,", dist, "au,", Mstar, "M_sun,", round(tstar/1e+6), "Myr,", int(T_surf), "K", end=" ")
 
                             # Define file name and path
                             file_name = str(setting) \
@@ -266,11 +268,11 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                                 atm = pkl.load(atm_stream)
                                 atm_stream.close()
 
-                                print(vol, "--> Read file:", file_name)
+                                print("--> Read file:", file_name)
                             # Else: compute anew
                             else:
 
-                                print(vol, "--> No file, create:", file_name)
+                                print("--> No file, create:", file_name)
 
                                 # Create atmosphere object
                                 atm = atmos(T_surf, P_surf, vol_list)

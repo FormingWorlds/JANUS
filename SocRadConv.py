@@ -24,16 +24,6 @@ import pathlib
 import pickle as pkl
 import json
 
-# Constants
-L_sun       = 3.828e+26                     # W, IAU definition
-AU          = 1.495978707e+11               # m
-R_universal = 8.31446261815324              # Universal gas constant, J.K-1.mol-1
-
-# Dry adiabat settings 
-rad_steps   = 100  # Number of radiation steps
-conv_steps  = 30   # Number of dry convective adjustment steps
-dT_max      = 50.  # Maximum temperature change per radiation step
-
 def surf_Planck_nu(atm):
     h   = 6.63e-34
     c   = 3.0e8
@@ -56,7 +46,7 @@ def RadConvEqm(dirs, time, atm, loop_counter, SPIDER_options, standalone, cp_dry
     if cp_dry == True:
 
         # Compute dry adiabat  w/ timestepping
-        atm_dry   = compute_dry_adiabat(atm, rad_steps, dirs, standalone)
+        atm_dry   = compute_dry_adiabat(atm, dirs, standalone)
 
         if standalone == True:
             print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
@@ -72,6 +62,8 @@ def RadConvEqm(dirs, time, atm, loop_counter, SPIDER_options, standalone, cp_dry
 
 # Dry adiabat profile
 def dry_adiabat_atm(atm):
+
+    R_universal = 8.31446261815324              # Universal gas constant, J.K-1.mol-1
 
     # Calculate cp from molar concentrations
     cp_mix = 0.
@@ -288,7 +280,12 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     #     json.dump(json_atm, atm_file)
 
 # Time integration for n steps
-def compute_dry_adiabat(atm, rad_steps, dirs, standalone):
+def compute_dry_adiabat(atm, dirs, standalone):
+
+    # Dry adiabat settings 
+    rad_steps   = 100  # Maximum number of radiation steps
+    conv_steps  = 30   # Number of convective adjustment steps (per radiation step)
+    dT_max      = 20.  # Maximum temperature change per radiation step
 
     # Build general adiabat structure
     atm                 = ga.general_adiabat(copy.deepcopy(atm))
@@ -329,19 +326,19 @@ def compute_dry_adiabat(atm, rad_steps, dirs, standalone):
         dTglobal_dry    = abs(round(np.max(atm_dry.tmp-PrevTemp_dry[:]), 4))
         dTtop_dry       = abs(round(atm_dry.tmp[0]-atm_dry.tmp[1], 4))
 
-        # Inform during runtime
-        if i % 2 == 1:
-            print("Dry adjustment step", i+1, end=": ")
-            print("OLR: " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K")
-
-        # Reduce timestep if heating is not converging
-        if dTglobal_dry < 0.05 or dTtop_dry > 3.0:
-            atm_dry.dt  = atm_dry.dt*0.99
-            print("Dry adiabat not converging -> dt_new =", round(atm_dry.dt,5), "days")
-
         # Break criteria
         dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 6))
         dbreak_dry      = (0.01*(5.67e-8*atm_dry.ts**4)**0.5)
+
+        # Inform during runtime
+        if i % 2 == 1:
+            print("Dry adjustment step", i+1, end=": ")
+            print("OLR= " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K, dOLR = " + str(dOLR_dry) + " W/m^2,")
+
+        # Reduce timestep if heating is not converging
+        if dTglobal_dry < 0.05 or dTtop_dry > 5.0:
+            atm_dry.dt  = atm_dry.dt*0.99
+            print("Dry adiabat not converging -> dt_new =", round(atm_dry.dt,5), "days")
 
         # Sensitivity break condition
         if (dOLR_dry < dbreak_dry) and i > 5:
@@ -489,6 +486,10 @@ def set_stratosphere(atm):
 
 def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo):
 
+    # Constants
+    L_sun                   = 3.828e+26        # W, IAU definition
+    AU                      = 1.495978707e+11  # m
+
     luminosity_df           = pd.read_csv(str(pathlib.Path(__file__).parent.absolute())+"/luminosity_tracks/Lum_m"+str(star_mass)+".txt")
     star_age                = (time["star"])/1e+6   # Myr
     ages                    = luminosity_df["age"]*1e+3         # Myr
@@ -522,13 +523,13 @@ if __name__ == "__main__":
     mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 10e+5               # Pa
-    T_surf        = 1133.33               # K
+    P_surf        = 260e+5               # Pa
+    T_surf        = 300.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : .5, 
-                  "CO2" : .5,
+                  "H2O" : 1., 
+                  "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
@@ -554,7 +555,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=True, trpp=False) 
 
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm_moist)

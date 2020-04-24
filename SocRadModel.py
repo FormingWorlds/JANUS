@@ -25,7 +25,8 @@ def radCompSoc(atm, dirs, recalc):
     spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_hitran_highres/sp_all_318_hitran"
     # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_hitran_lowres/sp_all_318_hitran"
 
-    # print("SOCRATES spectral file:", spectral_file)
+    # Remove auxiliary files from previous runs
+    CleanOutputDir( os.getcwd() )
 
     # Solar zenith angle
     zenith_angle    = atm.zenith_angle  # Hamano+15: 54.7, Ranjan+18: 48.2, Katyal+19: 38
