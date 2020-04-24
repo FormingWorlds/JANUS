@@ -1,5 +1,5 @@
 import numpy as np
-import math, phys, os, glob
+import math, phys, os, glob, re
 import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
@@ -10,10 +10,16 @@ from scipy import interpolate
 import seaborn as sns
 import copy
 import SocRadConv
-from natsort import natsorted # https://pypi.python.org/pypi/natsort
+# from natsort import natsorted # https://pypi.python.org/pypi/natsort
 import pickle as pkl
 import matplotlib.transforms as mtransforms # https://matplotlib.org/examples/pylab_examples/fancybox_demo.html
 from matplotlib.patches import FancyBboxPatch
+
+# Sting sorting not based on natsorted package
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)
 
 # Disable and enable print: https://stackoverflow.com/questions/8391411/suppress-calls-to-print-python
 def blockPrint():
@@ -29,7 +35,7 @@ def CleanOutputDir( output_dir ):
         files_to_delete.extend(glob.glob(output_dir+"/"+files))
 
     # print("Remove old output files:")
-    for file in natsorted(files_to_delete):
+    for file in natural_sort(files_to_delete):
         os.remove(file)
     #     print(os.path.basename(file), end =" ")
     # print("\n==> Done.")

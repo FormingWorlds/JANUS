@@ -4,7 +4,7 @@ Returns heating rates
 MDH 25/01/19
 '''
 
-import os, glob
+import os, glob, re
 import netCDF4 as net
 import sys
 import numpy as np
@@ -16,7 +16,7 @@ import nctools
 from subprocess import call
 from netCDF4 import Dataset
 from atmosphere_column import atmos
-from natsort import natsorted # https://pypi.python.org/pypi/natsort
+# from natsort import natsorted # https://pypi.python.org/pypi/natsort
 
 def radCompSoc(atm, dirs, recalc):
 
@@ -156,6 +156,12 @@ def radCompSoc(atm, dirs, recalc):
 
     return atm
 
+# Sting sorting not based on natsorted package
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)
+
 # Clean SOCRATES output files after run
 def CleanOutputDir( output_dir ):
 
@@ -165,11 +171,10 @@ def CleanOutputDir( output_dir ):
         files_to_delete.extend(glob.glob(output_dir+"/"+files))
 
     # print("Remove old output files:")
-    for file in natsorted(files_to_delete):
+    for file in natural_sort(files_to_delete):
         os.remove(file)
     #     print(os.path.basename(file), end =" ")
     # print("\n==> Done.")
-
 
 # Disable and enable print: https://stackoverflow.com/questions/8391411/suppress-calls-to-print-python
 def blockPrint():
