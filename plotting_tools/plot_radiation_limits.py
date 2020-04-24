@@ -245,7 +245,7 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                         # Loop through surface temperatures
                         for T_surf in tmp_range:
 
-                            print("###", setting, ":", vol, "@", round(P_surf/1e+5), "bar,", dist, "au,", round(Mstar), "M_sun,", round(tstar/1e+6), "Myr,", round(T_surf), "K", end=" ")
+                            print("###", setting, ":", vol, "@", round(P_surf/1e+5), "bar,", dist, "au,", round(Mstar), "M_sun,", round(tstar/1e+6), "Myr,", int(T_surf), "K", end=" ")
 
                             # Define file name and path
                             file_name = str(setting) \
@@ -253,8 +253,8 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                                         + "_Ps-" + str(round(P_surf/1e+5))  \
                                         + "_d-"+str(dist)  \
                                         + "_Mstar-" + str(Mstar)  \
-                                        + "_tstar-" + str(tstar)  \
-                                        + "_Ts-" + str(round(T_surf))  \
+                                        + "_tstar-" + str(round(tstar/1e+6))  \
+                                        + "_Ts-" + str(int(T_surf))  \
                                         + ".pkl"
                             file_path = dirs["data_dir"]+"/"+file_name
 
