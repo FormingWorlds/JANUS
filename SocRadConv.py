@@ -524,12 +524,12 @@ if __name__ == "__main__":
 
     # Surface pressure & temperature
     P_surf        = 260e+5               # Pa
-    T_surf        = 300.               # K
+    T_surf        = 200.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : 1., 
-                  "CO2" : .0,
+                  "H2O" : .0, 
+                  "CO2" : 1.0,
                   "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
@@ -555,7 +555,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=True, trpp=False) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=False) 
 
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm_moist)

@@ -159,7 +159,7 @@ prs_rangeA    = [ 260e+5, 1e+5 ]
 prs_rangeB    = [ 10e+5 ]
 
 # Surface temperature range (K)
-tmp_range   = np.arange(200, 3001, 50)
+tmp_range   = np.arange(200, 3001, 20)
 # KLUDGE UNTIL SPECTRAL FILE RANGE EXTENDED TO LOWER T
 tmp_range   = [ Ts for Ts in tmp_range if Ts >= 300 ]
 tmp_range   = [ int(round(Ts)) for Ts in tmp_range ]
@@ -192,7 +192,7 @@ b_ymin = 0
 # Define volatile combinations plotted, options: 
 #   Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
 #   Mixtures: "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2"
-vol_array = [ "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2", "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2" ]
+vol_array = [ "H2O", "CO2", "H2", "CH4" ]
 
 ##### PLOT A
 # print("############# PLOT A #############")
@@ -203,6 +203,8 @@ vol_array = [ "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2", "H2O-CO2", "H2-CO", "
 #       "moist" : Pure moist adiabat structure 
 #       "tstep" : With timestepping
 for setting in [ "trpp", "moist" ]: # "trpp", "moist", "tstep"
+
+    print("----------->>>>> Setting: ", setting)
 
     # Set up plot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,6))
