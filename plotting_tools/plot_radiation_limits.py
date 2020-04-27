@@ -77,7 +77,9 @@ def literature_comparison():
     ax1.text(1900, 320, "Goldblatt+ 13", va="bottom", ha="right", fontsize=7, color=ga.vol_colors["qgray"], bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.05, boxstyle='round'))
     # ax1.plot(Kopparapu13_Ts, Kopparapu13_OLR, color=ga.vol_colors["qgray"], ls="-.", lw=1.0, zorder=0.1)
     ax1.plot(Hamano15_Ts, Hamano15_OLR, color=ga.vol_colors["qgray"], ls="-.", lw=1.0, zorder=0.1)
-    ax1.text(2180, 330, "Hamano+ 15", va="top", ha="left", fontsize=7, color=ga.vol_colors["qgray"], bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.05, boxstyle='round'))
+    # ax1.text(2180, 330, "Hamano+ 15", va="top", ha="left", fontsize=7, color=ga.vol_colors["qgray"], bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.05, boxstyle='round'))
+    ax1.text(2180, 350, "Kopparapu+ 13 / Hamano+ 15", va="top", ha="left", fontsize=7, color=ga.vol_colors["qgray"], bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.05, boxstyle='round'))
+    # ax1.text(1500, 330, "Kopparapu+ 13", va="top", ha="left", fontsize=7, color=ga.vol_colors["qgray"], bbox=dict(fc='white', ec="white", alpha=0.5, pad=0.05, boxstyle='round'))
 
 def define_mixing_ratios(vol, vol_list):
 
@@ -159,9 +161,9 @@ prs_rangeA    = [ 260e+5, 1e+5 ]
 prs_rangeB    = [ 10e+5 ]
 
 # Surface temperature range (K)
-tmp_range   = np.arange(200, 3001, 20)
-# KLUDGE UNTIL SPECTRAL FILE RANGE EXTENDED TO LOWER T
-tmp_range   = [ Ts for Ts in tmp_range if Ts >= 300 ]
+tmp_range   = np.arange(200, 3001, 50)
+# # KLUDGE UNTIL SPECTRAL FILE RANGE EXTENDED TO LOWER T
+# tmp_range   = [ Ts for Ts in tmp_range if Ts >= 300 ]
 tmp_range   = [ int(round(Ts)) for Ts in tmp_range ]
 
 # Volatile molar concentrations: ! must sum to one !
@@ -179,20 +181,12 @@ ls_list = [ "-", "--", ":", "-." ]
 lw      = 1.5
 col_idx = 5
 
-legendA1_handles = []
-legendA2_handles = []
-legendB1_handles = []
-legendB2_handles = []
 
-a_ymax = 0
-a_ymin = 0
-b_ymax = 0
-b_ymin = 0
 
 # Define volatile combinations plotted, options: 
 #   Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
 #   Mixtures: "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2"
-vol_array = [ "H2O", "CO2", "H2", "CH4" ]
+vol_array = [ "H2O" ]
 
 ##### PLOT A
 # print("############# PLOT A #############")
@@ -206,7 +200,18 @@ for setting in [ "trpp", "moist" ]: # "trpp", "moist", "tstep"
 
     print("----------->>>>> Setting: ", setting)
 
-    # Set up plot
+    # Purge previous plot settings
+    legendA1_handles = []
+    legendA2_handles = []
+    legendB1_handles = []
+    legendB2_handles = []
+    a_ymax = 0
+    a_ymin = 0
+    b_ymax = 0
+    b_ymin = 0
+    plt.close("all")
+
+    # Set up new plot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,6))
     sns.set_style("ticks")
     sns.despine()
@@ -298,15 +303,15 @@ for setting in [ "trpp", "moist" ]: # "trpp", "moist", "tstep"
                             NET_array.append(atm.net_flux[0])
 
                         ##### Plot A: OLR
-                        if P_surf in prs_rangeA:
+                        if P_surf in prs_rangeA and dist_idx == 0:
 
                             l1, = ax1.plot(tmp_range, OLR_array, color=vol_color, ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
                             
                             # Fill color and P_surf legends each only once
-                            if prs_idx == 0 and dist_idx == 0: 
+                            if prs_idx == 0: 
                                 legendA1_handles.append(l1)
-                            if vol_idx == 0 and dist_idx == 0: 
-                                l2, = ax1.plot([0],[0], color="gray", ls=ls_list[prs_idx], lw=lw, label=r"$P_\mathrm{s}$ = "+str(round(P_surf/1e+5))+" bar")
+                            if vol_idx == 0: 
+                                l2, = ax1.plot([0],[0], color="gray", ls=ls_list[prs_idx], lw=lw, label=r"$a$ = "+str(dist)+" au, $P_\mathrm{s}$ = "+str(round(P_surf/1e+5))+" bar")
                                 legendA2_handles.append(l2)
 
                             # Literature comparison for corresponding correct settings
