@@ -8,7 +8,7 @@ MOVIE_DIR=/Users/tim/bitbucket/pcd_couple-interior-atmosphere/atm_rad_conv/outpu
 FPS=24
 
 # Movie length [s]
-ML=60
+ML=30
 
 # Loop through simulation branches
 # BATCH=test20_moonmars_pebble2 # test15_mars025 test16_diapirs test19_moonmars_pebble1 test20_moonmars_pebble2
@@ -40,8 +40,13 @@ for BATCH in trpp_H2O; do
         ls $IMAGE_DIR/*${FIELD}*.png
 
         # Process the files and create movie
-        ffmpeg -framerate $IPS -pattern_type glob -i "$IMAGE_DIR/${FIELD}*.png" -vf scale=1504:1232 -y -c:v libx264 -r $FPS -pix_fmt yuv420p -profile:v baseline -level 3.0 -movflags +faststart -preset veryslow -crf 18 ${MOVIE_DIR}/${MOVIE_NAME}_${FIELD}.mp4
+        ffmpeg -framerate $IPS -pattern_type glob -i "$IMAGE_DIR/*${FIELD}*.png" -vsync 2 -vf scale=1504:1232 -y -c:v libx264 -r $FPS -pix_fmt yuv420p -profile:v baseline -level 3.0 -movflags +faststart -preset veryslow -crf 18 ${MOVIE_DIR}/mov_${MOVIE_NAME}.mp4 #_${FIELD}
 
     # Lossless video: https://trac.ffmpeg.org/wiki/Encode/H.264
     done
 done
+
+# Errors and solutions
+# [image2 demuxer @ 0x7faac200aa00] Error setting option framerate to value 0.
+# /Users/tim/bitbucket/pcd_couple-interior-atmosphere/atm_rad_conv/output/mov_figs/trpp_H2O/*.png: Invalid argument
+# --> https://superuser.com/questions/602950/problems-with-frame-rate-on-video-conversion-using-ffmpeg-with-libx264
