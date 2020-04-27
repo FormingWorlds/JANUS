@@ -156,15 +156,15 @@ Mstar_range = [ 1.0 ]
 distance_range = [ 1.0, 0.4 ]
 
 # Surface pressure range (Pa) for plot A
-prs_rangeA    = [ 260e+5, 1e+5 ]
-
-# Surface pressure range (Pa) for plot B
-prs_rangeB    = prs_rangeA
+prs_range    = [ 260e+5, 1e+5 ]
 
 # Surface temperature range (K)
 tmp_range   = np.arange(200, 3001, 50)
+tmp_range   = [ 200, 1500, 3000 ]
+
 # # KLUDGE UNTIL SPECTRAL FILE RANGE EXTENDED TO LOWER T
 # tmp_range   = [ Ts for Ts in tmp_range if Ts >= 300 ]
+
 tmp_range   = [ int(round(Ts)) for Ts in tmp_range ]
 tmp_range   = tmp_range[::-1]
 
@@ -181,21 +181,28 @@ vol_list    = {
 
 ########## GENERAL PLOT SETTINGS
 
-ls_list = [ "-", "--", ":", "-." ]
+ls_list = [ "-", "--", ":", "-.", (0, (2, 1)), (0, (5, 1)) ]
 lw      = 1.5
 col_idx = 5
 
+# Linestyle index for subplots A+B
+ls_idx = 0
+
 label_fs     = 12
-legend_fs    = 12
+legend_fs    = 10
 ticks_fs     = 12
 annotate_fs  = 12
 numbering_fs = 18
+
+# Store previously plotted data for next batch
+data_dict = {}
 
 
 # Define volatile combinations plotted, options: 
 #   Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
 #   Mixtures: "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2"
 vol_array = [ "H2O" ]
+
 
 # Loop through different atmosphere settings
 #   Options: 
@@ -210,12 +217,15 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
     if setting == "trpp":
         trpp    = True
         cp_dry  = False
+        set_name = "stratosphere"
     if setting == "moist":
         trpp    = False
         cp_dry  = False
+        set_name = "moist"
     if setting == "tstep":
         trpp    = False
         cp_dry  = True
+        set_name = "time-stepped"
 
     # Loop through volatiles
     #   Options: [ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]
@@ -225,7 +235,7 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
         fig_counter = 0
 
         # Add current vol-setting to dirs and create save folder
-        dirs["batch_dir"] = dirs["output"] + "/" + setting+"_"+vol
+        dirs["batch_dir"] = dirs["output"] + "/" + setting + "_"+vol
 
         # Check if data dirs exists, otherwise create
         for dat_dir in dirs.values():
@@ -237,7 +247,7 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
         vol_list, vol_color = define_mixing_ratios(vol, vol_list)
 
         # Loop through surface pressures
-        for prs_idx, P_surf in enumerate(prs_rangeA+prs_rangeB):
+        for prs_idx, P_surf in enumerate(prs_range):
 
             # Loop through distance range
             for dist_idx, dist in enumerate(distance_range): 
@@ -253,6 +263,15 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                         OLR_array    = []
                         NET_array    = []
                         tmp_array    = []
+
+                        # Define handle to store data
+                        handle = str(setting) \
+                                 + "_"+vol  \
+                                 + "_Ps-" + str(round(P_surf/1e+5))  \
+                                 + "_d-"+str(dist)  \
+                                 + "_Mstar-" + str(Mstar)  \
+                                 + "_tstar-" + str(round(tstar/1e+6))
+                        handle_legend = ga.vol_latex[vol] + ", " + str(round(P_surf/1e+5)) + " bar, " + str(dist) + " au, " + set_name
 
                         # Loop through surface temperatures
                         for T_surf in tmp_range:
@@ -271,15 +290,17 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             sns.set_style("ticks")
                             sns.despine()
 
+                            # Print old stuff
+                            for handle_old in data_dict.keys():
+                                l1o, = ax1.plot(data_dict[handle_old]["TMP"], data_dict[handle_old]["OLR"], color=vol_color, ls=data_dict[handle_old]["ls"], lw=lw, label=data_dict[handle_old]["legend"], zorder=1, alpha=0.5)
+                                legendA1_handles.append(l1o)
+                                l3o, = ax2.plot(data_dict[handle_old]["TMP"], data_dict[handle_old]["NET"], color=vol_color, ls=data_dict[handle_old]["ls"], lw=lw, label=data_dict[handle_old]["legend"], zorder=1, alpha=0.5)
+                                legendB1_handles.append(l3o)
+
                             print("###", setting, ":", vol, "@", round(P_surf/1e+5), "bar,", dist, "au,", Mstar, "M_sun,", round(tstar/1e+6), "Myr,", int(T_surf), "K", end=" ")
 
                             # Define file name and path
-                            file_name = str(setting) \
-                                        + "_"+vol  \
-                                        + "_Ps-" + str(round(P_surf/1e+5))  \
-                                        + "_d-"+str(dist)  \
-                                        + "_Mstar-" + str(Mstar)  \
-                                        + "_tstar-" + str(round(tstar/1e+6))  \
+                            file_name = handle  \
                                         + "_Ts-" + str(int(T_surf))  \
                                         + ".pkl"
                             file_path = dirs["data_dir"]+"/"+file_name
@@ -315,7 +336,7 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                                 with open(file_path, "wb") as atm_file: 
                                     pkl.dump(atm, atm_file)
 
-                            # OLR FLUX for plot A, NET FLUX for plot B
+                            # Add current T_surf data
                             OLR_array.append(atm.LW_flux_up[0])
                             NET_array.append(atm.net_flux[0])
                             tmp_array.append(T_surf)
@@ -323,30 +344,23 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             ############################################################
                             #################### PLOT A ################################
                             ############################################################
-                            if P_surf in prs_rangeA and dist_idx == 0:
 
-                                l1, = ax1.plot(tmp_array, OLR_array, color=vol_color, ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
+                            # labelA = ga.vol_latex[vol] + ", " + str(dist) + " au, " + str(round(P_surf/1e+5)) + " bar, " + set_name
 
-                                # Annotate marker at tip
-                                ax1.plot(tmp_array[-1], OLR_array[-1], marker='o', ms=3, color=vol_color)
-                                
-                                # Fill color and P_surf legends each only once
-                                if prs_idx == 0: 
-                                    legendA1_handles.append(l1)
-                                if vol_idx == 0: 
-                                    l2, = ax1.plot([0],[0], color="gray", ls=ls_list[prs_idx], lw=lw, label=r"$a$ = "+str(dist)+" au, $P_\mathrm{s}$ = "+str(round(P_surf/1e+5))+" bar")
-                                    legendA2_handles.append(l2)
+                            l1, = ax1.plot(tmp_array, OLR_array, color=vol_color, ls=ls_list[ls_idx], lw=lw, label=handle_legend)
 
-                                # Literature comparison for corresponding correct settings
-                                if P_surf == 260e+5 and vol == "H2O":
-                                    literature_comparison()
+                            # Fill color and P_surf legends
+                            legendA1_handles.append(l1)
 
-                            ##### PLOT A settings
-                            # Legend for the main volatiles
-                            legendA1 = ax1.legend(handles=legendA1_handles, loc=2, ncol=2, fontsize=legend_fs)
+                            # Annotate marker at tip
+                            ax1.plot(tmp_array[-1], OLR_array[-1], marker='o', ms=3, color=vol_color)
+                            
+                            # Literature comparison for corresponding correct settings
+                            if P_surf == 260e+5 and vol == "H2O":
+                                literature_comparison()
+
+                            legendA1 = ax1.legend(handles=legendA1_handles, loc=2, ncol=1, fontsize=legend_fs, framealpha=0.5)
                             ax1.add_artist(legendA1)
-                            # Legend for the line styles
-                            legendA2 = ax1.legend(handles=legendA2_handles, loc=4, ncol=1, fontsize=legend_fs)
 
                             ax1.text(0.98, 0.985, 'A', color="k", rotation=0, ha="right", va="top", fontsize=numbering_fs, transform=ax1.transAxes, bbox=dict(fc='white', ec="white", alpha=0.01, pad=0.1, boxstyle='round'))
 
@@ -363,28 +377,19 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             ############################################################
                             #################### PLOT B ################################
                             ############################################################
-                            if P_surf in prs_rangeB:
 
-                                l3, = ax2.plot(tmp_array, NET_array, color=vol_color, ls=ls_list[dist_idx], lw=lw, label=ga.vol_latex[vol])
+                            # labelB = ga.vol_latex[vol] + ", " + str(dist) + " au, " + str(round(P_surf/1e+5)) + " bar, " + set_name
+                            l3, = ax2.plot(tmp_array, NET_array, color=vol_color, ls=ls_list[ls_idx], lw=lw, label=handle_legend)
 
-                                # Annotate marker at tip
-                                ax2.plot(tmp_array[-1], NET_array[-1], marker='o', ms=3, color=vol_color)
-                                
-                                # Fill color and P_surf legends each only once
-                                if dist_idx == 0: 
-                                    legendB1_handles.append(l3)
-                                if Mstar_idx == 0 and vol_idx == 0:
-                                    l4, = ax2.plot([0],[0], color=ga.vol_colors["qgray"], ls=ls_list[dist_idx], lw=lw, label=r"$a$ = "+str(dist)+" au, $P_\mathrm{s}$ = "+str(round(P_surf/1e+5))+" bar")
-                                    legendB2_handles.append(l4)
+                            # Fill legend
+                            legendB1_handles.append(l3)
 
-                            ##### PLOT B settings
+                            # Annotate marker at tip
+                            ax2.plot(tmp_array[-1], NET_array[-1], marker='o', ms=3, color=vol_color)
                             
-                            # # Legend for the main volatiles
-                            # legendB1 = ax2.legend(handles=legendB1_handles, loc=2, ncol=2, fontsize=legend_fs)
-                            # ax2.add_artist(legendB1)
-
-                            # Legend for the line styles
-                            legendB2 = ax2.legend(handles=legendB2_handles, loc=2, ncol=1, fontsize=legend_fs)
+                            # Legend for the main volatiles
+                            legendB1 = ax2.legend(handles=legendB1_handles, loc=2, ncol=1, fontsize=legend_fs, framealpha=0.5)
+                            ax2.add_artist(legendB1)
 
                             ax2.set_xlabel(r'Surface temperature, $T_\mathrm{s}$ (K)', fontsize=label_fs)
                             ax2.set_ylabel(r'Net outgoing radiation, $F^{\uparrow}_\mathrm{net}$ (W m$^{-2}$)', fontsize=label_fs)
@@ -399,10 +404,11 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             ax2.text(0.98, 0.985, 'B', color="k", rotation=0, ha="right", va="top", fontsize=numbering_fs, transform=ax2.transAxes, bbox=dict(fc='white', ec="white", alpha=0.01, pad=0.1, boxstyle='round'))
 
                             # Indicate cooling/heating regimes
-                            ax2.fill_between(tmp_range, 0, +1e+10, alpha=0.05, color="blue")
-                            ax2.text(np.max(tmp_range)*0.99, 0.3, "Net cooling", va="bottom", ha="right", fontsize=legend_fs, color=ga.vol_colors["qblue_dark"])
-                            ax2.text(np.max(tmp_range)*0.99, -0.3, "Net heating", va="top", ha="right", fontsize=legend_fs, color=ga.vol_colors["qred_dark"])
-                            ax2.fill_between(tmp_range, 0, -1e+10, alpha=0.05, color="red")
+                            # ax2.fill_between(tmp_range, 0, +1e+10, alpha=0.05, color="blue")
+                            ax2.text(np.max(tmp_range)*0.99, 0.3, "Net cooling", va="bottom", ha="right", fontsize=legend_fs-1, color=ga.vol_colors["qblue_dark"])
+                            ax2.axhline([0], color=ga.vol_colors["qgray"], lw=1.0, ls=":")
+                            ax2.text(np.max(tmp_range)*0.99, -0.3, "Net heating", va="top", ha="right", fontsize=legend_fs-1, color=ga.vol_colors["qred_dark"])
+                            # ax2.fill_between(tmp_range, 0, -1e+10, alpha=0.05, color="red")
 
                             ##### Atm structure plots
 
@@ -625,12 +631,24 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
 
                             fig_name = setting+"_"+vol + "_" + "{:04d}".format(fig_counter) + ".png"
                             print("-->", fig_name)
-                            plt.savefig( dirs["batch_dir"] + "/" + fig_name, bbox_inches="tight", dpi=200)
-                            plt.close(fig)
+                            plt.savefig( dirs["batch_dir"] + "/" + fig_name, bbox_inches="tight", dpi=100)
+                            # plt.close(fig)
 
                             fig_counter += 1
 
                         ##### Clean SOCRATES dir after each run
                         CleanOutputDir( dirs["rad_conv"] )
+
+                        ### Add to "former" lists
+                        data_dict[handle] = {}
+                        data_dict[handle]["OLR"] = OLR_array
+                        data_dict[handle]["NET"] = NET_array
+                        data_dict[handle]["TMP"] = tmp_array
+                        data_dict[handle]["ls"]  = ls_list[ls_idx]
+                        data_dict[handle]["legend"] = handle_legend
+                        
+
+                        # Increase linestyle index for subplots A+B
+                        ls_idx += 1
 
     
