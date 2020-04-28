@@ -208,7 +208,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     ax3.plot(atm_moist.band_centres, atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol1][col_idx+1])
     ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)')
     ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
-    ax3.legend()
+    ax3.legend(loc=1)
     ymax_plot = 1.2*np.max(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths)
     ax3.set_ylim(bottom=0, top=ymax_plot)
     ax3.set_xlim(left=0, right=np.max(np.where(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths > ymax_plot/1000., atm_moist.band_centres, 0.)))
@@ -384,40 +384,41 @@ def find_tropopause(atm_moist):
 
     # Find tropopause index
     trpp_idx   = 0 
-    signchange = ((np.roll(np.sign(atm_moist.net_heating), 1) - np.sign(atm_moist.net_heating)) != 0).astype(int)[1:]
+    signchange = ((np.roll(np.sign(atm_moist.net_heating), 1) - np.sign(atm_moist.net_heating)) != 0).astype(int)#[1:]
+    signchange_indices = np.nonzero(signchange)[0]
 
     # Criteria for "significant " heating
     DeltaT_max_sign  = 50.
     DeltaT_at_trpp   = 40.
     DeltaT_mean_sign = 10.
     
-    # If heating sign change
-    if np.max(signchange) > 0:
+    # If heating sign change below TOA -> tropopause
+    if np.size(signchange_indices) > 1:
 
-        trpp_idx = np.nonzero(signchange)[0][0]
+        # First guess: uppermost sign change (below TOA)
+        trpp_idx = signchange_indices[1]
 
-        # If TOA is cooled but majority of upper atmosphere is heated, then trpp at second idx
-        if atm_moist.net_heating[trpp_idx-1] < 0 and np.size(np.nonzero(signchange)[0]) > 1:
-            trpp_idx = np.nonzero(signchange)[0][1]
-        # If only one index and TOA is indeed heated
-        elif atm_moist.net_heating[trpp_idx-1] > 0 and np.size(np.nonzero(signchange)[0]) == 1:
-            trpp_idx = np.nonzero(signchange)[0][0]
+        # Decrease trpp height (== increase idx) while heating in trpp layer is significant
+        for idx, sgn_idx_top in enumerate(signchange_indices):
 
-        # If heating is insignificant, don't bother
-        if trpp_idx > 10 and np.max(atm_moist.net_heating[5:trpp_idx]) < DeltaT_max_sign and np.mean(atm_moist.net_heating) < DeltaT_mean_sign:
+            if idx < np.size(signchange_indices)-1:
+                sgn_idx_down = signchange_indices[idx+1]
+            
+                # Check mean heating of layer above trpp idx
+                if np.mean(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_mean_sign:
+                    trpp_idx = sgn_idx_down
+
+        # Only consider tropopause if deeper than X% below TOA
+        if trpp_idx < round(len(atm_moist.net_heating)*0.02): 
             trpp_idx = 0
 
     # If heating everywhere (close to star) & heating is significant
     if np.min(atm_moist.net_heating) > 0 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
         trpp_idx = np.size(atm_moist.tmp)-1
 
-    # Increase trpp height until heating @ trpp index is significant
-    while atm_moist.net_heating[trpp_idx] < DeltaT_at_trpp and trpp_idx > 0:
-        trpp_idx -= 1
-    
-    # Tropopause stable
-    if trpp_idx > round(len(atm_moist.net_heating)/20):
-        
+    # If significant tropopause found or isothermal atmosphere from stellar heating
+    if trpp_idx != 0:
+
         # # Print tropopause index for debugging
         # print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],3), round(atm_moist.tmpl[trpp_idx],3))
     
@@ -520,16 +521,16 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                 # au, orbital distance
+    mean_distance = 0.4                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 260e+5               # Pa
-    T_surf        = 200.               # K
+    P_surf        = 1e+5               # Pa
+    T_surf        = 960.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : .0, 
-                  "CO2" : 1.0,
+                  "H2O" : 1.0, 
+                  "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
                   "CH4" : .0, 
@@ -555,7 +556,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=False) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True) 
 
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm_moist)

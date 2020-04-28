@@ -8,7 +8,7 @@ MOVIE_DIR=/Users/tim/bitbucket/pcd_couple-interior-atmosphere/atm_rad_conv/outpu
 FPS=24
 
 # Movie length [s]
-ML=30
+ML=60
 
 # Loop through simulation branches
 # BATCH=test20_moonmars_pebble2 # test15_mars025 test16_diapirs test19_moonmars_pebble1 test20_moonmars_pebble2
