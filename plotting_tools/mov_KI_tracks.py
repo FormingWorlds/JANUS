@@ -159,8 +159,8 @@ distance_range = [ 1.0, 0.4 ]
 prs_range    = [ 260e+5, 1e+5 ]
 
 # Surface temperature range (K)
-tmp_range   = np.arange(200, 3001, 50)
-tmp_range   = [ 200, 1500, 3000 ]
+tmp_range   = np.arange(200, 3001, 20)
+# tmp_range   = [ 200, 1500, 3000 ]
 
 # # KLUDGE UNTIL SPECTRAL FILE RANGE EXTENDED TO LOWER T
 # tmp_range   = [ Ts for Ts in tmp_range if Ts >= 300 ]
@@ -591,7 +591,7 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             ax7.plot(atm_moist.band_centres, atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths, color=vol_color, lw=ls_ind)
                             ax7.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)', fontsize=label_fs)
                             ax7.set_xlabel(r'Wavenumber (cm$^{-1}$)', fontsize=label_fs)
-                            ax7.legend()
+                            ax7.legend(loc=2)
                             ymax_plot = 1.2*np.max(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths)
                             ax7.set_ylim(bottom=0, top=ymax_plot)
                             ax7.set_xlim(left=0, right=np.max(np.where(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths > ymax_plot/1000., atm_moist.band_centres, 0.)))
@@ -631,7 +631,7 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
 
                             fig_name = setting+"_"+vol + "_" + "{:04d}".format(fig_counter) + ".png"
                             print("-->", fig_name)
-                            plt.savefig( dirs["batch_dir"] + "/" + fig_name, bbox_inches="tight", dpi=100)
+                            plt.savefig( dirs["batch_dir"] + "/" + fig_name, bbox_inches="tight", dpi=250)
                             # plt.close(fig)
 
                             fig_counter += 1
