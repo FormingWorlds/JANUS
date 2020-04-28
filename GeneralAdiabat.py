@@ -595,6 +595,10 @@ def condensation( atm, idx, prs_reset ):
         atm.p[idx] = P_tot_base
         atm.ps     = P_tot_base
 
+        # If P_s now smaller than P_top, reset
+        if atm.ps < atm.ptop:
+            atm.ptop = atm.ps * 1e-3
+
     # Recalculate total pressure
     P_tot_new = 0.
 
