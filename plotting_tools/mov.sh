@@ -13,7 +13,7 @@ ML=60
 # Loop through simulation branches
 # BATCH=test20_moonmars_pebble2 # test15_mars025 test16_diapirs test19_moonmars_pebble1 test20_moonmars_pebble2
 # test21_moonmars_imp1 test22_moonmars_imp2 test23_moonmars_pebble3 test24_moonmars_imp3
-for BATCH in trpp_H2O; do
+for BATCH in Earth_H2O-CO2; do
 
     # Go the base directory of the folders which contain the images
     cd ${IMAGE_DIR_BASE}/${BATCH}

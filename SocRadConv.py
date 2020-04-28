@@ -405,12 +405,14 @@ def find_tropopause(atm_moist):
     DeltaT_max_sign  = 50.
     DeltaT_at_trpp   = 40.
     DeltaT_mean_sign = 10.
+    dZ_strato        = round(len(atm_moist.net_heating)*0.02)
     
     # If heating sign change below TOA -> tropopause
     if np.size(signchange_indices) > 0:
 
         # First guess: uppermost sign change (below TOA)
-        trpp_idx = signchange_indices[0]
+        if atm_moist.net_heating[signchange_indices[0]-1] > 0:
+            trpp_idx = signchange_indices[0]
 
         # Decrease trpp height (== increase idx) while heating in trpp layer is significant
         for idx, sgn_idx_top in enumerate(signchange_indices):
@@ -418,12 +420,12 @@ def find_tropopause(atm_moist):
             if idx < np.size(signchange_indices)-1:
                 sgn_idx_down = signchange_indices[idx+1]
             
-                # Check mean heating of layer above trpp idx
-                if np.mean(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_mean_sign:
+                # Check mean and max heating and extent of layer above trpp idx
+                if np.mean(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_mean_sign and np.max(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_max_sign and abs(sgn_idx_down-sgn_idx_top) > dZ_strato:
                     trpp_idx = sgn_idx_down
 
         # Only consider tropopause if deeper than X% below TOA
-        if trpp_idx < round(len(atm_moist.net_heating)*0.02): 
+        if trpp_idx < dZ_strato: 
             trpp_idx = 0
 
     # If heating everywhere (close to star) & heating is significant
@@ -535,11 +537,11 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 0.4                # au, orbital distance
+    mean_distance = 1.0                # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 1e+5               # Pa
-    T_surf        = 1500.               # K
+    P_surf        = 260e+5               # Pa
+    T_surf        = 1900.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
@@ -570,7 +572,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=True, trpp=True) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True) 
 
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm_moist)
