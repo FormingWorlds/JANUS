@@ -178,37 +178,37 @@ vol_list    = {
 time = { "planet": 0., "star": 4567e+6 } # yr,
 
 # Star age range, yr
-star_age_range = [ 4.567e+9 ]          # yr: 0.100e+9, 4.567e+9
+star_age_range = [ 0.100e+9 ]          # yr: 0.100e+9, 4.567e+9
 
 # Star mass range, M_sun
 Mstar_range = [ 1.0 ]
 
 # Planet-star distance range, au
-distance_range = [ 1.0, 0.4 ]
+distance_range = [ 1.0 ]
 
 # Surface pressure range (Pa) for plot A
-prs_range    = [ 260e+5, 1e+5 ]
+prs_range    = [ 260e+5 ]
 
 # Surface temperature range (K)
-tmp_range   = np.arange(200, 3001, 20)
+tmp_range   = np.arange(200, 3001, 50)
 tmp_range   = [ int(round(Ts)) for Ts in tmp_range ]
 tmp_range   = tmp_range[::-1] # movies from high T to low T
-tmp_range   = [ 3000, 1500, 200 ] # rapid testing option
+# tmp_range   = [ 3000, 2000, 1000, 200 ] # rapid testing option
 
 ##### Define movie setting name
-setting_name = "H2O_settings"
+setting_name = "Earth_H2O-CO2"
 
 ##### Define volatile combinations plotted, options: 
 #   Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
 #   Mixtures: "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2"
-vol_array = [ "H2O" ]
+vol_array = [ "H2O", "CO2", "H2O-CO2" ]
 
 ##### Define atmosphere settings to be considered
 #   Options: 
 #       "trpp"  : With tropopause/stratosphere included
 #       "moist" : Pure moist adiabat structure 
 #       "tstep" : With timestepping
-setting_array = [ "tstep" ] # "trpp", "moist", "tstep"
+setting_array = [ "trpp" ] # "trpp", "moist", "tstep"
 
 # Define resolution of movie images (low quality: 100; high: 300)
 img_dpi = 250
@@ -297,9 +297,9 @@ for setting in setting_array:
 
                             # Print old stuff
                             for handle_old in data_dict.keys():
-                                l1o, = ax1.plot(data_dict[handle_old]["TMP"], data_dict[handle_old]["OLR"], color=vol_color, ls=data_dict[handle_old]["ls"], lw=lw, label=data_dict[handle_old]["legend"], zorder=1, alpha=0.5)
+                                l1o, = ax1.plot(data_dict[handle_old]["TMP"], data_dict[handle_old]["OLR"], color=data_dict[handle_old]["color"], ls=data_dict[handle_old]["ls"], lw=lw, label=data_dict[handle_old]["legend"], zorder=1, alpha=0.5)
                                 legendA1_handles.append(l1o)
-                                l3o, = ax2.plot(data_dict[handle_old]["TMP"], data_dict[handle_old]["NET"], color=vol_color, ls=data_dict[handle_old]["ls"], lw=lw, label=data_dict[handle_old]["legend"], zorder=1, alpha=0.5)
+                                l3o, = ax2.plot(data_dict[handle_old]["TMP"], data_dict[handle_old]["NET"], color=data_dict[handle_old]["color"], ls=data_dict[handle_old]["ls"], lw=lw, label=data_dict[handle_old]["legend"], zorder=1, alpha=0.5)
                                 legendB1_handles.append(l3o)
 
                             print("###", setting, ":", vol, "@", round(P_surf/1e+5), "bar,", dist, "au,", Mstar, "M_sun,", round(tstar/1e+6), "Myr,", int(T_surf), "K", end=" ")
@@ -633,11 +633,12 @@ for setting in setting_array:
 
                         ### Add to "former" lists
                         data_dict[handle] = {}
-                        data_dict[handle]["OLR"] = OLR_array
-                        data_dict[handle]["NET"] = NET_array
-                        data_dict[handle]["TMP"] = tmp_array
-                        data_dict[handle]["ls"]  = ls_list[ls_idx]
+                        data_dict[handle]["OLR"]    = OLR_array
+                        data_dict[handle]["NET"]    = NET_array
+                        data_dict[handle]["TMP"]    = tmp_array
+                        data_dict[handle]["ls"]     = ls_list[ls_idx]
                         data_dict[handle]["legend"] = handle_legend
+                        data_dict[handle]["color"]  = vol_color
                         
 
                         # Increase linestyle index for subplots A+B
