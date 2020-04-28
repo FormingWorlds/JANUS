@@ -112,7 +112,6 @@ def define_mixing_ratios(vol_tmp, vol_list):
         try:
             vol_color = ga.vol_colors[vol_tmp]
         except:
-            seed(42)
             int_value = randint(1, 10) # range of colorscale
             vol_color = ga.vol_colors["mixtures"][int_value]
 
@@ -178,7 +177,7 @@ tmp_range   = tmp_range[::-1] # movies from high T to low T
 tmp_range   = [ 3000, 1500, 200 ] # rapid testing option
 
 ##### Define movie setting name
-setting_name_list = [ "Earth_H2O", "Earth_H2", "Earth_CO2", "Earth_CH4" ]
+setting_name_list = [ "Earth_CH4" ]
 
 ##### Define volatile combinations plotted, options: 
 #   Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
@@ -253,6 +252,9 @@ for setting_name in setting_name_list:
         for vol_idx, vol in enumerate(vol_array): 
 
             print(">>>>>", vol)
+
+            # Random seed for color generation
+            seed(int(fig_counter+ls_idx))
 
             # Define mixing ratios and color based on function
             vol_list, vol_color = define_mixing_ratios(vol, vol_list)
