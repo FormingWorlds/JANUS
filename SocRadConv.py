@@ -157,7 +157,8 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     ax1.invert_yaxis()
     ax1.set_xlabel(r'Temperature $T$ (K)')
     ax1.set_ylabel(r'Pressure $P$ (Pa)')
-    ax1.set_ylim(bottom=atm_moist.ps*1.01)
+    # ax1.set_ylim(bottom=atm_moist.ps*1.01)
+    ax1.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
 
     # Print active species
     active_species = r""
@@ -200,7 +201,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     ax2.set_xscale("symlog") # https://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
     ax2.set_xlabel(r'Outgoing flux $F^{\uparrow}$ (W m$^{-2}$)')
     ax2.set_ylabel(r'Pressure $P$ (Pa)')
-    ax2.set_ylim(bottom=atm_moist.ps*1.01)
+    ax2.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
 
     # Wavenumber vs. OLR
     ax3.plot(atm_moist.band_centres, surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray",ls='--',label=str(round(atm_moist.ts))+' K blackbody')
@@ -242,7 +243,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     x_minmax = np.max([ 20, x_minmax ])
     if not math.isnan(x_minmax):
         ax4.set_xlim(left=-x_minmax, right=x_minmax)
-    ax4.set_ylim(bottom=atm_moist.ps*1.01)
+    ax4.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
     # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
     # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
     # ax4.set_xticklabels(["0.1", "0.3", "1", "3", "10", "30", "100"])
@@ -331,19 +332,21 @@ def compute_dry_adiabat(atm, dirs, standalone):
         dbreak_dry      = (0.01*(5.67e-8*atm_dry.ts**4)**0.5)
 
         # Inform during runtime
-        if i % 2 == 1:
+        if i % 2 == 1 and standalone == True:
             print("Dry adjustment step", i+1, end=": ")
-            print("OLR= " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K, dOLR = " + str(dOLR_dry) + " W/m^2,")
+            print("OLR = " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K, dOLR = " + str(dOLR_dry) + " W/m^2,")
 
         # Reduce timestep if heating is not converging
-        if dTglobal_dry < 0.05 or dTtop_dry > 5.0:
+        if dTglobal_dry < 0.05 or dTtop_dry > dT_max:
             atm_dry.dt  = atm_dry.dt*0.99
-            print("Dry adiabat not converging -> dt_new =", round(atm_dry.dt,5), "days")
+            if standalone == True:
+                print("Dry adiabat not converging -> dt_new =", round(atm_dry.dt,5), "days")
 
         # Sensitivity break condition
         if (dOLR_dry < dbreak_dry) and i > 5:
-            print("Timestepping break ->", end=" ")
-            print("dOLR/step =", dOLR_dry, "W/m^2, dTglobal_dry =", dTglobal_dry)
+            if standalone == True:
+                print("Timestepping break ->", end=" ")
+                print("dOLR/step =", dOLR_dry, "W/m^2, dTglobal_dry =", dTglobal_dry)
             break    # break here
 
         PrevOLR_dry       = atm_dry.LW_flux_up[0]
@@ -384,7 +387,7 @@ def find_tropopause(atm_moist):
 
     # Find tropopause index
     trpp_idx   = 0 
-    signchange = ((np.roll(np.sign(atm_moist.net_heating), 1) - np.sign(atm_moist.net_heating)) != 0).astype(int)#[1:]
+    signchange = ((np.roll(np.sign(atm_moist.net_heating), 1) - np.sign(atm_moist.net_heating)) != 0).astype(int)[1:]
     signchange_indices = np.nonzero(signchange)[0]
 
     # Criteria for "significant " heating
@@ -393,10 +396,10 @@ def find_tropopause(atm_moist):
     DeltaT_mean_sign = 10.
     
     # If heating sign change below TOA -> tropopause
-    if np.size(signchange_indices) > 1:
+    if np.size(signchange_indices) > 0:
 
         # First guess: uppermost sign change (below TOA)
-        trpp_idx = signchange_indices[1]
+        trpp_idx = signchange_indices[0]
 
         # Decrease trpp height (== increase idx) while heating in trpp layer is significant
         for idx, sgn_idx_top in enumerate(signchange_indices):
@@ -413,7 +416,7 @@ def find_tropopause(atm_moist):
             trpp_idx = 0
 
     # If heating everywhere (close to star) & heating is significant
-    if np.min(atm_moist.net_heating) > 0 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
+    if np.size(signchange_indices) <= 1 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
         trpp_idx = np.size(atm_moist.tmp)-1
 
     # If significant tropopause found or isothermal atmosphere from stellar heating
@@ -521,11 +524,11 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 0.4                 # au, orbital distance
+    mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
     P_surf        = 1e+5               # Pa
-    T_surf        = 960.               # K
+    T_surf        = 1500.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
@@ -556,7 +559,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=True, trpp=True) 
 
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm_moist)

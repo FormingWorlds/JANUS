@@ -143,43 +143,7 @@ for dat_dir in dirs.values():
         os.makedirs(dat_dir)
         print("--> Create directory:", dat_dir)
 
-# Planet age and orbit
-time = { "planet": 0., "star": 4567e+6 } # yr,
-
-# Star age range, yr
-star_age_range = [ 4.567e+9 ]          # yr: 0.100e+9, 4.567e+9
-
-# Star mass range, M_sun
-Mstar_range = [ 1.0 ]
-
-# Planet-star distance range, au
-distance_range = [ 1.0, 0.4 ]
-
-# Surface pressure range (Pa) for plot A
-prs_range    = [ 260e+5, 1e+5 ]
-
-# Surface temperature range (K)
-tmp_range   = np.arange(200, 3001, 20)
-# tmp_range   = [ 200, 1500, 3000 ]
-
-# # KLUDGE UNTIL SPECTRAL FILE RANGE EXTENDED TO LOWER T
-# tmp_range   = [ Ts for Ts in tmp_range if Ts >= 300 ]
-
-tmp_range   = [ int(round(Ts)) for Ts in tmp_range ]
-tmp_range   = tmp_range[::-1]
-
-# Volatile molar concentrations: ! must sum to one !
-vol_list    = { 
-              "H2O" : .0, 
-              "CO2" : .0,
-              "H2"  : .0, 
-              "N2"  : .0,  
-              "CH4" : .0, 
-              "O2"  : .0, 
-              "CO"  : .0 
-            }
-
-########## GENERAL PLOT SETTINGS
+# General plotting settings
 
 ls_list = [ "-", "--", ":", "-.", (0, (2, 1)), (0, (5, 1)) ]
 lw      = 1.5
@@ -197,19 +161,72 @@ numbering_fs = 18
 # Store previously plotted data for next batch
 data_dict = {}
 
+# Set up volatile mixing ratio dict
+vol_list    = { 
+              "H2O" : .0, 
+              "CO2" : .0,
+              "H2"  : .0, 
+              "N2"  : .0,  
+              "CH4" : .0, 
+              "O2"  : .0, 
+              "CO"  : .0 
+            }
 
-# Define volatile combinations plotted, options: 
+##### Parameter ranges considered
+
+# Planet age and orbit
+time = { "planet": 0., "star": 4567e+6 } # yr,
+
+# Star age range, yr
+star_age_range = [ 4.567e+9 ]          # yr: 0.100e+9, 4.567e+9
+
+# Star mass range, M_sun
+Mstar_range = [ 1.0 ]
+
+# Planet-star distance range, au
+distance_range = [ 1.0, 0.4 ]
+
+# Surface pressure range (Pa) for plot A
+prs_range    = [ 260e+5, 1e+5 ]
+
+# Surface temperature range (K)
+tmp_range   = np.arange(200, 3001, 20)
+tmp_range   = [ int(round(Ts)) for Ts in tmp_range ]
+tmp_range   = tmp_range[::-1] # movies from high T to low T
+tmp_range   = [ 3000, 1500, 200 ] # rapid testing option
+
+##### Define movie setting name
+setting_name = "H2O_settings"
+
+##### Define volatile combinations plotted, options: 
 #   Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
 #   Mixtures: "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2"
 vol_array = [ "H2O" ]
 
-
-# Loop through different atmosphere settings
+##### Define atmosphere settings to be considered
 #   Options: 
 #       "trpp"  : With tropopause/stratosphere included
 #       "moist" : Pure moist adiabat structure 
 #       "tstep" : With timestepping
-for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
+setting_array = [ "tstep" ] # "trpp", "moist", "tstep"
+
+# Define resolution of movie images (low quality: 100; high: 300)
+img_dpi = 250
+
+# Add current vol-setting to dirs and create save folder
+dirs["batch_dir"] = dirs["output"] + "/" + setting_name
+
+# Check if data dirs exists, otherwise create
+for dat_dir in dirs.values():
+    if not os.path.exists(dat_dir):
+        os.makedirs(dat_dir)
+        print("--> Create directory:", dat_dir)
+
+# Mov fig numbering
+fig_counter = 0
+
+# Loop through different atmosphere settings
+for setting in setting_array: 
 
     print(">>>>>>>>>>>>>>> Setting: ", setting)
 
@@ -230,18 +247,6 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
     # Loop through volatiles
     #   Options: [ "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2" ]
     for vol_idx, vol in enumerate(vol_array): 
-
-        # Mov fig numbering
-        fig_counter = 0
-
-        # Add current vol-setting to dirs and create save folder
-        dirs["batch_dir"] = dirs["output"] + "/" + setting + "_"+vol
-
-        # Check if data dirs exists, otherwise create
-        for dat_dir in dirs.values():
-            if not os.path.exists(dat_dir):
-                os.makedirs(dat_dir)
-                print("--> Create directory:", dat_dir)
 
         # Define mixing ratios and color based on function
         vol_list, vol_color = define_mixing_ratios(vol, vol_list)
@@ -325,7 +330,7 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                                 # Compute stellar heating
                                 atm.toa_heating = SocRadConv.InterpolateStellarLuminosity(Mstar, time, dist, atm.albedo_pl)
 
-                                # Compute atmospehre structure and fluxes
+                                # Compute atmosphere structure and fluxes
                                 atm_dry, atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=cp_dry, trpp=trpp)
 
                                 # Use timestepped atm
@@ -430,8 +435,11 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             ############################################################
 
                             # Temperature vs. pressure
-                            ax3.semilogy(atm_moist.tmp,atm_moist.p, color=ga.vol_colors["qgray_dark"], lw=ls_moist, ls="-", label=r'General adiabat')
-                            if cp_dry == True: ax3.semilogy(atm_dry.tmp,atm_dry.p, color=ga.vol_colors[col_vol3][col_idx+1], ls="-", label=r'Timestepped')
+                            if cp_dry == False:
+                                adiabat_label = r'General adiabat'
+                            else:
+                                adiabat_label = r'Timestepped'
+                            ax3.semilogy(atm_moist.tmp,atm_moist.p, color=ga.vol_colors["qgray_dark"], lw=ls_moist, ls="-", label=adiabat_label)
 
                             # Print active species
                             active_species = r""
@@ -480,24 +488,19 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             # ax2.axvline(1e+3, color=ga.vol_colors["qgray_light"], lw=0.5)
 
                             # LW down
-                            if cp_dry == True: ax4.semilogy(atm_dry.LW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls="--")
                             ax4.semilogy(atm_moist.LW_flux_down*(-1),atm_moist.pl, color=vol_color, ls=(0, (2, 1)), label=r'$F_\mathrm{LW}^{\downarrow}$')
                             # ls=(0, (3, 1, 1, 1))
                             
                             # SW down
-                            if cp_dry == True: ax4.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
                             ax4.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color=vol_color, ls=":", label=r'$F_\mathrm{SW}^{\downarrow}$')
                             
                             # Net flux
-                            if cp_dry == True: ax4.semilogy(atm_dry.net_flux,atm_dry.pl, color=ga.vol_colors[col_vol3][6], ls="-", lw=2)
                             ax4.semilogy(atm_moist.net_flux,atm_moist.pl, color=vol_color, ls="-", lw=2, label=r'$F_\mathrm{net}^{\uparrow}$')
 
                             # SW up
-                            if cp_dry == True: ax4.semilogy(atm_dry.SW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
                             ax4.semilogy(atm_moist.SW_flux_up,atm_moist.pl, color=vol_color, ls="-.", label=r'$F_\mathrm{SW}^{\uparrow}$')
                             
                             # LW up
-                            if cp_dry == True: ax4.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=(0, (5, 1)))
                             ax4.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color=vol_color, ls=(0, (5, 1)), label=r'$F_\mathrm{LW}^{\uparrow}$')
                             
                             ax4.legend(ncol=5, fontsize=8.5, loc=3)
@@ -551,11 +554,6 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             # Heating versus pressure
                             ax6.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
 
-                            if cp_dry == True: 
-                                ax6.plot(atm_dry.LW_heating, atm_dry.p, ls="--", color=vol_color, alpha=0.5)
-                                ax6.plot(atm_dry.net_heating, atm_dry.p, lw=ls_moist, color=vol_color, alpha=0.5)
-                                ax6.plot(atm_dry.SW_heating, atm_dry.p, ls=":", color=vol_color, alpha=0.5)
-
                             ax6.plot(atm_moist.LW_heating, atm_moist.p, ls="--", color=vol_color, label=r'LW')
                             ax6.plot(atm_moist.net_heating, atm_moist.p, lw=ls_moist, color=vol_color, label=r'Net')
                             ax6.plot(atm_moist.SW_heating, atm_moist.p, ls=":", color=vol_color, label=r'SW')
@@ -587,7 +585,6 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
 
                             # Wavenumber vs. OLR
                             ax7.plot(atm_moist.band_centres, SocRadConv.surf_Planck_nu(atm_moist)/atm_moist.band_widths, color="gray", ls='--', label=str(int(round(atm_moist.ts)))+' K blackbody')
-                            if cp_dry == True: ax7.plot(atm_dry.band_centres, atm_dry.net_spectral_flux[:,0]/atm_dry.band_widths, color=ga.vol_colors[col_vol3][col_idx], lw=ls_ind)
                             ax7.plot(atm_moist.band_centres, atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths, color=vol_color, lw=ls_ind)
                             ax7.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)', fontsize=label_fs)
                             ax7.set_xlabel(r'Wavenumber (cm$^{-1}$)', fontsize=label_fs)
@@ -606,11 +603,6 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             OLR_cm_moist = atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths
                             wavelength_moist  = [ 1e+4/i for i in atm_moist.band_centres ] # microns
                             OLR_micron_moist  = [ 1e+4*i for i in OLR_cm_moist ] # microns
-                            if cp_dry == True: 
-                                OLR_cm_dry = atm_dry.net_spectral_flux[:,0]/atm_dry.band_widths
-                                wavelength_dry  = [ 1e+4/i for i in atm_dry.band_centres ]              # microns
-                                OLR_micron_dry  = [ 1e+4*i for i in OLR_cm_dry ]                        # microns
-                                ax8.plot(wavelength_dry, OLR_micron_dry, color=vol_color, alpha=0.5, lw=ls_ind)
                             
                             ax8.plot(wavelength_moist, OLR_micron_moist, color=vol_color, lw=ls_ind)
                             ax8.set_ylabel(r'Spectral flux density (W m$^{-2}$ $\mu$m$^{-1}$)', fontsize=label_fs)
@@ -618,7 +610,7 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             ax8.set_xscale("log")
                             ax8.set_yscale("log") 
                             ax8.set_xlim(left=0.1, right=100)
-                            ax8.set_ylim(bottom=np.max(OLR_micron_moist)*1e-5, top=np.max(OLR_micron_moist))
+                            ax8.set_ylim(bottom=np.max(OLR_micron_moist)*1e-3, top=np.max(OLR_micron_moist))
                             # ax8.set_yticks([1e-10, 1e-5, 1e0, 1e5])
                             ax8.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
                             ax8.set_xticklabels(["0.1", "0.3", "1", "3", "10", "30", "100"])
@@ -629,9 +621,9 @@ for setting in [ "trpp" ]: # "trpp", "moist", "tstep"
                             ############################ FINAL FIGURE PLOT SETTINGS ####
                             ############################################################
 
-                            fig_name = setting+"_"+vol + "_" + "{:04d}".format(fig_counter) + ".png"
+                            fig_name = setting_name + "_" + "{:04d}".format(fig_counter) + ".png"
                             print("-->", fig_name)
-                            plt.savefig( dirs["batch_dir"] + "/" + fig_name, bbox_inches="tight", dpi=250)
+                            plt.savefig( dirs["batch_dir"] + "/" + fig_name, bbox_inches="tight", dpi=img_dpi)
                             # plt.close(fig)
 
                             fig_counter += 1
