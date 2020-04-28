@@ -286,7 +286,8 @@ def compute_dry_adiabat(atm, dirs, standalone):
     # Dry adiabat settings 
     rad_steps   = 100  # Maximum number of radiation steps
     conv_steps  = 30   # Number of convective adjustment steps (per radiation step)
-    dT_max      = 20.  # Maximum temperature change per radiation step
+    dT_max      = 20.  # K, Maximum temperature change per radiation step
+    T_floor     = 10.  # K, Temperature floor to prevent SOCRATES crash
 
     # Build general adiabat structure
     atm                 = ga.general_adiabat(copy.deepcopy(atm))
@@ -305,48 +306,58 @@ def compute_dry_adiabat(atm, dirs, standalone):
         # atm.toa_heating = 0
 
         # Compute radiation, midpoint method time stepping
-        atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False)
-        dT_dry          = atm_dry.net_heating * atm_dry.dt
+        try:
+            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False)
+            
+            dT_dry          = atm_dry.net_heating * atm_dry.dt
 
-        # Limit the temperature change per step
-        dT_dry          = np.where(dT_dry > dT_max, dT_max, dT_dry)
-        dT_dry          = np.where(dT_dry < -dT_max, -dT_max, dT_dry)
+            # Limit the temperature change per step
+            dT_dry          = np.where(dT_dry > dT_max, dT_max, dT_dry)
+            dT_dry          = np.where(dT_dry < -dT_max, -dT_max, dT_dry)
 
-        # Apply heating
-        atm_dry.tmp     += dT_dry
+            # Apply heating
+            atm_dry.tmp     += dT_dry
 
-        # # Do the surface balance
-        # kturb       = .1
-        # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
-        
-        # Dry convective adjustment
-        for iadj in range(conv_steps):
-            atm_dry     = DryAdj(atm_dry)
+            # # Do the surface balance
+            # kturb       = .1
+            # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
+            
+            # Dry convective adjustment
+            for iadj in range(conv_steps):
+                atm_dry     = DryAdj(atm_dry)
 
-        # Convergence criteria
-        dTglobal_dry    = abs(round(np.max(atm_dry.tmp-PrevTemp_dry[:]), 4))
-        dTtop_dry       = abs(round(atm_dry.tmp[0]-atm_dry.tmp[1], 4))
+            # Temperature floor to prevent SOCRATES crash
+            if np.min(atm_dry.tmp) < T_floor:
+                atm_dry.tmp = np.where(atm_dry.tmp < T_floor, T_floor, atm_dry.tmp)
 
-        # Break criteria
-        dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 6))
-        dbreak_dry      = (0.01*(5.67e-8*atm_dry.ts**4)**0.5)
+            # Convergence criteria
+            dTglobal_dry    = abs(round(np.max(atm_dry.tmp-PrevTemp_dry[:]), 4))
+            dTtop_dry       = abs(round(atm_dry.tmp[0]-atm_dry.tmp[1], 4))
 
-        # Inform during runtime
-        if i % 2 == 1 and standalone == True:
-            print("Dry adjustment step", i+1, end=": ")
-            print("OLR = " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K, dOLR = " + str(dOLR_dry) + " W/m^2,")
+            # Break criteria
+            dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 6))
+            dbreak_dry      = (0.01*(5.67e-8*atm_dry.ts**4)**0.5)
 
-        # Reduce timestep if heating is not converging
-        if dTglobal_dry < 0.05 or dTtop_dry > dT_max:
-            atm_dry.dt  = atm_dry.dt*0.99
+            # Inform during runtime
+            if i % 2 == 1 and standalone == True:
+                print("Dry adjustment step", i+1, end=": ")
+                print("OLR = " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K, dOLR = " + str(dOLR_dry) + " W/m^2,")
+
+            # Reduce timestep if heating is not converging
+            if dTglobal_dry < 0.05 or dTtop_dry > dT_max:
+                atm_dry.dt  = atm_dry.dt*0.99
+                if standalone == True:
+                    print("Dry adiabat not converging -> dt_new =", round(atm_dry.dt,5), "days")
+
+            # Sensitivity break condition
+            if (dOLR_dry < dbreak_dry) and i > 5:
+                if standalone == True:
+                    print("Timestepping break ->", end=" ")
+                    print("dOLR/step =", dOLR_dry, "W/m^2, dTglobal_dry =", dTglobal_dry)
+                break    # break here
+        except:
             if standalone == True:
-                print("Dry adiabat not converging -> dt_new =", round(atm_dry.dt,5), "days")
-
-        # Sensitivity break condition
-        if (dOLR_dry < dbreak_dry) and i > 5:
-            if standalone == True:
-                print("Timestepping break ->", end=" ")
-                print("dOLR/step =", dOLR_dry, "W/m^2, dTglobal_dry =", dTglobal_dry)
+                print("Socrates cannot be executed properly, T profile:", atm_dry.tmp)
             break    # break here
 
         PrevOLR_dry       = atm_dry.LW_flux_up[0]
@@ -524,7 +535,7 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                 # au, orbital distance
+    mean_distance = 0.4                # au, orbital distance
 
     # Surface pressure & temperature
     P_surf        = 1e+5               # Pa
