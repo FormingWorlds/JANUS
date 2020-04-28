@@ -411,7 +411,7 @@ def find_tropopause(atm_moist):
     if np.size(signchange_indices) > 0:
 
         # First guess: uppermost sign change (below TOA)
-        if atm_moist.net_heating[signchange_indices[0]-1] > 0:
+        if atm_moist.net_heating[signchange_indices[0]-1] > 0 and np.mean(atm_moist.net_heating[:signchange_indices[0]-1]) > DeltaT_mean_sign:
             trpp_idx = signchange_indices[0]
 
         # Decrease trpp height (== increase idx) while heating in trpp layer is significant
@@ -541,13 +541,13 @@ if __name__ == "__main__":
 
     # Surface pressure & temperature
     P_surf        = 260e+5               # Pa
-    T_surf        = 1900.               # K
+    T_surf        = 1500.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : 1.0, 
+                  "H2O" : .5, 
                   "CO2" : .0,
-                  "H2"  : .0, 
+                  "H2"  : .5, 
                   "N2"  : .0,  
                   "CH4" : .0, 
                   "O2"  : .0, 
