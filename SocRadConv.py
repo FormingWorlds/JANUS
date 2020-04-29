@@ -27,9 +27,9 @@ try:
     import SocRadModel
     from atmosphere_column import atmos
 except:
-    import atm_rad_conv.phys
+    import atm_rad_conv.phys as phys
     import atm_rad_conv.GeneralAdiabat as ga
-    import atm_rad_conv.SocRadModel
+    import atm_rad_conv.SocRadModel as SocRadModel
     from atm_rad_conv.atmosphere_column import atmos
 
 def surf_Planck_nu(atm):

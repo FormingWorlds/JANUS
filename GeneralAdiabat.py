@@ -11,14 +11,22 @@ using the Runge-Kutta 4 scheme from ClimateUtilities.py.
 
 import time
 import numpy as np
-import math,phys
-from ClimateUtilities import *
+import math
 from scipy.integrate import odeint
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
-from atmosphere_column import atmos
 import seaborn as sns
 import copy
+
+# Coupler-specific modules
+try:
+    from ClimateUtilities import *
+    from atmosphere_column import atmos
+    import phys
+except:
+    from atm_rad_conv.ClimateUtilities import *
+    from atm_rad_conv.atmosphere_column import atmos
+    import atm_rad_conv.phys as phys
 
 # Color definitions: 
 # https://www.codecademy.com/articles/seaborn-design-ii

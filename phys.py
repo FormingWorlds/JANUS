@@ -1,6 +1,9 @@
 import math
 import numpy as np
-from ClimateUtilities import * #To get the math methods routines
+try:
+    from ClimateUtilities import * #To get the math methods routines
+except:
+    from atm_rad_conv.ClimateUtilities import *
 #
 #All units are mks units
 #
