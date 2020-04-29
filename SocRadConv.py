@@ -8,11 +8,29 @@ Tim Lichtenberg (TL)
 SOCRATES radiative-convective model
 '''
 
-try:    
-    from modules_rad_conv import *              # Local
-except: 
-    from atm_rad_conv.modules_rad_conv import * # Cluster
+import os
+import numpy as np
+import math
+import matplotlib.pyplot as plt
+import matplotlib
+import pandas as pd
+from scipy import interpolate
+import seaborn as sns
+import copy
+import pathlib
+import pickle as pkl
+import json
 
+try:
+    import phys
+    import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+    import SocRadModel
+    from atmosphere_column import atmos
+except:
+    import atm_rad_conv.phys
+    import atm_rad_conv.GeneralAdiabat as ga
+    import atm_rad_conv.SocRadModel
+    from atm_rad_conv.atmosphere_column import atmos
 
 def surf_Planck_nu(atm):
     h   = 6.63e-34
