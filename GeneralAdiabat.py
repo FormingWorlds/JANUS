@@ -340,9 +340,9 @@ def cpv( vol, tmp ):
             G = [ 223.3967  ,  219.7809  ]
             H = [ -241.8264 ,  -241.8264 ] 
             if tmp <= 1700:
-                idx = 0
+                cp_idx = 0
             if tmp > 1700:
-                idx = 1
+                cp_idx = 1
             tmp = np.max([tmp, 500]) # Fit validity
 
         # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/CO2/c2-1-3
@@ -357,9 +357,9 @@ def cpv( vol, tmp ):
             G = [ 228.2431  , 263.6125  ]
             H = [ -393.5224 , -393.5224 ] 
             if tmp <= 1200:
-                idx = 0
+                cp_idx = 0
             if tmp > 1200:
-                idx = 1
+                cp_idx = 1
             tmp = np.max([tmp, 298]) # Fit validity
 
         # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/H2/h1H
@@ -374,11 +374,11 @@ def cpv( vol, tmp ):
             G = [ 172.707974 , 156.288133 , 162.081354 ]       
             H = [ 0.0        , 0.0        , 0.0        ] 
             if tmp <= 1000:
-                idx = 0
+                cp_idx = 0
             if tmp > 1000 and tmp <= 2500:
-                idx = 1
+                cp_idx = 1
             if tmp > 2500:
-                idx = 2
+                cp_idx = 2
             tmp = np.max([tmp, 298]) # Fit validity
 
         # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/N2/c1-2
@@ -393,11 +393,11 @@ def cpv( vol, tmp ):
             G = [ 226.4168  ,  212.3900  ,  224.9810  ]    
             H = [ 0.0       ,  0.0       ,  0.0       ]
             if tmp <= 500:
-                idx = 0
+                cp_idx = 0
             if tmp > 500 and tmp <= 2000:
-                idx = 1
+                cp_idx = 1
             if tmp > 2000:
-                idx = 2
+                cp_idx = 2
             tmp = np.max([tmp, 100]) # Fit validity
 
         # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/CH4/h1H4
@@ -412,9 +412,9 @@ def cpv( vol, tmp ):
             G = [ 158.7163  ,  224.4143  ]  
             H = [ -74.87310 ,  -74.87310 ]    
             if tmp <= 1300:
-                idx = 0
+                cp_idx = 0
             if tmp > 1300:
-                idx = 1
+                cp_idx = 1
             tmp = np.max([tmp, 298]) # Fit validity
 
         # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/CO/c1-2
@@ -429,9 +429,9 @@ def cpv( vol, tmp ):
             G = [ 227.3665  ,  231.7120  ]  
             H = [ -110.5271 ,  -110.5271 ]    
             if tmp <= 1300:
-                idx = 0
+                cp_idx = 0
             if tmp > 1300:
-                idx = 1
+                cp_idx = 1
             tmp = np.max([tmp, 298]) # Fit validity
 
         # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/O2/c1-2
@@ -446,11 +446,11 @@ def cpv( vol, tmp ):
             G = [ 246.7945  ,  236.1663  ,  237.6185  ]       
             H = [ 0.0       ,  0.0       ,  0.0       ]  
             if tmp <= 700:
-                idx = 0
+                cp_idx = 0
             if tmp > 700 and tmp <= 2000:
-                idx = 1
+                cp_idx = 1
             if tmp > 2000:
-                idx = 2
+                cp_idx = 2
             tmp = np.max([tmp, 100]) # Fit validity
         
         # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/He
@@ -464,7 +464,7 @@ def cpv( vol, tmp ):
             F = [ -6.197341    ] 
             G = [ 151.3064     ]
             H = [ 0.000000     ] 
-            idx = 0
+            cp_idx = 0
             tmp = np.max([tmp, 298]) # Fit validity
 
         # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/H3N/h1H3
@@ -479,13 +479,13 @@ def cpv( vol, tmp ):
             G = [ 203.8591  ,  223.8022  ]   
             H = [ -45.89806 ,  -45.89806 ]    
             if tmp <= 1400:
-                idx = 0
+                cp_idx = 0
             if tmp > 1400:
-                idx = 1
+                cp_idx = 1
             tmp = np.max([tmp, 298]) # Fit validity
             
         t = tmp/1000.
-        cp = A[idx] + B[idx]*t + C[idx]*t**2. + D[idx]*t**3. + E[idx]/t**2.
+        cp = A[cp_idx] + B[cp_idx]*t + C[cp_idx]*t**2. + D[cp_idx]*t**3. + E[cp_idx]/t**2.
 
         return cp # J mol-1 K-1
     
