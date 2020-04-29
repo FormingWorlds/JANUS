@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 from scipy import interpolate
-import seaborn as sns
+# import seaborn as sns
 import copy
 import pathlib
 import pickle as pkl
@@ -148,8 +148,8 @@ def DryAdj(atm):
 def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
 
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(13,10))
-    sns.set_style("ticks")
-    sns.despine()
+    # sns.set_style("ticks")
+    # sns.despine()
 
     # Line settings
     col_idx  = 3
@@ -564,11 +564,11 @@ if __name__ == "__main__":
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : .0, 
+                  "H2O" : 1.0, 
                   "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
-                  "CH4" : 1.0, 
+                  "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
                 }

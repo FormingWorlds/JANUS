@@ -7,7 +7,7 @@ import SocRadModel
 from atmosphere_column import atmos
 import pandas as pd
 from scipy import interpolate
-import seaborn as sns
+# import seaborn as sns
 import copy
 import SocRadConv
 
@@ -46,8 +46,8 @@ vol_list    = {
 
 # Set up plot
 fig, ax1 = plt.subplots(1, 1, figsize=(7,6))
-sns.set_style("ticks")
-sns.despine()
+# sns.set_style("ticks")
+# sns.despine()
 
 ls_list = [ "-", "--", ":", "-." ]
 lw      = 2.0

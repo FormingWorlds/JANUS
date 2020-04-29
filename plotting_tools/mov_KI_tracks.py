@@ -7,7 +7,7 @@ import SocRadModel
 from atmosphere_column import atmos
 import pandas as pd
 from scipy import interpolate
-import seaborn as sns
+# import seaborn as sns
 import copy
 import SocRadConv
 # from natsort import natsorted # https://pypi.python.org/pypi/natsort
@@ -342,8 +342,8 @@ for batch_name in batch_name_list:
                                 # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,6))
                                 # print(plt.subplots(2, 3, figsize=(18,0)))
                                 fig, ((ax1, ax3, ax5, ax7), (ax2, ax4, ax6, ax8)) = plt.subplots(2, 4, figsize=(22,10))
-                                sns.set_style("ticks")
-                                sns.despine()
+                                # sns.set_style("ticks")
+                                # sns.despine()
 
                                 # Print old stuff
                                 for handle_old in data_dict.keys():
