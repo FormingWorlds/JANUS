@@ -7,7 +7,7 @@ import SocRadModel
 from atmosphere_column import atmos
 import pandas as pd
 from scipy import interpolate
-import seaborn as sns
+# import seaborn as sns
 import copy
 import SocRadConv
 # from natsort import natsorted # https://pypi.python.org/pypi/natsort
@@ -213,8 +213,8 @@ for setting in [ "trpp", "moist" ]: # "trpp", "moist", "tstep"
 
     # Set up new plot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,6))
-    sns.set_style("ticks")
-    sns.despine()
+    # sns.set_style("ticks")
+    # sns.despine()
 
     # Implement setting
     if setting == "trpp":

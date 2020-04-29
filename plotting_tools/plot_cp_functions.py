@@ -7,7 +7,7 @@ import SocRadModel
 from atmosphere_column import atmos
 import pandas as pd
 from scipy import interpolate
-import seaborn as sns
+# import seaborn as sns
 import copy
 
 # https://webbook.nist.gov/chemistry/
@@ -182,8 +182,8 @@ gas_phase_cp_vector = np.vectorize(gas_phase_cp)
 tmp_array = np.linspace(0, 3000, 100)
 
 fig, ax1 = plt.subplots(1, 1, figsize=(7,6))
-sns.set_style("ticks")
-sns.despine()
+# sns.set_style("ticks")
+# sns.despine()
 
 # Plot temperature vs. cp
 

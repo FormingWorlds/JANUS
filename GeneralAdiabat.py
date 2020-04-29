@@ -15,8 +15,9 @@ import math
 from scipy.integrate import odeint
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
-import seaborn as sns
+# import seaborn as sns
 import copy
+from matplotlib import cm
 
 # Coupler-specific modules
 try:
@@ -31,33 +32,60 @@ except:
 # Color definitions: 
 # https://www.codecademy.com/articles/seaborn-design-ii
 # https://python-graph-gallery.com/python-colors/
+# https://matplotlib.org/tutorials/colors/colormaps.html
+# https://chrisalbon.com/python/data_visualization/seaborn_color_palettes/
 no_colors   = 7
 vol_colors = {
-    "H2O"            : sns.color_palette("PuBu", no_colors),
-    "CO2"            : sns.color_palette("Reds", no_colors),
-    "H2"             : sns.color_palette("Greens", no_colors),
-    "N2"             : sns.color_palette("Purples", no_colors), # sns.cubehelix_palette(7)
-    "O2"             : sns.light_palette("darkturquoise", no_colors),
-    "CH4"            : sns.color_palette("RdPu", no_colors),
-    "CO"             : sns.light_palette("#731d1d", no_colors),
-    "S"              : sns.light_palette("#EBB434", no_colors),
-    "He"             : sns.color_palette("Greys", no_colors),
-    "NH3"            : sns.light_palette("teal", no_colors),
-    "mixtures"       : sns.color_palette("Set2", 11),
-    "H2O-CO2"        : sns.color_palette("Set2", 11)[9],
-    "CO2-H2O"        : sns.color_palette("Set2", 11)[9],
-    "H2O-H2"         : sns.color_palette("Set2", 11)[3],
-    "H2-H2O"         : sns.color_palette("Set2", 11)[3],
-    "H2-CO"          : sns.color_palette("Set2", 11)[7],
-    "CO-H2"          : sns.color_palette("Set2", 11)[7],
-    "H2-CO2"         : sns.color_palette("Set2", 11)[8],
-    "CO2-H2"         : sns.color_palette("Set2", 11)[8],
-    "H2-CH4"         : sns.color_palette("Set2", 11)[2],
-    "CH4-H2"         : sns.color_palette("Set2", 11)[2],
-    "H2-N2"          : sns.color_palette("Set2", 11)[4],
-    "N2-H2"          : sns.color_palette("Set2", 11)[4],
-    "CO2-N2"         : sns.color_palette("Set2", 11)[5],
-    "N2-CO2"         : sns.color_palette("Set2", 11)[5],
+    "H2O"            : cm.get_cmap('PuBu', no_colors)(range(no_colors)),
+    "CO2"            : cm.get_cmap("Reds", no_colors)(range(no_colors)),
+    "H2"             : cm.get_cmap("Greens", no_colors)(range(no_colors)),
+    "N2"             : cm.get_cmap("Purples", no_colors)(range(no_colors)),
+    "O2"             : cm.get_cmap("summer", no_colors)(range(no_colors)),
+    "CH4"            : cm.get_cmap("RdPu", no_colors)(range(no_colors)),
+    "CO"             : cm.get_cmap("PuBuGn", no_colors)(range(no_colors)),
+    "S"              : cm.get_cmap("YlOrRd", no_colors)(range(no_colors)),
+    "He"             : cm.get_cmap("Greys", no_colors)(range(no_colors)),
+    "NH3"            : cm.get_cmap("cool", no_colors)(range(no_colors)),
+    "mixtures"       : cm.get_cmap("Set3", 9)(range(no_colors)),
+    "H2O-CO2"        : cm.get_cmap("Set3", 9)(range(no_colors))[1],
+    "CO2-H2O"        : cm.get_cmap("Set3", 9)(range(no_colors))[1],
+    "H2O-H2"         : cm.get_cmap("Set3", 9)(range(no_colors))[2],
+    "H2-H2O"         : cm.get_cmap("Set3", 9)(range(no_colors))[2],
+    "H2-CO"          : cm.get_cmap("Set3", 9)(range(no_colors))[3],
+    "CO-H2"          : cm.get_cmap("Set3", 9)(range(no_colors))[3],
+    "H2-CO2"         : cm.get_cmap("Set3", 9)(range(no_colors))[4],
+    "CO2-H2"         : cm.get_cmap("Set3", 9)(range(no_colors))[4],
+    "H2-CH4"         : cm.get_cmap("Set3", 9)(range(no_colors))[5],
+    "CH4-H2"         : cm.get_cmap("Set3", 9)(range(no_colors))[5],
+    "H2-N2"          : cm.get_cmap("Set2", 9)(range(no_colors))[0],
+    "N2-H2"          : cm.get_cmap("Set2", 9)(range(no_colors))[0],
+    "CO2-N2"         : cm.get_cmap("Set2", 9)(range(no_colors))[1],
+    "N2-CO2"         : cm.get_cmap("Set2", 9)(range(no_colors))[1],
+    # "H2O"            : sns.color_palette("PuBu", no_colors),
+    # "CO2"            : sns.color_palette("Reds", no_colors),
+    # "H2"             : sns.color_palette("Greens", no_colors),
+    # "N2"             : sns.color_palette("Purples", no_colors), # sns.cubehelix_palette(7)
+    # "O2"             : sns.light_palette("darkturquoise", no_colors),
+    # "CH4"            : sns.color_palette("RdPu", no_colors),
+    # "CO"             : sns.light_palette("#731d1d", no_colors),
+    # "S"              : sns.light_palette("#EBB434", no_colors),
+    # "He"             : sns.color_palette("Greys", no_colors),
+    # "NH3"            : sns.light_palette("teal", no_colors),
+    # "mixtures"       : sns.color_palette("Set2", 11),
+    # "H2O-CO2"        : sns.color_palette("Set2", 11)[9],
+    # "CO2-H2O"        : sns.color_palette("Set2", 11)[9],
+    # "H2O-H2"         : sns.color_palette("Set2", 11)[3],
+    # "H2-H2O"         : sns.color_palette("Set2", 11)[3],
+    # "H2-CO"          : sns.color_palette("Set2", 11)[7],
+    # "CO-H2"          : sns.color_palette("Set2", 11)[7],
+    # "H2-CO2"         : sns.color_palette("Set2", 11)[8],
+    # "CO2-H2"         : sns.color_palette("Set2", 11)[8],
+    # "H2-CH4"         : sns.color_palette("Set2", 11)[2],
+    # "CH4-H2"         : sns.color_palette("Set2", 11)[2],
+    # "H2-N2"          : sns.color_palette("Set2", 11)[4],
+    # "N2-H2"          : sns.color_palette("Set2", 11)[4],
+    # "CO2-N2"         : sns.color_palette("Set2", 11)[5],
+    # "N2-CO2"         : sns.color_palette("Set2", 11)[5],
     "black_1"        : "#000000",
     "black_2"        : "#323232",
     "black_3"        : "#7f7f7f",
@@ -845,16 +873,16 @@ def interpolate_atm(atm):
 # Plotting
 def plot_adiabats(atm):
 
-    sns.set_style("ticks")
-    sns.despine()
+    # sns.set_style("ticks")
+    # sns.despine()
 
     ls_moist    = 2.5
     ls_dry      = 2.0
     ls_ind      = 1.5
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
-    sns.set_style("ticks")
-    sns.despine()
+    # sns.set_style("ticks")
+    # sns.despine()
    
     # For reference p_sat lines
     T_sat_array    = np.linspace(20,3000,1000) 
