@@ -403,34 +403,45 @@ def find_tropopause(atm_moist):
 
     # Criteria for "significant " heating
     DeltaT_max_sign  = 50.
-    DeltaT_at_trpp   = 40.
+    DeltaT_at_trpp   = 30.
     DeltaT_mean_sign = 10.
     dZ_strato        = round(len(atm_moist.net_heating)*0.02)
     
     # If heating sign change below TOA -> tropopause
-    if np.size(signchange_indices) > 0:
+    if np.size(signchange_indices) > 0 and np.max(atm_moist.net_heating) > DeltaT_max_sign:
 
-        # First guess: uppermost sign change (below TOA)
-        if atm_moist.net_heating[signchange_indices[0]-1] > 0 and np.mean(atm_moist.net_heating[:signchange_indices[0]-1]) > DeltaT_mean_sign:
-            trpp_idx = signchange_indices[0]
+        # First guess: maximum heating index
+        print(np.argmax(atm_moist.net_heating))
+        max_heat_idx = np.argmax(atm_moist.net_heating)
 
-        # Decrease trpp height (== increase idx) while heating in trpp layer is significant
-        for idx, sgn_idx_top in enumerate(signchange_indices):
+        # Lower height while heating still significant
+        while atm_moist.net_heating[max_heat_idx] > DeltaT_at_trpp:
+            max_heat_idx += 1
 
-            if idx < np.size(signchange_indices)-1:
-                sgn_idx_down = signchange_indices[idx+1]
+        trpp_idx     = max_heat_idx
+
+
+        # # First guess: uppermost sign change (below TOA)
+        # if atm_moist.net_heating[signchange_indices[0]-1] > 0 and np.mean(atm_moist.net_heating[:signchange_indices[0]-1]) > DeltaT_mean_sign:
+        #     trpp_idx = signchange_indices[0]
+
+        # # Decrease trpp height (== increase idx) while heating in trpp layer is significant
+        # for idx, sgn_idx_top in enumerate(signchange_indices):
+
+        #     if idx < np.size(signchange_indices)-1:
+        #         sgn_idx_down = signchange_indices[idx+1]
             
-                # Check mean and max heating and extent of layer above trpp idx
-                if np.mean(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_mean_sign and np.max(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_max_sign and abs(sgn_idx_down-sgn_idx_top) > dZ_strato:
-                    trpp_idx = sgn_idx_down
+        #         # Check mean and max heating and extent of layer above trpp idx
+        #         if np.mean(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_mean_sign and np.max(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_max_sign and abs(sgn_idx_down-sgn_idx_top) > dZ_strato:
+        #             trpp_idx = sgn_idx_down
 
         # Only consider tropopause if deeper than X% below TOA
         if trpp_idx < dZ_strato: 
             trpp_idx = 0
 
-    # If heating everywhere (close to star) & heating is significant
-    if np.size(signchange_indices) <= 1 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
-        trpp_idx = np.size(atm_moist.tmp)-1
+    # # If heating everywhere (close to star) & heating is significant
+    # if np.size(signchange_indices) <= 1 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
+    #     trpp_idx = np.size(atm_moist.tmp)-1
 
     # If significant tropopause found or isothermal atmosphere from stellar heating
     if trpp_idx != 0:
@@ -540,16 +551,16 @@ if __name__ == "__main__":
     mean_distance = 1.0                # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 260e+5               # Pa
-    T_surf        = 1500.               # K
+    P_surf        = 1e+5               # Pa
+    T_surf        = 1550.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : .5, 
+                  "H2O" : .0, 
                   "CO2" : .0,
-                  "H2"  : .5, 
+                  "H2"  : .0, 
                   "N2"  : .0,  
-                  "CH4" : .0, 
+                  "CH4" : 1.0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
                 }

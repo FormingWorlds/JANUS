@@ -168,16 +168,11 @@ Mstar_range = [ 1.0 ]
 distance_range = [ 1.0 ]
 
 # Surface pressure range (Pa) for plot A
-prs_range    = [ 260e+5 ]
+prs_range    = [ 1e+5 ]
 
 # Surface temperature range (K)
 tmp_range   = np.arange(200, 3001, 50)
-tmp_range   = [ int(round(Ts)) for Ts in tmp_range ]
-tmp_range   = tmp_range[::-1] # movies from high T to low T
-tmp_range   = [ 3000, 1500, 200 ] # rapid testing option
-
-##### Define movie setting name
-setting_name_list = [ "Earth_CH4" ]
+# tmp_range   = [ 200, 1500, 3000 ] # rapid testing option
 
 ##### Define volatile combinations plotted, options: 
 #   Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
@@ -191,27 +186,70 @@ vol_array = [ "H2O", "CO2" ]
 #       "tstep" : With timestepping
 atm_options = [ "trpp" ] # "trpp", "moist", "tstep"
 
+##### Define batch name list
+batch_name_list = [ "comp_H2O_1bar", "comp_CH4_1bar", "comp_H2_1bar", "comp_CO2_1bar" ]
+
 # Loop over settings in chain execution
-for setting_name in setting_name_list:
+for batch_name in batch_name_list:
 
     # Special batches for chain execution
-    if setting_name ==  "Earth_H2O":
+    if batch_name ==  "Earth_H2O_1bar":
         vol_array   = [ "H2O", "H2O-H2", "H2O-CO2", "H2O-N2" ]
         atm_options = [ "trpp" ]
-    if setting_name ==  "Earth_H2":
+        prs_range    = [ 1e+5 ]
+    if batch_name ==  "Earth_H2_1bar":
         vol_array   = [ "H2", "H2-H2O", "H2-CH4", "H2-CO", "H2-N2" ]
         atm_options = [ "trpp" ]
-    if setting_name ==  "Earth_CO2":
+        prs_range    = [ 1e+5 ]
+    if batch_name ==  "Earth_CO2_1bar":
         vol_array   = [ "CO2", "CO2-H2O", "CO2-H2", "CO2-N2"  ]
         atm_options = [ "trpp" ]
-    if setting_name ==  "Earth_CH4":
+        prs_range    = [ 1e+5 ]
+    if batch_name ==  "Earth_CH4_1bar":
         vol_array   = [ "CH4", "CH4-CO", "CH4-H2", "CH4-N2"  ]
         atm_options = [ "trpp" ]
+        prs_range    = [ 1e+5 ]
+    if batch_name ==  "Earth_H2O_260bar":
+        vol_array   = [ "H2O", "H2O-H2", "H2O-CO2", "H2O-N2" ]
+        atm_options = [ "trpp" ]
+        prs_range    = [ 260e+5 ]
+    if batch_name ==  "Earth_H2_260bar":
+        vol_array   = [ "H2", "H2-H2O", "H2-CH4", "H2-CO", "H2-N2" ]
+        atm_options = [ "trpp" ]
+        prs_range    = [ 260e+5 ]
+    if batch_name ==  "Earth_CO2_260bar":
+        vol_array   = [ "CO2", "CO2-H2O", "CO2-H2", "CO2-N2"  ]
+        atm_options = [ "trpp" ]
+        prs_range    = [ 260e+5 ]
+    if batch_name ==  "Earth_CH4_260bar":
+        vol_array   = [ "CH4", "CH4-CO", "CH4-H2", "CH4-N2"  ]
+        atm_options = [ "trpp" ]
+        prs_range    = [ 260e+5 ]
+    if batch_name ==  "comp_H2O_1bar":
+        vol_array   = [ "H2O" ]
+        atm_options = [ "trpp", "moist", "tstep" ]
+        prs_range    = [ 1e+5 ]
+        tmp_range   = np.arange(200, 3001, 100)
+    if batch_name ==  "comp_H2_1bar":
+        vol_array   = [ "H2" ]
+        atm_options = [ "trpp", "moist", "tstep" ]
+        prs_range    = [ 1e+5 ]
+        tmp_range   = np.arange(200, 3001, 100)
+    if batch_name ==  "comp_CO2_1bar":
+        vol_array   = [ "CO2" ]
+        atm_options = [ "trpp", "moist", "tstep" ]
+        prs_range    = [ 1e+5 ]
+        tmp_range   = np.arange(200, 3001, 100)
+    if batch_name ==  "comp_CH4_1bar":
+        vol_array   = [ "CH4" ]
+        atm_options = [ "trpp", "moist", "tstep" ]
+        prs_range    = [ 1e+5 ]
+        tmp_range   = np.arange(200, 3001, 100)
 
-    print(">>>>>>>>> Setting: ", setting_name)
+    print(">>>>>>>>> Setting: ", batch_name)
 
     # Add current vol-setting to dirs and create save folder
-    dirs["batch_dir"] = dirs["output"] + "/" + setting_name
+    dirs["batch_dir"] = dirs["output"] + "/" + batch_name
 
     # Check if data dirs exists, otherwise create
     for dat_dir in dirs.values():
@@ -227,6 +265,10 @@ for setting_name in setting_name_list:
 
     # Reset previously plotted data for next batch
     data_dict = {}
+
+    # Format tmp range
+    tmp_range   = [ int(round(Ts)) for Ts in tmp_range ]
+    tmp_range   = tmp_range[::-1] # movies from high T to low T
 
     # Loop through different atmosphere settings
     for atm_option in atm_options: 
@@ -631,7 +673,7 @@ for setting_name in setting_name_list:
                                 ############################ FINAL FIGURE PLOT SETTINGS ####
                                 ############################################################
 
-                                fig_name = setting_name + "_" + "{:04d}".format(fig_counter) + ".png"
+                                fig_name = batch_name + "_" + "{:04d}".format(fig_counter) + ".png"
                                 print("-->", fig_name)
                                 plt.savefig( dirs["batch_dir"] + "/" + fig_name, bbox_inches="tight", dpi=img_dpi)
                                 # plt.close(fig)
