@@ -187,7 +187,7 @@ vol_array = [ "H2O", "CO2" ]
 atm_options = [ "trpp" ] # "trpp", "moist", "tstep"
 
 ##### Define batch name list
-batch_name_list = [ "comp_H2O_1bar", "comp_CH4_1bar", "comp_H2_1bar", "comp_CO2_1bar" ]
+batch_name_list = [ "comp_CH4_1bar" ]
 
 # Loop over settings in chain execution
 for batch_name in batch_name_list:
@@ -227,22 +227,22 @@ for batch_name in batch_name_list:
         prs_range    = [ 260e+5 ]
     if batch_name ==  "comp_H2O_1bar":
         vol_array   = [ "H2O" ]
-        atm_options = [ "trpp", "moist", "tstep" ]
+        atm_options = [ "moist", "trpp", "tstep" ]
         prs_range    = [ 1e+5 ]
         tmp_range   = np.arange(200, 3001, 100)
     if batch_name ==  "comp_H2_1bar":
         vol_array   = [ "H2" ]
-        atm_options = [ "trpp", "moist", "tstep" ]
+        atm_options = [ "moist", "trpp", "tstep" ]
         prs_range    = [ 1e+5 ]
         tmp_range   = np.arange(200, 3001, 100)
     if batch_name ==  "comp_CO2_1bar":
         vol_array   = [ "CO2" ]
-        atm_options = [ "trpp", "moist", "tstep" ]
+        atm_options = [ "moist", "trpp", "tstep" ]
         prs_range    = [ 1e+5 ]
         tmp_range   = np.arange(200, 3001, 100)
     if batch_name ==  "comp_CH4_1bar":
         vol_array   = [ "CH4" ]
-        atm_options = [ "trpp", "moist", "tstep" ]
+        atm_options = [ "moist", "trpp", "tstep" ]
         prs_range    = [ 1e+5 ]
         tmp_range   = np.arange(200, 3001, 100)
 
