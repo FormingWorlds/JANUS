@@ -15,7 +15,11 @@ import subprocess
 import nctools
 from subprocess import call
 from netCDF4 import Dataset
-from atmosphere_column import atmos
+
+try:
+    from atmosphere_column import atmos
+except:
+    from atm_rad_conv.atmosphere_column import atmos
 # from natsort import natsorted # https://pypi.python.org/pypi/natsort
 
 def radCompSoc(atm, dirs, recalc):

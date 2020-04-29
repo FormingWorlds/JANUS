@@ -66,15 +66,16 @@ except:
 
 try:
     from ClimateGraphicsMPL import * #Try importing MatPlotLib
-    print('Using MatPlotLib graphics')    
+    #print('Using MatPlotLib graphics')    
 except:
-        print("Graphics not implemented.")
-        print("Plot routines will not produce graphs.")
-        print("Instead, you can save results from a Curve")
-        print("object c into a text file using c.dump(<FILENAME>)")
-        print("and then plot the data using the graphics program")
-        print ("of your choice.")
-        from DummyGraphics import *
+    from atm_rad_conv.ClimateGraphicsMPL import *
+        #print("Graphics not implemented.")
+        #print("Plot routines will not produce graphs.")
+        #print("Instead, you can save results from a Curve")
+        #print("object c into a text file using c.dump(<FILENAME>)")
+        #print("and then plot the data using the graphics program")
+        #print ("of your choice.")
+        #from DummyGraphics import *
 
 #Section 1: -----Data handling utilities-------------------------------
 
