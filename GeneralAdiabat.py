@@ -12,8 +12,8 @@ using the Runge-Kutta 4 scheme from ClimateUtilities.py.
 import time
 import numpy as np
 import math
-from scipy.integrate import odeint
-from scipy.integrate import solve_ivp
+# from scipy.integrate import odeint
+# from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 # import seaborn as sns
 import copy

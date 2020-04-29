@@ -13,7 +13,7 @@ ML=60
 # Loop through simulation branches
 # Earth_H2O_1bar Earth_CO2_1bar Earth_H2_1bar Earth_CH4_1bar
 # Earth_H2O_260bar Earth_CO2_260bar Earth_H2_260bar Earth_CH4_260bar
-for BATCH in comp_H2O_1bar; do
+for BATCH in comp_H2O_1bar comp_CH4_1bar comp_H2_1bar comp_CO2_1bar; do
 
     # Go the base directory of the folders which contain the images
     cd ${IMAGE_DIR_BASE}/${BATCH}

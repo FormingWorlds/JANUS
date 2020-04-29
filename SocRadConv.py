@@ -560,15 +560,15 @@ if __name__ == "__main__":
 
     # Surface pressure & temperature
     P_surf        = 1e+5               # Pa
-    T_surf        = 1550.               # K
+    T_surf        = 1500.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : 1.0, 
+                  "H2O" : .0, 
                   "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
-                  "CH4" : .0, 
+                  "CH4" : 1.0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
                 }
