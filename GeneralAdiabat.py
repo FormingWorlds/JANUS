@@ -818,8 +818,8 @@ def interpolate_atm(atm):
     # Trim array zeros
     atm_len     = int(np.max(atm.ifatm)+1)
     rest_len    = int(len(atm.p)-atm_len)
-    atm.p       = np.flip(np.split(atm.p, [atm_len, rest_len])[0])
-    atm.tmp     = np.flip(np.split(atm.tmp, [atm_len, rest_len])[0])
+    atm.p       = np.flip(np.split(atm.p, [atm_len, rest_len])[0], axis=0)
+    atm.tmp     = np.flip(np.split(atm.tmp, [atm_len, rest_len])[0], axis=0)
 
     # Interpolate staggered nodes
     atm.pl      = np.logspace(np.log10(np.min(atm.p)), np.log10(np.max(atm.p)), atm.nlev_save+1)
@@ -830,14 +830,14 @@ def interpolate_atm(atm):
     tmp_itp     = (atm.tmpl[1:] + atm.tmpl[:-1]) / 2.
 
     # Trim level-dependent quantities
-    atm.xd      = np.flip(np.split(atm.xd, [atm_len, rest_len])[0])
-    atm.xv      = np.flip(np.split(atm.xv, [atm_len, rest_len])[0])
-    atm.xc      = np.flip(np.split(atm.xc, [atm_len, rest_len])[0])
-    atm.mrd     = np.flip(np.split(atm.mrd, [atm_len, rest_len])[0])
-    atm.mrv     = np.flip(np.split(atm.mrv, [atm_len, rest_len])[0])
-    atm.mrc     = np.flip(np.split(atm.mrc, [atm_len, rest_len])[0])
-    atm.cp      = np.flip(np.split(atm.cp, [atm_len, rest_len])[0])
-    atm.cp_mr   = np.flip(np.split(atm.cp_mr, [atm_len, rest_len])[0])
+    atm.xd      = np.flip(np.split(atm.xd, [atm_len, rest_len])[0], axis=0)
+    atm.xv      = np.flip(np.split(atm.xv, [atm_len, rest_len])[0], axis=0)
+    atm.xc      = np.flip(np.split(atm.xc, [atm_len, rest_len])[0], axis=0)
+    atm.mrd     = np.flip(np.split(atm.mrd, [atm_len, rest_len])[0], axis=0)
+    atm.mrv     = np.flip(np.split(atm.mrv, [atm_len, rest_len])[0], axis=0)
+    atm.mrc     = np.flip(np.split(atm.mrc, [atm_len, rest_len])[0], axis=0)
+    atm.cp      = np.flip(np.split(atm.cp, [atm_len, rest_len])[0], axis=0)
+    atm.cp_mr   = np.flip(np.split(atm.cp_mr, [atm_len, rest_len])[0], axis=0)
 
     # Interpolate level-dependent quantities
     atm.xd      = np.interp(prs_itp, atm.p, atm.xd)
@@ -852,11 +852,11 @@ def interpolate_atm(atm):
     # Trim & interpolate species-dependent quantities
     for vol in atm.vol_list.keys():
 
-        atm.p_vol[vol]   = np.flip(np.split(atm.p_vol[vol], [atm_len, rest_len])[0])
-        atm.x_gas[vol]   = np.flip(np.split(atm.x_gas[vol], [atm_len, rest_len])[0])
-        atm.x_cond[vol]  = np.flip(np.split(atm.x_cond[vol], [atm_len, rest_len])[0])
-        atm.mr_gas[vol]  = np.flip(np.split(atm.mr_gas[vol], [atm_len, rest_len])[0])
-        atm.mr_cond[vol] = np.flip(np.split(atm.mr_cond[vol], [atm_len, rest_len])[0])
+        atm.p_vol[vol]   = np.flip(np.split(atm.p_vol[vol], [atm_len, rest_len])[0], axis=0)
+        atm.x_gas[vol]   = np.flip(np.split(atm.x_gas[vol], [atm_len, rest_len])[0], axis=0)
+        atm.x_cond[vol]  = np.flip(np.split(atm.x_cond[vol], [atm_len, rest_len])[0], axis=0)
+        atm.mr_gas[vol]  = np.flip(np.split(atm.mr_gas[vol], [atm_len, rest_len])[0], axis=0)
+        atm.mr_cond[vol] = np.flip(np.split(atm.mr_cond[vol], [atm_len, rest_len])[0], axis=0)
 
         atm.p_vol[vol]   = np.interp(prs_itp, atm.p, atm.p_vol[vol])
         atm.x_gas[vol]   = np.interp(prs_itp, atm.p, atm.x_gas[vol]) 
