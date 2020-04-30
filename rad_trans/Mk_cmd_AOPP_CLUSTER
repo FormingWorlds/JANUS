@@ -1,13 +1,13 @@
 #
-# Pathnames for compilers and global options for naming files
-#
-FORTCOMP        = ifort -O -c
-LINK            = ifort -O
+# Pathnames for atmlxmaster
+# 
+FORTCOMP        = gfortran -O -c
+LINK            = gfortran -O
 LIBLINK         = ar rvu
-INCCDF_PATH     = /network/software/ubuntu_bionic/netcdf/netcdf-fortran-4.5.2/include
-LIBCDF_PATH     = /network/software/ubuntu_bionic/netcdf/netcdf-fortran-4.5.2/lib
+INCCDF_PATH     = /usr/include/
+LIBCDF_PATH     = /usr/lib/
 LIBCDF_NAME     = netcdff
-OMPARG          = -qopenmp
+OMPARG          = -fopenmp
 
 LIBSUFFIX       = a
 
