@@ -45,7 +45,7 @@ def surf_Planck_nu(atm):
     B   = (1.-atm.albedo_s) * np.pi * B * atm.band_widths/1000.0
     return B
 
-def RadConvEqm(dirs, time, atm, loop_counter, SPIDER_options, standalone, cp_dry, trpp):
+def RadConvEqm(dirs, time, atm, loop_counter, COUPLER_options, standalone, cp_dry, trpp):
 
     ### Moist/general adiabat
     atm_moist = compute_moist_adiabat(atm, dirs, standalone, trpp)
