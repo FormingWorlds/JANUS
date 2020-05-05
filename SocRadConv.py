@@ -447,6 +447,10 @@ def find_tropopause(atm_moist):
         if trpp_idx < dZ_strato: 
             trpp_idx = 0
 
+        # Only consider if mean heating above tropopause significant
+        if np.mean(atm_moist.net_heating[0:trpp_idx]) < DeltaT_mean_sign:
+            trpp_idx = 0
+
     # # If heating everywhere (close to star) & heating is significant
     # if np.size(signchange_indices) <= 1 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
     #     trpp_idx = np.size(atm_moist.tmp)-1
