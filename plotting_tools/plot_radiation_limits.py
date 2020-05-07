@@ -146,7 +146,7 @@ if not os.path.exists(dirs["data_dir"]):
 time = { "planet": 0., "star": 4567e+6 } # yr,
 
 # Star age range, yr
-star_age_range = [ 4.567e+9 ]          # yr: 0.100e+9, 4.567e+9
+star_age_range = [ 0.100e+9 ]          # yr: 0.100e+9, 4.567e+9
 
 # Star mass range, M_sun
 Mstar_range = [ 1.0 ]
@@ -366,9 +366,9 @@ for setting in [ "trpp", "moist" ]: # "trpp", "moist", "tstep"
     ax1.tick_params(axis='both', which='minor', labelsize=ticks_fs)
 
     ##### PLOT B settings
-    # Legend for the main volatiles
-    legendB1 = ax2.legend(handles=legendB1_handles, loc=2, ncol=2, fontsize=legend_fs)
-    ax2.add_artist(legendB1)
+    # # Legend for the main volatiles
+    # legendB1 = ax2.legend(handles=legendB1_handles, loc=2, ncol=2, fontsize=legend_fs)
+    # ax2.add_artist(legendB1)
     # Legend for the line styles
     legendB2 = ax2.legend(handles=legendB2_handles, loc=4, ncol=1, fontsize=legend_fs)
 
