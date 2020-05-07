@@ -419,11 +419,11 @@ def find_tropopause(atm_moist):
     if np.size(signchange_indices) > 0 and np.max(atm_moist.net_heating) > DeltaT_max_sign:
 
         # First guess: maximum heating index
-        print(np.argmax(atm_moist.net_heating))
+        # print(np.argmax(atm_moist.net_heating))
         max_heat_idx = np.argmax(atm_moist.net_heating)
 
         # Lower height while heating still significant
-        while atm_moist.net_heating[max_heat_idx] > DeltaT_at_trpp:
+        while atm_moist.net_heating[max_heat_idx] > DeltaT_at_trpp and max_heat_idx < len(atm_moist.p)-1:
             max_heat_idx += 1
 
         trpp_idx     = max_heat_idx
@@ -563,16 +563,16 @@ if __name__ == "__main__":
     mean_distance = 1.0                # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 1e+5               # Pa
-    T_surf        = 1500.               # K
+    P_surf        = 260e+5               # Pa
+    T_surf        = 260.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : .0, 
+                  "H2O" : 1.0, 
                   "CO2" : .0,
                   "H2"  : .0, 
                   "N2"  : .0,  
-                  "CH4" : 1.0, 
+                  "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
                 }
