@@ -65,6 +65,9 @@ def RadConvEqm(dirs, time, atm, loop_counter, COUPLER_options, standalone, cp_dr
     # Plot
     if standalone == True:
         plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs)
+        # Save to disk
+        with open(dirs["output"]+"/"+str(int(time["planet"]))+"_atm.pkl", "wb") as atm_file: 
+            pkl.dump(atm_moist, atm_file, protocol=pkl.HIGHEST_PROTOCOL)
 
     return atm_dry, atm_moist
 
@@ -280,8 +283,8 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     plt.savefig(dirs["output"]+"/"+"TP_"+str(round(time["planet"]))+'.pdf', bbox_inches="tight")
     plt.close(fig)
 
-    with open(dirs["output"]+"/"+str(int(time["planet"]))+"_atm.pkl", "wb") as atm_file: 
-        pkl.dump(atm, atm_file, protocol=pkl.HIGHEST_PROTOCOL)
+    # with open(dirs["output"]+"/"+str(int(time["planet"]))+"_atm.pkl", "wb") as atm_file: 
+    #     pkl.dump(atm, atm_file, protocol=pkl.HIGHEST_PROTOCOL)
 
     # # Save atm object to .json file
     # json_atm = json.dumps(atm.__dict__)
@@ -556,7 +559,7 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet age and orbit
-    time = { "planet": 0., "star": 4567e+6 } # yr,
+    time = { "planet": 0., "star": 100e+6 } # yr,
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
@@ -564,7 +567,7 @@ if __name__ == "__main__":
 
     # Surface pressure & temperature
     P_surf        = 260e+5               # Pa
-    T_surf        = 260.               # K
+    T_surf        = 1000.               # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
@@ -596,6 +599,8 @@ if __name__ == "__main__":
 
     # Compute heat flux
     atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True) 
+
+    print(len(atm_moist.p))
 
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm_moist)

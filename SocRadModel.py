@@ -24,10 +24,21 @@ except:
 
 def radCompSoc(atm, dirs, recalc):
 
+    # Enable or disable calculating contribution function
+    # ENABLE RIGHT ENVIRONMENT IN TERMINAL FIRST
+    calc_cf = False
+
     # Define path to spectral file
     # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_2020/sp_spider"
     # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_318_hitran_200414/sp_all_318_hitran"
     spectral_file = dirs["rad_conv"]+"/spectral_files/sp_318_hitran_200427/sp_all_318"
+
+    # # Enable cf SOCRATES environment
+    # if calc_cf == True:
+    #     path_to_cff_socrates = dirs["rad_conv"]+"/rad_trans/socrates_cff"
+    #     call_sequence = [ "source", path_to_cff_socrates+"/set_rad_env" ]
+    #     print(call_sequence)
+    #     subprocess.call(call_sequence)
 
     # Remove auxiliary files from previous runs
     CleanOutputDir( os.getcwd() )
@@ -72,15 +83,27 @@ def radCompSoc(atm, dirs, recalc):
     seq6 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u")
     seq7 = ("fmove", basename,"currentlw")
 
+    if calc_cf == True:
+        seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1")
+        seq9 = ("fmove", basename,"currentlw_cff")
+
+
     comline1 = s.join(seq4)
     comline2 = s.join(seq5)
     comline3 = s.join(seq6)
     comline4 = s.join(seq7)
+    if calc_cf == True:
+        comline5 = s.join(seq8)
+        comline6 = s.join(seq9)
 
     os.system(comline1)
     os.system(comline2)
     os.system(comline3)
     os.system(comline4)
+    if calc_cf == True:
+        os.system(comline5)
+        os.system(comline6)
+
 
     # Open netCDF files produced by SOCRATES
     ncfile1  = net.Dataset('currentsw.vflx')
@@ -93,6 +116,10 @@ def radCompSoc(atm, dirs, recalc):
     ncfile8  = net.Dataset('currentlw.nflx')
     ncfile9  = net.Dataset('currentlw.uflx')
     ncfile10 = net.Dataset('currentlw.hrts')
+    if calc_cf == True:
+        ncfile11 = net.Dataset('currentlw.cff')
+        # ncfile12 = net.Dataset('currentlw_cff.cfi')
+
 
     # Loop through netCDF variables and populate arrays
     vflxsw   = ncfile1.variables['vflx']  # SW downward flux (direct + diffuse)
@@ -103,6 +130,9 @@ def radCompSoc(atm, dirs, recalc):
     uflxlw   = ncfile9.variables['uflx']  # LW upward flux 
     nflxlw   = ncfile8.variables['nflx']  # LW net flux 
     hrtslw   = ncfile10.variables['hrts'] # LW heating rate (K/day)
+    if calc_cf == True:
+        cff    = ncfile11.variables['cff'] # Contribution Function (flux)
+
 
     ##### Fluxes
 
@@ -143,6 +173,12 @@ def radCompSoc(atm, dirs, recalc):
 
         # Total heating (K/day)
         atm.net_heating       = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
+    
+    ### Contribution function
+    if calc_cf == True:
+        print(cff)
+        atm.cff = cff[:,:,0,0]
+
 
     # Close netCDF files
     ncfile1.close()
@@ -155,9 +191,12 @@ def radCompSoc(atm, dirs, recalc):
     ncfile8.close()
     ncfile9.close()
     ncfile10.close()
+    if calc_cf == True:
+        ncfile11.close()
+        # ncfile12.close()
 
     # Remove auxiliary files
-    CleanOutputDir( os.getcwd() )
+    # CleanOutputDir( os.getcwd() )
 
     return atm
 
@@ -170,7 +209,7 @@ def natural_sort(l):
 # Clean SOCRATES output files after run
 def CleanOutputDir( output_dir ):
 
-    types = ("current??.????", "profile.*") 
+    types = ("current*.*", "profile.*") 
     files_to_delete = []
     for files in types:
         files_to_delete.extend(glob.glob(output_dir+"/"+files))

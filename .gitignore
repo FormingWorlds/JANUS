@@ -24,5 +24,7 @@ output10000000_atm_TP_profile.dat
 
 # Ignore SOCRATES code files
 rad_trans/socrates_code/
+rad_trans/socrates_cff/
 
+# Video files
 *.mp4

@@ -84,22 +84,22 @@ class atmos:
 		    # Surface partial pressures
 		    self.p_vol[vol][0]   = self.ps * vol_list[vol]
 
-		    
-
 		# Radiation heating and fluxes
 		self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2
 		self.LW_flux_down 			= np.zeros(self.nlev)				# W/m^2
 		self.LW_flux_net			= np.zeros(self.nlev)				# W/m^2
-		self.LW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])		# W/m^2/(band)
+		self.LW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
 		self.LW_heating				= np.zeros(self.nlev)				# K/day
 		self.SW_flux_up 			= np.zeros(self.nlev)				# W/m^2
 		self.SW_flux_down 			= np.zeros(self.nlev)				# W/m^2
 		self.SW_flux_net			= np.zeros(self.nlev)				# W/m^2
-		self.SW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])		# W/m^2/(band)
+		self.SW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
 		self.SW_heating				= np.zeros(self.nlev)				# K/day
 		self.flux_up_total			= np.zeros(self.nlev)				# W/m^2
 		self.flux_down_total		= np.zeros(self.nlev)				# W/m^2
 		self.net_flux				= np.zeros(self.nlev)				# W/m^2
-		self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])		# W/m^2/(band)
+		self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
 		self.net_heating 			= np.zeros(self.nlev) 				# K/day
+		self.cff 			= np.zeros(self.nlev) 						# normalised
+
 		
