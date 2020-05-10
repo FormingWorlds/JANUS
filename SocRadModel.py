@@ -200,7 +200,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf):
         # ncfile12.close()
 
     # Remove auxiliary files
-    # CleanOutputDir( os.getcwd() )
+    CleanOutputDir( os.getcwd() )
 
     return atm
 
