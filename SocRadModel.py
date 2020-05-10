@@ -22,11 +22,11 @@ except:
     from atm_rad_conv.atmosphere_column import atmos
 # from natsort import natsorted # https://pypi.python.org/pypi/natsort
 
-def radCompSoc(atm, dirs, recalc):
+def radCompSoc(atm, dirs, recalc, calc_cf):
 
     # Enable or disable calculating contribution function
     # ENABLE RIGHT ENVIRONMENT IN TERMINAL FIRST
-    calc_cf = False
+    # calc_cf = False
 
     # Define path to spectral file
     # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_2020/sp_spider"
@@ -85,7 +85,7 @@ def radCompSoc(atm, dirs, recalc):
 
     if calc_cf == True:
         seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1")
-        seq9 = ("fmove", basename,"currentlw_cff")
+        seq9 = ("fmove", basename, "currentlw_cff")
 
 
     comline1 = s.join(seq4)
@@ -117,8 +117,8 @@ def radCompSoc(atm, dirs, recalc):
     ncfile9  = net.Dataset('currentlw.uflx')
     ncfile10 = net.Dataset('currentlw.hrts')
     if calc_cf == True:
-        ncfile11 = net.Dataset('currentlw.cff')
-        # ncfile12 = net.Dataset('currentlw_cff.cfi')
+        ncfile11 = net.Dataset('currentlw_cff.cff')
+        ncfile12 = net.Dataset('currentlw.cff')
 
 
     # Loop through netCDF variables and populate arrays
@@ -131,54 +131,58 @@ def radCompSoc(atm, dirs, recalc):
     nflxlw   = ncfile8.variables['nflx']  # LW net flux 
     hrtslw   = ncfile10.variables['hrts'] # LW heating rate (K/day)
     if calc_cf == True:
-        cff    = ncfile11.variables['cff'] # Contribution Function (flux)
+        cff    = ncfile11.variables['cff'] # Contribution function (flux, sum)
+        cff_i  = ncfile12.variables['cff'] # Contribution function (channel, plev, lat, lon)
 
 
     ##### Fluxes
 
-    # Upward SW + LW flux summed over all bands (W/m^2)
-    atm.SW_flux_up          = np.sum(uflxsw[:,:],axis=0)[:,0,0]
-    atm.LW_flux_up          = np.sum(uflxlw[:,:],axis=0)[:,0,0]
+    if calc_cf == False:
 
-    # Downward SW + LW flux summed over all bands (W/m^2)
-    atm.SW_flux_down        = np.sum(vflxsw[:,:],axis=0)[:,0,0]
-    atm.LW_flux_down        = np.sum(dflxlw[:,:],axis=0)[:,0,0]
+        # Upward SW + LW flux summed over all bands (W/m^2)
+        atm.SW_flux_up          = np.sum(uflxsw[:,:],axis=0)[:,0,0]
+        atm.LW_flux_up          = np.sum(uflxlw[:,:],axis=0)[:,0,0]
 
-    # Net SW + LW flux summed over all bands (W/m^2)
-    atm.SW_flux_net         = np.squeeze(np.sum(uflxsw[:,:],axis=0)[:,0,0] - np.sum(vflxsw[:,:],axis=0)[:,0,0])
-    atm.LW_flux_net         = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0])
+        # Downward SW + LW flux summed over all bands (W/m^2)
+        atm.SW_flux_down        = np.sum(vflxsw[:,:],axis=0)[:,0,0]
+        atm.LW_flux_down        = np.sum(dflxlw[:,:],axis=0)[:,0,0]
 
-    # Upward SW + LW flux per band, W/m^2/(band)
-    atm.LW_spectral_flux_up = uflxlw[:,:,0,0]
-    atm.SW_spectral_flux_up = uflxsw[:,:,0,0]
+        # Net SW + LW flux summed over all bands (W/m^2)
+        atm.SW_flux_net         = np.squeeze(np.sum(uflxsw[:,:],axis=0)[:,0,0] - np.sum(vflxsw[:,:],axis=0)[:,0,0])
+        atm.LW_flux_net         = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0])
 
-    # Total up- and downward fluxes, (W/m^2)
-    atm.flux_up_total       = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0]) 
-    atm.flux_down_total     = np.squeeze(np.sum(vflxsw[:,:],axis=0)[:,0,0] + np.sum(dflxlw[:,:],axis=0)[:,0,0])
+        # Upward SW + LW flux per band, W/m^2/(band)
+        atm.LW_spectral_flux_up = uflxlw[:,:,0,0]
+        atm.SW_spectral_flux_up = uflxsw[:,:,0,0]
 
-    # Total net flux (W/m^2)
-    atm.net_flux            = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0] -  np.sum(vflxsw[:,:],axis=0)[:,0,0])
+        # Total up- and downward fluxes, (W/m^2)
+        atm.flux_up_total       = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0]) 
+        atm.flux_down_total     = np.squeeze(np.sum(vflxsw[:,:],axis=0)[:,0,0] + np.sum(dflxlw[:,:],axis=0)[:,0,0])
 
-    # Total net flux per band (W/m^2/(band))
-    atm.net_spectral_flux   = uflxlw[:,:,0,0] + uflxsw[:,:,0,0] - dflxlw[:,:,0,0] - vflxsw[:,:,0,0]
+        # Total net flux (W/m^2)
+        atm.net_flux            = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0] -  np.sum(vflxsw[:,:],axis=0)[:,0,0])
 
-    ##### Heating rates
+        # Total net flux per band (W/m^2/(band))
+        atm.net_spectral_flux   = uflxlw[:,:,0,0] + uflxsw[:,:,0,0] - dflxlw[:,:,0,0] - vflxsw[:,:,0,0]
 
-    # Heating rates only for no recalc: recalc if tropopause was found
-    if recalc == False:
+        ##### Heating rates
 
-        # Individual heating contributions (K/day)
-        atm.SW_heating          = np.sum(hrtssw[:,:],axis=0)[:,0,0]
-        atm.LW_heating          = np.sum(hrtslw[:,:],axis=0)[:,0,0]
+        # Heating rates only for no recalc: recalc if tropopause was found
+        if recalc == False:
 
-        # Total heating (K/day)
-        atm.net_heating       = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
+            # Individual heating contributions (K/day)
+            atm.SW_heating          = np.sum(hrtssw[:,:],axis=0)[:,0,0]
+            atm.LW_heating          = np.sum(hrtslw[:,:],axis=0)[:,0,0]
+
+            # Total heating (K/day)
+            atm.net_heating       = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
     
     ### Contribution function
     if calc_cf == True:
-        print(cff)
-        atm.cff = cff[:,:,0,0]
-
+        # print(cff)
+        atm.cff     = cff[:,0,0]
+        atm.cff_i   = cff_i[:,:,0,0]
+        atm.LW_flux_up_i = uflxlw[:,:,0,0]
 
     # Close netCDF files
     ncfile1.close()

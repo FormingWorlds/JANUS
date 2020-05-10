@@ -186,7 +186,8 @@ col_idx = 5
 # Define volatile combinations plotted, options: 
 #   Single species: "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2"
 #   Mixtures: "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2"
-vol_array = [ "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2" ]
+# vol_array = [ "H2O", "CO2", "H2", "CH4", "N2", "CO", "O2" ]
+vol_array = [ "H2O-CO2", "H2-CO", "H2-CH4", "H2O-H2", "H2-N2", "CO2-N2" ]
 
 ##### PLOT A
 # print("############# PLOT A #############")
