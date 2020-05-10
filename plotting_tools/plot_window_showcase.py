@@ -85,7 +85,7 @@ for vol_idx, vol in enumerate(reversed([ "H2O", "CO2", "CH4" ])):
             atm = atmos(T_surf, P_surf, vol_list)
 
             # Compute heat flux
-            atm = SocRadConv.RadConvEqm("./output", star_age, atm, toa_heating, [], [], standalone=False, cp_dry=False)
+            atm = SocRadConv.RadConvEqm("./output", star_age, atm, toa_heating, [], [], standalone=False, cp_dry=False, calc_cf=calc_cf)
 
             print(vol, "@", round(P_surf)/1e+5, "bar,", T_surf, "K")
 

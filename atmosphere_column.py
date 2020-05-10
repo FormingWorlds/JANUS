@@ -100,6 +100,9 @@ class atmos:
 		self.net_flux				= np.zeros(self.nlev)				# W/m^2
 		self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
 		self.net_heating 			= np.zeros(self.nlev) 				# K/day
-		self.cff 			= np.zeros(self.nlev) 						# normalised
+		self.cff 					= np.zeros(self.nlev) 				# normalised
+		self.cff_i					= np.zeros([self.nbands,self.nlev]) # cf per band
+		self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev])
+
 
 		

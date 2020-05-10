@@ -318,7 +318,7 @@ def compute_dry_adiabat(atm, dirs, standalone):
 
         # Compute radiation, midpoint method time stepping
         try:
-            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False)
+            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=False)
             
             dT_dry          = atm_dry.net_heating * atm_dry.dt
 
@@ -384,7 +384,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trpp):
     atm_moist = ga.general_adiabat(copy.deepcopy(atm))
 
     # Run SOCRATES
-    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False)
+    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=False)
 
     if standalone == True:
         print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
@@ -398,7 +398,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trpp):
         atm_moist = set_stratosphere(atm_moist)
 
         # Recalculate fluxes w/ new atmosphere structure
-        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True)
+        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=False)
 
         if standalone == True:
             print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
