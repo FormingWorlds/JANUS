@@ -54,8 +54,10 @@ for lum_track in reversed(lum_tracks):
 plt.yscale("log")
 plt.xscale("log")
 
-plt.ylabel("Bolometric luminosity, $\mathcal{L}/\mathcal{L}_{\odot}$")
-plt.xlabel("Time, Myr")
+plt.ylabel("Bolometric luminosity ($\mathcal{L}/\mathcal{L}_{\odot}$)")
+plt.xlabel("Time (Myr)")
+
+sns.despine()
 
 plt.legend(ncol=1)
 
