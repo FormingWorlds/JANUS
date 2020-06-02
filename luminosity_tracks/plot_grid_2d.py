@@ -48,6 +48,10 @@ for lum_track in lum_tracks:
     xy_age_mass.extend(zip_list)
     z_lum.extend(luminosity_list)
 
+    if star_mass == 0.2:
+        mass_list_prt = mass_list
+        age_list_prt = age_list
+
 
 # Bring arrays in numpy shape
 xy_age_mass = np.array(xy_age_mass)
@@ -63,6 +67,13 @@ grid_z1 = griddata(xy_age_mass, z_lum, (grid_x, grid_y), method='linear', rescal
 SPECIFIC_LUMINOSITY = griddata(xy_age_mass, z_lum, (100, 0.99), method='linear', rescale=True)
 print(SPECIFIC_LUMINOSITY)
 
+# ### Test the interpolated function against data
+# plot_test = griddata(xy_age_mass, z_lum, (age_list_prt, mass_list_prt), method='linear', rescale=True)
+# ax1.plot(age_list_prt, plot_test)
+# ax1.set_ylim([0.6e-3, 8])
+# ax1.set_xscale("log")
+# ax1.set_yscale("log")
+# ### /
 
 # Define color range for plotting
 color_range = np.logspace(-4, 1, 255)
@@ -76,8 +87,8 @@ x_max = 10000
 y_min = 0.1
 y_max = 1.4
 
-ax1.set_xlim([x_min, x_max])
-ax1.set_ylim([y_min, y_max])
+# ax1.set_xlim([x_min, x_max])
+# ax1.set_ylim([y_min, y_max])
 
 ax1.set_xscale("log")
 
