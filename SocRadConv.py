@@ -650,7 +650,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=True, trpp=True) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True) 
 
     print(len(atm_moist.p))
 
