@@ -620,7 +620,7 @@ def moist_slope(lnP, lnT, atm):
     return dlnTdlnP
 
 # Apply condensation and renormalize volatile abundances in gas and condensed phases
-def condensation( atm, idx, prs_reset ):
+def condensation( atm, idx, prs_reset, rainout ):
 
     # # Find current level
     # idx = int(np.amax(atm.ifatm))
@@ -736,8 +736,10 @@ def condensation( atm, idx, prs_reset ):
         atm.p[idx] = P_tot_new
 
     # Renormalize cp w/ molar concentration
-    atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx]) # w/ cond
-    # atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])             # w/o cond
+    if rainout == False:  # w/o rain-out
+        atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx])
+    if rainout == True:  # w/ rain-out
+        atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
 
     # Dry concentration floor
     atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
@@ -779,7 +781,7 @@ def general_adiabat( atm ):
     idx             = 0  
 
     # Calculate condensation
-    atm             = condensation(atm, idx, prs_reset=True)
+    atm             = condensation(atm, idx, prs_reset=True, rainout=True)
 
     # Create the integrator instance                                              
     int_slope       = integrator(moist_slope, np.log(atm.ps), np.log(atm.ts), step)
@@ -805,7 +807,7 @@ def general_adiabat( atm ):
         atm.ifatm[idx]  = idx
 
         # Calculate condensation at next level
-        atm             = condensation(atm, idx, prs_reset=True)
+        atm             = condensation(atm, idx, prs_reset=True, rainout=True)
 
     # Interpolate
     atm = interpolate_atm(atm)
