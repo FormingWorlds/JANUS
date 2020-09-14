@@ -615,21 +615,21 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                # au, orbital distance
+    mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 260e+5               # Pa
-    T_surf        = 800.               # K
+    P_surf        = 260e+5              # Pa
+    T_surf        = 800.                # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : .0, 
-                  "CO2" : .0,
+                  "H2O" : 0.75, 
+                  "CO2" : .25,
                   "H2"  : .0, 
-                  "N2"  : .0,  
+                  "N2"  : .0025,  
                   "CH4" : .0, 
                   "O2"  : .0, 
-                  "CO"  : 1.0, 
+                  "CO"  : .0, 
                 }
 
     # Stellar heating on/off

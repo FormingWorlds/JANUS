@@ -725,8 +725,10 @@ def condensation( atm, idx, prs_reset, rainout ):
             atm.xd[idx]          += atm.x_gas[vol][idx]
 
         # Update cp w/ molar concentration
-        atm.cp[idx]         += (atm.x_gas[vol][idx] + atm.x_cond[vol][idx]) * cpv(vol, atm.tmp[idx]) # w/ cond
-        # atm.cp[idx]         += atm.x_gas[vol][idx] * cpv(vol, atm.tmp[idx]) # w/o cond
+        if rainout == False:  # w/o rain-out, condensate retained
+            atm.cp[idx]         += (atm.x_gas[vol][idx] + atm.x_cond[vol][idx]) * cpv(vol, atm.tmp[idx])
+        if rainout == True:  # w/ rain-out
+            atm.cp[idx]         += atm.x_gas[vol][idx] * cpv(vol, atm.tmp[idx]) # w/o cond
 
         # Update total pressure
         P_tot_new           += atm.p_vol[vol][idx]
@@ -736,7 +738,7 @@ def condensation( atm, idx, prs_reset, rainout ):
         atm.p[idx] = P_tot_new
 
     # Renormalize cp w/ molar concentration
-    if rainout == False:  # w/o rain-out
+    if rainout == False:  # w/o rain-out, condensate retained
         atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx])
     if rainout == True:  # w/ rain-out
         atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
@@ -757,7 +759,10 @@ def condensation( atm, idx, prs_reset, rainout ):
         atm.mr_cond[vol][idx] = atm.x_cond[vol][idx] / ( atm.xd[idx] + atm.xv[idx] )
         
         # Update cp w/ molar abundance
-        atm.cp_mr[idx]         += (atm.mr_gas[vol][idx] + atm.mr_cond[vol][idx]) * cpv(vol, atm.tmp[idx])
+        if rainout == False:  # w/o rain-out, condensate retained
+            atm.cp_mr[idx]         += (atm.mr_gas[vol][idx] + atm.mr_cond[vol][idx]) * cpv(vol, atm.tmp[idx])
+        if rainout == True:  # w/ rain-out
+            atm.cp_mr[idx]         += atm.mr_gas[vol][idx] * cpv(vol, atm.tmp[idx])
 
         # print(idx, vol, atm.x_gas[vol][idx]/atm.xd[idx])
 
