@@ -595,12 +595,12 @@ def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo):
         # Interpolate the luminosity from the 2D grid
         interpolated_luminosity = interpolate.griddata(xy_age_mass, z_lum, (time["star"]/1e+6, star_mass), method='linear', rescale=True)
 
-    # Stellar constant
+    # Stellar constant, W m-2
     S_0    = interpolated_luminosity * L_sun / ( 4. * np.pi * (mean_distance*AU)**2. )
 
-    # Mean flux averaged over surface area
+    # Mean flux averaged over surface area, W m-2
     toa_heating             = ( 1. - albedo ) * S_0 / 4.
-    
+   
     return toa_heating
 
 ####################################
