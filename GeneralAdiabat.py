@@ -738,10 +738,10 @@ def condensation( atm, idx, prs_reset, rainout ):
         atm.p[idx] = P_tot_new
 
     # Renormalize cp w/ molar concentration
-    if rainout == False:  # w/o rain-out, condensate retained
-        atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx])
-    if rainout == True:  # w/ rain-out
-        atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
+    # if rainout == False:  # w/o rain-out, condensate retained
+    #     atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx])
+    # if rainout == True:  # w/ rain-out
+    atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
 
     # Dry concentration floor
     atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
