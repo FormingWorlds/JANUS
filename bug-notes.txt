@@ -1,5 +1,0 @@
-1) negative fluxes due to temperature planck interp --  need to generate better files
-
-2) in tim's version, pressures in Pa are then x100 in SocRadModel, need to remove
-
-3) large mass mixing ratios from pure h2o/co2 atmospheres mess up -- need to generate better files?
