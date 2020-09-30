@@ -785,8 +785,11 @@ def general_adiabat( atm ):
     # Integration counter
     idx             = 0  
 
+    # Rain-out True (== Graham+21) or False (== Li+18)
+    rainout = True
+
     # Calculate condensation
-    atm             = condensation(atm, idx, prs_reset=True, rainout=True)
+    atm             = condensation(atm, idx, prs_reset=True, rainout=rainout)
 
     # Create the integrator instance                                              
     int_slope       = integrator(moist_slope, np.log(atm.ps), np.log(atm.ts), step)
@@ -812,7 +815,7 @@ def general_adiabat( atm ):
         atm.ifatm[idx]  = idx
 
         # Calculate condensation at next level
-        atm             = condensation(atm, idx, prs_reset=True, rainout=True)
+        atm             = condensation(atm, idx, prs_reset=True, rainout=rainout)
 
     # Interpolate
     atm = interpolate_atm(atm)
@@ -979,15 +982,15 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    P_surf                  = 100e+5       # Pa
-    T_surf                  = 1000          # K
+    P_surf                  = 260e+5       # Pa
+    T_surf                  = 1000         # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : 0.999,    # 300e+5/P_surf
-                  "CO2" : .0,       # 100e+5/P_surf
+                  "H2O" : 0.5,    # 300e+5/P_surf --> specific p_surf
+                  "CO2" : 0.5,    # 100e+5/P_surf
                   "H2"  : .0, 
-                  "N2"  : .0,       # 1e+5/P_surf
+                  "N2"  : .0,     # 1e+5/P_surf
                   "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
