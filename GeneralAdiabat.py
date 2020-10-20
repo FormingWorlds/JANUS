@@ -654,7 +654,55 @@ def dry_adiabat( T_surf, P_array, cp_array ):
 
     return T_dry
 
-# dlnT/dlnP slope function from Li, Ingersoll 2018
+# dlnT/dlnP_d, the T-P slope of the non-condensable component of the atmosphere described
+# by the general adiabat
+def dry_component_slope(lnPd,lnT,atm):
+    # T instead lnT
+    tmp = math.exp(lnT)
+
+    # Find current atm index
+    idx = int(np.amax(atm.ifatm))
+
+    # Sum terms in equation
+    num_sum     = 0.
+    denom_sum1  = 0. 
+    denom_sum2  = 0.
+    cp_sum      = 0.
+    # Calculate sums over volatiles
+    for vol in atm.vol_list.keys(): 
+        
+        # Coefficients
+        eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
+        beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (R_universal * tmp) 
+
+        # Beta terms zero if below saturation vapor pressure
+        if atm.p_vol[vol][idx] < p_sat(vol, tmp): beta_vol = 0.
+
+        # Sum in numerator
+        num_sum     += eta_vol * beta_vol
+
+        # Sums in denominator
+        denom_sum1  += eta_vol * (beta_vol**2.)
+        denom_sum2  += -eta_vol * beta_vol
+        
+        # Adding gaseous cp terms
+        cp_sum += eta_vol * cpv(vol, tmp)
+        
+        # Adding condensate cp terms
+        if atm.x_cond[vol][idx] >0:
+            
+            cp_sum += atm.alpha_cloud * atm.x_cond[vol][idx] / atm.xd[idx] * cp_cond(vol, tmp)
+            
+    # Collect terms
+    numerator   = 1. + num_sum
+    denominator = (cp_sum / R_universal) + denom_sum1 + denom_sum2
+
+    # dlnT/dlnP_d
+    dlnTdlnP_d = numerator / denominator
+    return dlnTdlnP_d
+
+
+# dlnT/dlnP slope function 
 def moist_slope(lnP, lnT, atm):
     
     # T instead lnT
@@ -672,23 +720,23 @@ def moist_slope(lnP, lnT, atm):
     # Calculate sums over volatiles
     for vol in atm.vol_list.keys(): 
         # Only if volatile is present
-        if atm.vol_list[vol] > 1e-10:
+        #if atm.vol_list[vol] > 1e-10:
             
-            # print(vol, atm.x_moist[vol][idx], atm.xd[idx])
-    
-            # Coefficients
-            eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
-            beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (R_universal * tmp) 
-    
-            # Beta terms zero if below saturation vapor pressure
-            if atm.p[idx] < p_sat(vol, tmp): beta_vol = 0.
-    
-            # Sum in numerator
-            num_sum     += eta_vol * beta_vol
-    
-            # Sums in denominator
-            denom_sum1  += eta_vol * (beta_vol**2.)
-            denom_sum3  += eta_vol
+        # print(vol, atm.x_moist[vol][idx], atm.xd[idx])
+
+        # Coefficients
+        eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
+        beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (R_universal * tmp) 
+
+        # Beta terms zero if below saturation vapor pressure
+        if atm.p_vol[vol][idx] < p_sat(vol, tmp): beta_vol = 0.
+
+        # Sum in numerator
+        num_sum     += eta_vol * beta_vol
+
+        # Sums in denominator
+        denom_sum1  += eta_vol * (beta_vol**2.)
+        denom_sum3  += eta_vol
                               
     # Sum 2 in denominator  
     denom_sum2  = num_sum ** 2.
@@ -882,8 +930,8 @@ def general_adiabat( atm ):
 
     # Update parameters used in the slope function dlntT/dlnP
     int_slope.setParams(atm)
-
-    ### Integration
+    
+    ### Integration of full general adiabat
 
     while atm.p[idx] > atm.ptop:
         
@@ -907,7 +955,54 @@ def general_adiabat( atm ):
     atm = interpolate_atm(atm)
 
     return atm
+'''
+# Builds the partial-pressure & temperature profile for the dry component 
+def dry_component_adiabat( atm , dry_comp_vol):
+    ### Initialization
 
+    # Initialize the tuple solution
+    dry_comp_tuple    = [] #[tuple([np.log(atm.ps), atm.ts])] 
+   
+    # Negative increment to go from ps to ptop < ps       
+    step            = -.01
+
+    # Integration counter
+    idx             = 0  
+
+    # Calculate condensation
+    atm             = condensation(atm, idx, prs_reset=False)
+
+    # Create the integrator instance                                              
+    int_slope       = integrator(dry_component_slope, np.log(atm.p_vol[dry_comp_vol][idx]), np.log(atm.ts), step)
+
+    # Update parameters used in the slope function dlntT/dlnPd
+    int_slope.setParams(atm)
+    
+    ### Integration of dry component of general adiabat
+    
+    while atm.p[idx] > atm.ptop:
+        
+        # Execute the Runge-Kutta integrator, fill array of tuples
+        dry_comp_tuple.append(int_slope.next())
+
+        # Fill new T,P values
+        atm.p_vol[dry_comp_vol][idx+1]    = np.exp(int_slope.x)
+        atm.tmp[idx+1]  = np.exp(int_slope.y)
+
+        # print("RK4 step, idx:", idx, round(atm.p[idx+1],5), round(atm.tmp[idx+1],5))
+
+        # Set next level to calculate
+        idx             += 1
+        atm.ifatm[idx]  = idx
+
+        # Calculate condensation at next level
+        atm             = condensation(atm, idx, prs_reset=False)
+
+    # Interpolate
+    #atm = interpolate_atm(atm)
+
+    return atm
+'''
 # Interpolate and flip pressure, temperature and volatile grids to fixed size
 def interpolate_atm(atm):
 
@@ -1018,13 +1113,13 @@ def plot_adiabats(atm):
             ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
             
     # # Plot sum of partial pressures as check
-    # ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
+    ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
 
     # # Dry adiabat function from RTB book
-    # ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
+    ax1.semilogy( dry_adiabat( atm.ts, atm.pl, atm.cp[-1]), atm.pl , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
 
     # General moist adiabat
-    ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Adiabat",alpha=0.99)
+    ax1.semilogy(atm.tmpl, atm.pl, color=vol_colors["black_1"], lw=ls_moist,label="Adiabat",alpha=0.99)
 
     # Phase molar concentrations
     ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Gas phase")
@@ -1065,7 +1160,7 @@ def plot_adiabats(atm):
     ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax1.transAxes)
     ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax2.transAxes)
 
-    # plt.show()
+    #plt.show()
 
     plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
     plt.close(fig)  
@@ -1079,15 +1174,15 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    P_surf                  = 250e+5       # Pa
-    T_surf                  = 1000         # K
+    P_surf                  = 1e+5       # Pa
+    T_surf                  = 320         # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : 0.5,    # 300e+5/P_surf --> specific p_surf
-                  "CO2" : 0.5,    # 100e+5/P_surf
+                  "H2O" : 0.03,    # 300e+5/P_surf --> specific p_surf
+                  "CO2" : .0,    # 100e+5/P_surf
                   "H2"  : .0, 
-                  "N2"  : .0,     # 1e+5/P_surf
+                  "N2"  : .97,     # 1e+5/P_surf
                   "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
@@ -1108,4 +1203,6 @@ if __name__ == "__main__":
 
     # Plot adiabat
     plot_adiabats(atm)
+    
+    
 
