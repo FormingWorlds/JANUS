@@ -31,6 +31,10 @@ class atmos:
 		self.albedo_s   	= 0.1 							# surface albedo
 		self.albedo_pl   	= 0.2 							# Bond albedo (scattering)
 		self.zenith_angle  	= 54.55							# solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+ 10: 48.19 (arccos(2/3)), see Cronin 14 (mu = 0.58 -> theta = arccos(0.58) = 54.55) for definitions
+
+		self.planet_mass 	= 5.972e+24 					# kg
+		self.planet_radius 	= 6.3781e+6 					# m
+		self.grav_s 		= 6.67408e-11*self.planet_mass/(self.planet_radius**2) # m s-2
 		
 		self.tmp 			= np.zeros(self.nlev)      		# self.ts*np.ones(self.nlev)
 		self.tmpl 			= np.zeros(self.nlev+1)
@@ -54,19 +58,25 @@ class atmos:
 		self.x_ocean		= {} # Surface condensed 'overpressure'
 		
 		# Level-dependent quantities
-		self.xd 			= np.zeros(self.nlev)	# Molar concentration of dry gas
-		self.xv 			= np.zeros(self.nlev)	# Molar concentration of moist gas
-		self.xc 			= np.zeros(self.nlev)	# Molar concentration of condensed phase
-		self.mrd 			= np.zeros(self.nlev)	# Molar mixing ratio of 'dry' gas (relative to gas phase)
-		self.mrv 			= np.zeros(self.nlev)	# Molar mixing ratio of 'condensing' gas (relative to gas)
-		self.mrc			= np.zeros(self.nlev)	# Molar mixing ratio of cloud phase (relative to gas)
-		self.ifatm 			= np.zeros(self.nlev) 	# Defines n level to which atmosphere is calculated
-		self.cp      		= np.zeros(self.nlev)   # Heat capacity depending on molar concentration ratio
-		self.cp_mr     		= np.zeros(self.nlev)   # Heat capacity depending on mixing ratio
+		self.grav_z			= np.zeros(self.nlev) # Local gravity
+		self.z 				= np.zeros(self.nlev) # Atmospheric height
+		self.mu_v 			= np.zeros(self.nlev) # Mean molar mass of moist + dry gas phase
+		self.mu_c 			= np.zeros(self.nlev) # Mean molar mass of condensed phase
+		self.mu 			= np.zeros(self.nlev) # Mean molar mass of all phases
+		self.xd 			= np.zeros(self.nlev) # Molar concentration of dry gas
+		self.xv 			= np.zeros(self.nlev) # Molar concentration of moist gas
+		self.xc 			= np.zeros(self.nlev) # Molar concentration of condensed phase
+		self.mrd 			= np.zeros(self.nlev) # Molar mixing ratio of 'dry' gas (relative to gas phase)
+		self.mrv 			= np.zeros(self.nlev) # Molar mixing ratio of 'condensing' gas (relative to gas)
+		self.mrc			= np.zeros(self.nlev) # Molar mixing ratio of cloud phase (relative to gas)
+		self.ifatm 			= np.zeros(self.nlev) # Defines nth level to which atmosphere is calculated
+		self.cp      		= np.zeros(self.nlev) # Mean heat capacity
 
 		# Define T and P arrays from surface up
 		self.tmp[0]         = T_surf         		# K
 		self.p[0]           = P_surf         		# Pa
+		self.z[0]           = 0         			# m
+		self.grav_z[0]      = self.grav_s 			# m s-2
 
 
 		# H2O floor to prevent NaNs
