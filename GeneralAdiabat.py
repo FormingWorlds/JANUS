@@ -174,10 +174,47 @@ vol_latex = {
     "O2-O2"  : r"O$_2$–O$_2$",
 }
 
-#--------- Importing thermodynamical properties of gases -----------
+molar_mass      = {
+          "H2O" : 0.01801528,           # kg mol−1
+          "CO2" : 0.04401,              # kg mol−1
+          "H2"  : 0.00201588,           # kg mol−1
+          "CH4" : 0.01604,              # kg mol−1
+          "CO"  : 0.02801,              # kg mol−1
+          "N2"  : 0.028014,             # kg mol−1
+          "O2"  : 0.031999,             # kg mol−1
+          "SO2" : 0.064066,             # kg mol−1
+          "H2S" : 0.0341,               # kg mol−1 
+          "H"   : 0.001008,             # kg mol−1 
+          "C"   : 0.012011,             # kg mol−1 
+          "O"   : 0.015999,             # kg mol−1 
+          "N"   : 0.014007,             # kg mol−1 
+          "S"   : 0.03206,              # kg mol−1 
+          "He"  : 0.0040026,            # kg mol−1 
+          "NH3" : 0.017031,             # kg mol−1 
+        }
 
-R_universal = 8.31446261815324 # Universal gas constant, J.K-1.mol-1, should probably go elsewhere since it's a constant    
-satvph2o = phys.satvps_function(phys.H2O)
+def atm_z(atm, idx):
+
+    # Mean temperature below
+    T_mean_down = np.mean( atm.tmp[:idx+1] )
+
+    # # Average temperature weighted by amount of substance?
+    # T_mean_down = np.average( atm.tmp[:idx+1], weights=)
+
+    print(atm.grav_z[idx], atm.mu[idx], atm.p[idx], atm.p[idx+1])
+
+    # Integration
+    dz = - phys.R_gas * T_mean_down * np.log(atm.p[idx+1]/atm.p[idx]) / ( atm.mu[idx] * atm.grav_z[idx] )
+
+    # Next height
+    atm.z[idx+1] = atm.z[idx] + dz
+
+    # Next gravity
+    atm.grav_z[idx+1] = atm.grav_s * ((atm.planet_radius)**2) / ((atm.planet_radius+atm.z[idx+1])**2)
+
+    # print(idx, T_mean_down, dz, atm.z[idx], atm.z[idx+1], atm.grav_z[idx], atm.grav_z[idx+1])
+
+    return atm
 
 ## Saturation vapor pressure [Pa] for given temperature T [K]. 
 ## Assuming the ideal gas law and a constant latent heat of vaporization. 
@@ -217,48 +254,48 @@ def Tdew(switch, p):
         Tref = 373.15 # K, boiling point of H2O at 1 atm 
         pref = 1e5 # esat('H2O',Tref) returns 121806.3 Pa, should return 1e5       
         L_H2O=phys.water.L_vaporization*phys.water.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_H2O)*math.log(p/pref))
+        return Tref/(1.-(Tref*phys.R_gas/L_H2O)*math.log(p/pref))
         #return (B(p)/(A(p)-numpy.log10(p/pref)))-C(p)
     if switch == 'CH4':
         Tref = 148.15 # K, arbitrary point (148.15K,esat(148.15K)=9.66bar) on the L/G coexistence curve of methane 
         pref = p_sat('CH4',Tref)
         L_CH4=phys.CH4.L_vaporization*phys.methane.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_CH4)*math.log(p/pref))
+        return Tref/(1.-(Tref*phys.R_gas/L_CH4)*math.log(p/pref))
     if switch == 'CO2':
         Tref = 253. # K, arbitrary point (253K,esat(253K)=20.9bar) on the coexistence curve of CO2 
         pref = p_sat('CO2',Tref)
         L_CO2=phys.CO2.L_vaporization*phys.co2.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_CO2)*math.log(p/pref))
+        return Tref/(1.-(Tref*phys.R_gas/L_CO2)*math.log(p/pref))
     if switch == 'CO':
         Tref = 100. # K, arbitrary point (100K,esat(100K)=4.6bar) on the coexistence curve of CO 
         pref = p_sat('CO',Tref)
         L_CO=phys.CO.L_vaporization*phys.co.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_CO)*math.log(p/pref))
+        return Tref/(1.-(Tref*phys.R_gas/L_CO)*math.log(p/pref))
     if switch == 'N2':
         Tref = 98.15 # K, arbitrary point (98.15K,esat(98.15K)=7.9bar) on the coexistence curve of N2 
         pref = p_sat('N2',Tref)
         L_N2=phys.N2.L_vaporization*phys.n2.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_N2)*math.log(p/pref))
+        return Tref/(1.-(Tref*phys.R_gas/L_N2)*math.log(p/pref))
     if switch == 'O2':
         Tref = 123.15 # K, arbitrary point (123.15K,esat(123.15K)=21.9bar) on the coexistence curve of O2 
         pref = p_sat('O2',Tref)
         L_O2=phys.O2.L_vaporization*phys.o2.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_O2)*math.log(p/pref))
+        return Tref/(1.-(Tref*phys.R_gas/L_O2)*math.log(p/pref))
     if switch == 'H2':
         Tref = 23.15 # K, arbitrary point (23.15K,esat(23.15K)=1.7bar) on the coexistence curve of H2 
         pref = p_sat('H2',Tref)
         L_H2=phys.H2.L_vaporization*phys.h2.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_H2)*math.log(p/pref))
+        return Tref/(1.-(Tref*phys.R_gas/L_H2)*math.log(p/pref))
     if switch == 'He':
         Tref = 4.22 # K, boiling point of He at 1 atm 
         pref = 1e5 # esat('He',Tref) returns 45196 Pa, should return 1e5
         L_He=phys.He.L_vaporization*phys.he.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_He)*math.log(p/pref))
+        return Tref/(1.-(Tref*phys.R_gas/L_He)*math.log(p/pref))
     if switch == 'NH3':
         Tref = 273.15 # K, arbitrary point (273.15K,esat(273.15K)=8.6bar) on the coexistence curve of NH3 
         pref = p_sat('NH3',Tref)
         L_NH3=phys.NH3.L_vaporization*phys.nh3.MolecularWeight*1e-3
-        return Tref/(1.-(Tref*R_universal/L_NH3)*math.log(p/pref))
+        return Tref/(1.-(Tref*phys.R_gas/L_NH3)*math.log(p/pref))
     
 ## Molar latent heat [J mol-1] for gas phase considered given a temperature T [K]. 
 ## Select the molecule of interest with the switch argument (a string).
@@ -620,7 +657,7 @@ def cp_cond( vol, tmp ):
       
     
 
-
+satvph2o = phys.satvps_function(phys.H2O)
 def slopeRay( logpa, logT ):
     eps     = phys.H2O.MolecularWeight/phys.air.MolecularWeight
     L       = phys.H2O.L_vaporization
@@ -650,7 +687,7 @@ def dry_adiabat( T_surf, P_array, cp_array ):
 
         if cp_array[idx] > 0.:
 
-            T_dry[idx] = T_surf * ( prs / P_surf ) ** ( R_universal / cp_array[idx] )
+            T_dry[idx] = T_surf * ( prs / P_surf ) ** ( phys.R_gas / cp_array[idx] )
 
     return T_dry
 
@@ -673,7 +710,7 @@ def dry_component_slope(lnPd,lnT,atm):
         
         # Coefficients
         eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
-        beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (R_universal * tmp) 
+        beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (phys.R_gas * tmp) 
 
         # Beta terms zero if below saturation vapor pressure
         if atm.p_vol[vol][idx] < p_sat(vol, tmp): beta_vol = 0.
@@ -695,7 +732,7 @@ def dry_component_slope(lnPd,lnT,atm):
             
     # Collect terms
     numerator   = 1. + num_sum
-    denominator = (cp_sum / R_universal) + denom_sum1 + denom_sum2
+    denominator = (cp_sum / phys.R_gas) + denom_sum1 + denom_sum2
 
     # dlnT/dlnP_d
     dlnTdlnP_d = numerator / denominator
@@ -719,14 +756,10 @@ def moist_slope(lnP, lnT, atm):
 
     # Calculate sums over volatiles
     for vol in atm.vol_list.keys(): 
-        # Only if volatile is present
-        #if atm.vol_list[vol] > 1e-10:
             
-        # print(vol, atm.x_moist[vol][idx], atm.xd[idx])
-
         # Coefficients
         eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
-        beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (R_universal * tmp) 
+        beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (phys.R_gas * tmp) 
 
         # Beta terms zero if below saturation vapor pressure
         if atm.p_vol[vol][idx] < p_sat(vol, tmp): beta_vol = 0.
@@ -743,7 +776,7 @@ def moist_slope(lnP, lnT, atm):
 
     # Collect terms
     numerator   = 1. + num_sum
-    denominator = (atm.cp[idx] / R_universal) + (denom_sum1 + denom_sum2) / (1. + denom_sum3)
+    denominator = (atm.cp[idx] / phys.R_gas) + (denom_sum1 + denom_sum2) / (1. + denom_sum3)
 
     # dlnT/dlnP
     dlnTdlnP = numerator / denominator
@@ -754,6 +787,7 @@ def moist_slope(lnP, lnT, atm):
 # Apply condensation and renormalize volatile abundances in gas and condensed phases
 
 def condensation( atm, idx, prs_reset):
+    
     # # Find current level
     # idx = int(np.amax(atm.ifatm))
 
@@ -762,12 +796,16 @@ def condensation( atm, idx, prs_reset):
 
     # Recalculate surface total pressure
     P_tot_base = 0.
-    # If surface node, reset input abundances to sane values
+    
+    # If surface level, reset input abundances to sane values
     if (atm.p[idx] == atm.ps): # (idx == 0) and 
 
         # Update total pressure
         for vol in atm.vol_list.keys():
-            
+
+            # Mean molar mass
+            atm.mu_v += atm.vol_list[vol] * molar_mass[vol] / sum(atm.vol_list.values())
+            atm.mu   = atm.mu_v
             
             # Partial pressure scaled from total pressure and molar concentration
             p_vol_scaled = atm.vol_list[vol]*atm.p[idx]
@@ -783,6 +821,7 @@ def condensation( atm, idx, prs_reset):
 
         # Update mixing ratios, needs realistic total pressure
         for vol in atm.vol_list.keys():
+            
             # Old mixing ratio
             x_gas_old   = atm.vol_list[vol]
 
@@ -818,21 +857,23 @@ def condensation( atm, idx, prs_reset):
 
     # Update mixing ratios and partial pressures
     for vol in atm.vol_list.keys():
-        # Scaled partial pressure
-        atm.p_vol[vol][idx] = atm.vol_list[vol] * atm.p[idx]
 
-        # Saturation vapor pressure
+        # Saturation vapor pressure for current volatile
         p_vol_sat           = p_sat(vol, tmp)
 
-        # Condensation if p_old > p_sat: moist species
+        # Condensation if p_old > p_sat
         if atm.p_vol[vol][idx] > p_vol_sat:
 
-            # Condensate phase molar mixing ratio
-            
-            atm.x_cond[vol][idx] = (atm.p_vol[vol][idx] - p_vol_sat) / atm.p[idx]
+            # Set species partial pressure to p_sat
+            atm.p_vol[vol][idx]  = p_vol_sat
 
-            # Reduce gas phase molar concentration due to condensation
+            # # Iterate over all other species
+            # for vol1 in atm.vol_list.keys():
+
+            # Condensate phase molar mixing ratio
+            atm.x_cond[vol][idx] = atm.vol_list[vol] - ( p_vol_sat / atm.p[idx] )
             
+            # Reduce gas phase molar concentration due to condensation
             # NOTE: In cases with rainout, this is not the correct mixing ratio
             # because we are scaling to the old pressure, but it
             # doesn't impact the scaled c_p because all terms in the numerator
@@ -840,9 +881,6 @@ def condensation( atm, idx, prs_reset):
             # which cancels out of the fraction.
             atm.x_gas[vol][idx]  = p_vol_sat / atm.p[idx]
             
-            # Set species partial pressure to p_sat
-            atm.p_vol[vol][idx]  = p_vol_sat
-
             # Add to molar concentration of condensed phase
             atm.xc[idx]          += atm.x_cond[vol][idx]
 
@@ -914,7 +952,7 @@ def general_adiabat( atm ):
     ### Initialization
 
     # Initialize the tuple solution
-    moist_tuple    = [] #[tuple([np.log(atm.ps), atm.ts])] 
+    moist_tuple     = [] #[tuple([np.log(atm.ps), atm.ts])] 
    
     # Negative increment to go from ps to ptop < ps       
     step            = -.01
@@ -922,7 +960,7 @@ def general_adiabat( atm ):
     # Integration counter
     idx             = 0  
 
-    # Calculate condensation
+    # Surface condensation
     atm             = condensation(atm, idx, prs_reset=True)
 
     # Create the integrator instance                                              
@@ -938,9 +976,12 @@ def general_adiabat( atm ):
         # Execute the Runge-Kutta integrator, fill array of tuples
         moist_tuple.append(int_slope.next())
 
-        # Fill new T,P values
+        # Fill next T,P values
         atm.p[idx+1]    = np.exp(int_slope.x)
         atm.tmp[idx+1]  = np.exp(int_slope.y)
+
+        # Calculate next local gravity and height
+        atm = atm_z(atm, idx)
 
         # print("RK4 step, idx:", idx, round(atm.p[idx+1],5), round(atm.tmp[idx+1],5))
 

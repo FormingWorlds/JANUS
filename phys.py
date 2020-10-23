@@ -188,6 +188,8 @@ air.cp = 1004.
 air.MolecularWeight = 28.97
 air.gamma = 1.4003
 
+R_gas = 8.31446261815324 # Universal gas constant, J.K-1.mol-1
+
 #------------------------
 H2O = gas()
 H2O.CriticalPointT = 6.471000e+02
