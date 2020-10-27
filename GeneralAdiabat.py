@@ -201,7 +201,10 @@ def atm_z(atm, idx):
     # # Average temperature weighted by amount of substance?
     # T_mean_down = np.average( atm.tmp[:idx+1], weights=)
 
-    print(atm.grav_z[idx], atm.mu[idx], atm.p[idx], atm.p[idx+1])
+    # Use gas phase mean molar mass
+    atm.mu[idx] = atm.mu_v[idx]
+
+    # print(atm.grav_z[idx], atm.mu_v[idx], atm.p[idx], atm.p[idx+1])
 
     # Integration
     dz = - phys.R_gas * T_mean_down * np.log(atm.p[idx+1]/atm.p[idx]) / ( atm.mu[idx] * atm.grav_z[idx] )
@@ -389,7 +392,7 @@ def L_heat(switch, T, P):
 def cpv( vol, tmp ):
 
     # Choose cp functions
-    cp_mode = "constant"    # RTP book
+    # cp_mode = "constant"    # RTP book
     cp_mode = "T-dependent" # NIST Chemistry WebBook
 
     if cp_mode == "T-dependent":
@@ -635,27 +638,21 @@ def cp_cond( vol, tmp ):
     # W. F. GIAUQUEA ND H. L. JOHNSTON 1929
     if vol == "O2":
         return 4.184 * 10 #J/K/mol; approximate value, at the higher end of the liquid temperature range
-    '''
-    # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/He
+
+    # No data yet
     if vol == "He":
-        # Temperature (K) 298. - 6000.
-        A = [ 20.78603     ]
-        B = [ 4.850638e-10 ]    
-        C = [ -1.582916e-10]     
-        D = [ 1.525102e-11 ]    
-        E = [ 3.196347e-11 ]    
-        F = [ -6.197341    ] 
-        G = [ 151.3064     ]
-        H = [ 0.000000     ] 
-        cp_idx = 0
-        tmp = np.max([tmp, 298]) # Fit validity
-    '''
-    # SPECIFIC HEAT OF LIQUID AMMONIA by Nathan S. Osborne and Milton S. Van Dusen
+        return 0. 
+
+    # # SPECIFIC HEAT OF LIQUID AMMONIA by Nathan S. Osborne and Milton S. Van Dusen
+    # if vol == "NH3":
+    #     mass_specific_heat_capacity = 3.1365 - 0.00057*(tmp+273.15)+16.842/np.sqrt(133-(tmp+273.15)) #joules/gram/K
+    #     return mass_specific_heat_capacity*(17.031) #J/k/mol
+
+    # https://www.engineeringtoolbox.com/ammonia-heat-capacity-specific-temperature-pressure-Cp-Cv-d_2016.html#:~:text=At%20ambient%20pressure%20and%20temperature,%5Bcal%2Fg%20K%5D.
+    # ! APPLY FIT !
     if vol == "NH3":
-        mass_specific_heat_capacity = 3.1365 - 0.00057*(tmp+273.15)+16.842/np.sqrt(133-(tmp+273.15)) #joules/gram/K
-        return mass_specific_heat_capacity*(17.031) #J/k/mol
+        return 4.2239/1000. # J/K/mol
       
-    
 
 satvph2o = phys.satvps_function(phys.H2O)
 def slopeRay( logpa, logT ):
@@ -705,6 +702,7 @@ def dry_component_slope(lnPd,lnT,atm):
     denom_sum1  = 0. 
     denom_sum2  = 0.
     cp_sum      = 0.
+    
     # Calculate sums over volatiles
     for vol in atm.vol_list.keys(): 
         
@@ -726,8 +724,7 @@ def dry_component_slope(lnPd,lnT,atm):
         cp_sum += eta_vol * cpv(vol, tmp)
         
         # Adding condensate cp terms
-        if atm.x_cond[vol][idx] >0:
-            
+        if atm.x_cond[vol][idx] > 0:
             cp_sum += atm.alpha_cloud * atm.x_cond[vol][idx] / atm.xd[idx] * cp_cond(vol, tmp)
             
     # Collect terms
@@ -736,6 +733,7 @@ def dry_component_slope(lnPd,lnT,atm):
 
     # dlnT/dlnP_d
     dlnTdlnP_d = numerator / denominator
+    
     return dlnTdlnP_d
 
 
@@ -792,70 +790,87 @@ def condensation( atm, idx, prs_reset):
     # idx = int(np.amax(atm.ifatm))
 
     # Temperature floor
-    tmp = np.amax([atm.tmp[idx], 20])
+    tmp = np.amax([atm.tmp[idx], 20.])
 
-    # Recalculate surface total pressure
-    P_tot_base = 0.
+    # # Recalculate surface total pressure
+    # P_tot_base = 0.
     
-    # If surface level, reset input abundances to sane values
-    if (atm.p[idx] == atm.ps): # (idx == 0) and 
+    # # If surface level, reset input abundances to sane values
+    # if (atm.p[idx] == atm.ps): # (idx == 0) and 
 
-        # Update total pressure
-        for vol in atm.vol_list.keys():
+    #     # Update total pressure
+    #     for vol in atm.vol_list.keys():
 
-            # Mean molar mass
-            atm.mu_v += atm.vol_list[vol] * molar_mass[vol] / sum(atm.vol_list.values())
-            atm.mu   = atm.mu_v
+    #         # Mean molar mass
+    #         atm.mu_v += atm.vol_list[vol] * molar_mass[vol] / sum(atm.vol_list.values())
+    #         atm.mu   = atm.mu_v
             
-            # Partial pressure scaled from total pressure and molar concentration
-            p_vol_scaled = atm.vol_list[vol]*atm.p[idx]
+    #         # Partial pressure scaled from total pressure and molar concentration
+    #         p_vol_scaled = atm.vol_list[vol]*atm.p[idx]
 
-            # Saturation vapor pressure
-            p_vol_sat = p_sat(vol, tmp)
+    #         # Saturation vapor pressure
+    #         p_vol_sat = p_sat(vol, tmp)
 
-            # Actual partial pressure
-            p_vol     = np.min([ p_vol_scaled, p_vol_sat ])
+    #         # Actual partial pressure
+    #         p_vol     = np.min([ p_vol_scaled, p_vol_sat ])
             
-            # Add to new total pressure
-            P_tot_base += p_vol
+    #         # Add to new total pressure
+    #         P_tot_base += p_vol
 
-        # Update mixing ratios, needs realistic total pressure
-        for vol in atm.vol_list.keys():
+    #     # Update mixing ratios, needs realistic total pressure
+    #     for vol in atm.vol_list.keys():
             
-            # Old mixing ratio
-            x_gas_old   = atm.vol_list[vol]
+    #         # Old mixing ratio
+    #         x_gas_old   = atm.vol_list[vol]
 
-            # As scaled from initial set total pressure
-            p_vol_scaled = x_gas_old * atm.p[idx]
+    #         # As scaled from initial set total pressure
+    #         p_vol_scaled = x_gas_old * atm.p[idx]
 
-            # Saturation vapor pressure
-            p_vol_sat = p_sat(vol, tmp)
+    #         # Saturation vapor pressure
+    #         p_vol_sat = p_sat(vol, tmp)
 
-            # Actual partial pressure
-            p_vol     = np.min([ p_vol_scaled, p_vol_sat ])
+    #         # Actual partial pressure
+    #         p_vol     = np.min([ p_vol_scaled, p_vol_sat ])
 
-            # Surface mixing ratio scaled from new total and partial pressures
-            atm.vol_list[vol] = p_vol / P_tot_base
+    #         # Surface mixing ratio scaled from new total and partial pressures
+    #         atm.vol_list[vol] = p_vol / P_tot_base
 
-            # Add to 'ocean' mass and inform user
-            if p_vol_scaled > p_vol_sat:
+    #         # Add to 'ocean' mass and inform user
+    #         if p_vol_scaled > p_vol_sat:
 
-                atm.x_ocean[vol] = (p_vol_scaled - p_vol_sat) / atm.p[idx]
+    #             atm.x_ocean[vol] = (p_vol_scaled - p_vol_sat) / atm.p[idx]
 
-                print("Rescale surface "+vol+" (old, new): X_gas =", round(x_gas_old,3), "->", round(atm.vol_list[vol],3), "| p =", round(p_vol_scaled/1e5,3), "->", round(p_vol/1e5,3), "bar", "| X_ocean =", round(atm.x_ocean[vol],3) )
+    #             print("Rescale surface "+vol+" (old, new): X_gas =", round(x_gas_old,3), "->", round(atm.vol_list[vol],3), "| p =", round(p_vol_scaled/1e5,3), "->", round(p_vol/1e5,3), "bar", "| X_ocean =", round(atm.x_ocean[vol],3) )
 
-        # Update total pressure
-        atm.p[idx] = P_tot_base
-        atm.ps     = P_tot_base
+    #     # Update total pressure
+    #     atm.p[idx] = P_tot_base
+    #     atm.ps     = P_tot_base
 
-        # If P_s now smaller than P_top, reset
-        if atm.ps < atm.ptop:
-            atm.ptop = atm.ps * 1e-3
+    #     # If P_s now smaller than P_top, reset
+    #     if atm.ps < atm.ptop:
+    #         atm.ptop = atm.ps * 1e-3
 
-    # Recalculate total pressure
-    P_tot_new = 0.
+    # # Recalculate total pressure
+    # P_tot_temp = 0.
 
-    # Update mixing ratios and partial pressures
+    # Partial pressures: first guess
+    for vol in atm.vol_list.keys():
+
+        # Surface level: partial pressures scaled from mixing ratio
+        if idx == 0: 
+            atm.p_vol[vol][idx] = atm.p[idx] * (atm.vol_list[vol] / sum(atm.vol_list.values()))
+
+            # Mean gas phase molar mass scaled from partial pressure
+            atm.mu_v[idx] += molar_mass[vol] * ( atm.p_vol[vol][idx] / atm.p[idx] )
+        
+        # else: partial pressure and molar mass from lower level
+        else:
+            atm.p_vol[vol][idx] = atm.p_vol[vol][idx-1] * ( atm.p[idx] / atm.p[idx-1] )
+            atm.mu_v[idx] += molar_mass[vol] * ( atm.p_vol[vol][idx] / atm.p[idx] )
+
+    print(idx, atm.p[idx], atm.mu_v[idx], atm.p_vol["H2O"][idx] / atm.p[idx], atm.tmp[idx])
+
+    # Account for condensation
     for vol in atm.vol_list.keys():
 
         # Saturation vapor pressure for current volatile
@@ -867,55 +882,80 @@ def condensation( atm, idx, prs_reset):
             # Set species partial pressure to p_sat
             atm.p_vol[vol][idx]  = p_vol_sat
 
-            # # Iterate over all other species
-            # for vol1 in atm.vol_list.keys():
+            # Reset mean molar mass, scaled by partial pressure
+            mu_v_prev       = atm.mu_v[idx]
+            atm.mu_v[idx]   = 0.
+            p_vol_sum       = 0.
+            for vol1 in atm.vol_list.keys():
+                p_vol_sum   += atm.p_vol[vol1][idx]
+                atm.mu_v[idx] += molar_mass[vol1] * atm.p_vol[vol1][idx]
+            atm.mu_v[idx] /= p_vol_sum
 
-            # Condensate phase molar mixing ratio
-            atm.x_cond[vol][idx] = atm.vol_list[vol] - ( p_vol_sat / atm.p[idx] )
-            
-            # Reduce gas phase molar concentration due to condensation
-            # NOTE: In cases with rainout, this is not the correct mixing ratio
-            # because we are scaling to the old pressure, but it
-            # doesn't impact the scaled c_p because all terms in the numerator
-            # and the denominator will be wrong by the same factor of 1/(1-(1-alpha_cloud)*sum(x_c)), 
-            # which cancels out of the fraction.
-            atm.x_gas[vol][idx]  = p_vol_sat / atm.p[idx]
-            
-            # Add to molar concentration of condensed phase
-            atm.xc[idx]          += atm.x_cond[vol][idx]
+            # Recompute all other partial pressures based on new mean molecular weight
+            for vol1 in atm.vol_list.keys():
+                # Not for the currently condensing species
+                if vol1 != vol:
+                    atm.p_vol[vol1][idx] = atm.p_vol[vol1][idx] * ( atm.mu_v[idx] / mu_v_prev )
 
-            # Add to molar concentration of gas phase
-            atm.xv[idx]          += atm.x_gas[vol][idx]
-            
-            # if condensate is retained, atm.cp needs to add both the condensate and the vapor specific heat
-            atm.cp[idx]      += atm.x_gas[vol][idx] * cpv(vol,atm.tmp[idx]) + atm.alpha_cloud * atm.x_cond[vol][idx]*cp_cond(vol, atm.tmp[idx])
-            
-        # Does not condense: dry species
-        else:
+    print(idx, atm.p[idx], atm.mu_v[idx], atm.p_vol["H2O"][idx] / atm.p[idx], atm.tmp[idx])
 
-            # No condensates
-            atm.x_cond[vol][idx] = 0.
+    # Reset mean molar mass
+    atm.mu_v[idx]   = 0.
+    p_vol_sum       = 0.
 
-            # Gas phase molar concentration unchanged
-            atm.x_gas[vol][idx]  = atm.p_vol[vol][idx] / atm.p[idx]
+    # Compute mixing ratios
+    for vol in atm.vol_list.keys():
 
-            # Add to molar concentration of dry species
-            atm.xd[idx]          += atm.x_gas[vol][idx]
-            atm.cp[idx]         += atm.x_gas[vol][idx] * cpv(vol,atm.tmp[idx])
-        # Update cp w/ molar concentration
-    
+        # Mean molar mass
+        p_vol_sum   += atm.p_vol[vol][idx]
+        atm.mu_v[idx] += molar_mass[vol] * atm.p_vol[vol][idx]
+
+        # Condensate phase
+        atm.x_cond[vol][idx] = atm.vol_list[vol] - ( atm.p_vol[vol][idx] / atm.p[idx] )
         
+        # Gas phase molar concentration
+        atm.x_gas[vol][idx]  = atm.p_vol[vol][idx] / atm.p[idx]
         
+        # Add to molar concentration of total condensed phase
+        atm.xc[idx]          += atm.x_cond[vol][idx]
+
+        # Add to molar concentration of total gas phase
+        atm.xv[idx]          += atm.x_gas[vol][idx]
         
-        # Update total pressure
-        P_tot_new           += atm.p_vol[vol][idx]
+        # Mean cp of both gas phase and retained condensates
+        # print(idx, vol, atm.p_vol[vol][idx], atm.tmp[idx])
+        # print(cpv(vol, atm.tmp[idx]))
+        # print(cp_cond(vol, atm.tmp[idx]))
+        atm.cp[idx]          += atm.x_gas[vol][idx] * cpv(vol, atm.tmp[idx]) + atm.alpha_cloud * atm.x_cond[vol][idx] * cp_cond(vol, atm.tmp[idx])
+            
+    atm.mu_v[idx] /= p_vol_sum
 
-    # Reset total pressure due to condensation effects
-    if prs_reset == True:
-        atm.p[idx] = P_tot_new
+    print(idx, atm.p[idx], atm.mu_v[idx], atm.p_vol["H2O"][idx] / atm.p[idx], atm.tmp[idx])
 
-    # Renormalize cp w/ molar concentration (this cp is the cp_hat from eqn. 1 of Li et al 2018)
-    
+        # # Does not condense: dry species
+        # else:
+
+        #     # No condensates
+        #     atm.x_cond[vol][idx] = 0.
+
+        #     # Gas phase molar concentration unchanged
+        #     atm.x_gas[vol][idx]  = atm.p_vol[vol][idx] / atm.p[idx]
+
+        #     # Add to molar concentration of dry species
+        #     atm.xd[idx]          += atm.x_gas[vol][idx]
+        #     atm.cp[idx]         += atm.x_gas[vol][idx] * cpv(vol,atm.tmp[idx])
+        # # Update cp w/ molar concentration
+
+    # print(vol, atm.mu_v[idx], atm.tmp[idx])
+        
+    #     # Update total pressure
+    #     P_tot_new           += atm.p_vol[vol][idx]
+
+    # # Reset total pressure due to condensation effects
+    # if prs_reset == True:
+    #     atm.p[idx] = P_tot_new
+
+    # Renormalize cp w/ molar concentration (= cp_hat, Eq. 1, Li+2018)
     atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
 
     # Dry concentration floor
@@ -937,12 +977,12 @@ def condensation( atm, idx, prs_reset):
     # but if there's rainout, it adjusts them all by the proper fraction
     # NOTE: For some reason this screws up the adiabat a little bit
         
-    atm.xd[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-    atm.xv[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-    for vol in atm.vol_list.keys():
-        atm.x_cond[vol][idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-        atm.x_gas[vol][idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-    atm.xc[idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    # atm.xd[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    # atm.xv[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    # for vol in atm.vol_list.keys():
+    #     atm.x_cond[vol][idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    #     atm.x_gas[vol][idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    # atm.xc[idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
     
     return atm
 
@@ -1216,14 +1256,14 @@ if __name__ == "__main__":
 
     # Surface pressure & temperature
     P_surf                  = 1e+5       # Pa
-    T_surf                  = 320         # K
+    T_surf                  = 1000         # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : 0.03,    # 300e+5/P_surf --> specific p_surf
+                  "H2O" : 1.0,    # 300e+5/P_surf --> specific p_surf
                   "CO2" : .0,    # 100e+5/P_surf
                   "H2"  : .0, 
-                  "N2"  : .97,     # 1e+5/P_surf
+                  "N2"  : .0,     # 1e+5/P_surf
                   "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
