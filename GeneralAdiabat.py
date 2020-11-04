@@ -799,48 +799,47 @@ def condensation( atm, idx, prs_reset):
         # Mean gas phase molar mass
         atm.mu_v[idx]       += atm.vol_list[vol] * molar_mass[vol]
 
-    # print(idx, atm.p[idx], atm.mu_v[idx], atm.p_vol["H2O"][idx] / atm.p[idx], atm.tmp[idx])
+    # Sum of partial pressures to converge to predicted P from adiabat integration
+    for i in range(0, 1):
 
-    # Account for condensation
-    for vol in atm.vol_list.keys():
+        # Account for condensation
+        for vol in atm.vol_list.keys():
 
-        # Condensation if p_i > p_sat
-        if atm.p_vol[vol][idx] > p_sat(vol, tmp):
+            # Condensation if p_i > p_sat
+            if atm.p_vol[vol][idx] > p_sat(vol, tmp):
 
-            # Set species partial pressure to p_sat
-            atm.p_vol[vol][idx]  = p_sat(vol, tmp)
+                # Set species partial pressure to p_sat
+                atm.p_vol[vol][idx]  = p_sat(vol, tmp)
 
-            # Reset mean molar mass, scaled by partial pressure
-            mu_v_prev       = atm.mu_v[idx]
-            atm.mu_v[idx]   = 0.
-            p_vol_sum       = 0.
-            for vol1 in atm.vol_list.keys():
-                p_vol_sum   += atm.p_vol[vol1][idx]
-                atm.mu_v[idx] += molar_mass[vol1] * atm.p_vol[vol1][idx]# / atm.p[idx]
-            atm.mu_v[idx] /= p_vol_sum
+                # Reset mean molar mass, scaled by partial pressure
+                mu_v_prev       = atm.mu_v[idx]
+                atm.mu_v[idx]   = 0.
+                p_vol_sum       = 0.
+                for vol1 in atm.vol_list.keys():
+                    p_vol_sum   += atm.p_vol[vol1][idx]
+                    atm.mu_v[idx] += molar_mass[vol1] * atm.p_vol[vol1][idx]# / atm.p[idx]
+                atm.mu_v[idx] /= p_vol_sum
 
-            # print(idx, atm.p[idx], p_vol_sum/atm.p[idx], vol, atm.p_vol[vol][idx], end=" ")
+                # Recompute all other partial pressures based on new mean molecular weight
+                for vol1 in [ vol1 for vol1 in atm.vol_list.keys() if vol1 != vol and atm.p_vol[vol1][idx] != 0.]:
+                    
+                    # print(vol1, atm.p_vol[vol1][idx], end=" ")
+                    
+                    # Previous partial pressure of species
+                    p_vol1_old = atm.p_vol[vol1][idx]
 
-            # Recompute all other partial pressures based on new mean molecular weight
-            for vol1 in [ vol1 for vol1 in atm.vol_list.keys() if vol1 != vol and atm.p_vol[vol1][idx] != 0.]:
-                
-                print(vol1, atm.p_vol[vol1][idx], end=" ")
-                
-                # Previous partial pressure of species
-                p_vol1_old = atm.p_vol[vol1][idx]
+                    # New partial pressure due to change in mean molar mass
+                    p_vol1_new = atm.p_vol[vol1][idx] * ( atm.mu_v[idx] / mu_v_prev )
+                    
+                    # Limit to condensation vapor pressure
+                    atm.p_vol[vol1][idx] = np.min([p_vol1_new, p_sat(vol1, tmp)]) 
 
-                # New partial pressure due to change in mean molar mass
-                p_vol1_new = atm.p_vol[vol1][idx] * ( atm.mu_v[idx] / mu_v_prev )
-                
-                # Limit to condensation vapor pressure
-                atm.p_vol[vol1][idx] = np.min([p_vol1_new, p_sat(vol1, tmp)]) 
+                    # New total sum of partial pressures
+                    p_vol_sum += atm.p_vol[vol1][idx] - p_vol1_old
 
-                # New total sum of partial pressures
-                p_vol_sum += atm.p_vol[vol1][idx] - p_vol1_old
+                    # # P convergence criterion check
+                    # print(atm.p_vol[vol1][idx], atm.mu_v[idx]/mu_v_prev, p_vol_sum/atm.p[idx], end=" ")
 
-                print(atm.p_vol[vol1][idx], atm.mu_v[idx]/mu_v_prev, p_vol_sum/atm.p[idx], end=" ")
-
-    # print(idx, atm.p[idx], atm.mu_v[idx], atm.p_vol["H2O"][idx] / atm.p[idx], atm.tmp[idx])
 
     # Reset mean molar mass
     atm.mu_v[idx]   = 0.
@@ -872,64 +871,15 @@ def condensation( atm, idx, prs_reset):
             atm.xd[idx]          += atm.x_gas[vol][idx]
         else:
             atm.xv[idx]          += atm.x_gas[vol][idx]
-
-        if atm.vol_list[vol] > 0.:
-            print(idx, atm.p[idx], tmp, vol, p_sat(vol, tmp), atm.p_vol[vol][idx], atm.x_gas[vol][idx], atm.x_cond[vol][idx])
         
         # Mean cp of both gas phase and retained condensates
-        # print(idx, vol, atm.p_vol[vol][idx], atm.tmp[idx])
-        # print(cpv(vol, atm.tmp[idx]))
-        # print(cp_cond(vol, atm.tmp[idx]))
         atm.cp[idx]          += atm.x_gas[vol][idx] * cpv(vol, atm.tmp[idx]) + atm.x_cond[vol][idx] * cp_cond(vol, atm.tmp[idx]) * atm.alpha_cloud
-
-        # if atm.p_vol[vol][idx] != 0.:
-        #     print(vol, atm.x_cond[vol][idx], end=" " )
-            
-    # atm.mu_v[idx] /= p_vol_sum
-    # print(p_vol_sum/atm.p[idx])
-
-    # print(idx, atm.p[idx], atm.mu_v[idx], atm.p_vol["H2O"][idx] / atm.p[idx], atm.tmp[idx])
-
-        # # Does not condense: dry species
-        # else:
-
-        #     # No condensates
-        #     atm.x_cond[vol][idx] = 0.
-
-        #     # Gas phase molar concentration unchanged
-        #     atm.x_gas[vol][idx]  = atm.p_vol[vol][idx] / atm.p[idx]
-
-        #     # Add to molar concentration of dry species
-        #     atm.xd[idx]          += atm.x_gas[vol][idx]
-        #     atm.cp[idx]         += atm.x_gas[vol][idx] * cpv(vol,atm.tmp[idx])
-        # # Update cp w/ molar concentration
-
-    # print(vol, atm.mu_v[idx], atm.tmp[idx])
-        
-    #     # Update total pressure
-    #     P_tot_new           += atm.p_vol[vol][idx]
-
-    # # Reset total pressure due to condensation effects
-    # if prs_reset == True:
-    #     atm.p[idx] = P_tot_new
 
     # Renormalize cp w/ molar concentration (= cp_hat, Eq. 1, Li+2018)
     atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
 
     # Dry concentration floor
     atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
-
-    ## 'Molar abundance in one mole of heterogeneous gas mixture' (Li, Ingersoll, Oyafuso 2018)
-
-    # # Phase abundances
-    # atm.mrd[idx] = atm.xd[idx] / ( atm.xd[idx] + atm.xv[idx] )
-    # atm.mrv[idx] = atm.xv[idx] / ( atm.xd[idx] + atm.xv[idx] )
-    # atm.mrc[idx] = atm.xc[idx] / ( atm.xd[idx] + atm.xv[idx] )
-
-    # # Individual volatile abundances
-    # for vol in atm.vol_list.keys():
-    #     atm.mr_gas[vol][idx]  = atm.x_gas[vol][idx] / ( atm.xd[idx] + atm.xv[idx] )
-    #     atm.mr_cond[vol][idx] = atm.x_cond[vol][idx] / ( atm.xd[idx] + atm.xv[idx] )
     
     # # Correct x values for each volatile; if there's no rain, this changes nothing
     # # but if there's rainout, it adjusts them all by the proper fraction
@@ -1171,10 +1121,10 @@ if __name__ == "__main__":
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .9,    # 300e+5/P_surf --> specific p_surf
-                  "CO2" : .1,     # 100e+5/P_surf
-                  "H2"  : .0, 
-                  "N2"  : .0,     # 1e+5/P_surf
+                  "H2O" : .3,    # 300e+5/P_surf --> specific p_surf
+                  "CO2" : .3,     # 100e+5/P_surf
+                  "H2"  : .3, 
+                  "N2"  : .3,     # 1e+5/P_surf
                   "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
