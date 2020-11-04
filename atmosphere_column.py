@@ -10,7 +10,7 @@ class atmos:
 	Atmosphere class
 	'''
 	def __init__(self, T_surf, P_surf, vol_list):
-		self.alpha_cloud 	= 0.5 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
+		self.alpha_cloud 	= 1.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
 		self.ps 			= P_surf 	 	# Surface pressure, Pa
 		self.ts 			= T_surf		# Surface temperature, K
 		self.vol_list 		= vol_list		# Names + mixing ratios dict
