@@ -857,16 +857,13 @@ def condensation( atm, idx, prs_reset):
             atm.x_cond[vol][idx] = 0.
         else:
             atm.x_cond[vol][idx] = atm.vol_list[vol] - ( atm.p_vol[vol][idx] / atm.p[idx] )
-        
-        # Rain-out
-        atm.x_cond[vol][idx] *= atm.alpha_cloud
+
+        # Add to molar concentration of total condensed phase
+        atm.xc[idx]          += atm.x_cond[vol][idx]
         
         # Gas phase molar concentration
         atm.x_gas[vol][idx]  = atm.p_vol[vol][idx] / atm.p[idx]
         
-        # Add to molar concentration of total condensed phase
-        atm.xc[idx]          += atm.x_cond[vol][idx]
-
         # Add to molar concentration of total gas (dry or moist) phase
         # ! REVISIT ! keeping xd == 0 leads to a bug, why?
         if atm.p_vol[vol][idx] < p_sat(vol, tmp):
@@ -883,15 +880,15 @@ def condensation( atm, idx, prs_reset):
     # Dry concentration floor
     atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
     
-    # # Correct x values for each volatile; if there's no rain, this changes nothing
-    # # but if there's rainout, it adjusts them all by the proper fraction
-    # # NOTE: For some reason this screws up the adiabat a little bit
-    # atm.xd[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-    # atm.xv[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-    # for vol in atm.vol_list.keys():
-    #     atm.x_cond[vol][idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-    #     atm.x_gas[vol][idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-    # atm.xc[idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    # Correct x values for each volatile; if there's no rain, this changes nothing
+    # but if there's rainout, it adjusts them all by the proper fraction
+    # NOTE: For some reason this screws up the adiabat a little bit
+    atm.xd[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    atm.xv[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    for vol in atm.vol_list.keys():
+        atm.x_cond[vol][idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+        atm.x_gas[vol][idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    atm.xc[idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
     
     return atm
 
@@ -1137,9 +1134,7 @@ if __name__ == "__main__":
     # Create atmosphere object
     atm                     = atmos(T_surf, P_surf, vol_list)
     
-    
     # Set fraction of condensate retained in column
-    
     atm.alpha_cloud         = 0.5
     
     # Calculate moist adiabat + condensation
@@ -1148,5 +1143,3 @@ if __name__ == "__main__":
     # Plot adiabat
     plot_adiabats(atm)
     
-    
-
