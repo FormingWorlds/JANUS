@@ -857,7 +857,9 @@ def condensation( atm, idx, prs_reset):
             atm.x_cond[vol][idx] = 0.
         else:
             atm.x_cond[vol][idx] = atm.vol_list[vol] - ( atm.p_vol[vol][idx] / atm.p[idx] )
-        # atm.x_cond[vol][idx] *= atm.alpha_cloud
+        
+        # Rain-out
+        atm.x_cond[vol][idx] *= atm.alpha_cloud
         
         # Gas phase molar concentration
         atm.x_gas[vol][idx]  = atm.p_vol[vol][idx] / atm.p[idx]
@@ -1138,7 +1140,7 @@ if __name__ == "__main__":
     
     # Set fraction of condensate retained in column
     
-    atm.alpha_cloud         = 0
+    atm.alpha_cloud         = 0.5
     
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)
