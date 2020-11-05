@@ -817,7 +817,7 @@ def condensation( atm, idx, prs_reset):
                 p_vol_sum       = 0.
                 for vol1 in atm.vol_list.keys():
                     p_vol_sum   += atm.p_vol[vol1][idx]
-                    atm.mu_v[idx] += molar_mass[vol1] * atm.p_vol[vol1][idx]# / atm.p[idx]
+                    atm.mu_v[idx] += molar_mass[vol1] * atm.p_vol[vol1][idx]
                 atm.mu_v[idx] /= p_vol_sum
 
                 # Recompute all other partial pressures based on new mean molecular weight
@@ -837,7 +837,7 @@ def condensation( atm, idx, prs_reset):
                     # New total sum of partial pressures
                     p_vol_sum += atm.p_vol[vol1][idx] - p_vol1_old
 
-                    # # P convergence criterion check
+                    # P convergence criterion check
                     # print(atm.p_vol[vol1][idx], atm.mu_v[idx]/mu_v_prev, p_vol_sum/atm.p[idx], end=" ")
 
 
@@ -849,8 +849,8 @@ def condensation( atm, idx, prs_reset):
     for vol in atm.vol_list.keys():
 
         # Mean molar mass
-        p_vol_sum   += atm.p_vol[vol][idx]
-        atm.mu_v[idx] += molar_mass[vol] * atm.p_vol[vol][idx]
+        p_vol_sum       += atm.p_vol[vol][idx]
+        atm.mu_v[idx]   += molar_mass[vol] * atm.p_vol[vol][idx]
 
         # Condensate phase
         if atm.p_vol[vol][idx] / atm.p[idx] > atm.vol_list[vol]:
@@ -859,10 +859,10 @@ def condensation( atm, idx, prs_reset):
             atm.x_cond[vol][idx] = atm.vol_list[vol] - ( atm.p_vol[vol][idx] / atm.p[idx] )
 
         # Add to molar concentration of total condensed phase
-        atm.xc[idx]          += atm.x_cond[vol][idx]
+        atm.xc[idx]     += atm.x_cond[vol][idx]
         
         # Gas phase molar concentration
-        atm.x_gas[vol][idx]  = atm.p_vol[vol][idx] / atm.p[idx]
+        atm.x_gas[vol][idx] = atm.p_vol[vol][idx] / atm.p[idx]
         
         # Add to molar concentration of total gas (dry or moist) phase
         # ! REVISIT ! keeping xd == 0 leads to a bug, why?
@@ -872,10 +872,10 @@ def condensation( atm, idx, prs_reset):
             atm.xv[idx]          += atm.x_gas[vol][idx]
         
         # Mean cp of both gas phase and retained condensates
-        atm.cp[idx]          += atm.x_gas[vol][idx] * cpv(vol, atm.tmp[idx]) + atm.x_cond[vol][idx] * cp_cond(vol, atm.tmp[idx]) * atm.alpha_cloud
+        atm.cp[idx]    += atm.x_gas[vol][idx] * cpv(vol, atm.tmp[idx]) + atm.x_cond[vol][idx] * cp_cond(vol, atm.tmp[idx]) * atm.alpha_cloud
 
     # Renormalize cp w/ molar concentration (= cp_hat, Eq. 1, Li+2018)
-    atm.cp[idx]  = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
+    atm.cp[idx]  = atm.cp[idx] / ( atm.xd[idx] + atm.xv[idx] )
 
     # Dry concentration floor
     atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
@@ -883,12 +883,12 @@ def condensation( atm, idx, prs_reset):
     # Correct x values for each volatile; if there's no rain, this changes nothing
     # but if there's rainout, it adjusts them all by the proper fraction
     # NOTE: For some reason this screws up the adiabat a little bit
-    atm.xd[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-    atm.xv[idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+    atm.xd[idx] *= 1 / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
+    atm.xv[idx] *= 1 / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
     for vol in atm.vol_list.keys():
-        atm.x_cond[vol][idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-        atm.x_gas[vol][idx] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
-    atm.xc[idx] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[idx])
+        atm.x_cond[vol][idx] *= atm.alpha_cloud / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
+        atm.x_gas[vol][idx]  *= 1 / ( 1 - ( 1 - atm.alpha_cloud) * atm.xc[idx] )
+    atm.xc[idx] *= atm.alpha_cloud / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
     
     return atm
 
@@ -916,7 +916,6 @@ def general_adiabat( atm ):
     int_slope.setParams(atm)
     
     ### Integration of full general adiabat
-
     while atm.p[idx] > atm.ptop:
         
         # Execute the Runge-Kutta integrator, fill array of tuples
