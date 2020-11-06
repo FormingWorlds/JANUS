@@ -799,46 +799,43 @@ def condensation( atm, idx, prs_reset):
         # Mean gas phase molar mass
         atm.mu_v[idx]       += atm.vol_list[vol] * molar_mass[vol]
 
-    # Sum of partial pressures to converge to predicted P from adiabat integration
-    for i in range(0, 1):
+    # Account for condensation
+    for vol in atm.vol_list.keys():
 
-        # Account for condensation
-        for vol in atm.vol_list.keys():
+        # Condensation if p_i > p_sat
+        if atm.p_vol[vol][idx] > p_sat(vol, tmp):
 
-            # Condensation if p_i > p_sat
-            if atm.p_vol[vol][idx] > p_sat(vol, tmp):
+            # Set species partial pressure to p_sat
+            atm.p_vol[vol][idx]  = p_sat(vol, tmp)
 
-                # Set species partial pressure to p_sat
-                atm.p_vol[vol][idx]  = p_sat(vol, tmp)
+            # Reset mean molar mass, scaled by partial pressure
+            mu_v_prev       = atm.mu_v[idx]
+            atm.mu_v[idx]   = 0.
+            p_vol_sum       = 0.
+            for vol1 in atm.vol_list.keys():
+                p_vol_sum   += atm.p_vol[vol1][idx]
+                atm.mu_v[idx] += molar_mass[vol1] * atm.p_vol[vol1][idx]
+            atm.mu_v[idx] /= p_vol_sum
 
-                # Reset mean molar mass, scaled by partial pressure
-                mu_v_prev       = atm.mu_v[idx]
-                atm.mu_v[idx]   = 0.
-                p_vol_sum       = 0.
-                for vol1 in atm.vol_list.keys():
-                    p_vol_sum   += atm.p_vol[vol1][idx]
-                    atm.mu_v[idx] += molar_mass[vol1] * atm.p_vol[vol1][idx]
-                atm.mu_v[idx] /= p_vol_sum
+            # Recompute all other partial pressures based on new mean molecular weight
+            for vol1 in [ vol1 for vol1 in atm.vol_list.keys() if vol1 != vol and atm.p_vol[vol1][idx] != 0.]:
+                
+                # print(vol1, atm.p_vol[vol1][idx], end=" ")
+                
+                # Previous partial pressure of species
+                p_vol1_old = atm.p_vol[vol1][idx]
 
-                # Recompute all other partial pressures based on new mean molecular weight
-                for vol1 in [ vol1 for vol1 in atm.vol_list.keys() if vol1 != vol and atm.p_vol[vol1][idx] != 0.]:
-                    
-                    # print(vol1, atm.p_vol[vol1][idx], end=" ")
-                    
-                    # Previous partial pressure of species
-                    p_vol1_old = atm.p_vol[vol1][idx]
+                # New partial pressure due to change in mean molar mass
+                p_vol1_new = atm.p_vol[vol1][idx] * ( atm.mu_v[idx] / mu_v_prev )
+                
+                # Limit to condensation vapor pressure
+                atm.p_vol[vol1][idx] = np.min([p_vol1_new, p_sat(vol1, tmp)]) 
 
-                    # New partial pressure due to change in mean molar mass
-                    p_vol1_new = atm.p_vol[vol1][idx] * ( atm.mu_v[idx] / mu_v_prev )
-                    
-                    # Limit to condensation vapor pressure
-                    atm.p_vol[vol1][idx] = np.min([p_vol1_new, p_sat(vol1, tmp)]) 
+                # New total sum of partial pressures
+                p_vol_sum += atm.p_vol[vol1][idx] - p_vol1_old
 
-                    # New total sum of partial pressures
-                    p_vol_sum += atm.p_vol[vol1][idx] - p_vol1_old
-
-                    # P convergence criterion check
-                    # print(atm.p_vol[vol1][idx], atm.mu_v[idx]/mu_v_prev, p_vol_sum/atm.p[idx], end=" ")
+                # P convergence criterion check
+                # print(atm.p_vol[vol1][idx], atm.mu_v[idx]/mu_v_prev, p_vol_sum/atm.p[idx], end=" ")
 
 
     # Reset mean molar mass
@@ -853,10 +850,12 @@ def condensation( atm, idx, prs_reset):
         atm.mu_v[idx]   += molar_mass[vol] * atm.p_vol[vol][idx]
 
         # Condensate phase
-        if atm.p_vol[vol][idx] / atm.p[idx] > atm.vol_list[vol]:
+        if atm.p_vol[vol][idx] < p_sat(vol, tmp):
             atm.x_cond[vol][idx] = 0.
         else:
             atm.x_cond[vol][idx] = atm.vol_list[vol] - ( atm.p_vol[vol][idx] / atm.p[idx] )
+
+        # atm.x_cond[vol][idx] *= atm.alpha_cloud
 
         # Add to molar concentration of total condensed phase
         atm.xc[idx]     += atm.x_cond[vol][idx]
@@ -1134,7 +1133,7 @@ if __name__ == "__main__":
     atm                     = atmos(T_surf, P_surf, vol_list)
     
     # Set fraction of condensate retained in column
-    atm.alpha_cloud         = 0.5
+    atm.alpha_cloud         = 0.0
     
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)
