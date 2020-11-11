@@ -188,7 +188,7 @@ fig, ax1 = plt.subplots(1, 1, figsize=(7,6))
 # Plot temperature vs. cp
 
 for vol in [ "H2O", "CO2", "H2", "N2", "CO", "O2", "He", "NH3" ]:
-    ax1.plot(tmp_array,gas_phase_cp_vector(vol, tmp_array), color=ga.vol_colors[vol+"_1"], ls="-", label=ga.vol_latex[vol])
+    ax1.plot(tmp_array,gas_phase_cp_vector(vol, tmp_array), color=ga.vol_colors[vol][4], ls="-", label=ga.vol_latex[vol])
 
 ax1.legend()
 
