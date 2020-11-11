@@ -810,7 +810,7 @@ def condensation( atm, idx, prs_reset):
     # the parcel moved adiabatically upward from the below level w/o condensation
     # e.g. following dry adiabat from previous level
     if idx > 0:
-        # Calculating mean cp in layer below
+        # Calculating mean cp in layer below; multiplied  by xd+xv because this cp is renormalized by that sum during the calculation
         cp_local = atm.cp[idx-1] * ( atm.xd[idx-1] + atm.xv[idx-1] ) 
         #print(cp_local)
         
@@ -840,10 +840,10 @@ def condensation( atm, idx, prs_reset):
             for vol1 in atm.vol_list.keys():
                 x_sum += atm.x_gas[vol1][idx-1]
                 
-            # Divide this volatile's mixing ratio by the sum of all mixing ratios    
+            # Divide this volatile's mixing ratio by the sum of all mixing ratiosto acquire volume mixing ratio  
             x_vol = atm.x_gas[vol][idx-1] / x_sum
             
-            # Scale the pre-condensation dry partial pressure by this gaseous mixing ratio
+            # Scale the pre-condensation dry partial pressure by this volume mixing ratio
             atm.p_vol[vol][idx] = x_vol * p_tot_pre_condensation
             
             # Mean gas phase molar mass, pre-condensation
@@ -902,16 +902,10 @@ def condensation( atm, idx, prs_reset):
                 
     
             else:
-                # if a species was added to the wet_list in a previous iteration
-                # and is now "non-condensing" because p_vol=p_sat, we leave it
-                # in the wet_list and continue iterating through the rest 
-                # of the species
-                if vol in wet_list:
-                    
-                    continue
+                
                 # Add a non-condensing species to the list of dry species
-                # if it's present (>0) and if it's not in the list already
-                elif atm.vol_list[vol] > 0. and vol not in dry_list:
+                # if it's present (>0) and if it's not in a list already
+                if atm.vol_list[vol] > 0. and vol not in dry_list and vol not in wet_list:
                     dry_list.append(vol)
     
     #print(dry_list)
@@ -964,7 +958,7 @@ def condensation( atm, idx, prs_reset):
             if idx == 0:
                 atm.x_cond[vol][idx] = atm.vol_list[vol] - ( mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
             else:
-                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + atm.x_gas[vol][idx-1] - ( mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
+                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + atm.x_gas[vol][idx-1] - ( 1-atm.xc[idx-1] ) * ( mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
             
 
         #atm.x_cond[vol][idx] *= atm.alpha_cloud
@@ -974,7 +968,10 @@ def condensation( atm, idx, prs_reset):
         
         # Gas phase molar concentration
         #atm.x_gas[vol][idx] = atm.p_vol[vol][idx] / atm.p[idx]
-        atm.x_gas[vol][idx] = mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+        if idx == 0:
+            atm.x_gas[vol][idx] =  mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+        else:
+            atm.x_gas[vol][idx] =  ( 1-atm.xc[idx-1] ) * mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
         
         # Add to molar concentration of total gas (dry or moist) phase
         # ! REVISIT ! keeping xd == 0 leads to a bug, why?
@@ -995,12 +992,12 @@ def condensation( atm, idx, prs_reset):
     # Correct x values for each volatile; if there's no rain, this changes nothing
     # but if there's rainout, it adjusts them all by the proper fraction
     # 
-    atm.xd[idx] *= 1 / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
-    atm.xv[idx] *= 1 / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
-    for vol in atm.vol_list.keys():
-        atm.x_cond[vol][idx] *= atm.alpha_cloud / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
-        atm.x_gas[vol][idx]  *= 1 / ( 1 - ( 1 - atm.alpha_cloud) * atm.xc[idx] )
-    atm.xc[idx] *= atm.alpha_cloud / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
+    # atm.xd[idx] *= 1 / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
+    # atm.xv[idx] *= 1 / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
+    # for vol in atm.vol_list.keys():
+    #     atm.x_cond[vol][idx] *= atm.alpha_cloud / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
+    #     atm.x_gas[vol][idx]  *= 1 / ( 1 - ( 1 - atm.alpha_cloud) * atm.xc[idx] )
+    # atm.xc[idx] *= atm.alpha_cloud / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
     
     return atm
 
@@ -1121,20 +1118,20 @@ def plot_adiabats(atm):
     ls_dry      = 2.0
     ls_ind      = 1.5
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6), sharey=True)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))#, sharey=True)
     # sns.set_style("ticks")
     # sns.despine()
     
     # Rescaling mixing ratios for plotting purposes
     # This should only be uncommented if you remove the rescaling that
     # occurs at the bottom of the condensation() module 
-    # atm.xd[:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
-    # atm.xv[:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
-    # for vol in atm.vol_list.keys():
-    #     if atm.vol_list[vol] > 1e-10:
-    #         atm.x_cond[vol][:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
-    #         atm.x_gas[vol][:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
-    # atm.xc[:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+    atm.xd[:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+    atm.xv[:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+    for vol in atm.vol_list.keys():
+        if atm.vol_list[vol] > 1e-10:
+            atm.x_cond[vol][:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+            atm.x_gas[vol][:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+    atm.xc[:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
     
 
     # For reference p_sat lines
@@ -1245,7 +1242,7 @@ if __name__ == "__main__":
     atm                     = atmos(T_surf, P_surf, vol_list)
     
     # Set fraction of condensate retained in column
-    atm.alpha_cloud         = 1.0
+    atm.alpha_cloud         = 0.2
     
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)
