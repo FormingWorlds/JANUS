@@ -540,10 +540,15 @@ def condensation( atm, idx, prs_reset):
     # Temperature floor
     tmp = np.amax([atm.tmp[idx], 20.])
     
+    
+    if idx==0:
+        
+        p_tot_pre_condensation = atm.p[idx]
+        
     # Calculating the pressure an air parcel would have at this temperature IF 
     # the parcel moved adiabatically upward from the below level w/o condensation
     # e.g. following dry adiabat from previous level
-    if idx > 0:
+    else:
         # Calculating mean cp in layer below; multiplied  by xd+xv because this cp is renormalized by that sum during the calculation
         cp_local = atm.cp[idx-1] * ( atm.xd[idx-1] + atm.xv[idx-1] ) 
         #print(cp_local)
@@ -552,9 +557,7 @@ def condensation( atm, idx, prs_reset):
         p_tot_pre_condensation = atm.p[idx-1] + ( tmp - atm.tmp[idx-1] ) * atm.p[idx-1] / atm.tmp[idx-1] * cp_local / phys.R_gas
         #print(p_tot_pre_condensation)
     
-    else:
-        
-        p_tot_pre_condensation=atm.p[idx]
+    
     
     # Partial pressures and molar mass: pre-condensation values
     for vol in atm.vol_list.keys():
@@ -719,21 +722,37 @@ def condensation( atm, idx, prs_reset):
     # Dry concentration floor
     atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
     
-    # Correct x values for each volatile; if there's no rain, this changes nothing
-    # but if there's rainout, it adjusts them all by the proper fraction
-    # 
-    # atm.xd[idx] *= 1 / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
-    # atm.xv[idx] *= 1 / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
-    # for vol in atm.vol_list.keys():
-    #     atm.x_cond[vol][idx] *= atm.alpha_cloud / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
-    #     atm.x_gas[vol][idx]  *= 1 / ( 1 - ( 1 - atm.alpha_cloud) * atm.xc[idx] )
-    # atm.xc[idx] *= atm.alpha_cloud / ( 1 - ( 1 - atm.alpha_cloud ) * atm.xc[idx] )
     
     return atm
 
 # Builds the generalized moist adiabat from slope(lnP, lnT, atm object)
 def general_adiabat( atm ):
-
+    # First, we check to see if the initial vol_list/Tsurf/Psurf  
+    # combo gives a super-saturated surface state. If so, we remove material
+    # until the super-saturated phase is just saturated; none of this condensate
+    # is retained because the initial supersaturated state is unrealistic.
+    # Adjust the partial pressures of the supersaturated species to their
+    # saturation vapor pressures, then adjust Vol_list and Psurf.
+    new_psurf = 0
+    new_p_vol = {}
+    Tsurf = atm.ts
+    alpha = atm.alpha_cloud
+    for vol in atm.vol_list.keys():
+        if atm.vol_list[vol] * atm.ps > p_sat(vol, atm.ts):
+            new_psurf += p_sat(vol,atm.ts)
+            new_p_vol[vol] = p_sat(vol,atm.ts)
+        else:
+            new_psurf += atm.vol_list[vol] * atm.ps
+            new_p_vol[vol] = atm.vol_list[vol] * atm.ps
+            
+    if new_psurf != atm.ps:
+        for vol in atm.vol_list.keys():
+            atm.vol_list[vol] = new_p_vol[vol] / new_psurf
+        atm = atmos(Tsurf, new_psurf, atm.vol_list)
+        atm.alpha_cloud = alpha
+        
+        
+    
     ### Initialization
     
     # Initialize the tuple solution
@@ -778,6 +797,16 @@ def general_adiabat( atm ):
 
     # Interpolate
     atm = interpolate_atm(atm)
+    
+    # Rescale mixing ratios for plotting purposes
+    atm.xd[:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+    atm.xv[:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+    for vol in atm.vol_list.keys():
+        if atm.vol_list[vol] > 1e-10:
+            atm.x_cond[vol][:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+            atm.x_gas[vol][:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+    atm.xc[:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
+    
 
     return atm
 
@@ -852,18 +881,7 @@ def plot_adiabats(atm):
     # sns.set_style("ticks")
     # sns.despine()
     
-    # Rescaling mixing ratios for plotting purposes
-    # This should only be uncommented if you remove the rescaling that
-    # occurs at the bottom of the condensation() module 
-    atm.xd[:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
-    atm.xv[:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
-    for vol in atm.vol_list.keys():
-        if atm.vol_list[vol] > 1e-10:
-            atm.x_cond[vol][:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
-            atm.x_gas[vol][:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
-    atm.xc[:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
     
-
     # For reference p_sat lines
     T_sat_array    = np.linspace(20,3000,1000) 
     p_partial_sum  = np.zeros(len(atm.tmp))
@@ -938,10 +956,10 @@ def plot_adiabats(atm):
     ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax1.transAxes)
     ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax2.transAxes)
     fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
-    #plt.show()
+    plt.show()
 
-    plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
-    plt.close(fig)  
+    #plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
+    #plt.close(fig)  
 
     return
 
