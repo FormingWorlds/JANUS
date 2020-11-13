@@ -151,15 +151,15 @@ vol_latex = {
     "O2-O2"  : r"O$_2$–O$_2$",
 }
 #%%
-P_surf                  = 2e+5      # Pa
-T_surf                  = 300         # K
+P_surf                  = 10e+5      # Pa
+T_surf                  = 280         # K
 
 # Volatile molar concentrations: ! must sum to one !
 vol_list = { 
-              "H2O" :  0.5,    # 300e+5/P_surf --> specific p_surf
-              "CO2" :  0.5,    # 100e+5/P_surf
+              "H2O" :  0.01,    # 300e+5/P_surf --> specific p_surf
+              "CO2" :  0.89,    # 100e+5/P_surf
               "H2"  : .0, 
-              "N2"  : 0.,     # 1e+5/P_surf
+              "N2"  : 0.1,     # 1e+5/P_surf
               "CH4" : .0, 
               "O2"  : .0, 
               "CO"  : .0, 
@@ -177,20 +177,25 @@ ls_moist    = 2.5
 ls_dry      = 2.0
 ls_ind      = 1.5
 
-# fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13,6))
-fig, (ax1) = plt.subplots(1, 1, figsize=(13,6))
+
+#fig, (ax1) = plt.subplots(1, 1, figsize=(13,6))
 
 # sns.set_style("ticks")
 # sns.despine()
    
 # For reference p_sat lines
-
+alpha_list = [0.0,1.0] 
+fig, axes = plt.subplots(len(alpha_list), 3, figsize=(13,6))
+if np.ndim(axes) == 1:
+    axes = np.expand_dims(axes,axis=0)
 # Create atmosphere object 
-for rain in [True]:
+for n,alpha in enumerate(alpha_list):
+    
     atm                = ga.atmos(T_surf, P_surf, vol_list)
     
     # Calculate moist adiabat + condensation
-    atm                     = ga.general_adiabat(atm, rainout=rain)
+    atm.alpha_cloud         = alpha
+    atm                     = ga.general_adiabat(atm)
     
     
     T_sat_array    = np.linspace(20,3000,1000) 
@@ -206,17 +211,17 @@ for rain in [True]:
     
             # Saturation vapor pressure for given temperature
             Psat_array = [ ga.p_sat(vol, T) for T in T_sat_array ]
-            ax1.semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+vol_latex[vol], lw=ls_ind, ls=":", color=vol_colors[vol][4])
+            axes[n,0].semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+vol_latex[vol], lw=ls_ind, ls=":", color=vol_colors[vol][4])
     
             # Plot partial pressures
-            ax1.semilogy(atm.tmp, atm.p_vol[vol], color=vol_colors[vol][4], lw=ls_ind, ls="-", label=r'$p$'+vol_latex[vol],alpha=0.99)
+            axes[n,0].semilogy(atm.tmp, atm.p_vol[vol], color=vol_colors[vol][4], lw=ls_ind, ls="-", label=r'$p$'+vol_latex[vol],alpha=0.99)
     
             # Sum up partial pressures
             p_partial_sum += atm.p_vol[vol]
     
             # Plot individual molar concentrations
-            #ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="--", label=vol_latex[vol]+" cond.")
-            #ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
+            axes[n,1].semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="--", label=vol_latex[vol]+" cond.")
+            axes[n,1].semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
             
     # # Plot sum of partial pressures as check
     # ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
@@ -225,47 +230,55 @@ for rain in [True]:
     # ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
     
     # General moist adiabat
-    ax1.semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Adiabat",alpha=0.99)
+    axes[n,0].semilogy(atm.tmp, atm.p, color=vol_colors["black_1"], lw=ls_moist,label="Adiabat",alpha=0.99)
     
     # Phase molar concentrations
-    #ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Gas phase")
+    axes[n,1].semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Gas phase")
     
     fs_l = 16
     fs_m = 14
     fs_s = 12
     
-    ax1.invert_yaxis()
-    ax1.set_xlabel(r'Temperature, $T$ (K)', fontsize=fs_l)
-    ax1.set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
+    axes[n,0].invert_yaxis()
+    axes[n,0].set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
     # ax1.set_title('Adiabats & individual Clausius-Clapeyron slopes', fontsize=fs_l)
-    ax1.legend(loc=1, ncol=np.min([len(atm.vol_list)+1,2]), fontsize=fs_s)
-    ax1.set_xlim([0,np.max(atm.ts)])
+    if n == 0:
+        axes[n,0].legend(loc=1, ncol=np.min([len(atm.vol_list)+1,2]), fontsize=fs_s)
+        axes[n,1].legend(loc=2, ncol=2, fontsize=fs_s)
+
+    axes[n,0].set_xlim([0,np.max(atm.ts)])
     
-    #ax2.invert_yaxis()
-    # ax2.set_title('Phase & species abundances', fontsize=fs_l)
-    #ax2.set_xlabel(r'Molar concentration, $X^{\mathrm{i}}_{\mathrm{phase}}$', fontsize=fs_l)
-    #ax2.set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
-    #ax2.legend(loc=2, ncol=2, fontsize=fs_s)
+    axes[n,1].invert_yaxis()
+    #axes[n,1].set_title('Phase & species abundances', fontsize=fs_l)
     
-    ax1.set_ylim(top=atm.ptop)
-    ax1.set_ylim(bottom=atm.ps)
-    #ax2.set_ylim(top=atm.ptop)
-    #ax2.set_ylim(bottom=atm.ps)
+    #axes[n,1].set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
     
-    #ax2.set_xscale("log")
-    #ax2.set_xlim([1e-4, 1.05])
-    #ax2.set_xticks([1e-4, 1e-3, 1e-2, 1e-1, 1e0])
-    #ax2.set_xticklabels(["$10^{-4}$", "0.001", "0.01", "0.1", "1"])
+    axes[n,0].set_ylim(top=atm.ptop)
+    axes[n,0].set_ylim(bottom=atm.ps)
+    axes[n,1].set_ylim(top=atm.ptop)
+    axes[n,1].set_ylim(bottom=atm.ps)
+    
+    axes[n,1].set_xscale("log")
+    axes[n,1].set_xlim([1e-4, 1.05])
+    axes[n,1].set_xticks([1e-4, 1e-3, 1e-2, 1e-1, 1e0])
+    if n+1 == len(alpha_list):
+        
+        axes[n,0].set_xlabel(r'Temperature, $T$ (K)', fontsize=fs_l)
+
+        
+        axes[n,1].set_xlabel(r'Molar concentration, $X^{\mathrm{i}}_{\mathrm{phase}}$', fontsize=fs_l)
+    axes[n,1].set_xticklabels(["$10^{-4}$", "0.001", "0.01", "0.1", "1"])    
     # ax2.set_xlim(right=1.1)
     
-    ax1.tick_params(axis='both', which='major', labelsize=fs_m)
-    ax1.tick_params(axis='both', which='minor', labelsize=fs_m)
-    #ax2.tick_params(axis='both', which='major', labelsize=fs_m)
-    #ax2.tick_params(axis='both', which='minor', labelsize=fs_m)
+    axes[n,0].tick_params(axis='both', which='major', labelsize=fs_m)
+    axes[n,0].tick_params(axis='both', which='minor', labelsize=fs_m)
+    axes[n,1].tick_params(axis='both', which='major', labelsize=fs_m)
+    axes[n,1].tick_params(axis='both', which='minor', labelsize=fs_m)
     
-    ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax1.transAxes)
-    #ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax2.transAxes)
-    
+    axes[n,0].text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=axes[n,0].transAxes)
+    axes[n,1].text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=axes[n,1].transAxes)
+    axes[n,0].grid()
+    axes[n,1].grid()
     plt.show()
     
     #plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
