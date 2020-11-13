@@ -151,7 +151,7 @@ vol_latex = {
     "O2-O2"  : r"O$_2$–O$_2$",
 }
 #%%
-P_surf                  = 10e+5      # Pa
+P_surf                  = 15e+5      # Pa
 T_surf                  = 280         # K
 
 # Volatile molar concentrations: ! must sum to one !
@@ -184,7 +184,7 @@ ls_ind      = 1.5
 # sns.despine()
    
 # For reference p_sat lines
-alpha_list = [0.0,1.0] 
+alpha_list = [0.0,0.1,1.0] 
 fig, axes = plt.subplots(len(alpha_list), 3, figsize=(13,6))
 if np.ndim(axes) == 1:
     axes = np.expand_dims(axes,axis=0)
