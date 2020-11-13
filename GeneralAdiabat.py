@@ -956,10 +956,10 @@ def plot_adiabats(atm):
     ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax1.transAxes)
     ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax2.transAxes)
     fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
-    plt.show()
+    #plt.show()
 
-    #plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
-    #plt.close(fig)  
+    plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
+    plt.close(fig)  
 
     return
 
