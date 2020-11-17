@@ -629,12 +629,12 @@ if __name__ == "__main__":
     vol_list = { 
                   "H2O"  : 100e5/P_surf,
                   "CO2"  : 100e5/P_surf,
-                  "H2"   : .01, 
+                  "H2"   : 0., 
                   "NH3"  : 100e5/P_surf,
                   "N2"   : 10e5/P_surf,  
-                  "CH4"  : 0.01, 
-                  "O2"   : 0.01, 
-                  "CO"   : 0.01, 
+                  "CH4"  : 0., 
+                  "O2"   : 0., 
+                  "CO"   : 0., 
                   # # No thermodynamic data, RT only
                   # "O3"   : 0.01, 
                   # "N2O"  : 0.01, 
