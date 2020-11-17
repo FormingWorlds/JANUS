@@ -192,26 +192,30 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     # ax2.axvline(-1e+3, color=ga.vol_colors["qgray_light"], lw=0.5)
     # ax2.axvline(1e+3, color=ga.vol_colors["qgray_light"], lw=0.5)
 
-    # LW down
+    # SW down / instellation flux
+    if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
+    ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx], ls=":", label=r'$F_{\odot}^{\downarrow}$')
+
+    # LW down / thermal downward flux
     if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls="--")
-    ax2.semilogy(atm_moist.LW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx+1], ls="--", label=r'$F_\mathrm{LW}^{\downarrow}$')
+    ax2.semilogy(atm_moist.LW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx+1], ls="--", label=r'$F_\mathrm{t}^{\downarrow}$')
     # ls=(0, (3, 1, 1, 1))
     
-    # SW down
-    if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_down*(-1),atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
-    ax2.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color=ga.vol_colors[col_vol2][col_idx], ls=":", label=r'$F_\mathrm{SW}^{\downarrow}$')
-    
+    # Thermal upward flux, total
+    if cp_dry == True: ax2.semilogy(atm_dry.flux_up_total,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls="--")
+    ax2.semilogy(atm_moist.flux_up_total,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls="--", label=r'$F_\mathrm{t}^{\uparrow}$')
+
     # Net flux
     if cp_dry == True: ax2.semilogy(atm_dry.net_flux,atm_dry.pl, color=ga.vol_colors[col_vol3][6], ls="-", lw=2)
-    ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color=ga.vol_colors[col_vol1][6], ls="-", lw=2, label=r'$F_\mathrm{net}$')
+    ax2.semilogy(atm_moist.net_flux,atm_moist.pl, color=ga.vol_colors[col_vol1][6], ls="-", lw=2, label=r'$F_\mathrm{net}^{\uparrow}$')
 
-    # SW up
-    if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
-    ax2.semilogy(atm_moist.SW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=":", label=r'$F_\mathrm{SW}^{\uparrow}$')
+    # # SW up
+    # if cp_dry == True: ax2.semilogy(atm_dry.SW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=":")
+    # ax2.semilogy(atm_moist.SW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=":", label=r'$F_\mathrm{SW}^{\uparrow}$')
     
-    # LW up
-    if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=(0, (5, 1)))
-    ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=(0, (5, 1)), label=r'$F_\mathrm{LW}^{\uparrow}$')
+    # # LW up
+    # if cp_dry == True: ax2.semilogy(atm_dry.LW_flux_up,atm_dry.pl, color=ga.vol_colors[col_vol3][col_idx], ls=(0, (5, 1)))
+    # ax2.semilogy(atm_moist.LW_flux_up,atm_moist.pl, color=ga.vol_colors[col_vol1][col_idx], ls=(0, (5, 1)), label=r'$F_\mathrm{LW}^{\uparrow}$')
     
     ax2.legend(ncol=6, fontsize=10, loc=3)
     ax2.invert_yaxis()
@@ -611,22 +615,22 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet age and orbit
-    time = { "planet": 0., "star": 100e+6 } # yr,
+    time = { "planet": 0., "star": 4567e+6 } # yr,
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
     mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 260e+5              # Pa
-    T_surf        = 800.                # K
+    P_surf        = 210e+5              # Pa
+    T_surf        = 600.                # K
 
     # Volatile molar concentrations: must sum to ~1 !
     vol_list = { 
-                  "H2O" : 0.75, 
-                  "CO2" : .25,
+                  "H2O" : 100e5/P_surf,
+                  "CO2" : 100e5/P_surf,
                   "H2"  : .0, 
-                  "N2"  : .0025,  
+                  "N2"  : 10e5/P_surf,  
                   "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
