@@ -544,7 +544,13 @@ def condensation( atm, idx, prs_reset):
     if idx==0:
         
         p_tot_pre_condensation = atm.p[idx]
-        
+        # Renormalize mixing ratios to ensure sum == 1
+        if sum(atm.vol_list.values()) != 1.:
+            vol_list_new = {}
+            for vol in atm.vol_list.keys():
+                vol_list_new[vol]   = atm.vol_list[vol] / sum(atm.vol_list.values())
+            for vol in atm.vol_list.keys():
+                atm.vol_list[vol] = vol_list_new[vol]
     # Calculating the pressure an air parcel would have at this temperature IF 
     # the parcel moved adiabatically upward from the below level w/o condensation
     # e.g. following dry adiabat from previous level
@@ -562,8 +568,6 @@ def condensation( atm, idx, prs_reset):
     # Partial pressures and molar mass: pre-condensation values
     for vol in atm.vol_list.keys():
         if idx == 0:
-            # Renormalize mixing ratios to ensure sum == 1
-            atm.vol_list[vol]   = atm.vol_list[vol] / sum(atm.vol_list.values())
     
             # Partial pressures scaled 
             # atm.p_vol[vol][idx] = atm.vol_list[vol] * atm.p[idx]
@@ -750,7 +754,6 @@ def general_adiabat( atm ):
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
         atm = atmos(Tsurf, new_psurf, atm.vol_list)
         atm.alpha_cloud = alpha
-        
         
     
     ### Initialization
