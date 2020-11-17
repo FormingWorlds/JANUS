@@ -151,20 +151,20 @@ vol_latex = {
     "O2-O2"  : r"O$_2$–O$_2$",
 }
 #%%
-P_surf                  = 15e+5      # Pa
-T_surf                  = 280         # K
+P_surf                  = 10e+5      # Pa
+T_surf                  = 500.       # K
 
-# Volatile molar concentrations: ! must sum to one !
+# Volatile molar concentrations; should sum to one, but if they don't the code reenormalizes
 vol_list = { 
-              "H2O" :  0.01,    # 300e+5/P_surf --> specific p_surf
-              "CO2" :  0.89,    # 100e+5/P_surf
-              "H2"  : .0, 
-              "N2"  : 0.1,     # 1e+5/P_surf
-              "CH4" : .0, 
+              "H2O" :  5e5/P_surf,    # 300e+5/P_surf --> specific p_surf
+              "CO2" :  11e5/P_surf,    # 100e+5/P_surf
+              "H2"  : 0/P_surf, 
+              "N2"  : 0.0e5/P_surf,     # 1e+5/P_surf
+              "CH4" : 0.0e5/P_surf, 
               "O2"  : .0, 
-              "CO"  : .0, 
+              "CO"  : 0.0/P_surf, 
               "He"  : .0,
-              "NH3" : .0, 
+              "NH3" : 0.0e5/P_surf, 
             }
 # Create atmosphere object 
 #atm                = ga.atmos(T_surf, P_surf, vol_list)
@@ -184,8 +184,9 @@ ls_ind      = 1.5
 # sns.despine()
    
 # For reference p_sat lines
-alpha_list = [0.0,0.1,1.0] 
-fig, axes = plt.subplots(len(alpha_list), 3, figsize=(13,6))
+alpha_list = [0.0] 
+fig, axes = plt.subplots(len(alpha_list), 4, figsize=(13,6),sharex='col',sharey='all')
+
 if np.ndim(axes) == 1:
     axes = np.expand_dims(axes,axis=0)
 # Create atmosphere object 
@@ -223,9 +224,7 @@ for n,alpha in enumerate(alpha_list):
             axes[n,1].semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="--", label=vol_latex[vol]+" cond.")
             axes[n,1].semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
             
-    # # Plot sum of partial pressures as check
-    # ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="-", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
-    
+     
     # # Dry adiabat function from RTB book
     # ax1.semilogy( dry_adiabat( atm.ts, atm.p, atm.cp ), atm.p , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
     
@@ -235,6 +234,12 @@ for n,alpha in enumerate(alpha_list):
     # Phase molar concentrations
     axes[n,1].semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Gas phase")
     
+    # Molar masses
+    axes[n,2].semilogy(atm.mu_v*1000, atm.p, color=vol_colors["black_3"],lw=ls_ind)
+    
+    # Specific heats
+    axes[n,3].semilogy(atm.cp, atm.p, color=vol_colors["black_3"],lw=ls_ind)
+    
     fs_l = 16
     fs_m = 14
     fs_s = 12
@@ -243,20 +248,21 @@ for n,alpha in enumerate(alpha_list):
     axes[n,0].set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
     # ax1.set_title('Adiabats & individual Clausius-Clapeyron slopes', fontsize=fs_l)
     if n == 0:
-        axes[n,0].legend(loc=1, ncol=np.min([len(atm.vol_list)+1,2]), fontsize=fs_s)
-        axes[n,1].legend(loc=2, ncol=2, fontsize=fs_s)
-
-    axes[n,0].set_xlim([0,np.max(atm.ts)])
+        #axes[n,0].legend(loc=1, ncol=np.min([len(atm.vol_list)+1,2]), fontsize=fs_s)
+        #axes[n,1].legend(loc=2, ncol=2, fontsize=fs_s)
+        pass
+    axes[n,0].set_xlim([20,np.max(atm.ts)])
     
-    axes[n,1].invert_yaxis()
     #axes[n,1].set_title('Phase & species abundances', fontsize=fs_l)
     
     #axes[n,1].set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
     
-    axes[n,0].set_ylim(top=atm.ptop)
-    axes[n,0].set_ylim(bottom=atm.ps)
-    axes[n,1].set_ylim(top=atm.ptop)
-    axes[n,1].set_ylim(bottom=atm.ps)
+    axes[n,0].set_ylim(top=atm.ptop,bottom=atm.ps)
+    #axes[n,0].set_ylim(bottom=atm.ps)
+    
+    
+    axes[n,2].set_yscale('log')
+    axes[n,2].grid()
     
     axes[n,1].set_xscale("log")
     axes[n,1].set_xlim([1e-4, 1.05])
@@ -266,14 +272,22 @@ for n,alpha in enumerate(alpha_list):
         axes[n,0].set_xlabel(r'Temperature, $T$ (K)', fontsize=fs_l)
 
         
-        axes[n,1].set_xlabel(r'Molar concentration, $X^{\mathrm{i}}_{\mathrm{phase}}$', fontsize=fs_l)
-    axes[n,1].set_xticklabels(["$10^{-4}$", "0.001", "0.01", "0.1", "1"])    
+        axes[n,1].set_xlabel(r'Molar concentration, $X^{\mathrm{i}}_{\mathrm{phase}}$', fontsize=fs_m)
+        
+        axes[n,2].set_xlabel(r'Molar mass, $\mu$ (g mol$^{-1}$)',fontsize=fs_m)
+        
+        axes[n,3].set_xlabel(r'Specific heat c$_p$ (J K$^{-1}$ mol$^{-1}$)',fontsize=fs_m)
+        
+    #axes[n,1].set_xticklabels(["$10^{-4}$", "0.001", "0.01", "0.1", "1"])    
     # ax2.set_xlim(right=1.1)
     
     axes[n,0].tick_params(axis='both', which='major', labelsize=fs_m)
     axes[n,0].tick_params(axis='both', which='minor', labelsize=fs_m)
     axes[n,1].tick_params(axis='both', which='major', labelsize=fs_m)
     axes[n,1].tick_params(axis='both', which='minor', labelsize=fs_m)
+    
+    axes[n,3].set_xscale('log')
+    axes[n,3].grid()
     
     axes[n,0].text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=axes[n,0].transAxes)
     axes[n,1].text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=axes[n,1].transAxes)
