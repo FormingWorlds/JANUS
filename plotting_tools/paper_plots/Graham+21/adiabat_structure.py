@@ -42,7 +42,7 @@ vol_dict    = {
               "H2O" :  200e+5/P_surf,
               "NH3" :  0.,
               "CO2" :  100e+5/P_surf,
-              "CH4" :  0.,
+              "CH4" :  0e+5/P_surf,
               "CO"  :  0.,
               "O2"  :  0.,
               "N2"  :  1e+5/P_surf,
