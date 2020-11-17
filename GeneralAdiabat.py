@@ -831,6 +831,11 @@ def interpolate_atm(atm):
     tmp_itp     = (atm.tmpl[1:] + atm.tmpl[:-1]) / 2.
 
     # Trim level-dependent quantities
+    atm.grav_z  = np.flip(np.split(atm.grav_z, [atm_len,rest_len])[0], axis=0)
+    atm.z       = np.flip(np.split(atm.z, [atm_len,rest_len])[0], axis=0)
+    atm.mu_v    = np.flip(np.split(atm.mu_v, [atm_len,rest_len])[0], axis=0)
+    atm.mu_c    = np.flip(np.split(atm.mu_c, [atm_len,rest_len])[0], axis=0)
+    atm.mu      = np.flip(np.split(atm.mu, [atm_len,rest_len])[0], axis=0)
     atm.xd      = np.flip(np.split(atm.xd, [atm_len, rest_len])[0], axis=0)
     atm.xv      = np.flip(np.split(atm.xv, [atm_len, rest_len])[0], axis=0)
     atm.xc      = np.flip(np.split(atm.xc, [atm_len, rest_len])[0], axis=0)
@@ -838,8 +843,13 @@ def interpolate_atm(atm):
     atm.mrv     = np.flip(np.split(atm.mrv, [atm_len, rest_len])[0], axis=0)
     atm.mrc     = np.flip(np.split(atm.mrc, [atm_len, rest_len])[0], axis=0)
     atm.cp      = np.flip(np.split(atm.cp, [atm_len, rest_len])[0], axis=0)
-    atm.mu_v    = np.flip(np.split(atm.mu_v, [atm_len,rest_len])[0], axis=0)
+    
     # Interpolate level-dependent quantities
+    atm.grav_z  = np.interp(prs_itp, atm.p, atm.grav_z)
+    atm.z       = np.interp(prs_itp, atm.p, atm.z)
+    atm.mu_v    = np.interp(prs_itp, atm.p, atm.mu_v)
+    atm.mu_c    = np.interp(prs_itp, atm.p, atm.mu_c)
+    atm.mu      = np.interp(prs_itp, atm.p, atm.mu)
     atm.xd      = np.interp(prs_itp, atm.p, atm.xd)
     atm.xv      = np.interp(prs_itp, atm.p, atm.xv)
     atm.xc      = np.interp(prs_itp, atm.p, atm.xc)
@@ -847,22 +857,20 @@ def interpolate_atm(atm):
     atm.mrv     = np.interp(prs_itp, atm.p, atm.mrv)
     atm.mrc     = np.interp(prs_itp, atm.p, atm.mrc)
     atm.cp      = np.interp(prs_itp, atm.p, atm.cp)
-    atm.mu_v    = np.interp(prs_itp, atm.p, atm.mu_v)
+    
     # Trim & interpolate species-dependent quantities
     for vol in atm.vol_list.keys():
-        # Only if volatile is present
-        if atm.vol_list[vol] > 1e-10:
-            atm.p_vol[vol]   = np.flip(np.split(atm.p_vol[vol], [atm_len, rest_len])[0], axis=0)
-            atm.x_gas[vol]   = np.flip(np.split(atm.x_gas[vol], [atm_len, rest_len])[0], axis=0)
-            atm.x_cond[vol]  = np.flip(np.split(atm.x_cond[vol], [atm_len, rest_len])[0], axis=0)
-            atm.mr_gas[vol]  = np.flip(np.split(atm.mr_gas[vol], [atm_len, rest_len])[0], axis=0)
-            atm.mr_cond[vol] = np.flip(np.split(atm.mr_cond[vol], [atm_len, rest_len])[0], axis=0)
-    
-            atm.p_vol[vol]   = np.interp(prs_itp, atm.p, atm.p_vol[vol])
-            atm.x_gas[vol]   = np.interp(prs_itp, atm.p, atm.x_gas[vol]) 
-            atm.x_cond[vol]  = np.interp(prs_itp, atm.p, atm.x_cond[vol])
-            atm.mr_gas[vol]  = np.interp(prs_itp, atm.p, atm.mr_gas[vol]) 
-            atm.mr_cond[vol] = np.interp(prs_itp, atm.p, atm.mr_cond[vol]) 
+        atm.p_vol[vol]   = np.flip(np.split(atm.p_vol[vol], [atm_len, rest_len])[0], axis=0)
+        atm.x_gas[vol]   = np.flip(np.split(atm.x_gas[vol], [atm_len, rest_len])[0], axis=0)
+        atm.x_cond[vol]  = np.flip(np.split(atm.x_cond[vol], [atm_len, rest_len])[0], axis=0)
+        atm.mr_gas[vol]  = np.flip(np.split(atm.mr_gas[vol], [atm_len, rest_len])[0], axis=0)
+        atm.mr_cond[vol] = np.flip(np.split(atm.mr_cond[vol], [atm_len, rest_len])[0], axis=0)
+
+        atm.p_vol[vol]   = np.interp(prs_itp, atm.p, atm.p_vol[vol])
+        atm.x_gas[vol]   = np.interp(prs_itp, atm.p, atm.x_gas[vol]) 
+        atm.x_cond[vol]  = np.interp(prs_itp, atm.p, atm.x_cond[vol])
+        atm.mr_gas[vol]  = np.interp(prs_itp, atm.p, atm.mr_gas[vol]) 
+        atm.mr_cond[vol] = np.interp(prs_itp, atm.p, atm.mr_cond[vol]) 
 
     # Rewrite atmosphere nodes
     atm.p       = prs_itp
@@ -913,12 +921,13 @@ def plot_adiabats(atm):
             
     # # Plot sum of partial pressures as check
     ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="--", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
+    
     # # # Dry adiabat function from RTB book
     # # ! careful: non-T dependent CPs used, can lead to differences with general adiabat !
-    ax1.semilogy( dry_adiabat( atm.ts, atm.pl, atm.cp[-1]), atm.pl , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat function') # Functional form
+    ax1.semilogy( dry_adiabat( atm.ts, atm.pl, atm.cp[-1]), atm.pl , color=vol_colors["black_3"], ls="-.", lw=ls_dry, label=r'Dry adiabat') # Functional form
 
     # General moist adiabat
-    ax1.semilogy(atm.tmpl, atm.pl, color=vol_colors["black_1"], lw=ls_moist,label="Adiabat",alpha=0.99)
+    ax1.semilogy(atm.tmpl, atm.pl, color=vol_colors["black_1"], lw=ls_moist,label="General adiabat",alpha=0.99)
 
     # Phase molar concentrations
     ax2.semilogy(atm.xd+atm.xv,atm.p, color=vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Gas phase")
