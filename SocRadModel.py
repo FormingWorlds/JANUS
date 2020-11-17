@@ -29,9 +29,8 @@ def radCompSoc(atm, dirs, recalc, calc_cf):
     # calc_cf = False
 
     # Define path to spectral file
-    # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_2020/sp_spider"
-    # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_318_hitran_200414/sp_all_318_hitran"
-    spectral_file = dirs["rad_conv"]+"/spectral_files/sp_318_hitran_200427/sp_all_318"
+    # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_318_hitran_200427/sp_all_318"
+    spectral_file = dirs["rad_conv"]+"/spectral_files/sp_b318_HITRAN_a16/sp_b318_HITRAN_a16"
 
     # # Enable cf SOCRATES environment
     # if calc_cf == True:
@@ -66,12 +65,37 @@ def radCompSoc(atm, dirs, recalc, calc_cf):
     nctools.ncout3d('profile.tl', 0, 0,  atm.pl, atm.tmpl, 'tl', longname="Temperature", units='K')
     nctools.ncout3d('profile.p', 0, 0,   atm.p,  atm.p, 'p', longname="Pressure", units='PA')
     nctools.ncout3d('profile.q', 0, 0,   atm.p,  atm.x_gas["H2O"], 'q', longname="q", units='PPMV') 
-    nctools.ncout3d('profile.co2', 0, 0, atm.p,  atm.x_gas["CO2"], 'co2', longname="CO2", units='PPMV') 
-    nctools.ncout3d('profile.co', 0, 0,  atm.p,  atm.x_gas["CO"], 'co', longname="CO", units='PPMV') 
-    nctools.ncout3d('profile.ch4', 0, 0, atm.p,  atm.x_gas["CH4"], 'ch4', longname="CH4", units='PPMV') 
-    nctools.ncout3d('profile.h2', 0, 0,  atm.p,  atm.x_gas["H2"], 'h2', longname="H2", units='PPMV') 
-    nctools.ncout3d('profile.n2', 0, 0,  atm.p,  atm.x_gas["N2"], 'n2', longname="N2", units='PPMV') 
-    nctools.ncout3d('profile.o2', 0, 0,  atm.p,  atm.x_gas["O2"], 'o2', longname="O2", units='PPMV')
+    if "CO2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.co2', 0, 0, atm.p,  atm.x_gas["CO2"], 'co2', longname="CO2", units='PPMV') 
+    if "O3" in atm.vol_list.keys():
+        nctools.ncout3d('profile.o3', 0, 0,  atm.p,  atm.x_gas["O3"], 'o3', longname="O3", units='PPMV') 
+    if "N2O" in atm.vol_list.keys():
+        nctools.ncout3d('profile.n2o', 0, 0,  atm.p,  atm.x_gas["N2O"], 'n2o', longname="N2O", units='PPMV') 
+    if "CO" in atm.vol_list.keys():
+        nctools.ncout3d('profile.co', 0, 0,  atm.p,  atm.x_gas["CO"], 'co', longname="CO", units='PPMV') 
+    if "CH4" in atm.vol_list.keys():
+        nctools.ncout3d('profile.ch4', 0, 0, atm.p,  atm.x_gas["CH4"], 'ch4', longname="CH4", units='PPMV') 
+    if "O2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.o2', 0, 0,  atm.p,  atm.x_gas["O2"], 'o2', longname="O2", units='PPMV')
+    if "NO" in atm.vol_list.keys():
+        nctools.ncout3d('profile.no', 0, 0,  atm.p,  atm.x_gas["NO"], 'no', longname="NO", units='PPMV') 
+    if "SO2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.so2', 0, 0,  atm.p,  atm.x_gas["SO2"], 'so2', longname="SO2", units='PPMV') 
+    if "NO2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.no2', 0, 0,  atm.p,  atm.x_gas["NO2"], 'no2', longname="NO2", units='PPMV') 
+    if "NH3" in atm.vol_list.keys():
+        nctools.ncout3d('profile.nh3', 0, 0,  atm.p,  atm.x_gas["NH3"], 'nh3', longname="NH3", units='PPMV') 
+    if "HNO3" in atm.vol_list.keys():
+        nctools.ncout3d('profile.hno3', 0, 0,  atm.p,  atm.x_gas["HNO3"], 'hno3', longname="HNO3", units='PPMV')
+    if "N2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.n2', 0, 0,  atm.p,  atm.x_gas["N2"], 'n2', longname="N2", units='PPMV') 
+    if "H2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.h2', 0, 0,  atm.p,  atm.x_gas["H2"], 'h2', longname="H2", units='PPMV')
+    if "He" in atm.vol_list.keys():
+        nctools.ncout3d('profile.he', 0, 0,  atm.p,  atm.x_gas["He"], 'he', longname="He", units='PPMV')
+    if "OCS" in atm.vol_list.keys():
+        nctools.ncout3d('profile.ocs', 0, 0,  atm.p,  atm.x_gas["OCS"], 'ocs', longname="OCS", units='PPMV')
+    
     enablePrint()
 
     basename = 'profile'
