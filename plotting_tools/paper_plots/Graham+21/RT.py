@@ -23,8 +23,8 @@ ls_moist    = 2.5
 ls_dry      = 2.0
 ls_ind      = 1.5
 
-fig, ((Aax1, Aax2, Aax3), (Bax1, Bax2, Bax3)) = plt.subplots(2, 3, figsize=(13,8))
-# sns.set_style("ticks")
+fig, ((Aax1, Aax2, Aax3), (Bax1, Bax2, Bax3), (Cax1, Cax2, Cax3)) = plt.subplots(3, 3, figsize=(13,9))
+plt.subplots_adjust(top = 0.99, bottom=0.01, hspace=0.2, wspace=0.2)
 sns.despine()
 
 # Line settings
@@ -44,7 +44,7 @@ dirs =  {
 
 #### LOOP OVER PARAMETERS
 
-for set_idx, setting in enumerate([ "set1", "set2"]):
+for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
 
     # Retained condensate fraction
     for alpha_idx, alpha_cloud in enumerate([ 0.0, 0.5, 1.0 ]):
@@ -55,8 +55,10 @@ for set_idx, setting in enumerate([ "set1", "set2"]):
 
         if setting == "set1":
 
+            name = "Earth"
+
             # Planet age and orbit
-            time = { "planet": 0., "star": 1e+09 } # yr,
+            time = { "planet": 0., "star": 4567e+06 } # yr,
 
             # Star mass, M_sun
             Mstar           = 1.0 
@@ -91,11 +93,12 @@ for set_idx, setting in enumerate([ "set1", "set2"]):
             col_vol = "H2"
 
         if setting == "set2":
-            time = { "planet": 0., "star": 1e+09 } # yr,
+            name = "Hadean"
+            time = { "planet": 0., "star": 500e+06 } # yr,
             Mstar           = 1.0 
             mean_distance   = 1.0
-            P_surf          = 156e+5
-            T_surf          = 700
+            P_surf          = 110e+5
+            T_surf          = 600
             vol_dict    = { 
                           "H2O" :  100e+5/P_surf,
                           "NH3" :  0.,
@@ -111,6 +114,29 @@ for set_idx, setting in enumerate([ "set1", "set2"]):
             ax2 = Bax2
             ax3 = Bax3
             col_vol = "H2O"
+
+        if setting == "set3":
+            name = "Magma ocean"
+            time = { "planet": 0., "star": 100e+06 } # yr,
+            Mstar           = 1.0 
+            mean_distance   = 1.0
+            P_surf          = 401e+5
+            T_surf          = 1500
+            vol_dict    = { 
+                          "H2O" :  300e+5/P_surf,
+                          "NH3" :  0.,
+                          "CO2" :  100e+5/P_surf,
+                          "CH4" :  0.,
+                          "CO"  :  0.,
+                          "O2"  :  0.,
+                          "N2"  :  1e+5/P_surf,
+                          "H2"  :  0e+5/P_surf,
+                        }
+
+            ax1 = Cax1
+            ax2 = Cax2
+            ax3 = Cax3
+            col_vol = "CO2"
 
         # Create atmosphere object
         atm                = atmos(T_surf, P_surf, vol_dict)
@@ -132,9 +158,10 @@ for set_idx, setting in enumerate([ "set1", "set2"]):
         # ax1.legend(ncol=6, fontsize=10, loc=3)
         ax1.invert_yaxis()
         ax1.set_xscale("symlog") # https://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
-        ax1.set_xlabel(r'Net outgoing flux $F_\mathrm{net}^{\uparrow}$ (W m$^{-2}$)')
+        ax1.set_xlabel(r'Outgoing flux $F_\mathrm{t}^{\uparrow}$ (W m$^{-2}$)')
         ax1.set_ylabel(r'Pressure $P$ (Pa)')
         ax1.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
+        ax1.text(0.02, 0.98, name, color=ga.vol_colors[col_vol][col_idx], rotation=0, ha="left", va="top", fontsize=fs_l, transform=ax1.transAxes)
 
         
 
@@ -144,8 +171,8 @@ for set_idx, setting in enumerate([ "set1", "set2"]):
         if trpp_idx > 0:
             ax2.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol2][col_idx], lw=1.0, ls=ls, label=r'Tropopause')
         ax2.invert_yaxis()
-        # ax2.set_ylabel(r'Pressure $P$ (Pa)')
-        ax2.set_xlabel(r'Heating rate (K/day)')
+        ax2.set_ylabel(r'Pressure $P$ (Pa)')
+        ax2.set_xlabel(r'Heating rate $\mathcal{H}$ (K/day)')
         ax2.set_yscale("log") 
         x_minmax = np.max([abs(np.min(atm_moist.net_heating[10:])), abs(np.max(atm_moist.net_heating[10:]))])
         x_minmax = np.max([ 20, x_minmax ])
@@ -153,8 +180,6 @@ for set_idx, setting in enumerate([ "set1", "set2"]):
             ax2.set_xlim(left=-x_minmax, right=x_minmax)
         ax2.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
 
-
-        
 
         # SPECTRUM
         ax3.plot(atm_moist.band_centres, atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol][col_idx], ls=ls, label=str(atm.alpha_cloud))
@@ -181,6 +206,9 @@ Aax3.text(lx, ly, r'A3', color="k", rotation=0, ha="right", va="bottom", fontsiz
 Bax1.text(lx, ly, r'B1', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Bax1.transAxes)
 Bax2.text(lx, ly, r'B2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Bax2.transAxes)
 Bax3.text(lx, ly, r'B3', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Bax3.transAxes)
+Cax1.text(lx, ly, r'C1', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Cax1.transAxes)
+Cax2.text(lx, ly, r'C2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Cax2.transAxes)
+Cax3.text(lx, ly, r'C3', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Cax3.transAxes)
 
 sns.despine()
 

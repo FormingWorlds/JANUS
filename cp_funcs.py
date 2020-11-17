@@ -11,8 +11,8 @@ import phys
 def cpv( vol, tmp ):
 
     # Choose cp functions
-    # cp_mode = "constant"    # RTP book
-    cp_mode = "T-dependent" # NIST Chemistry WebBook
+    cp_mode = "constant"    # RTP book
+    # cp_mode = "T-dependent" # NIST Chemistry WebBook
 
     if cp_mode == "T-dependent":
 
