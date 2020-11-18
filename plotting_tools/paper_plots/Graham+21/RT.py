@@ -47,7 +47,7 @@ dirs =  {
 for set_idx, setting in enumerate([ "set1", "set2", "set3" ]): # "set1", "set2", "set3"
 
     # Retained condensate fraction
-    for alpha_idx, alpha_cloud in enumerate([ 0.0, 0.1, 1.0 ]):
+    for alpha_idx, alpha_cloud in enumerate([ 0.0, 0.1, 1.0 ]): # 0.0, 0.1, 1.0
 
         ls = ls_list[alpha_idx]
 
@@ -260,12 +260,12 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]): # "set1", "set2",
             vol_dict    = { 
                           "H2O" :  500e+5,
                           "NH3" :  0.,
-                          "CO2" :  0e+5,
+                          "CO2" :  100e+5,
                           "CH4" :  0.,
                           "CO"  :  0.,
                           "O2"  :  0.,
                           "N2"  :  1e+5,
-                          "H2"  :  0.00e+5,
+                          "H2"  :  100e+5,
                         }
 
             ax1 = Cax1
