@@ -47,12 +47,13 @@ dirs =  {
 for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
 
     # Retained condensate fraction
-    for alpha_idx, alpha_cloud in enumerate([ 0.0, 0.5, 1.0 ]):
+    for alpha_idx, alpha_cloud in enumerate([ 0.0, 1.0 ]):
 
         ls = ls_list[alpha_idx]
 
         ### Initial conditions
 
+        # Earth case
         if setting == "set1":
 
             name = "Earth"
@@ -64,7 +65,7 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
             Mstar           = 1.0 
 
             # Planet-star distance, au
-            mean_distance   = 1.0
+            mean_distance   = 2.0
 
             # Surface pressure range (Pa)
             P_surf          = 30.1e+5
@@ -92,38 +93,64 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
             # Plot color
             col_vol = "H2"
 
+        # Hadean case
         if setting == "set2":
             name = "Hadean"
             time = { "planet": 0., "star": 500e+06 } # yr,
             Mstar           = 1.0 
             mean_distance   = 1.0
-            P_surf          = 110e+5
-            T_surf          = 600
-            vol_dict    = { 
-                          "H2O" :  100e+5/P_surf,
-                          "NH3" :  0.,
-                          "CO2" :  100e+5/P_surf,
-                          "CH4" :  0.,
-                          "CO"  :  0.,
-                          "O2"  :  0.,
-                          "N2"  :  10e+5/P_surf,
-                          "H2"  :  0e+5/P_surf,
-                        }
-
+            T_surf          = 320
+            # P_surf          = 61.046e+5
+            # vol_dict        = { 
+            #                   "H2O" :  0e+5/P_surf,
+            #                   "NH3" :  0.006e+5/P_surf,
+            #                   "CO2" :  50e+5/P_surf,
+            #                   "CH4" :  1e+5/P_surf,
+            #                   "CO"  :  0.04e+5/P_surf,
+            #                   "O2"  :  0.,
+            #                   "N2"  :  2e+5/P_surf,
+            #                   "H2"  :  8e+5/P_surf,
+            #                 }
+            # P_surf          = 3.4027e+5
+            # vol_dict        = { 
+            #                   "H2O" :  0e+5/P_surf,
+            #                   "NH3" :  0.002e+5/P_surf,
+            #                   "CO2" :  0.3e+5/P_surf,
+            #                   "CH4" :  0.07e+5/P_surf,
+            #                   "CO"  :  0.0007e+5/P_surf,
+            #                   "O2"  :  0.,
+            #                   "N2"  :  0.3e+5/P_surf,
+            #                   "H2"  :  3e+5/P_surf,
+            #                 }
+            P_surf = "calc"
+            vol_dict        = { 
+                              "H2O" :  10e+5,
+                              "NH3" :  0e+5,
+                              "CO2" :  1.3e+5,
+                              "CH4" :  0e+5,
+                              "CO"  :  50e+5,
+                              "O2"  :  0.e+5,
+                              "N2"  :  0e+5,
+                              "H2"  :  0.05e+5,
+                            }
+            # P_surf          = sum(vol_dict.values())
+            # for vol in vol_dict.keys():
+            #     vol_dict[vol] = vol_dict[vol]/P_surf
             ax1 = Bax1
             ax2 = Bax2
             ax3 = Bax3
             col_vol = "H2O"
 
+        # Magma ocean case
         if setting == "set3":
             name = "Magma ocean"
             time = { "planet": 0., "star": 100e+06 } # yr,
             Mstar           = 1.0 
             mean_distance   = 1.0
-            P_surf          = 401e+5
+            P_surf          = 201e+5
             T_surf          = 1500
             vol_dict    = { 
-                          "H2O" :  300e+5/P_surf,
+                          "H2O" :  100e+5/P_surf,
                           "NH3" :  0.,
                           "CO2" :  100e+5/P_surf,
                           "CH4" :  0.,
@@ -138,8 +165,12 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
             ax3 = Cax3
             col_vol = "CO2"
 
+        print("---------", setting)
+
         # Create atmosphere object
         atm                = atmos(T_surf, P_surf, vol_dict)
+
+        # print(P_surf, atm.vol_list)
 
         # Set fraction of condensate retained in column
         atm.alpha_cloud       = alpha_cloud
@@ -169,13 +200,13 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
         ax2.plot(atm_moist.net_heating, atm_moist.p, lw=2, color=ga.vol_colors[col_vol][col_idx], label=str(atm.alpha_cloud), ls=ls)
         trpp_idx = int(atm_moist.trpp[0])
         if trpp_idx > 0:
-            ax2.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol2][col_idx], lw=1.0, ls=ls, label=r'Tropopause')
+            ax2.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol][col_idx], lw=1.0, ls=ls, label=r'Tropopause')
         ax2.invert_yaxis()
         ax2.set_ylabel(r'Pressure $P$ (Pa)')
         ax2.set_xlabel(r'Heating rate $\mathcal{H}$ (K/day)')
         ax2.set_yscale("log") 
         x_minmax = np.max([abs(np.min(atm_moist.net_heating[10:])), abs(np.max(atm_moist.net_heating[10:]))])
-        x_minmax = np.max([ 20, x_minmax ])
+        # x_minmax = np.max([ 20, x_minmax ])
         if not math.isnan(x_minmax):
             ax2.set_xlim(left=-x_minmax, right=x_minmax)
         ax2.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
