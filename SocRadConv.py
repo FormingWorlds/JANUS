@@ -619,32 +619,47 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                 # au, orbital distance
+    mean_distance = 2.0                 # au, orbital distance
 
     # Surface pressure & temperature
-    P_surf        = 210e+5              # Pa
-    T_surf        = 600.                # K
+    
+    T_surf        = 290.                # K
 
-    # Volatile molar concentrations: must sum to ~1 !
-    vol_list = { 
-                  "H2O"  : 100e5/P_surf,
-                  "CO2"  : 100e5/P_surf,
-                  "H2"   : 0., 
-                  "NH3"  : 100e5/P_surf,
-                  "N2"   : 10e5/P_surf,  
-                  "CH4"  : 0., 
-                  "O2"   : 0., 
-                  "CO"   : 0., 
-                  # # No thermodynamic data, RT only
-                  # "O3"   : 0.01, 
-                  # "N2O"  : 0.01, 
-                  # "NO"   : 0.01, 
-                  # "SO2"  : 0.01, 
-                  # "NO2"  : 0.01, 
-                  # "HNO3" : 0.01, 
-                  # "He"   : 0.01, 
-                  # "OCS"  : 0.01,
-                }
+    # # Volatile molar concentrations: must sum to ~1 !
+    # P_surf        = 210e+5              # Pa
+    # vol_list = { 
+    #               "H2O"  : 100e5/P_surf,
+    #               "CO2"  : 100e5/P_surf,
+    #               "H2"   : 0., 
+    #               "NH3"  : 100e5/P_surf,
+    #               "N2"   : 10e5/P_surf,  
+    #               "CH4"  : 0., 
+    #               "O2"   : 0., 
+    #               "CO"   : 0., 
+    #               # # No thermodynamic data, RT only
+    #               # "O3"   : 0.01, 
+    #               # "N2O"  : 0.01, 
+    #               # "NO"   : 0.01, 
+    #               # "SO2"  : 0.01, 
+    #               # "NO2"  : 0.01, 
+    #               # "HNO3" : 0.01, 
+    #               # "He"   : 0.01, 
+    #               # "OCS"  : 0.01,
+    #             }
+    
+    # Partial pressure guesses
+    P_surf      = "calc"   
+     # Volatiles considered
+    vol_list    = { 
+                          "H2O" :  0.01e+5,
+                          "NH3" :  0.,
+                          "CO2" :  35e+5,
+                          "CH4" :  0e+5,
+                          "CO"  :  0.,
+                          "O2"  :  0.,
+                          "N2"  :  1e+5,
+                          "H2"  :  0e+5,
+                        }
 
     # Stellar heating on/off
     stellar_heating = True
