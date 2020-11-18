@@ -44,10 +44,10 @@ dirs =  {
 
 #### LOOP OVER PARAMETERS
 
-for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
+for set_idx, setting in enumerate([ "set1", "set2", "set3" ]): # "set1", "set2", "set3"
 
     # Retained condensate fraction
-    for alpha_idx, alpha_cloud in enumerate([ 0.0, 1.0 ]):
+    for alpha_idx, alpha_cloud in enumerate([ 0.0, 0.1, 1.0 ]):
 
         ls = ls_list[alpha_idx]
 
@@ -56,7 +56,7 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
         # Earth case
         if setting == "set1":
 
-            name = "Earth"
+            name = "Exo-Earth"
 
             # Planet age and orbit
             time = { "planet": 0., "star": 4567e+06 } # yr,
@@ -68,21 +68,21 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
             mean_distance   = 2.0
 
             # Surface pressure range (Pa)
-            P_surf          = 30.1e+5
+            P_surf          = "calc"
 
             # Surface temperature range (K)
-            T_surf          = 273.15
+            T_surf          = 290
 
             # Volatiles considered
             vol_dict    = { 
-                          "H2O" :  0.01e+5/P_surf,
+                          "H2O" :  0.01e+5,
                           "NH3" :  0.,
-                          "CO2" :  29e+5/P_surf,
-                          "CH4" :  0.,
+                          "CO2" :  29e+5,
+                          "CH4" :  0e+5,
                           "CO"  :  0.,
                           "O2"  :  0.,
-                          "N2"  :  1e+5/P_surf,
-                          "H2"  :  0e+5/P_surf,
+                          "N2"  :  1e+5,
+                          "H2"  :  0e+5,
                         }
 
             # Plot axes
@@ -95,47 +95,155 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
 
         # Hadean case
         if setting == "set2":
-            name = "Hadean"
+            name = "Late veneer"
             time = { "planet": 0., "star": 500e+06 } # yr,
             Mstar           = 1.0 
             mean_distance   = 1.0
-            T_surf          = 320
-            # P_surf          = 61.046e+5
-            # vol_dict        = { 
-            #                   "H2O" :  0e+5/P_surf,
-            #                   "NH3" :  0.006e+5/P_surf,
-            #                   "CO2" :  50e+5/P_surf,
-            #                   "CH4" :  1e+5/P_surf,
-            #                   "CO"  :  0.04e+5/P_surf,
-            #                   "O2"  :  0.,
-            #                   "N2"  :  2e+5/P_surf,
-            #                   "H2"  :  8e+5/P_surf,
-            #                 }
-            # P_surf          = 3.4027e+5
-            # vol_dict        = { 
-            #                   "H2O" :  0e+5/P_surf,
-            #                   "NH3" :  0.002e+5/P_surf,
-            #                   "CO2" :  0.3e+5/P_surf,
-            #                   "CH4" :  0.07e+5/P_surf,
-            #                   "CO"  :  0.0007e+5/P_surf,
-            #                   "O2"  :  0.,
-            #                   "N2"  :  0.3e+5/P_surf,
-            #                   "H2"  :  3e+5/P_surf,
-            #                 }
-            P_surf = "calc"
+            
+            P_surf          = "calc"
+
+            ############## Tsurf = 700 K
+            T_surf          = 700
+            # Maximum late veneer, 2 bar CO2
             vol_dict        = { 
-                              "H2O" :  10e+5,
-                              "NH3" :  0e+5,
+                              "H2O" :  500e+5,
+                              "NH3" :  0.07e+5,
                               "CO2" :  1.3e+5,
-                              "CH4" :  0e+5,
+                              "CH4" :  0.1e+5,
                               "CO"  :  50e+5,
                               "O2"  :  0.e+5,
-                              "N2"  :  0e+5,
-                              "H2"  :  0.05e+5,
+                              "N2"  :  0.07e+5,
+                              "H2"  :  50e+5,
                             }
-            # P_surf          = sum(vol_dict.values())
-            # for vol in vol_dict.keys():
-            #     vol_dict[vol] = vol_dict[vol]/P_surf
+            # # Maximum late veneer, 50 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  500e+5,
+            #                   "NH3" :  0.08e+5,
+            #                   "CO2" :  0e+5,
+            #                   "CH4" :  4e+5,
+            #                   "CO"  :  50e+5,
+            #                   "O2"  :  0e+5,
+            #                   "N2"  :  0.09e+5,
+            #                   "H2"  :  50e+5,
+            #                 }
+            # # Vesta, 2 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  500e+5,
+            #                   "NH3" :  0.0013e+5,
+            #                   "CO2" :  0.3e+5,
+            #                   "CH4" :  0.05e+5,
+            #                   "CO"  :  0.0008e+5,
+            #                   "O2"  :  0e+5,
+            #                   "N2"  :  0.3e+5,
+            #                   "H2"  :  2e+5,
+            #                 }
+            # # Vesta, 50 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  500e+5,
+            #                   "NH3" :  0.007e+5,
+            #                   "CO2" :  48e+5,
+            #                   "CH4" :  1e+5,
+            #                   "CO"  :  0.05e+5,
+            #                   "O2"  :  0e+5,
+            #                   "N2"  :  1e+5,
+            #                   "H2"  :  8e+5,
+            #                 }
+
+            # ############## Tsurf = 500 K
+            # T_surf          = 500
+            # # Maximum late veneer, 2 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  60e+5,
+            #                   "NH3" :  0.07e+5,
+            #                   "CO2" :  1.3e+5,
+            #                   "CH4" :  0.1e+5,
+            #                   "CO"  :  50e+5,
+            #                   "O2"  :  0.e+5,
+            #                   "N2"  :  0.07e+5,
+            #                   "H2"  :  50e+5,
+            #                 }
+            # # Maximum late veneer, 50 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  60e+5,
+            #                   "NH3" :  0.08e+5,
+            #                   "CO2" :  0e+5,
+            #                   "CH4" :  4e+5,
+            #                   "CO"  :  50e+5,
+            #                   "O2"  :  0e+5,
+            #                   "N2"  :  0.09e+5,
+            #                   "H2"  :  50e+5,
+            #                 }
+            # # Vesta, 2 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  60e+5,
+            #                   "NH3" :  0.0013e+5,
+            #                   "CO2" :  0.3e+5,
+            #                   "CH4" :  0.05e+5,
+            #                   "CO"  :  0.0008e+5,
+            #                   "O2"  :  0e+5,
+            #                   "N2"  :  0.3e+5,
+            #                   "H2"  :  2e+5,
+            #                 }
+            # # Vesta, 50 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  60e+5,
+            #                   "NH3" :  0.007e+5,
+            #                   "CO2" :  48e+5,
+            #                   "CH4" :  1e+5,
+            #                   "CO"  :  0.05e+5,
+            #                   "O2"  :  0e+5,
+            #                   "N2"  :  1e+5,
+            #                   "H2"  :  8e+5,
+            #                 }
+
+
+            # # ############## Tsurf = 320 K
+            # T_surf          = 320
+            # # Maximum late veneer, 2 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  0.1e+5,
+            #                   "NH3" :  0.07e+5,
+            #                   "CO2" :  1.3e+5,
+            #                   "CH4" :  0.1e+5,
+            #                   "CO"  :  50e+5,
+            #                   "O2"  :  0.e+5,
+            #                   "N2"  :  0.07e+5,
+            #                   "H2"  :  50e+5,
+            #                 }
+            # # Maximum late veneer, 50 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  0.1e+5,
+            #                   "NH3" :  0.08e+5,
+            #                   "CO2" :  0e+5,
+            #                   "CH4" :  4e+5,
+            #                   "CO"  :  50e+5,
+            #                   "O2"  :  0e+5,
+            #                   "N2"  :  0.09e+5,
+            #                   "H2"  :  50e+5,
+            #                 }
+            # # Vesta, 2 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  0.1e+5,
+            #                   "NH3" :  0.0013e+5,
+            #                   "CO2" :  0.3e+5,
+            #                   "CH4" :  0.05e+5,
+            #                   "CO"  :  0.0008e+5,
+            #                   "O2"  :  0e+5,
+            #                   "N2"  :  0.3e+5,
+            #                   "H2"  :  2e+5,
+            #                 }
+            # # Vesta, 50 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  0.1e+5,
+            #                   "NH3" :  0.007e+5,
+            #                   "CO2" :  48e+5,
+            #                   "CH4" :  1e+5,
+            #                   "CO"  :  0.05e+5,
+            #                   "O2"  :  0e+5,
+            #                   "N2"  :  1e+5,
+            #                   "H2"  :  8e+5,
+            #                 }
+
             ax1 = Bax1
             ax2 = Bax2
             ax3 = Bax3
@@ -147,17 +255,17 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
             time = { "planet": 0., "star": 100e+06 } # yr,
             Mstar           = 1.0 
             mean_distance   = 1.0
-            P_surf          = 201e+5
+            P_surf          = "calc"
             T_surf          = 1500
             vol_dict    = { 
-                          "H2O" :  100e+5/P_surf,
+                          "H2O" :  500e+5,
                           "NH3" :  0.,
-                          "CO2" :  100e+5/P_surf,
+                          "CO2" :  0e+5,
                           "CH4" :  0.,
                           "CO"  :  0.,
                           "O2"  :  0.,
-                          "N2"  :  1e+5/P_surf,
-                          "H2"  :  0e+5/P_surf,
+                          "N2"  :  1e+5,
+                          "H2"  :  0.00e+5,
                         }
 
             ax1 = Cax1
@@ -165,7 +273,7 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
             ax3 = Cax3
             col_vol = "CO2"
 
-        print("---------", setting)
+        print("---------", setting, "case:", name, "alpha:", alpha_cloud)
 
         # Create atmosphere object
         atm                = atmos(T_surf, P_surf, vol_dict)
@@ -184,19 +292,22 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
         atm_dry, atm_moist = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=True, cp_dry=False, trpp=True) 
 
 
-        ## FLUXES
+        ### FLUXES
         ax1.semilogy(atm_moist.net_flux,atm_moist.pl, color=ga.vol_colors[col_vol][col_idx], ls=ls, lw=2)
+        # ax1.semilogy(atm_moist.flux_up_total,atm_moist.pl, color=ga.vol_colors[col_vol][col_idx-1], ls=ls, lw=0.5)
+        # ax1.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color="k", ls=":", lw=1)
         # ax1.legend(ncol=6, fontsize=10, loc=3)
         ax1.invert_yaxis()
         ax1.set_xscale("symlog") # https://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
         ax1.set_xlabel(r'Outgoing flux $F_\mathrm{t}^{\uparrow}$ (W m$^{-2}$)')
         ax1.set_ylabel(r'Pressure $P$ (Pa)')
         ax1.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
-        ax1.text(0.02, 0.98, name, color=ga.vol_colors[col_vol][col_idx], rotation=0, ha="left", va="top", fontsize=fs_l, transform=ax1.transAxes)
-
         
+        # Annotate settig name
+        ax1.text(0.06, 0.98, name, color=ga.vol_colors[col_vol][col_idx], rotation=0, ha="left", va="top", fontsize=fs_l, transform=ax1.transAxes)
 
-        # HEATING versus pressure
+
+        ### HEATING versus pressure
         ax2.plot(atm_moist.net_heating, atm_moist.p, lw=2, color=ga.vol_colors[col_vol][col_idx], label=str(atm.alpha_cloud), ls=ls)
         trpp_idx = int(atm_moist.trpp[0])
         if trpp_idx > 0:
@@ -212,7 +323,7 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
         ax2.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
 
 
-        # SPECTRUM
+        ###SPECTRUM
         ax3.plot(atm_moist.band_centres, atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol][col_idx], ls=ls, label=str(atm.alpha_cloud))
         ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)')
         ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
@@ -223,8 +334,8 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]):
 
 
 # Zero line
-Aax1.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
-Bax1.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
+# Aax1.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
+Bax1.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5, zorder=1)
 Aax2.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
 Bax2.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
 

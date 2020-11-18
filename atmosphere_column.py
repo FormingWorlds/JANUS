@@ -12,8 +12,8 @@ class atmos:
 	def __init__(self, T_surf, P_surf, vol_list):
 		self.alpha_cloud 	= 0.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
 
-		# If vol_list is given in partial pressures, calulate mixing ratios
-		if P_surf <= 0. or (type(P_surf) == str):
+		# If vol_list is given in partial pressures, calculate mixing ratios
+		if (type(P_surf) == str) or (type(P_surf) == float and P_surf <= 0.):
 			P_surf          = sum(vol_list.values())
 			print("Calculate mixing ratios from partial pressures.")
 			print("P_surf:", P_surf, "p_i:", vol_list, end=" ")
