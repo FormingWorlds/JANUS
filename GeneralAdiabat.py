@@ -203,10 +203,10 @@ def atm_z(atm, idx):
     # # Average temperature weighted by amount of substance?
     # T_mean_down = np.average( atm.tmp[:idx+1], weights=)
 
-    # Use gas phase mean molar mass
-    atm.mu[idx] = atm.mu_v[idx]
+    # # Use gas phase mean molar mass
+    # atm.mu[idx] = atm.mu[idx]
 
-    # print(atm.grav_z[idx], atm.mu_v[idx], atm.p[idx], atm.p[idx+1])
+    # print(atm.grav_z[idx], atm.mu[idx], atm.p[idx], atm.p[idx+1])
 
     # Integration
     dz = - phys.R_gas * T_mean_down * np.log(atm.p[idx+1]/atm.p[idx]) / ( atm.mu[idx] * atm.grav_z[idx] )
@@ -573,7 +573,7 @@ def condensation( atm, idx, prs_reset):
             # atm.p_vol[vol][idx] = atm.vol_list[vol] * atm.p[idx]
             atm.p_vol[vol][idx] = atm.vol_list[vol] * p_tot_pre_condensation
             # Mean gas phase molar mass
-            atm.mu_v[idx]       += atm.vol_list[vol] * molar_mass[vol]
+            atm.mu[idx]       += atm.vol_list[vol] * molar_mass[vol]
         else:
             # Sum up gaseous mixing ratios to normalize
             x_sum = 0
@@ -588,14 +588,14 @@ def condensation( atm, idx, prs_reset):
             atm.p_vol[vol][idx] = x_vol * p_tot_pre_condensation
             
             # Mean gas phase molar mass, pre-condensation
-            atm.mu_v[idx] += x_vol * molar_mass[vol]
+            atm.mu[idx] += x_vol * molar_mass[vol]
     # Account for condensation
     
     # Total pressure of condensing phases
     p_cond_sum = 0
     
     # Molar mass before condensation
-    mu_old = atm.mu_v[idx].copy()
+    mu_old = atm.mu[idx].copy()
     
     # Flag telling code to keep making new loops as long as new species condense
     condensation_flag = True
@@ -673,13 +673,13 @@ def condensation( atm, idx, prs_reset):
         for vol in dry_list:
             atm.p_vol[vol][idx] = p_dry_tot * ( atm.x_gas[vol][idx-1] / dry_frac_sum )
     # Reset mean molar mass
-    atm.mu_v[idx]   = 0.
+    atm.mu[idx]   = 0.
     p_vol_sum       = 0.
     
     # Calculate new mean molar mass
     for vol in atm.vol_list.keys():
-        atm.mu_v[idx]   += molar_mass[vol] * atm.p_vol[vol][idx]
-    atm.mu_v[idx] /= atm.p[idx]
+        atm.mu[idx]   += molar_mass[vol] * atm.p_vol[vol][idx]
+    atm.mu[idx] /= atm.p[idx]
     
     # Update mixing ratios
     for vol in atm.vol_list.keys():
@@ -693,9 +693,9 @@ def condensation( atm, idx, prs_reset):
         else:
             #atm.x_cond[vol][idx] = atm.vol_list[vol] - ( atm.p_vol[vol][idx] / atm.p[idx] )
             if idx == 0:
-                atm.x_cond[vol][idx] = atm.vol_list[vol] - ( mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
+                atm.x_cond[vol][idx] = atm.vol_list[vol] - ( mu_old / atm.mu[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
             else:
-                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + atm.x_gas[vol][idx-1] - ( 1-atm.xc[idx-1] ) * ( mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
+                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + atm.x_gas[vol][idx-1] - ( 1-atm.xc[idx-1] ) * ( mu_old / atm.mu[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
             
 
         #atm.x_cond[vol][idx] *= atm.alpha_cloud
@@ -706,9 +706,9 @@ def condensation( atm, idx, prs_reset):
         # Gas phase molar concentration
         #atm.x_gas[vol][idx] = atm.p_vol[vol][idx] / atm.p[idx]
         if idx == 0:
-            atm.x_gas[vol][idx] =  mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+            atm.x_gas[vol][idx] =  mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
         else:
-            atm.x_gas[vol][idx] =  ( 1-atm.xc[idx-1] ) * mu_old / atm.mu_v[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+            atm.x_gas[vol][idx] =  ( 1-atm.xc[idx-1] ) * mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
         
         # Add to molar concentration of total gas (dry or moist) phase
         # ! REVISIT ! keeping xd == 0 leads to a bug, why?
@@ -833,44 +833,34 @@ def interpolate_atm(atm):
     # Trim level-dependent quantities
     atm.grav_z  = np.flip(np.split(atm.grav_z, [atm_len,rest_len])[0], axis=0)
     atm.z       = np.flip(np.split(atm.z, [atm_len,rest_len])[0], axis=0)
-    atm.mu_v    = np.flip(np.split(atm.mu_v, [atm_len,rest_len])[0], axis=0)
-    atm.mu_c    = np.flip(np.split(atm.mu_c, [atm_len,rest_len])[0], axis=0)
     atm.mu      = np.flip(np.split(atm.mu, [atm_len,rest_len])[0], axis=0)
     atm.xd      = np.flip(np.split(atm.xd, [atm_len, rest_len])[0], axis=0)
     atm.xv      = np.flip(np.split(atm.xv, [atm_len, rest_len])[0], axis=0)
     atm.xc      = np.flip(np.split(atm.xc, [atm_len, rest_len])[0], axis=0)
-    atm.mrd     = np.flip(np.split(atm.mrd, [atm_len, rest_len])[0], axis=0)
-    atm.mrv     = np.flip(np.split(atm.mrv, [atm_len, rest_len])[0], axis=0)
-    atm.mrc     = np.flip(np.split(atm.mrc, [atm_len, rest_len])[0], axis=0)
     atm.cp      = np.flip(np.split(atm.cp, [atm_len, rest_len])[0], axis=0)
     
     # Interpolate level-dependent quantities
     atm.grav_z  = np.interp(prs_itp, atm.p, atm.grav_z)
     atm.z       = np.interp(prs_itp, atm.p, atm.z)
-    atm.mu_v    = np.interp(prs_itp, atm.p, atm.mu_v)
-    atm.mu_c    = np.interp(prs_itp, atm.p, atm.mu_c)
     atm.mu      = np.interp(prs_itp, atm.p, atm.mu)
     atm.xd      = np.interp(prs_itp, atm.p, atm.xd)
     atm.xv      = np.interp(prs_itp, atm.p, atm.xv)
     atm.xc      = np.interp(prs_itp, atm.p, atm.xc)
-    atm.mrd     = np.interp(prs_itp, atm.p, atm.mrd)
-    atm.mrv     = np.interp(prs_itp, atm.p, atm.mrv)
-    atm.mrc     = np.interp(prs_itp, atm.p, atm.mrc)
     atm.cp      = np.interp(prs_itp, atm.p, atm.cp)
     
     # Trim & interpolate species-dependent quantities
     for vol in atm.vol_list.keys():
+        
+        # Trim
         atm.p_vol[vol]   = np.flip(np.split(atm.p_vol[vol], [atm_len, rest_len])[0], axis=0)
         atm.x_gas[vol]   = np.flip(np.split(atm.x_gas[vol], [atm_len, rest_len])[0], axis=0)
         atm.x_cond[vol]  = np.flip(np.split(atm.x_cond[vol], [atm_len, rest_len])[0], axis=0)
-        atm.mr_gas[vol]  = np.flip(np.split(atm.mr_gas[vol], [atm_len, rest_len])[0], axis=0)
-        atm.mr_cond[vol] = np.flip(np.split(atm.mr_cond[vol], [atm_len, rest_len])[0], axis=0)
-
+        
+        # Interpolate
+        atm.pl_vol[vol]  = np.interp(atm.pl, atm.p, atm.p_vol[vol]) # staggered!
         atm.p_vol[vol]   = np.interp(prs_itp, atm.p, atm.p_vol[vol])
         atm.x_gas[vol]   = np.interp(prs_itp, atm.p, atm.x_gas[vol]) 
         atm.x_cond[vol]  = np.interp(prs_itp, atm.p, atm.x_cond[vol])
-        atm.mr_gas[vol]  = np.interp(prs_itp, atm.p, atm.mr_gas[vol]) 
-        atm.mr_cond[vol] = np.interp(prs_itp, atm.p, atm.mr_cond[vol]) 
 
     # Rewrite atmosphere nodes
     atm.p       = prs_itp
