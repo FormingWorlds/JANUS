@@ -23,7 +23,8 @@ ls_moist    = 2.5
 ls_dry      = 2.0
 ls_ind      = 1.5
 
-fig, ((Aax1, Aax2, Aax3), (Bax1, Bax2, Bax3), (Cax1, Cax2, Cax3)) = plt.subplots(3, 3, figsize=(13,9))
+# fig, ((Aax1, Aax2, Aax3), (Bax1, Bax2, Bax3), (Cax1, Cax2, Cax3)) = plt.subplots(3, 3, figsize=(13,9))
+fig, ((Aax1, Bax1, Cax1), (Aax3, Bax3, Cax3)) = plt.subplots(2, 3, figsize=(13,6))
 plt.subplots_adjust(top = 0.99, bottom=0.01, hspace=0.2, wspace=0.2)
 sns.despine()
 
@@ -33,9 +34,9 @@ col_vol = "H2O"
 
 ls_list = [ "-", "--", ":", "-." ]
 lw      = 1.5
-fs_l = 16
-fs_m = 14
-fs_s = 12
+fs_l = 15
+fs_m = 13
+fs_s = 11
 
 dirs =  {
                "output":   os.getcwd()+"/", 
@@ -53,47 +54,31 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]): # "set1", "set2",
 
         ### Initial conditions
 
-        # Earth case
+        # Magma ocean case
         if setting == "set1":
-
-            name = "Exo-Earth"
-
-            # Planet age and orbit
-            time = { "planet": 0., "star": 4567e+06 } # yr,
-
-            # Star mass, M_sun
+            name = "Magma ocean"
+            time = { "planet": 0., "star": 100e+06 } # yr,
             Mstar           = 1.0 
-
-            # Planet-star distance, au
-            mean_distance   = 2.0
-
-            # Surface pressure range (Pa)
+            mean_distance   = 1.0
             P_surf          = "calc"
-
-            # Surface temperature range (K)
-            T_surf          = 290
-
-            # Volatiles considered
+            T_surf          = 1500
             vol_dict    = { 
-                          "H2O" :  0.01e+5,
+                          "H2O" :  500e+5,
                           "NH3" :  0.,
-                          "CO2" :  29e+5,
-                          "CH4" :  0e+5,
+                          "CO2" :  100e+5,
+                          "CH4" :  0.,
                           "CO"  :  0.,
                           "O2"  :  0.,
                           "N2"  :  1e+5,
-                          "H2"  :  0e+5,
+                          "H2"  :  100e+5,
                         }
 
-            # Plot axes
             ax1 = Aax1
-            ax2 = Aax2
+            # ax2 = Cax2
             ax3 = Aax3
+            col_vol = "CO2"
 
-            # Plot color
-            col_vol = "H2"
-
-        # Hadean case
+        # LATE VENEER case
         if setting == "set2":
             name = "Late veneer"
             time = { "planet": 0., "star": 500e+06 } # yr,
@@ -245,33 +230,50 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]): # "set1", "set2",
             #                 }
 
             ax1 = Bax1
-            ax2 = Bax2
+            # ax2 = Bax2
             ax3 = Bax3
             col_vol = "H2O"
 
-        # Magma ocean case
+        # Hadean Earth / OHZ case
         if setting == "set3":
-            name = "Magma ocean"
-            time = { "planet": 0., "star": 100e+06 } # yr,
+
+            name = r"Exo-Earth"
+
+            # Planet age and orbit
+            time = { "planet": 0., "star": 4567e+06 } # yr,
+
+            # Star mass, M_sun
             Mstar           = 1.0 
-            mean_distance   = 1.0
+
+            # Planet-star distance, au
+            mean_distance   = 1.5
+
+            # Surface pressure range (Pa)
             P_surf          = "calc"
-            T_surf          = 1500
+
+            # Surface temperature range (K)
+            T_surf          = 290
+
+            # Volatiles considered
             vol_dict    = { 
-                          "H2O" :  500e+5,
+                          "H2O" :  0.01e+5,
                           "NH3" :  0.,
-                          "CO2" :  100e+5,
-                          "CH4" :  0.,
+                          "CO2" :  29e+5,
+                          "CH4" :  0e+5,
                           "CO"  :  0.,
                           "O2"  :  0.,
                           "N2"  :  1e+5,
-                          "H2"  :  100e+5,
+                          "H2"  :  0e+5,
                         }
 
+            # Plot axes
             ax1 = Cax1
-            ax2 = Cax2
+            # ax2 = Cax2
             ax3 = Cax3
-            col_vol = "CO2"
+
+            # Plot color
+            col_vol = "H2"
+
 
         print("---------", setting, "case:", name, "alpha:", alpha_cloud)
 
@@ -293,64 +295,92 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]): # "set1", "set2",
 
 
         ### FLUXES
-        ax1.semilogy(atm_moist.net_flux,atm_moist.pl, color=ga.vol_colors[col_vol][col_idx], ls=ls, lw=2)
-        # ax1.semilogy(atm_moist.flux_up_total,atm_moist.pl, color=ga.vol_colors[col_vol][col_idx-1], ls=ls, lw=0.5)
+        # ax1.semilogy(atm_moist.net_flux,atm_moist.pl, color=ga.vol_colors[col_vol][col_idx], ls=ls, lw=2)
+        ax1.semilogy(atm_moist.flux_up_total,atm_moist.pl/1e+5, color=ga.vol_colors[col_vol][col_idx], ls=ls, lw=1.0)
         # ax1.semilogy(atm_moist.SW_flux_down*(-1),atm_moist.pl, color="k", ls=":", lw=1)
         # ax1.legend(ncol=6, fontsize=10, loc=3)
         ax1.invert_yaxis()
         ax1.set_xscale("symlog") # https://stackoverflow.com/questions/3305865/what-is-the-difference-between-log-and-symlog
         ax1.set_xlabel(r'Outgoing flux $F_\mathrm{t}^{\uparrow}$ (W m$^{-2}$)')
-        ax1.set_ylabel(r'Pressure $P$ (Pa)')
-        ax1.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
+        # ax1.set_ylabel(r'Pressure $P$ (bar)')
+        ax1.set_ylim(top=atm_moist.ptop/1e+5, bottom=atm_moist.ps/1e+5)
         
         # Annotate settig name
-        ax1.text(0.06, 0.98, name, color=ga.vol_colors[col_vol][col_idx], rotation=0, ha="left", va="top", fontsize=fs_l, transform=ax1.transAxes)
+        ax1.text(0.98, 0.98, name, color=ga.vol_colors[col_vol][col_idx], rotation=0, ha="right", va="top", fontsize=fs_l, transform=ax1.transAxes)
 
 
-        ### HEATING versus pressure
-        ax2.plot(atm_moist.net_heating, atm_moist.p, lw=2, color=ga.vol_colors[col_vol][col_idx], label=str(atm.alpha_cloud), ls=ls)
-        trpp_idx = int(atm_moist.trpp[0])
-        if trpp_idx > 0:
-            ax2.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol][col_idx], lw=1.0, ls=ls, label=r'Tropopause')
-        ax2.invert_yaxis()
-        ax2.set_ylabel(r'Pressure $P$ (Pa)')
-        ax2.set_xlabel(r'Heating rate $\mathcal{H}$ (K/day)')
-        ax2.set_yscale("log") 
-        x_minmax = np.max([abs(np.min(atm_moist.net_heating[10:])), abs(np.max(atm_moist.net_heating[10:]))])
-        # x_minmax = np.max([ 20, x_minmax ])
-        if not math.isnan(x_minmax):
-            ax2.set_xlim(left=-x_minmax, right=x_minmax)
-        ax2.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
+        # ### HEATING versus pressure
+        # ax2.plot(atm_moist.net_heating, atm_moist.p, lw=2, color=ga.vol_colors[col_vol][col_idx], label=str(atm.alpha_cloud), ls=ls)
+        # trpp_idx = int(atm_moist.trpp[0])
+        # if trpp_idx > 0:
+        #     ax2.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol][col_idx], lw=1.0, ls=ls, label=r'Tropopause')
+        # ax2.invert_yaxis()
+        # ax2.set_ylabel(r'Pressure $P$ (Pa)')
+        # ax2.set_xlabel(r'Heating rate $\mathcal{H}$ (K/day)')
+        # ax2.set_yscale("log") 
+        # x_minmax = np.max([abs(np.min(atm_moist.net_heating[10:])), abs(np.max(atm_moist.net_heating[10:]))])
+        # # x_minmax = np.max([ 20, x_minmax ])
+        # if not math.isnan(x_minmax):
+        #     ax2.set_xlim(left=-x_minmax, right=x_minmax)
+        # ax2.set_ylim(top=atm_moist.ptop, bottom=atm_moist.ps)
 
 
-        ###SPECTRUM
-        ax3.plot(atm_moist.band_centres, atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol][col_idx], ls=ls, label=str(atm.alpha_cloud))
-        ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)')
-        ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
-        ymax_plot = 1.2*np.max(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths)
-        ax3.set_ylim(bottom=0, top=ymax_plot)
-        ax3.set_xlim(left=0, right=np.max(np.where(atm_moist.net_spectral_flux[:,0]/atm_moist.band_widths > ymax_plot/1000., atm_moist.band_centres, 0.)))
-        ax3.legend(fontsize=10, loc=1, title=r"$\alpha_\mathrm{c}$")
+        ### SPECTRUM
 
+        # # Wavenumber
+        # ax3.plot(atm_moist.band_centres, atm_moist.flux_up_total[:,0]/atm_moist.band_widths, color=ga.vol_colors[col_vol][col_idx], ls=ls, label=str(atm.alpha_cloud))
+        # ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ cm$^{-1}$)')
+        # ax3.set_xlabel(r'Wavenumber (cm$^{-1}$)')
+        # ymax_plot = 1.2*np.max(atm_moist.flux_up_total[:,0]/atm_moist.band_widths)
+        # ax3.set_ylim(bottom=0, top=ymax_plot)
+        # ax3.set_xlim(left=0, right=np.max(np.where(atm_moist.flux_up_total[:,0]/atm_moist.band_widths > ymax_plot/1000., atm_moist.band_centres, 0.)))
+        # ax3.legend(fontsize=10, loc=1, title=r"$\alpha_\mathrm{c}$")
+
+        # Wavelength
+        spectral_flux_up_total = atm_moist.LW_spectral_flux_up + atm_moist.SW_spectral_flux_up
+        OLR_cm_moist = spectral_flux_up_total[:,0]/atm_moist.band_widths
+        wavelength_moist  = [ 1e+4/i for i in atm_moist.band_centres ]          # microns
+        OLR_micron_moist  = [ 1e+4*i for i in OLR_cm_moist ]                    # microns
+        ax3.plot(wavelength_moist, OLR_micron_moist, color=ga.vol_colors[col_vol][col_idx], lw=1.0, label=str(atm.alpha_cloud), ls=ls)
+        # ax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ $\mu$m$^{-1}$)')
+        ax3.set_xlabel(r'Wavelength $\lambda$ ($\mu$m)')
+        ax3.set_xscale("log")
+        ax3.set_yscale("log") 
+        ax3.set_xlim(left=1, right=30)
+        # ax3.set_ylim(bottom=1e-20, top=1e5)
+        # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
+        ax3.set_xticks([1, 3, 6, 10, 20, 30])
+        ax3.set_xticklabels(["1", "3", "6", "10", "20", "30"])
+        ax3.legend(fontsize=10, loc=5, title=r"$\alpha_\mathrm{c}$")
 
 # Zero line
-# Aax1.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
-Bax1.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5, zorder=1)
-Aax2.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
-Bax2.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
+# Aax1.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5, zorder=1)
+# Bax1.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5, zorder=1)
+# Cax1.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5, zorder=1)
+# Aax2.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
+# Bax2.axvline(0, color=ga.vol_colors["qgray_light"], lw=0.5)
+
+# Specific axes ranges
+Aax3.set_ylim(bottom=1e-12, top=1e4)
+Bax3.set_ylim(bottom=1e-19, top=1e4)
+Cax3.set_ylim(bottom=1e-20, top=1e4)
 
 # Subplot labels
 lx = 0.98
 ly = 0.015
 Aax1.text(lx, ly, r'A1', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Aax1.transAxes)
-Aax2.text(lx, ly, r'A2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Aax2.transAxes)
-Aax3.text(lx, ly, r'A3', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Aax3.transAxes)
+# Aax2.text(lx, ly, r'A2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Aax2.transAxes)
+Aax3.text(lx, ly, r'A2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Aax3.transAxes)
 Bax1.text(lx, ly, r'B1', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Bax1.transAxes)
-Bax2.text(lx, ly, r'B2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Bax2.transAxes)
-Bax3.text(lx, ly, r'B3', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Bax3.transAxes)
+# Bax2.text(lx, ly, r'B2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Bax2.transAxes)
+Bax3.text(lx, ly, r'B2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Bax3.transAxes)
 Cax1.text(lx, ly, r'C1', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Cax1.transAxes)
-Cax2.text(lx, ly, r'C2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Cax2.transAxes)
-Cax3.text(lx, ly, r'C3', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Cax3.transAxes)
+# Cax2.text(lx, ly, r'C2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Cax2.transAxes)
+Cax3.text(lx, ly, r'C2', color="k", rotation=0, ha="right", va="bottom", fontsize=fs_l, transform=Cax3.transAxes)
+
+# Axes labels
+Aax1.set_ylabel(r'Pressure $P$ (bar)')
+Aax3.set_ylabel(r'Spectral flux density (W m$^{-2}$ $\mu$m$^{-1}$)')
 
 sns.despine()
 
