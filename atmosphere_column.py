@@ -59,26 +59,17 @@ class atmos:
 		self.band_widths 	= np.diff(self.bands)
 		self.nbands 	    = np.size(self.bands)-1
 
-		# Species-dependent quantities
+		# Level-dependent quantities
 		self.p_vol 			= {} # Gas phase partial pressures
+		self.pl_vol 		= {} # Gas phase partial pressures
 		self.x_gas 			= {} # Gas phase molar concentration
 		self.x_cond         = {} # Condensed phase molar concentration
-		self.mr_gas 		= {} # Gas phase molar mixing ratio (relative to all gas)
-		self.mr_cond        = {} # Condensed phase molar mixing ratio (relative to all gas)
-		self.x_ocean		= {} # Surface condensed 'overpressure'
-		
-		# Level-dependent quantities
 		self.grav_z			= np.zeros(self.nlev) # Local gravity
 		self.z 				= np.zeros(self.nlev) # Atmospheric height
-		self.mu_v 			= np.zeros(self.nlev) # Mean molar mass of moist + dry gas phase
-		self.mu_c 			= np.zeros(self.nlev) # Mean molar mass of condensed phase
-		self.mu 			= np.zeros(self.nlev) # Mean molar mass of all phases
+		self.mu 			= np.zeros(self.nlev) # Mean molar mass in level
 		self.xd 			= np.zeros(self.nlev) # Molar concentration of dry gas
 		self.xv 			= np.zeros(self.nlev) # Molar concentration of moist gas
 		self.xc 			= np.zeros(self.nlev) # Molar concentration of condensed phase
-		self.mrd 			= np.zeros(self.nlev) # Molar mixing ratio of 'dry' gas (relative to gas phase)
-		self.mrv 			= np.zeros(self.nlev) # Molar mixing ratio of 'condensing' gas (relative to gas)
-		self.mrc			= np.zeros(self.nlev) # Molar mixing ratio of cloud phase (relative to gas)
 		self.ifatm 			= np.zeros(self.nlev) # Defines nth level to which atmosphere is calculated
 		self.cp      		= np.zeros(self.nlev) # Mean heat capacity
 
@@ -96,11 +87,11 @@ class atmos:
 		for vol in self.vol_list.keys():
 		    # Instantiate as zero
 		    self.p_vol[vol]      = np.zeros(self.nlev)
+		    self.pl_vol[vol]     = np.zeros(self.nlev+1)
 		    self.x_gas[vol]      = np.zeros(self.nlev)
 		    self.x_cond[vol]     = np.zeros(self.nlev)
-		    self.mr_gas[vol]     = np.zeros(self.nlev)
-		    self.mr_cond[vol]    = np.zeros(self.nlev)
-		    self.x_ocean[vol]    = 0.
+		    
+		    #self.x_ocean[vol]    = 0.
 
 		    # Surface partial pressures
 		    self.p_vol[vol][0]   = self.ps * vol_list[vol]

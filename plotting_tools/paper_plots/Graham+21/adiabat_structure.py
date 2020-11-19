@@ -32,7 +32,7 @@ Mstar       = 1.0
 distance    = 1.0
 
 # Surface pressure range (Pa)
-P_surf    = 401
+P_surf    = 1e7
 
 # Surface temperature range (K)
 T_surf    = 700
@@ -120,14 +120,14 @@ for vol in vol_list_sorted.keys():
     if atm.vol_list[vol] > 1e-10:
 
       # Plot partial pressures
-        ax1.semilogy(atm.tmp, atm.p_vol[vol]/1e+5, color=ga.vol_colors[vol][4], lw=1.5, ls="--",alpha=0.99 , label=r'$p$'+ga.vol_latex[vol]) # 
+        ax1.semilogy(atm.tmpl, atm.pl_vol[vol]/1e+5, color=ga.vol_colors[vol][4], lw=1.5, ls="--",alpha=0.99 , label=r'$p$'+ga.vol_latex[vol]) # 
 
         # Saturation vapor pressure for given temperature
         Psat_array = [ ga.p_sat(vol, T)/1e+5 for T in T_sat_array ]
         ax1.semilogy( T_sat_array, Psat_array, lw=1, ls=":", color=ga.vol_colors[vol][4], label=r'$p_\mathrm{sat}$'+ga.vol_latex[vol])
 
-        # Sum up partial pressures
-        p_partial_sum += atm.p_vol[vol]
+        # # Sum up partial pressures
+        # p_partial_sum += atm.pl_vol[vol]
 
         # # Plot individual molar concentrations
         # ax2.semilogy(atm.x_cond[vol],atm.p, color=ga.vol_colors[vol][4], lw=ls_ind, ls="--", label=ga.vol_latex[vol]+" cond.")
@@ -175,12 +175,11 @@ ax1.text(0.12, 0.84, '4', color="k", rotation=0, ha="center", va="center", fonts
 
 # ax1.text(0.95, 0.7, r'$P_\mathrm{surf}$ = '+str(int(atm.ps/1e+5))+" bar\n"+r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="right", va="center", fontsize=fs_m, transform=ax1.transAxes)
 ax1.text(0.835, 0.75, r'$T_\mathrm{s}$ = '+str(int(np.max(atm.ts)))+" K", color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
-ax1.text(0.85, 0.70, r'$P_\mathrm{s}$ = '+str(int(atm.p[-1]/1e+5))+" bar", color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.85, 0.70, r'$P_\mathrm{s}$ = '+str(int(atm.ps/1e+5))+" bar", color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
 
-
-ax1.text(0.808, 0.65, r'$p_\mathrm{s}$N$_2$ = '+str(round(atm.p_vol["N2"][-1]/1e+5))+" bar", color=ga.vol_colors["N2"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
-ax1.text(0.803, 0.60, r'$p_\mathrm{s}$CO$_2$ = '+str(round(atm.p_vol["CO2"][-1]/1e+5))+" bar", color=ga.vol_colors["CO2"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
-ax1.text(0.8145, 0.55, r'$p_\mathrm{s}$H$_2$O = '+str(round(atm.p_vol["H2O"][-1]/1e+5))+" bar", color=ga.vol_colors["H2O"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.808, 0.65, r'$p_\mathrm{s}$N$_2$ = '+str(round(atm.pl_vol["N2"][-1]/1e+5))+" bar", color=ga.vol_colors["N2"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.815, 0.60, r'$p_\mathrm{s}$CO$_2$ = '+str(round(atm.pl_vol["CO2"][-1]/1e+5))+" bar", color=ga.vol_colors["CO2"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.8145, 0.55, r'$p_\mathrm{s}$H$_2$O = '+str(round(atm.pl_vol["H2O"][-1]/1e+5))+" bar", color=ga.vol_colors["H2O"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
 
 ax1.text(0.814, 0.50, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
 
