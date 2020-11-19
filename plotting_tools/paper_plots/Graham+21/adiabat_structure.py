@@ -32,21 +32,21 @@ Mstar       = 1.0
 distance    = 1.0
 
 # Surface pressure range (Pa)
-P_surf    = 306e+5
+P_surf    = "calc"
 
 # Surface temperature range (K)
 T_surf    = 700
 
 # Volatiles considered
 vol_dict    = { 
-              "H2O" :  200e+5/P_surf,
+              "H2O" :  200e+5,
               "NH3" :  0.,
-              "CO2" :  100e+5/P_surf,
-              "CH4" :  0e+5/P_surf,
+              "CO2" :  100e+5,
+              "CH4" :  0e+5,
               "CO"  :  0.,
               "O2"  :  0.,
-              "N2"  :  1e+5/P_surf,
-              "H2"  :  5e+5/P_surf,
+              "N2"  :  1e+5,
+              "H2"  :  0e+5,
             }
 
 # # Set up plot
@@ -119,12 +119,12 @@ for vol in vol_list_sorted.keys():
     # Only if volatile is present
     if atm.vol_list[vol] > 1e-10:
 
-        # Saturation vapor pressure for given temperature
-        Psat_array = [ ga.p_sat(vol, T) for T in T_sat_array ]
-        ax1.semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+ga.vol_latex[vol], lw=ls_ind, ls=":", color=ga.vol_colors[vol][4])
+      # Plot partial pressures
+        ax1.semilogy(atm.tmp, atm.p_vol[vol]/1e+5, color=ga.vol_colors[vol][4], lw=1.5, ls="--",alpha=0.99 , label=r'$p$'+ga.vol_latex[vol]) # 
 
-        # Plot partial pressures
-        ax1.semilogy(atm.tmp, atm.p_vol[vol], color=ga.vol_colors[vol][4], lw=ls_ind, ls="-", label=r'$p$'+ga.vol_latex[vol],alpha=0.99)
+        # Saturation vapor pressure for given temperature
+        Psat_array = [ ga.p_sat(vol, T)/1e+5 for T in T_sat_array ]
+        ax1.semilogy( T_sat_array, Psat_array, lw=1, ls=":", color=ga.vol_colors[vol][4], label=r'$p_\mathrm{sat}$'+ga.vol_latex[vol])
 
         # Sum up partial pressures
         p_partial_sum += atm.p_vol[vol]
@@ -137,7 +137,7 @@ for vol in vol_list_sorted.keys():
 # ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="--", label=r'$\sum p^\mathrm{i}$',alpha=0.99)
 
 # General moist adiabat
-ax1.semilogy(atm.tmpl, atm.pl, color=ga.vol_colors["black_1"], lw=ls_moist,label="General adiabat",alpha=0.99)
+ax1.semilogy(atm.tmpl, atm.pl/1e+5, color=ga.vol_colors["black_1"], lw=2, alpha=0.99) # ,label="General adiabat"
 
 # # Phase molar concentrations
 # ax2.semilogy(atm.xd+atm.xv,atm.p, color=ga.vol_colors["black_2"], lw=ls_ind, ls=":", label=r"Gas phase")
@@ -149,20 +149,33 @@ fs_m = 14
 fs_s = 12
 
 ax1.invert_yaxis()
-ax1.set_xlabel(r'Temperature, $T$ (K)', fontsize=fs_l)
-ax1.set_ylabel(r'Pressure, $P$ (Pa)', fontsize=fs_l)
+ax1.set_xlabel(r'Temperature $T$ (K)', fontsize=fs_l)
+ax1.set_ylabel(r'Pressure $P$ (bar)', fontsize=fs_l)
 # ax1.set_title('Adiabats & individual Clausius-Clapeyron slopes', fontsize=fs_l)
-ax1.legend(loc=1, ncol=np.min([len(atm.vol_list)+1,2]), fontsize=fs_s)
+ax1.legend(loc=1, ncol=3, fontsize=fs_s)
 ax1.set_xlim([0,np.max(atm.ts)])
 
-ax1.set_ylim(top=atm.ptop)
-ax1.set_ylim(bottom=atm.ps)
+ax1.set_ylim(top=atm.ptop/1e+5)
+ax1.set_ylim(bottom=atm.ps/1e+5)
 
 ax1.tick_params(axis='both', which='major', labelsize=fs_m)
 ax1.tick_params(axis='both', which='minor', labelsize=fs_m)
 
-ax1.text(0.02, 0.015, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="left", va="bottom", fontsize=fs_m, transform=ax1.transAxes)
+# ax1.text(0.02, 0.015, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="left", va="bottom", fontsize=fs_m, transform=ax1.transAxes)
 # fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
+
+ax1.text(0.40, 0.33, r'Pseudoadiabat', color="k", rotation=-35, ha="center", va="center", fontsize=fs_l, transform=ax1.transAxes)
+
+
+ax1.text(1.0, 0.03, '1', color="k", rotation=0, ha="center", va="center", fontsize=fs_s, transform=ax1.transAxes, bbox=dict(boxstyle="Round, pad=0.15", fc="white", ec="k", lw=1, alpha=0.99))
+ax1.text(0.73, 0.04, '2', color="k", rotation=0, ha="center", va="center", fontsize=fs_s, transform=ax1.transAxes, bbox=dict(boxstyle="Round, pad=0.15", fc="white", ec="k", lw=1, alpha=0.99))
+ax1.text(0.23, 0.39, '3', color="k", rotation=0, ha="center", va="center", fontsize=fs_s, transform=ax1.transAxes, bbox=dict(boxstyle="Round, pad=0.15", fc="white", ec="k", lw=1, alpha=0.99))
+ax1.text(0.12, 0.84, '4', color="k", rotation=0, ha="center", va="center", fontsize=fs_s, transform=ax1.transAxes, bbox=dict(boxstyle="Round, pad=0.15", fc="white", ec="k", lw=1, alpha=0.99))
+
+# ax1.text(0.95, 0.7, r'$P_\mathrm{surf}$ = '+str(int(atm.ps/1e+5))+" bar\n"+r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="right", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.85, 0.7, r'$P_\mathrm{surf}$ = '+str(int(atm.ps/1e+5))+" bar", color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.83, 0.65, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+
 
 sns.despine()
 
