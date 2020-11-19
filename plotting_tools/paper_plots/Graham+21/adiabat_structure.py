@@ -39,7 +39,7 @@ T_surf    = 700
 
 # Volatiles considered
 vol_dict    = { 
-              "H2O" :  200e+5,
+              "H2O" :  300e+5,
               "NH3" :  0.,
               "CO2" :  100e+5,
               "CH4" :  0e+5,
@@ -152,7 +152,8 @@ ax1.invert_yaxis()
 ax1.set_xlabel(r'Temperature $T$ (K)', fontsize=fs_l)
 ax1.set_ylabel(r'Pressure $P$ (bar)', fontsize=fs_l)
 # ax1.set_title('Adiabats & individual Clausius-Clapeyron slopes', fontsize=fs_l)
-ax1.legend(loc=1, ncol=3, fontsize=fs_s)
+l1 = ax1.legend(loc=1, ncol=3, fontsize=fs_s, title="Partial pressures and saturation vapor curves")
+plt.setp(l1.get_title(),fontsize=fs_s)
 ax1.set_xlim([0,np.max(atm.ts)])
 
 ax1.set_ylim(top=atm.ptop/1e+5)
@@ -164,7 +165,7 @@ ax1.tick_params(axis='both', which='minor', labelsize=fs_m)
 # ax1.text(0.02, 0.015, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="left", va="bottom", fontsize=fs_m, transform=ax1.transAxes)
 # fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
 
-ax1.text(0.40, 0.33, r'Pseudoadiabat', color="k", rotation=-35, ha="center", va="center", fontsize=fs_l, transform=ax1.transAxes)
+ax1.text(0.40, 0.333, r'Pseudoadiabat', color="k", rotation=-34.5, ha="center", va="center", fontsize=fs_l, transform=ax1.transAxes)
 
 
 ax1.text(1.0, 0.03, '1', color="k", rotation=0, ha="center", va="center", fontsize=fs_s, transform=ax1.transAxes, bbox=dict(boxstyle="Round, pad=0.15", fc="white", ec="k", lw=1, alpha=0.99))
