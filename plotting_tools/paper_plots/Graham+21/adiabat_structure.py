@@ -32,21 +32,21 @@ Mstar       = 1.0
 distance    = 1.0
 
 # Surface pressure range (Pa)
-P_surf    = "calc"
+P_surf    = 401
 
 # Surface temperature range (K)
 T_surf    = 700
 
 # Volatiles considered
 vol_dict    = { 
-              "H2O" :  300e+5,
+              "H2O" :  300e+5/P_surf,
               "NH3" :  0.,
-              "CO2" :  100e+5,
-              "CH4" :  0e+5,
+              "CO2" :  100e+5/P_surf,
+              "CH4" :  0.,
               "CO"  :  0.,
               "O2"  :  0.,
-              "N2"  :  1e+5,
-              "H2"  :  0e+5,
+              "N2"  :  1e+5/P_surf,
+              "H2"  :  0.,
             }
 
 # # Set up plot
@@ -174,8 +174,15 @@ ax1.text(0.23, 0.39, '3', color="k", rotation=0, ha="center", va="center", fonts
 ax1.text(0.12, 0.84, '4', color="k", rotation=0, ha="center", va="center", fontsize=fs_s, transform=ax1.transAxes, bbox=dict(boxstyle="Round, pad=0.15", fc="white", ec="k", lw=1, alpha=0.99))
 
 # ax1.text(0.95, 0.7, r'$P_\mathrm{surf}$ = '+str(int(atm.ps/1e+5))+" bar\n"+r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="right", va="center", fontsize=fs_m, transform=ax1.transAxes)
-ax1.text(0.85, 0.7, r'$P_\mathrm{surf}$ = '+str(int(atm.ps/1e+5))+" bar", color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
-ax1.text(0.83, 0.65, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.835, 0.75, r'$T_\mathrm{s}$ = '+str(int(np.max(atm.ts)))+" K", color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.85, 0.70, r'$P_\mathrm{s}$ = '+str(int(atm.p[-1]/1e+5))+" bar", color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+
+
+ax1.text(0.808, 0.65, r'$p_\mathrm{s}$N$_2$ = '+str(round(atm.p_vol["N2"][-1]/1e+5))+" bar", color=ga.vol_colors["N2"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.803, 0.60, r'$p_\mathrm{s}$CO$_2$ = '+str(round(atm.p_vol["CO2"][-1]/1e+5))+" bar", color=ga.vol_colors["CO2"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.8145, 0.55, r'$p_\mathrm{s}$H$_2$O = '+str(round(atm.p_vol["H2O"][-1]/1e+5))+" bar", color=ga.vol_colors["H2O"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+
+ax1.text(0.814, 0.50, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
 
 
 sns.despine()
