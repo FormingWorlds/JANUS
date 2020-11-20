@@ -88,17 +88,17 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]): # "set1", "set2",
 
             ############## Tsurf = 700 K
             T_surf          = 700
-            # Maximum late veneer, 2 bar CO2
-            vol_dict        = { 
-                              "H2O" :  500e+5,
-                              "NH3" :  0.07e+5,
-                              "CO2" :  1.3e+5,
-                              "CH4" :  0.1e+5,
-                              "CO"  :  50e+5,
-                              "O2"  :  0.e+5,
-                              "N2"  :  0.07e+5,
-                              "H2"  :  50e+5,
-                            }
+            # # Maximum late veneer, 2 bar CO2
+            # vol_dict        = { 
+            #                   "H2O" :  500e+5,
+            #                   "NH3" :  0.07e+5,
+            #                   "CO2" :  1.3e+5,
+            #                   "CH4" :  0.1e+5,
+            #                   "CO"  :  50e+5,
+            #                   "O2"  :  0.e+5,
+            #                   "N2"  :  0.07e+5,
+            #                   "H2"  :  50e+5,
+            #                 }
             # # Maximum late veneer, 50 bar CO2
             # vol_dict        = { 
             #                   "H2O" :  500e+5,
@@ -121,17 +121,17 @@ for set_idx, setting in enumerate([ "set1", "set2", "set3" ]): # "set1", "set2",
             #                   "N2"  :  0.3e+5,
             #                   "H2"  :  2e+5,
             #                 }
-            # # Vesta, 50 bar CO2
-            # vol_dict        = { 
-            #                   "H2O" :  500e+5,
-            #                   "NH3" :  0.007e+5,
-            #                   "CO2" :  48e+5,
-            #                   "CH4" :  1e+5,
-            #                   "CO"  :  0.05e+5,
-            #                   "O2"  :  0e+5,
-            #                   "N2"  :  1e+5,
-            #                   "H2"  :  8e+5,
-            #                 }
+            # Vesta, 50 bar CO2
+            vol_dict        = { 
+                              "H2O" :  500e+5,
+                              "NH3" :  0.007e+5,
+                              "CO2" :  48e+5,
+                              "CH4" :  1e+5,
+                              "CO"  :  0.05e+5,
+                              "O2"  :  0e+5,
+                              "N2"  :  1e+5,
+                              "H2"  :  8e+5,
+                            }
 
             # ############## Tsurf = 500 K
             # T_surf          = 500
