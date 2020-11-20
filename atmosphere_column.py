@@ -16,7 +16,8 @@ class atmos:
 		if (type(P_surf) == str) or (type(P_surf) == float and P_surf <= 0.):
 			P_surf          = sum(vol_list.values())
 			print("Calculate mixing ratios from partial pressures.")
-			print("P_surf:", P_surf, "p_i:", vol_list, end=" ")
+			print("P_surf:", P_surf)
+			print("p_i:", vol_list)
 			for vol in vol_list.keys():
 				vol_list[vol] = vol_list[vol]/P_surf
 			print("x_i:", vol_list)

@@ -29,7 +29,7 @@ plt.subplots_adjust(top = 0.99, bottom=0.01, hspace=0.2, wspace=0.2)
 sns.despine()
 
 # Line settings
-col_idx  = 4
+col_idx  = 5
 col_vol = "H2O"
 
 ls_list = [ "-", "--", ":", "-." ]
@@ -44,7 +44,6 @@ dirs =  {
             }
 
 #### LOOP OVER PARAMETERS
-
 for set_idx, setting in enumerate([ "set1", "set2", "set3" ]): # "set1", "set2", "set3"
 
     # Retained condensate fraction

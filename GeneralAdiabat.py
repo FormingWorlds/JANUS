@@ -48,7 +48,7 @@ vol_colors = {
     "CO"             : cm.get_cmap("pink_r", no_colors)(range(no_colors)),
     "S"              : cm.get_cmap("YlOrBr", no_colors)(range(no_colors)),
     "He"             : cm.get_cmap("Greys", no_colors)(range(no_colors)),
-    "NH3"            : cm.get_cmap("cool", no_colors)(range(no_colors)),
+    "NH3"            : cm.get_cmap("summer", no_colors)(range(no_colors)),
     "mixtures"       : cm.get_cmap("Set3", 9)(range(no_colors)),
     "H2O-CO2"        : cm.get_cmap("Set3", 9)(range(no_colors))[1],
     "CO2-H2O"        : cm.get_cmap("Set3", 9)(range(no_colors))[1],
