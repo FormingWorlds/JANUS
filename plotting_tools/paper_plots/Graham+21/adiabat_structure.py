@@ -162,7 +162,7 @@ ax1.set_ylim(bottom=atm.ps/1e+5)
 ax1.tick_params(axis='both', which='major', labelsize=fs_m)
 ax1.tick_params(axis='both', which='minor', labelsize=fs_m)
 
-# ax1.text(0.02, 0.015, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="left", va="bottom", fontsize=fs_m, transform=ax1.transAxes)
+ax1.text(0.02, 0.015, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="left", va="bottom", fontsize=fs_m, transform=ax1.transAxes)
 # fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
 
 ax1.text(0.40, 0.333, r'Pseudoadiabat', color="k", rotation=-34.5, ha="center", va="center", fontsize=fs_l, transform=ax1.transAxes)
@@ -180,8 +180,7 @@ ax1.text(0.85, 0.70, r'$P_\mathrm{s}$ = '+str(int(atm.ps/1e+5))+" bar", color="k
 ax1.text(0.808, 0.65, r'$p_\mathrm{s}$N$_2$ = '+str(round(atm.pl_vol["N2"][-1]/1e+5))+" bar", color=ga.vol_colors["N2"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
 ax1.text(0.815, 0.60, r'$p_\mathrm{s}$CO$_2$ = '+str(round(atm.pl_vol["CO2"][-1]/1e+5))+" bar", color=ga.vol_colors["CO2"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
 ax1.text(0.8145, 0.55, r'$p_\mathrm{s}$H$_2$O = '+str(round(atm.pl_vol["H2O"][-1]/1e+5))+" bar", color=ga.vol_colors["H2O"][4], rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
-
-ax1.text(0.814, 0.50, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
+# ax1.text(0.814, 0.50, r'$\alpha_\mathrm{c}$ = %.1f'%atm.alpha_cloud, color="k", rotation=0, ha="center", va="center", fontsize=fs_m, transform=ax1.transAxes)
 
 
 sns.despine()
