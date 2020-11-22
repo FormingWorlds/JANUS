@@ -198,7 +198,7 @@ molar_mass      = {
 def atm_z(atm, idx):
 
     # Mean temperature below
-    T_mean_down = np.mean( atm.tmp[:idx+1] )
+    #T_mean_down = np.mean( atm.tmp[:idx+1] )
 
     # # Average temperature weighted by amount of substance?
     # T_mean_down = np.average( atm.tmp[:idx+1], weights=)
@@ -207,10 +207,19 @@ def atm_z(atm, idx):
     # atm.mu[idx] = atm.mu[idx]
 
     # print(atm.grav_z[idx], atm.mu[idx], atm.p[idx], atm.p[idx+1])
-
+    dp = atm.p[idx+1]-atm.p[idx]
+    
+    mu_c = 0.
+    if atm.xc[idx] > 0:
+        for vol in atm.vol_list.keys():
+            mu_c += atm.x_cond[vol][idx]*molar_mass[vol] / atm.xc[idx]
+    
     # Integration
-    dz = - phys.R_gas * T_mean_down * np.log(atm.p[idx+1]/atm.p[idx]) / ( atm.mu[idx] * atm.grav_z[idx] )
-
+    #dz = - phys.R_gas * T_mean_down * np.log(atm.p[idx+1]/atm.p[idx]) / ( atm.mu[idx] * atm.grav_z[idx] )
+    atm.rho[idx] =  atm.p[idx]/phys.R_gas/atm.tmp[idx] * ( atm.mu[idx] + mu_c*atm.alpha_cloud*atm.xc[idx]/(atm.xv[idx]+atm.xd[idx]) )
+    dz =  -dp / atm.rho[idx]
+    if dz<0:
+        print(dz)
     # Next height
     atm.z[idx+1] = atm.z[idx] + dz
 
@@ -762,7 +771,7 @@ def general_adiabat( atm ):
     moist_tuple     = [] #[tuple([np.log(atm.ps), atm.ts])] 
    
     # Negative increment to go from ps to ptop < ps       
-    step            = -.01
+    step            = -.001
 
     # Integration counter
     idx             = 0  
@@ -838,7 +847,7 @@ def interpolate_atm(atm):
     atm.xv      = np.flip(np.split(atm.xv, [atm_len, rest_len])[0], axis=0)
     atm.xc      = np.flip(np.split(atm.xc, [atm_len, rest_len])[0], axis=0)
     atm.cp      = np.flip(np.split(atm.cp, [atm_len, rest_len])[0], axis=0)
-    
+    atm.rho     = np.flip(np.split(atm.rho, [atm_len, rest_len])[0], axis=0)
     # Interpolate level-dependent quantities
     atm.grav_z  = np.interp(prs_itp, atm.p, atm.grav_z)
     atm.z       = np.interp(prs_itp, atm.p, atm.z)
@@ -847,7 +856,7 @@ def interpolate_atm(atm):
     atm.xv      = np.interp(prs_itp, atm.p, atm.xv)
     atm.xc      = np.interp(prs_itp, atm.p, atm.xc)
     atm.cp      = np.interp(prs_itp, atm.p, atm.cp)
-    
+    atm.rho     = np.interp(prs_itp, atm.p, atm.rho)
     # Trim & interpolate species-dependent quantities
     for vol in atm.vol_list.keys():
         
@@ -972,15 +981,15 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    P_surf                  = 260e+5       # Pa
-    T_surf                  = 800         # K
+    P_surf                  = 20e+5       # Pa
+    T_surf                  = 300         # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : .33,    # 300e+5/P_surf --> specific p_surf
-                  "CO2" : .33,     # 100e+5/P_surf
+                  "H2O" : 0,    # 300e+5/P_surf --> specific p_surf
+                  "CO2" : 1,     # 100e+5/P_surf
                   "H2"  : .0, 
-                  "N2"  : .34,     # 1e+5/P_surf
+                  "N2"  : .0,     # 1e+5/P_surf
                   "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
@@ -998,5 +1007,5 @@ if __name__ == "__main__":
     atm                     = general_adiabat(atm)
 
     # Plot adiabat
-    plot_adiabats(atm)
+    d to theplot_adiabats(atm)
     

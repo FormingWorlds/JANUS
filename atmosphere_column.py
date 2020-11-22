@@ -27,7 +27,7 @@ class atmos:
 		self.vol_list 		= vol_list		# Names + mixing ratios dict
 
 		self.ptop 			= 1 			# Top pressure in Pa
-		self.nlev 			= 10000  	   	# Number of vertical levels for adiabat integration
+		self.nlev 			= 100000  	   	# Number of vertical levels for adiabat integration
 		self.nlev_save		= 100   		# Number of levels to save object
 		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
 		self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
@@ -71,6 +71,7 @@ class atmos:
 		self.xd 			= np.zeros(self.nlev) # Molar concentration of dry gas
 		self.xv 			= np.zeros(self.nlev) # Molar concentration of moist gas
 		self.xc 			= np.zeros(self.nlev) # Molar concentration of condensed phase
+		self.rho            = np.zeros(self.nlev) # Density of atmosphere at a given level
 		self.ifatm 			= np.zeros(self.nlev) # Defines nth level to which atmosphere is calculated
 		self.cp      		= np.zeros(self.nlev) # Mean heat capacity
 
