@@ -450,53 +450,6 @@ def dry_adiabat_pressure( P_surf, T_array, cp_array ):
             P_dry[idx] = P_surf * ( tmp / T_surf ) ** ( cp_array[idx] / phys.R_gas  )
 
     return P_dry
-# dlnT/dlnP_d, the T-P slope of the non-condensable component of the atmosphere described
-# by the general adiabat
-def dry_component_slope(lnPd,lnT,atm):
-    # T instead lnT
-    tmp = math.exp(lnT)
-
-    # Find current atm index
-    idx = int(np.amax(atm.ifatm))
-
-    # Sum terms in equation
-    num_sum     = 0.
-    denom_sum1  = 0. 
-    denom_sum2  = 0.
-    cp_sum      = 0.
-    
-    # Calculate sums over volatiles
-    for vol in atm.vol_list.keys(): 
-        
-        # Coefficients
-        eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
-        beta_vol    = L_heat(vol, tmp, atm.p_vol[vol][idx]) / (phys.R_gas * tmp) 
-
-        # Beta terms zero if below saturation vapor pressure
-        if atm.p_vol[vol][idx] < p_sat(vol, tmp): beta_vol = 0.
-
-        # Sum in numerator
-        num_sum     += eta_vol * beta_vol
-
-        # Sums in denominator
-        denom_sum1  += eta_vol * (beta_vol**2.)
-        denom_sum2  += -eta_vol * beta_vol
-        
-        # Adding gaseous cp terms
-        cp_sum += eta_vol * cpv(vol, tmp)
-        
-        # Adding condensate cp terms
-        if atm.x_cond[vol][idx] > 0:
-            cp_sum += atm.alpha_cloud * atm.x_cond[vol][idx] / atm.xd[idx] * cp_cond(vol, tmp)
-            
-    # Collect terms
-    numerator   = 1. + num_sum
-    denominator = (cp_sum / phys.R_gas) + denom_sum1 + denom_sum2
-
-    # dlnT/dlnP_d
-    dlnTdlnP_d = numerator / denominator
-    
-    return dlnTdlnP_d
 
 
 # dlnT/dlnP slope function 
@@ -1007,5 +960,5 @@ if __name__ == "__main__":
     atm                     = general_adiabat(atm)
 
     # Plot adiabat
-    d to theplot_adiabats(atm)
+    plot_adiabats(atm)
     
