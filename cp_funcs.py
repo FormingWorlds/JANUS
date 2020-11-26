@@ -8,10 +8,11 @@ import numpy as np
 import phys
 # Temperature-dependent molar gas phase heat capacities (J K-1 mol-1)
 # https://webbook.nist.gov/chemistry/
+# Choose cp functions
+cp_mode = "constant"    # RTP book
 def cpv( vol, tmp ):
 
-    # Choose cp functions
-    cp_mode = "constant"    # RTP book
+    
     # cp_mode = "T-dependent" # NIST Chemistry WebBook
 
     if cp_mode == "T-dependent":
@@ -224,10 +225,15 @@ def cp_cond( vol, tmp ):
         #    cp_idx = 1
         tmp = np.max([tmp, 298]) # Fit validity
         tmp = np.min([tmp,500])
-        t = tmp/1000.
+        if cp_mode != 'constant':  
+            t = tmp/1000.
+        else:
+            t = 298./1000
         cp = A[cp_idx] + B[cp_idx]*t + C[cp_idx]*t**2. + D[cp_idx]*t**3. + E[cp_idx]/t**2.
-    
+          
         return cp # J mol-1 K-1
+        
+        
     # http://www.r744.com/files/pdf_088.pdf
     if vol == "CO2":
         cp_mass = 2048 #J/kg/K <- an uncited value provided in a pdf I found online (see above url); there must be better data on this
@@ -237,7 +243,11 @@ def cp_cond( vol, tmp ):
     
     # https://www.osti.gov/etdeweb/servlets/purl/20599211; KAERI Liquid Hydrogen Properties
     if vol == "H2":
-        specific_heat_mass_units=14.43877-1.691*tmp + 0.10687*tmp**2-0.00174*tmp**3#J/g/K
+        if cp_mode != 'constant':  
+            t = tmp
+        else:
+            t = 10.
+        specific_heat_mass_units=14.43877-1.691*t + 0.10687*t**2-0.00174*t**3#J/g/K
         return specific_heat_mass_units*2.02#J/K/mol
     
     # Perkins et al 1991: THE THERMAL CONDUCTIVITY AND HEAT CAPACITY OF FLUID NITROGEN
@@ -269,7 +279,6 @@ def cp_cond( vol, tmp ):
     #     return mass_specific_heat_capacity*(17.031) #J/k/mol
 
     # https://www.engineeringtoolbox.com/ammonia-heat-capacity-specific-temperature-pressure-Cp-Cv-d_2016.html#:~:text=At%20ambient%20pressure%20and%20temperature,%5Bcal%2Fg%20K%5D.
-    # ! APPLY FIT !
     if vol == "NH3":
-        return 4.2239/1000. # J/K/mol
+        return 81.465 # J/K/mol at 298 K
       
