@@ -258,7 +258,7 @@ for set_idx, setting in enumerate([ "case1", "case2", "case3" ]): # "case1", "ca
     axes[n,0].set_xlabel('Temperature\n'+r'$T$ (K)', fontsize=fs_m) 
     axes[n,1].set_xlabel('Molar concentration\n$X^{\mathrm{i}}_{\mathrm{phase}}$ (non-dim.)', fontsize=fs_m)
     axes[n,2].set_xlabel('Molar mass\n'+r'$\mu$ (g mol$^{-1}$)',fontsize=fs_m)
-    axes[n,3].set_xlabel('Specific heat\n'+r'c$_p$ (J K$^{-1}$ mol$^{-1}$)',fontsize=fs_m)
+    axes[n,3].set_xlabel('Specific heat\n'+r'$\widehat{\rm c_p}$ (J K$^{-1}$ mol$^{-1}$)',fontsize=fs_m)
 
     # Line styles
     axes[0,0].semilogy([0,0],[0,0], color=ga.vol_colors["black_3"], lw=ls_ind, ls="-", label=r'$p^i$')
