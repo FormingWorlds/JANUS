@@ -7,7 +7,6 @@ Created on Tue Jul 14 13:44:49 2020
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.integrate as spint
 import os
 #%%
