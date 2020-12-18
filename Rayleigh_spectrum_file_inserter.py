@@ -19,20 +19,20 @@ def species_info(species):
         Delta = 0.0805 #Vardavas and Carver 1984 for CO2
         A = 43.9e-5 #Allen's Astrophysical Quantities (2002) Table 5.2
         B = 6.4e-3 #Allen's
-    
+        mu = 44e-3 #kg/mol
     elif species.lower() == 'n2':
         Delta = 0.0305 #V&C 84 for N2
         A = 29.06e-5 #Allen's Table 5.2
         B = 7.7e-3 #Allen's  Table 5.2
-    
-    return A, B, Delta
+        mu = 28e-3 #kg/mol
+    return A, B, Delta, mu
 
 # Function for calculating raleigh scattering coefficient at a given wavelength 
 # for a species w/ given index of refraction info (info which is obtained from species_info function)
-def cross_section(wavelength, A, B, Delta):#wavelength in m 
-    microns = wavelength*10**6
-    delta = (6+3*Delta)/(6-7*Delta) #V&C 1984      
-    coefficient = 4.577e-21*delta/microns**4 * (A*(1+B/microns**2))**2 *(10**-4 * 6.022e23/44e-3) #V&C 1984; m^2/kg
+def cross_section(wavelength, A, B, Delta, mu):#wavelength in m 
+    microns = wavelength * 10**6
+    delta = (6+3*Delta)/(6-7*Delta) #V&C 1984
+    coefficient = 4.577e-21 * delta/microns ** 4 * (A * (1 + B / microns**2)) ** 2 * (10**-4 * 6.022e23) / mu #V&C 1984; m^2/kg
     return coefficient
 
 
