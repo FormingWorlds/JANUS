@@ -8,7 +8,11 @@ Plotting script for cases 1–3
 
 import numpy as np
 import matplotlib.pyplot as plt
+#import os
+#os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv')
 import GeneralAdiabat as ga
+#os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv/plotting_tools/paper_plots/Graham+21')
+
 from matplotlib import cm
 import seaborn as sns
 from atmosphere_column import atmos
@@ -20,6 +24,7 @@ ls_ind      = 1.5
 
 #### LOOP OVER CASES
 for set_idx, setting in enumerate([ "case1", "case2", "case3" ]): # "case1", "case2", "case3"
+    #for set_idx, setting in enumerate([ "case1"]):#, "case2", "case3" ]): # "case1", "case2", "case3"
 
     ### Initial conditions in three settings
 
@@ -173,12 +178,14 @@ for set_idx, setting in enumerate([ "case1", "case2", "case3" ]): # "case1", "ca
             if atm.vol_list[vol] > 1e-10:
         
                 # Saturation vapor pressure for given temperature
-                Psat_array = [ ga.p_sat(vol, T)/1e+5 for T in T_sat_array ]
-                axes[n,0].semilogy( T_sat_array, Psat_array, lw=ls_ind, ls=":", color=ga.vol_colors[vol][4]) # , label=r'$p_\mathrm{sat}$'+ga.vol_latex[vol]
+                #Psat_array = [ ga.p_sat(vol, T)/1e+5 for T in T_sat_array ]
+                #axes[n,0].semilogy( T_sat_array, Psat_array, lw=ls_ind, ls=":", color=ga.vol_colors[vol][4]) # , label=r'$p_\mathrm{sat}$'+ga.vol_latex[vol]
         
                 # Plot partial pressures
-                axes[n,0].semilogy(atm.tmp, atm.p_vol[vol]/1e+5, color=ga.vol_colors[vol][4], lw=ls_ind, ls="-",alpha=0.99) # , label=r'$p$'+ga.vol_latex[vol]
-        
+                #axes[n,0].semilogy(atm.tmp, atm.p_vol[vol]/1e+5, color=ga.vol_colors[vol][4], lw=ls_ind, ls="-",alpha=0.99) # , label=r'$p$'+ga.vol_latex[vol]
+                
+                # Plot dew-point temperatures as functions of pressure, given the partial pressure for a given species at a given pressure level
+                axes[n,0].semilogy(np.vectorize(ga.Tdew)(vol,atm.pl_vol[vol]),atm.pl/1e+5, color = ga.vol_colors[vol][4], lw = ls_ind, ls='-',alpha=0.99)
                 # Sum up partial pressures
                 p_partial_sum += atm.p_vol[vol]
         
@@ -261,7 +268,7 @@ for set_idx, setting in enumerate([ "case1", "case2", "case3" ]): # "case1", "ca
     axes[n,3].set_xlabel('Specific heat\n'+r'$\widehat{\rm c_p}$ (J K$^{-1}$ mol$^{-1}$)',fontsize=fs_m)
 
     # Line styles
-    axes[0,0].semilogy([0,0],[0,0], color=ga.vol_colors["black_3"], lw=ls_ind, ls="-", label=r'$p^i$')
+    axes[0,0].semilogy([0,0],[0,0], color=ga.vol_colors["black_3"], lw=ls_ind, ls="-", label=r'$T_{\rm dew}^i$')
     axes[0,0].semilogy([0,0],[0,0], color=ga.vol_colors["black_3"], lw=ls_ind, ls=":", label=r'$p_\mathrm{sat}$')
     axes[0,0].legend(fontsize=fs_s, ncol=1, loc=1)#, title=r"$\alpha_\mathrm{c}$")
     axes[0,1].semilogy([0,0],[0,0], color=ga.vol_colors["black_3"], lw=ls_ind, ls="-", label=r'$x^i_\mathrm{v}$')
