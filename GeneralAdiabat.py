@@ -265,9 +265,15 @@ def Tdew(switch, p):
     p = np.max([p, 1e-100])
 
     if switch == 'H2O':
-        Tref = 373.15 # K, boiling point of H2O at 1 atm 
-        pref = 1e5 # esat('H2O',Tref) returns 121806.3 Pa, should return 1e5       
-        L_H2O=phys.water.L_vaporization*phys.water.MolecularWeight*1e-3
+        p_triple = 611.657 # Pa
+        if p > p_triple:
+            Tref = 373.15 # K, boiling point of H2O at 1 atm 
+            pref = 1e5 # esat('H2O',Tref) returns 121806.3 Pa, should return 1e5    
+            L_H2O=phys.water.L_vaporization*phys.water.MolecularWeight*1e-3
+        else:
+            Tref = 273.15 #K triple point temperature of H2O
+            pref = p_triple #triple point pressure of H2O
+            L_H2O=phys.water.L_sublimation*phys.water.MolecularWeight*1e-3
         return Tref/(1.-(Tref*phys.R_gas/L_H2O)*math.log(p/pref))
         #return (B(p)/(A(p)-numpy.log10(p/pref)))-C(p)
     if switch == 'CH4':
@@ -276,9 +282,15 @@ def Tdew(switch, p):
         L_CH4=phys.CH4.L_vaporization*phys.methane.MolecularWeight*1e-3
         return Tref/(1.-(Tref*phys.R_gas/L_CH4)*math.log(p/pref))
     if switch == 'CO2':
-        Tref = 253. # K, arbitrary point (253K,esat(253K)=20.9bar) on the coexistence curve of CO2 
-        pref = p_sat('CO2',Tref)
-        L_CO2=phys.CO2.L_vaporization*phys.co2.MolecularWeight*1e-3
+        p_triple = 5.11e5
+        if p > p_triple:
+            Tref = 253. # K, arbitrary point (253K,esat(253K)=20.9bar) on the coexistence curve of CO2 
+            pref = p_sat('CO2',Tref)
+            L_CO2=phys.CO2.L_vaporization*phys.co2.MolecularWeight*1e-3
+        else:
+            Tref = 216.58 # K; triple point
+            pref = p_triple
+            L_CO2 = phys.CO2.L_sublimation*phys.co2.MolecularWeight*1e-3
         return Tref/(1.-(Tref*phys.R_gas/L_CO2)*math.log(p/pref))
     if switch == 'CO':
         Tref = 100. # K, arbitrary point (100K,esat(100K)=4.6bar) on the coexistence curve of CO 
