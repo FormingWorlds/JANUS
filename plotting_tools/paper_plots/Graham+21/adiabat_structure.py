@@ -10,10 +10,13 @@ import pickle as pkl
 import json
 import glob, re, os
 import seaborn as sns
+import os
+os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv')
 import phys
 import GeneralAdiabat as ga
-import SocRadModel
-import SocRadConv
+#import SocRadModel
+#import SocRadConv
+os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv/plotting_tools/paper_plots/Graham+21')
 from atmosphere_column import atmos
 
 
@@ -120,12 +123,15 @@ for vol in vol_list_sorted.keys():
     if atm.vol_list[vol] > 1e-10:
 
       # Plot partial pressures
-        ax1.semilogy(atm.tmpl, atm.pl_vol[vol]/1e+5, color=ga.vol_colors[vol][4], lw=1.5, ls="--",alpha=0.99 , label=r'$p$'+ga.vol_latex[vol]) # 
+        #ax1.semilogy(atm.tmpl, atm.pl_vol[vol]/1e+5, color=ga.vol_colors[vol][4], lw=1.5, ls="--",alpha=0.99 , label=r'$p$'+ga.vol_latex[vol]) # 
 
         # Saturation vapor pressure for given temperature
-        Psat_array = [ ga.p_sat(vol, T)/1e+5 for T in T_sat_array ]
-        ax1.semilogy( T_sat_array, Psat_array, lw=1, ls=":", color=ga.vol_colors[vol][4], label=r'$p_\mathrm{sat}$'+ga.vol_latex[vol])
-
+        #Psat_array = [ ga.p_sat(vol, T)/1e+5 for T in T_sat_array ]
+        #ax1.semilogy( T_sat_array, Psat_array, lw=1, ls=":", color=ga.vol_colors[vol][4], label=r'$p_\mathrm{sat}$'+ga.vol_latex[vol])
+        
+        # Plot dew-point temperatures as functions of pressure, given the partial pressure for a given species at a given pressure level
+        ax1.semilogy(np.vectorize(ga.Tdew)(vol,atm.pl_vol[vol]),atm.pl/1e+5, color = ga.vol_colors[vol][4], lw = ls_ind, ls='-',alpha=0.99, label=r'$T_{\rm dew}$'+ga.vol_latex[vol])
+                
         # # Sum up partial pressures
         # p_partial_sum += atm.pl_vol[vol]
 
@@ -152,7 +158,7 @@ ax1.invert_yaxis()
 ax1.set_xlabel(r'Temperature $T$ (K)', fontsize=fs_l)
 ax1.set_ylabel(r'Pressure $P$ (bar)', fontsize=fs_l)
 # ax1.set_title('Adiabats & individual Clausius-Clapeyron slopes', fontsize=fs_l)
-l1 = ax1.legend(loc=1, ncol=3, fontsize=fs_s, title="Partial pressures and saturation vapor curves")
+l1 = ax1.legend(loc=1, ncol=3, fontsize=fs_s, title="Dew point temperatures")
 plt.setp(l1.get_title(),fontsize=fs_s)
 ax1.set_xlim([0,np.max(atm.ts)])
 
@@ -184,6 +190,6 @@ ax1.text(0.8145, 0.55, r'$p_\mathrm{s}$H$_2$O = '+str(round(atm.pl_vol["H2O"][-1
 
 
 sns.despine()
-
-plt.savefig(dirs["output"]+"adiabat_structure.pdf", bbox_inches="tight")
-plt.close(fig)
+plt.show()
+#plt.savefig(dirs["output"]+"adiabat_structure.pdf", bbox_inches="tight")
+#plt.close(fig)
