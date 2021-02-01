@@ -27,11 +27,27 @@ def radCompSoc(atm, dirs, recalc, calc_cf):
     # Enable or disable calculating contribution function
     # ENABLE RIGHT ENVIRONMENT IN TERMINAL FIRST
     # calc_cf = False
-
+    molar_mass      = {
+              "H2O" : 0.01801528,           # kg mol−1
+              "CO2" : 0.04401,              # kg mol−1
+              "H2"  : 0.00201588,           # kg mol−1
+              "CH4" : 0.01604,              # kg mol−1
+              "CO"  : 0.02801,              # kg mol−1
+              "N2"  : 0.028014,             # kg mol−1
+              "O2"  : 0.031999,             # kg mol−1
+              "SO2" : 0.064066,             # kg mol−1
+              "H2S" : 0.0341,               # kg mol−1 
+              "H"   : 0.001008,             # kg mol−1 
+              "C"   : 0.012011,             # kg mol−1 
+              "O"   : 0.015999,             # kg mol−1 
+              "N"   : 0.014007,             # kg mol−1 
+              "S"   : 0.03206,              # kg mol−1 
+              "He"  : 0.0040026,            # kg mol−1 
+              "NH3" : 0.017031,             # kg mol−1 
+            }
     # Define path to spectral file
-    # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_all_2020/sp_spider"
-    # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_318_hitran_200414/sp_all_318_hitran"
-    spectral_file = dirs["rad_conv"]+"/spectral_files/sp_318_hitran_200427/sp_all_318"
+    # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_318_hitran_200427/sp_all_318"
+    spectral_file = dirs["rad_conv"]+"/spectral_files/sp_b318_HITRAN_a16/sp_b318_HITRAN_a16"
 
     # # Enable cf SOCRATES environment
     # if calc_cf == True:
@@ -65,13 +81,38 @@ def radCompSoc(atm, dirs, recalc, calc_cf):
     nctools.ncout3d('profile.t', 0, 0,   atm.p,  atm.tmp, 't', longname="Temperature", units='K')
     nctools.ncout3d('profile.tl', 0, 0,  atm.pl, atm.tmpl, 'tl', longname="Temperature", units='K')
     nctools.ncout3d('profile.p', 0, 0,   atm.p,  atm.p, 'p', longname="Pressure", units='PA')
-    nctools.ncout3d('profile.q', 0, 0,   atm.p,  atm.x_gas["H2O"], 'q', longname="q", units='PPMV') 
-    nctools.ncout3d('profile.co2', 0, 0, atm.p,  atm.x_gas["CO2"], 'co2', longname="CO2", units='PPMV') 
-    nctools.ncout3d('profile.co', 0, 0,  atm.p,  atm.x_gas["CO"], 'co', longname="CO", units='PPMV') 
-    nctools.ncout3d('profile.ch4', 0, 0, atm.p,  atm.x_gas["CH4"], 'ch4', longname="CH4", units='PPMV') 
-    nctools.ncout3d('profile.h2', 0, 0,  atm.p,  atm.x_gas["H2"], 'h2', longname="H2", units='PPMV') 
-    nctools.ncout3d('profile.n2', 0, 0,  atm.p,  atm.x_gas["N2"], 'n2', longname="N2", units='PPMV') 
-    nctools.ncout3d('profile.o2', 0, 0,  atm.p,  atm.x_gas["O2"], 'o2', longname="O2", units='PPMV')
+    nctools.ncout3d('profile.q', 0, 0,   atm.p,  molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
+    if "CO2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.co2', 0, 0, atm.p,  molar_mass['CO2'] / atm.mu * atm.x_gas["CO2"], 'co2', longname="CO2", units='kg/kg') 
+    if "O3" in atm.vol_list.keys():
+        nctools.ncout3d('profile.o3', 0, 0,  atm.p,  molar_mass['O3'] / atm.mu * atm.x_gas["O3"], 'o3', longname="O3", units='kg/kg') 
+    if "N2O" in atm.vol_list.keys():
+        nctools.ncout3d('profile.n2o', 0, 0,  atm.p,  molar_mass['N2O'] / atm.mu * atm.x_gas["N2O"], 'n2o', longname="N2O", units='kg/kg') 
+    if "CO" in atm.vol_list.keys():
+        nctools.ncout3d('profile.co', 0, 0,  atm.p,  molar_mass['CO'] / atm.mu * atm.x_gas["CO"], 'co', longname="CO", units='kg/kg') 
+    if "CH4" in atm.vol_list.keys():
+        nctools.ncout3d('profile.ch4', 0, 0, atm.p,  molar_mass['CH4'] / atm.mu * atm.x_gas["CH4"], 'ch4', longname="CH4", units='kg/kg') 
+    if "O2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.o2', 0, 0,  atm.p,  molar_mass['O2'] / atm.mu * atm.x_gas["O2"], 'o2', longname="O2", units='kg/kg')
+    if "NO" in atm.vol_list.keys():
+        nctools.ncout3d('profile.no', 0, 0,  atm.p,  molar_mass['NO'] / atm.mu * atm.x_gas["NO"], 'no', longname="NO", units='kg/kg') 
+    if "SO2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.so2', 0, 0,  atm.p,  molar_mass['SO2'] / atm.mu * atm.x_gas["SO2"], 'so2', longname="SO2", units='kg/kg') 
+    if "NO2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.no2', 0, 0,  atm.p,  molar_mass['NO2'] / atm.mu * atm.x_gas["NO2"], 'no2', longname="NO2", units='kg/kg') 
+    if "NH3" in atm.vol_list.keys():
+        nctools.ncout3d('profile.nh3', 0, 0,  atm.p,  molar_mass['NH3'] / atm.mu * atm.x_gas["NH3"], 'nh3', longname="NH3", units='kg/kg') 
+    if "HNO3" in atm.vol_list.keys():
+        nctools.ncout3d('profile.hno3', 0, 0,  atm.p,  molar_mass['HNO3'] / atm.mu * atm.x_gas["HNO3"], 'hno3', longname="HNO3", units='kg/kg')
+    if "N2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.n2', 0, 0,  atm.p,  molar_mass['N2'] / atm.mu * atm.x_gas["N2"], 'n2', longname="N2", units='kg/kg') 
+    if "H2" in atm.vol_list.keys():
+        nctools.ncout3d('profile.h2', 0, 0,  atm.p,  molar_mass['H2'] / atm.mu * atm.x_gas["H2"], 'h2', longname="H2", units='kg/kg')
+    if "He" in atm.vol_list.keys():
+        nctools.ncout3d('profile.he', 0, 0,  atm.p,  molar_mass['He'] / atm.mu * atm.x_gas["He"], 'he', longname="He", units='kg/kg')
+    if "OCS" in atm.vol_list.keys():
+        nctools.ncout3d('profile.ocs', 0, 0,  atm.p,  molar_mass['OCS'] / atm.mu * atm.x_gas["OCS"], 'ocs', longname="OCS", units='kg/kg')
+    
     enablePrint()
 
     basename = 'profile'
