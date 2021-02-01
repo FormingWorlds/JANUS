@@ -10,12 +10,24 @@ class atmos:
 	Atmosphere class
 	'''
 	def __init__(self, T_surf, P_surf, vol_list):
+		self.alpha_cloud 	= 0.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
+
+		# If vol_list is given in partial pressures, calculate mixing ratios
+		if (type(P_surf) == str) or (type(P_surf) == float and P_surf <= 0.):
+			P_surf          = sum(vol_list.values())
+			print("Calculate mixing ratios from partial pressures.")
+			print("P_surf:", P_surf)
+			print("p_i:", vol_list)
+			for vol in vol_list.keys():
+				vol_list[vol] = vol_list[vol]/P_surf
+			print("x_i:", vol_list)
+
 		self.ps 			= P_surf 	 	# Surface pressure, Pa
 		self.ts 			= T_surf		# Surface temperature, K
 		self.vol_list 		= vol_list		# Names + mixing ratios dict
 
 		self.ptop 			= 1 			# Top pressure in Pa
-		self.nlev 			= 10000  	   	# Number of vertical levels for adiabat integration
+		self.nlev 			= 100000  	   	# Number of vertical levels for adiabat integration
 		self.nlev_save		= 100   		# Number of levels to save object
 		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
 		self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
@@ -30,6 +42,10 @@ class atmos:
 		self.albedo_s   	= 0.1 							# surface albedo
 		self.albedo_pl   	= 0.2 							# Bond albedo (scattering)
 		self.zenith_angle  	= 54.55							# solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+ 10: 48.19 (arccos(2/3)), see Cronin 14 (mu = 0.58 -> theta = arccos(0.58) = 54.55) for definitions
+
+		self.planet_mass 	= 5.972e+24 					# kg
+		self.planet_radius 	= 6.3781e+6 					# m
+		self.grav_s 		= 6.67408e-11*self.planet_mass/(self.planet_radius**2) # m s-2
 		
 		self.tmp 			= np.zeros(self.nlev)      		# self.ts*np.ones(self.nlev)
 		self.tmpl 			= np.zeros(self.nlev+1)
@@ -44,28 +60,26 @@ class atmos:
 		self.band_widths 	= np.diff(self.bands)
 		self.nbands 	    = np.size(self.bands)-1
 
-		# Species-dependent quantities
+		# Level-dependent quantities
 		self.p_vol 			= {} # Gas phase partial pressures
+		self.pl_vol 		= {} # Gas phase partial pressures
 		self.x_gas 			= {} # Gas phase molar concentration
 		self.x_cond         = {} # Condensed phase molar concentration
-		self.mr_gas 		= {} # Gas phase molar mixing ratio (relative to all gas)
-		self.mr_cond        = {} # Condensed phase molar mixing ratio (relative to all gas)
-		self.x_ocean		= {} # Surface condensed 'overpressure'
-		
-		# Level-dependent quantities
-		self.xd 			= np.zeros(self.nlev)	# Molar concentration of dry gas
-		self.xv 			= np.zeros(self.nlev)	# Molar concentration of moist gas
-		self.xc 			= np.zeros(self.nlev)	# Molar concentration of condensed phase
-		self.mrd 			= np.zeros(self.nlev)	# Molar mixing ratio of 'dry' gas (relative to gas phase)
-		self.mrv 			= np.zeros(self.nlev)	# Molar mixing ratio of 'condensing' gas (relative to gas)
-		self.mrc			= np.zeros(self.nlev)	# Molar mixing ratio of cloud phase (relative to gas)
-		self.ifatm 			= np.zeros(self.nlev) 	# Defines n level to which atmosphere is calculated
-		self.cp      		= np.zeros(self.nlev)   # Heat capacity depending on molar concentration ratio
-		self.cp_mr     		= np.zeros(self.nlev)   # Heat capacity depending on mixing ratio
+		self.grav_z			= np.zeros(self.nlev) # Local gravity
+		self.z 				= np.zeros(self.nlev) # Atmospheric height
+		self.mu 			= np.zeros(self.nlev) # Mean molar mass in level
+		self.xd 			= np.zeros(self.nlev) # Molar concentration of dry gas
+		self.xv 			= np.zeros(self.nlev) # Molar concentration of moist gas
+		self.xc 			= np.zeros(self.nlev) # Molar concentration of condensed phase
+		self.rho            = np.zeros(self.nlev) # Density of atmosphere at a given level
+		self.ifatm 			= np.zeros(self.nlev) # Defines nth level to which atmosphere is calculated
+		self.cp      		= np.zeros(self.nlev) # Mean heat capacity
 
 		# Define T and P arrays from surface up
 		self.tmp[0]         = T_surf         		# K
 		self.p[0]           = P_surf         		# Pa
+		self.z[0]           = 0         			# m
+		self.grav_z[0]      = self.grav_s 			# m s-2
 
 
 		# H2O floor to prevent NaNs
@@ -75,11 +89,11 @@ class atmos:
 		for vol in self.vol_list.keys():
 		    # Instantiate as zero
 		    self.p_vol[vol]      = np.zeros(self.nlev)
+		    self.pl_vol[vol]     = np.zeros(self.nlev+1)
 		    self.x_gas[vol]      = np.zeros(self.nlev)
 		    self.x_cond[vol]     = np.zeros(self.nlev)
-		    self.mr_gas[vol]     = np.zeros(self.nlev)
-		    self.mr_cond[vol]    = np.zeros(self.nlev)
-		    self.x_ocean[vol]    = 0.
+		    
+		    #self.x_ocean[vol]    = 0.
 
 		    # Surface partial pressures
 		    self.p_vol[vol][0]   = self.ps * vol_list[vol]
