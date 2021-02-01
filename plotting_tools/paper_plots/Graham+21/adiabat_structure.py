@@ -11,12 +11,12 @@ import json
 import glob, re, os
 import seaborn as sns
 import os
-os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv')
+# os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv')
 import phys
 import GeneralAdiabat as ga
 #import SocRadModel
 #import SocRadConv
-os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv/plotting_tools/paper_plots/Graham+21')
+# os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv/plotting_tools/paper_plots/Graham+21')
 from atmosphere_column import atmos
 
 
@@ -130,7 +130,7 @@ for vol in vol_list_sorted.keys():
         #ax1.semilogy( T_sat_array, Psat_array, lw=1, ls=":", color=ga.vol_colors[vol][4], label=r'$p_\mathrm{sat}$'+ga.vol_latex[vol])
         
         # Plot dew-point temperatures as functions of pressure, given the partial pressure for a given species at a given pressure level
-        ax1.semilogy(np.vectorize(ga.Tdew)(vol,atm.pl_vol[vol]),atm.pl/1e+5, color = ga.vol_colors[vol][4], lw = ls_ind, ls='-',alpha=0.99, label=r'$T_{\rm dew}$'+ga.vol_latex[vol])
+        ax1.semilogy(np.vectorize(ga.Tdew)(vol,atm.pl_vol[vol]),atm.pl/1e+5, color = ga.vol_colors[vol][4], lw = ls_ind, ls='-',alpha=0.99, label=r'$T_{\rm dew}$('+ga.vol_latex[vol]+')')
                 
         # # Sum up partial pressures
         # p_partial_sum += atm.pl_vol[vol]
@@ -191,5 +191,5 @@ ax1.text(0.8145, 0.55, r'$p_\mathrm{s}$H$_2$O = '+str(round(atm.pl_vol["H2O"][-1
 
 sns.despine()
 plt.show()
-#plt.savefig(dirs["output"]+"adiabat_structure.pdf", bbox_inches="tight")
+plt.savefig(dirs["output"]+"adiabat_structure.pdf", bbox_inches="tight")
 #plt.close(fig)
