@@ -6,11 +6,12 @@ Created on Thu Nov 12 13:57:05 2020
 """
 import numpy as np
 import phys
+import scipy.interpolate as spint
 # Temperature-dependent molar gas phase heat capacities (J K-1 mol-1)
 # https://webbook.nist.gov/chemistry/
 # Choose cp functions
-cp_mode = "constant"    # RTP book
-def cpv( vol, tmp ):
+
+def cpv( vol, tmp, cp_mode = "constant" ):
 
     
     # cp_mode = "T-dependent" # NIST Chemistry WebBook
@@ -202,43 +203,48 @@ def cpv( vol, tmp ):
 
 '''Adding cp_cond, the heat capacities of the condensates'''
 # Temperature-dependent molar condensate heat capacities (J K-1 mol-1)
-# https://webbook.nist.gov/chemistry/
-def cp_cond( vol, tmp ):
+# Thermopedia; 
+def cp_cond( vol, tmp, cp_mode='constant'):
 
 
     
     #print(vol)
-    # https://webbook.nist.gov/cgi/inchi?ID=C7732185&Mask=2#Thermo-Condensed
+    # 
+    
     if vol == "H2O":
-        # Temperature (K) 298 - 500; 
-        A = [-203.6060]
-        B = [ 1523.290]
-        C = [-3196.413] 
-        D = [ 2474.455]
-        E = [ 3.855326] 
-        F = [-256.5478] 
-        G = [-488.7163]
-        H = [-285.8304] 
-        #if tmp <= 1700:
-        cp_idx = 0
-        #if tmp > 1700:
-        #    cp_idx = 1
-        tmp = np.max([tmp, 298]) # Fit validity
-        tmp = np.min([tmp,500])
-        if cp_mode != 'constant':  
-            t = tmp/1000.
+        
+        temp_array = np.array([273.15,280,285,295,305,315,325,335,345,355,365,373.15])#K
+        cp_array = phys.water.MolecularWeight*np.array([4.217,4.198,4.189,4.181,4.178,4.179,4.182,4.186,4.191,4.199,4.209,4.217])#J/K/mol
+        cp_interp_func = spint.interp1d(temp_array,cp_array)
+        if cp_mode == 'constant':
+            cp = phys.water.MolecularWeight * 4.2
         else:
-            t = 298./1000
-        cp = A[cp_idx] + B[cp_idx]*t + C[cp_idx]*t**2. + D[cp_idx]*t**3. + E[cp_idx]/t**2.
-          
+            if tmp < temp_array[0]:
+                tmp = temp_array[0]
+            elif tmp > temp_array[-1]:
+                tmp = temp_array[-1]
+            
+            cp = cp_interp_func(tmp)
         return cp # J mol-1 K-1
         
         
-    # http://www.r744.com/files/pdf_088.pdf
+    # DOI: 10.1615/AtoZ.c.carbon_dioxide
+    # https://www.thermopedia.com/content/613/
     if vol == "CO2":
-        cp_mass = 2048 #J/kg/K <- an uncited value provided in a pdf I found online (see above url); there must be better data on this
-        cp_molar = cp_mass*phys.CO2.MolecularWeight/1000 #J/mol/K
-        return cp_molar
+        
+        temp_array = np.array([216.6,230,240,250,260,270,280,290,300])#K
+        cp_array = phys.CO2.MolecularWeight*np.array([1.84,1.87,1.97,2.1,2.24,2.44,2.81,3.68,8.50])#J/K/mol
+        cp_interp_func = spint.interp1d(temp_array,cp_array)
+        if cp_mode == 'constant':
+            cp = phys.CO2.MolecularWeight * 2.2
+        else:
+            if tmp < temp_array[0]:
+                tmp = temp_array[0]
+            elif tmp > temp_array[-1]:
+                tmp = temp_array[-1]
+            
+            cp = cp_interp_func(tmp)
+        return cp
         
     
     # https://www.osti.gov/etdeweb/servlets/purl/20599211; KAERI Liquid Hydrogen Properties
@@ -254,10 +260,22 @@ def cp_cond( vol, tmp ):
     if vol == "N2":
         return 60 #J/K/mol; APPROXIMATE VALUE; See Table II or Fig. 3
     
-    # https://en.wikipedia.org/wiki/Methane_(data_page)
+    # DOI: 10.1615/AtoZ.m.methane
+    # https://www.thermopedia.com/content/951/
     if vol == "CH4":
-        
-        return 52.93 #J/K/mol
+        temp_array = np.array([111.7, 120, 130, 140, 150, 160, 170, 180, 190])#K
+        cp_array = phys.CH4.MolecularWeight*np.array([3.48,3.54,3.64,3.80,4.06,4.47,5.23,7.22,92.3])#J/K/mol
+        cp_interp_func = spint.interp1d(temp_array,cp_array)
+        if cp_mode == 'constant':
+            cp = phys.CH4.MolecularWeight * 4.
+        else:
+            if tmp < temp_array[0]:
+                tmp = temp_array[0]
+            elif tmp > temp_array[-1]:
+                tmp = temp_array[-1]
+            
+            cp = cp_interp_func(tmp)
+        return cp
     
 
     # https://www.colby.edu/chemistry/PChem/notes/Ch7Tables.pdf
