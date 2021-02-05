@@ -209,15 +209,14 @@ def cp_cond( vol, tmp, cp_mode='constant'):
 
     
     #print(vol)
-    # 
-    
+    # https://webbook.nist.gov/cgi/fluid.cgi?TLow=274&THigh=647&TInc=20&Applet=on&Digits=5&ID=C7732185&Action=Load&Type=SatP&TUnit=K&PUnit=MPa&DUnit=mol%2Fl&HUnit=kJ%2Fmol&WUnit=m%2Fs&VisUnit=uPa*s&STUnit=N%2Fm&RefState=DEF
     if vol == "H2O":
         
-        temp_array = np.array([273.15,280,285,295,305,315,325,335,345,355,365,373.15])#K
-        cp_array = phys.water.MolecularWeight*np.array([4.217,4.198,4.189,4.181,4.178,4.179,4.182,4.186,4.191,4.199,4.209,4.217])#J/K/mol
+        temp_array = np.concatenate((np.arange(274.,647.,20.),[646]))#K
+        cp_array = np.array([75.97,75.37,75.30,75.40,75.62,75.96,76.47,77.19,78.15,79.42,81.07,83.24,86.11,90.01,95.56,104.1,118.6,150.,284.1,3685.6])#J/K/mol
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
-            cp = phys.water.MolecularWeight * 4.2
+            cp = 76.#J/K/mol
         else:
             if tmp < temp_array[0]:
                 tmp = temp_array[0]
@@ -228,15 +227,14 @@ def cp_cond( vol, tmp, cp_mode='constant'):
         return cp # J mol-1 K-1
         
         
-    # DOI: 10.1615/AtoZ.c.carbon_dioxide
-    # https://www.thermopedia.com/content/613/
+    # https://webbook.nist.gov/cgi/fluid.cgi?TLow=217.&THigh=304&TInc=5&Applet=on&Digits=5&ID=C124389&Action=Load&Type=SatP&TUnit=K&PUnit=MPa&DUnit=mol%2Fl&HUnit=kJ%2Fmol&WUnit=m%2Fs&VisUnit=uPa*s&STUnit=N%2Fm&RefState=DEF
     if vol == "CO2":
         
-        temp_array = np.array([216.6,230,240,250,260,270,280,290,300])#K
-        cp_array = phys.CO2.MolecularWeight*np.array([1.84,1.87,1.97,2.1,2.24,2.44,2.81,3.68,8.50])#J/K/mol
+        temp_array = np.concatenate((np.arange(217,304,5)))#K
+        cp_array = np.array([86.0,86.59,87.35,88.29,89.45,90.87,92.6,94.74,97.37,100.7,104.9,110.4,118.9,128.7,145.8,176.7,250.,694.8])#J/K/mol
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
-            cp = phys.CO2.MolecularWeight * 2.2
+            cp = 100. #J/K/mol
         else:
             if tmp < temp_array[0]:
                 tmp = temp_array[0]
@@ -256,18 +254,29 @@ def cp_cond( vol, tmp, cp_mode='constant'):
         specific_heat_mass_units=14.43877-1.691*t + 0.10687*t**2-0.00174*t**3#J/g/K
         return specific_heat_mass_units*2.02#J/K/mol
     
-    # Perkins et al 1991: THE THERMAL CONDUCTIVITY AND HEAT CAPACITY OF FLUID NITROGEN
+    # https://webbook.nist.gov/cgi/fluid.cgi?TLow=64&THigh=126&TInc=5&Applet=on&Digits=5&ID=C7727379&Action=Load&Type=SatP&TUnit=K&PUnit=MPa&DUnit=mol%2Fl&HUnit=kJ%2Fmol&WUnit=m%2Fs&VisUnit=uPa*s&STUnit=N%2Fm&RefState=DEF
     if vol == "N2":
-        return 60 #J/K/mol; APPROXIMATE VALUE; See Table II or Fig. 3
-    
-    # DOI: 10.1615/AtoZ.m.methane
-    # https://www.thermopedia.com/content/951/
-    if vol == "CH4":
-        temp_array = np.array([111.7, 120, 130, 140, 150, 160, 170, 180, 190])#K
-        cp_array = phys.CH4.MolecularWeight*np.array([3.48,3.54,3.64,3.80,4.06,4.47,5.23,7.22,92.3])#J/K/mol
+        temp_array = np.arange(64.,129.,5.)#K
+        cp_array = np.array([56.07,56.36,56.79,57.43,58.34,59.65,61.52,64.25,68.37,75.02,87.10,115.3,271.2])#J/K/mol
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
-            cp = phys.CH4.MolecularWeight * 4.
+            cp = 58. #J/K/mol
+        else:
+            if tmp < temp_array[0]:
+                tmp = temp_array[0]
+            elif tmp > temp_array[-1]:
+                tmp = temp_array[-1]
+            
+            cp = cp_interp_func(tmp)
+        return cp
+    
+    # https://webbook.nist.gov/cgi/fluid.cgi?TLow=91&THigh=190&TInc=5&Applet=on&Digits=5&ID=C74828&Action=Load&Type=SatP&TUnit=K&PUnit=MPa&DUnit=mol%2Fl&HUnit=kJ%2Fmol&WUnit=m%2Fs&VisUnit=uPa*s&STUnit=N%2Fm&RefState=DEF
+    if vol == "CH4":
+        temp_array = np.concatenate((np.arange(91,190,5),[190]))#K
+        cp_array = np.array([54.05,54.37,54.77,55.23,55.77,56.38,57.09,57.92,58.89,60.06,61.48,63.22,65.41,68.24,72.0,77.25,85.08,98.06,124.1,206.7,1508.2])#J/K/mol
+        cp_interp_func = spint.interp1d(temp_array,cp_array)
+        if cp_mode == 'constant':
+            cp = 55. #J/K/mol
         else:
             if tmp < temp_array[0]:
                 tmp = temp_array[0]
@@ -278,10 +287,22 @@ def cp_cond( vol, tmp, cp_mode='constant'):
         return cp
     
 
-    # https://www.colby.edu/chemistry/PChem/notes/Ch7Tables.pdf
+    # https://webbook.nist.gov/cgi/fluid.cgi?TLow=69&THigh=132&TInc=1&Applet=on&Digits=5&ID=C630080&Action=Load&Type=SatP&TUnit=K&PUnit=MPa&DUnit=mol%2Fl&HUnit=kJ%2Fmol&WUnit=m%2Fs&VisUnit=uPa*s&STUnit=N%2Fm&RefState=DEF
     if vol == "CO":
-        
-        return 60 #J/K/mol
+        temp_array = np.array([69.,74.,79.,84.,89.,94.,99.,104.,109.,114.,119.,124.,129.,132.])#K
+        cp_array = np.array([60.33,59.96,59.96,60.32,61.09,62.31,64.14,66.78,70.67,76.65,86.77,107.6,180.5,672.65])#J/K/mol
+        cp_interp_func = spint.interp1d(temp_array,cp_array)
+        if cp_mode == 'constant':
+            cp = 60.#J/K/mol
+        else:
+            if tmp < temp_array[0]:
+                tmp = temp_array[0]
+            elif tmp > temp_array[-1]:
+                tmp = temp_array[-1]
+            
+            cp = cp_interp_func(tmp)
+        return cp
+        #return 60 #J/K/mol
     
     # W. F. GIAUQUEA ND H. L. JOHNSTON 1929
     if vol == "O2":
@@ -291,12 +312,21 @@ def cp_cond( vol, tmp, cp_mode='constant'):
     if vol == "He":
         return 0. 
 
-    # # SPECIFIC HEAT OF LIQUID AMMONIA by Nathan S. Osborne and Milton S. Van Dusen
-    # if vol == "NH3":
-    #     mass_specific_heat_capacity = 3.1365 - 0.00057*(tmp+273.15)+16.842/np.sqrt(133-(tmp+273.15)) #joules/gram/K
-    #     return mass_specific_heat_capacity*(17.031) #J/k/mol
 
-    # https://www.engineeringtoolbox.com/ammonia-heat-capacity-specific-temperature-pressure-Cp-Cv-d_2016.html#:~:text=At%20ambient%20pressure%20and%20temperature,%5Bcal%2Fg%20K%5D.
+    # https://webbook.nist.gov/cgi/fluid.cgi?TLow=196&THigh=405&TInc=1&Applet=on&Digits=5&ID=C7664417&Action=Load&Type=SatP&TUnit=K&PUnit=bar&DUnit=mol%2Fl&HUnit=kJ%2Fmol&WUnit=m%2Fs&VisUnit=uPa*s&STUnit=N%2Fm&RefState=DEF
     if vol == "NH3":
-        return 81.465 # J/K/mol at 298 K
+        temp_array = np.concatenate((np.arange(196,405,5),[405]))#K
+        cp_array = np.array([71.61,72.08,72.57,73.07,73.56,74.05,74.52,74.97,75.42,75.85,76.27,76.69,77.11,77.53,77.97,78.42,78.90,79.40,79.94,80.54,81.18,81.90,82.69,83.58,84.57,85.70,86.99,88.46,90.15,92.12,94.43,97.16,100.4,104.4,109.4,115.8,124.2,135.8,153.3,183.0,245.4,467.4,5907.5])#J/K/mol
+        cp_interp_func = spint.interp1d(temp_array,cp_array)
+        if cp_mode == 'constant':
+            cp = 81.
+        else:
+            if tmp < temp_array[0]:
+                tmp = temp_array[0]
+            elif tmp > temp_array[-1]:
+                tmp = temp_array[-1]
+            
+            cp = cp_interp_func(tmp)
+        return cp
+        #return 81.465 # J/K/mol at 298 K
       
