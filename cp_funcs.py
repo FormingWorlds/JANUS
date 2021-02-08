@@ -230,7 +230,7 @@ def cp_cond( vol, tmp, cp_mode='constant'):
     # https://webbook.nist.gov/cgi/fluid.cgi?TLow=217.&THigh=304&TInc=5&Applet=on&Digits=5&ID=C124389&Action=Load&Type=SatP&TUnit=K&PUnit=MPa&DUnit=mol%2Fl&HUnit=kJ%2Fmol&WUnit=m%2Fs&VisUnit=uPa*s&STUnit=N%2Fm&RefState=DEF
     if vol == "CO2":
         
-        temp_array = np.concatenate((np.arange(217,304,5)))#K
+        temp_array = np.arange(217,304,5)#K
         cp_array = np.array([86.0,86.59,87.35,88.29,89.45,90.87,92.6,94.74,97.37,100.7,104.9,110.4,118.9,128.7,145.8,176.7,250.,694.8])#J/K/mol
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
