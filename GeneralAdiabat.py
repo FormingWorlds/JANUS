@@ -615,7 +615,6 @@ def condensation( atm, idx, prs_reset):
                     
                     dry_list.remove(vol)
                 
-    
             else:
                 
                 # Add a non-condensing species to the list of dry species

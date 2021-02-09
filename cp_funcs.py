@@ -11,7 +11,7 @@ import scipy.interpolate as spint
 # https://webbook.nist.gov/chemistry/
 # Choose cp functions
 
-def cpv( vol, tmp, cp_mode = "constant" ):
+def cpv( vol, tmp, cp_mode = "T-dependent" ):
 
     
     # cp_mode = "T-dependent" # NIST Chemistry WebBook
@@ -204,7 +204,7 @@ def cpv( vol, tmp, cp_mode = "constant" ):
 '''Adding cp_cond, the heat capacities of the condensates'''
 # Temperature-dependent molar condensate heat capacities (J K-1 mol-1)
 # Thermopedia; 
-def cp_cond( vol, tmp, cp_mode='constant'):
+def cp_cond( vol, tmp, cp_mode='T-dependent'):
 
 
     
