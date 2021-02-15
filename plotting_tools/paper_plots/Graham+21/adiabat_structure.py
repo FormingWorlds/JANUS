@@ -11,12 +11,12 @@ import json
 import glob, re, os
 import seaborn as sns
 import os
-# os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv')
+#os.chdir('C:/Users/grahamr/Documents/GitHub/soc-rad-conv')
 import phys
 import GeneralAdiabat as ga
-#import SocRadModel
+import SocRadModel
 #import SocRadConv
-# os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv/plotting_tools/paper_plots/Graham+21')
+#os.chdir('C:/Users/grahamr/Documents/GitHub/soc-rad-conv/plotting_tools/paper_plots/Graham+21')
 from atmosphere_column import atmos
 
 
