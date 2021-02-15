@@ -11,7 +11,7 @@ import scipy.interpolate as spint
 # https://webbook.nist.gov/chemistry/
 # Choose cp functions
 
-def cpv( vol, tmp, cp_mode = 'constant'):#"T-dependent" ):
+def cpv( vol, tmp, cp_mode = "T-dependent" ):
 
     
     # cp_mode = "T-dependent" # NIST Chemistry WebBook
@@ -204,7 +204,7 @@ def cpv( vol, tmp, cp_mode = 'constant'):#"T-dependent" ):
 '''Adding cp_cond, the heat capacities of the condensates'''
 # Temperature-dependent molar condensate heat capacities (J K-1 mol-1)
 # Thermopedia; 
-def cp_cond( vol, tmp, cp_mode='constant'):#'T-dependent'):
+def cp_cond( vol, tmp, cp_mode='T-dependent'):
 
 
     
@@ -217,7 +217,7 @@ def cp_cond( vol, tmp, cp_mode='constant'):#'T-dependent'):
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
             cp = 76.#J/K/mol
-        elif cp_mode == 'T-dependent':
+        else:
             if tmp < temp_array[0]:
                 tmp = temp_array[0]
             elif tmp > temp_array[-1]:
@@ -235,7 +235,7 @@ def cp_cond( vol, tmp, cp_mode='constant'):#'T-dependent'):
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
             cp = 100. #J/K/mol
-        elif cp_mode == 'T-dependent':
+        else:
             if tmp < temp_array[0]:
                 tmp = temp_array[0]
             elif tmp > temp_array[-1]:
@@ -247,9 +247,9 @@ def cp_cond( vol, tmp, cp_mode='constant'):#'T-dependent'):
     
     # https://www.osti.gov/etdeweb/servlets/purl/20599211; KAERI Liquid Hydrogen Properties
     if vol == "H2":
-        if cp_mode == 'T-dependent':  
+        if cp_mode != 'constant':  
             t = tmp
-        elif cp_mode == 'constant':
+        else:
             t = 10.
         specific_heat_mass_units=14.43877-1.691*t + 0.10687*t**2-0.00174*t**3#J/g/K
         return specific_heat_mass_units*2.02#J/K/mol
@@ -261,7 +261,7 @@ def cp_cond( vol, tmp, cp_mode='constant'):#'T-dependent'):
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
             cp = 58. #J/K/mol
-        elif cp_mode == 'T-dependent':
+        else:
             if tmp < temp_array[0]:
                 tmp = temp_array[0]
             elif tmp > temp_array[-1]:
@@ -277,7 +277,7 @@ def cp_cond( vol, tmp, cp_mode='constant'):#'T-dependent'):
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
             cp = 55. #J/K/mol
-        elif cp_mode == 'T-dependent':
+        else:
             if tmp < temp_array[0]:
                 tmp = temp_array[0]
             elif tmp > temp_array[-1]:
@@ -294,7 +294,7 @@ def cp_cond( vol, tmp, cp_mode='constant'):#'T-dependent'):
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
             cp = 60.#J/K/mol
-        elif cp_mode == 'T-dependent':
+        else:
             if tmp < temp_array[0]:
                 tmp = temp_array[0]
             elif tmp > temp_array[-1]:
@@ -320,7 +320,7 @@ def cp_cond( vol, tmp, cp_mode='constant'):#'T-dependent'):
         cp_interp_func = spint.interp1d(temp_array,cp_array)
         if cp_mode == 'constant':
             cp = 81.
-        elif cp_mode == 'T-dependent':
+        else:
             if tmp < temp_array[0]:
                 tmp = temp_array[0]
             elif tmp > temp_array[-1]:
