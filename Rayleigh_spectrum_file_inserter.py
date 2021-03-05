@@ -13,25 +13,39 @@ import os
 
 # Function with necessary information for each species to calculate Rayleigh scattering
 def species_info(species):
-    
+    info_dict = {}
     if species.lower() == 'co2':
-        Delta = 0.0805 #Vardavas and Carver 1984 for CO2
-        A = 43.9e-5 #Allen's Astrophysical Quantities (2002) Table 5.2
-        B = 6.4e-3 #Allen's
-        mu = 44e-3 #kg/mol
+        info_dict['Delta'] = 0.0805 #Vardavas and Carver 1984 for CO2
+        info_dict['A'] = 43.9e-5 #Allen's Astrophysical Quantities (2002) Table 5.2
+        info_dict['B'] = 6.4e-3 #Allen's
+        info_dict['mu'] = 44e-3 #kg/mol
+        
     elif species.lower() == 'n2':
-        Delta = 0.0305 #V&C 84 for N2
-        A = 29.06e-5 #Allen's Table 5.2
-        B = 7.7e-3 #Allen's  Table 5.2
-        mu = 28e-3 #kg/mol
-    return A, B, Delta, mu
+        info_dict['Delta'] = 0.0305 #V&C 84 for N2
+        info_dict['A'] = 29.06e-5 #Allen's Table 5.2
+        info_dict['B'] = 7.7e-3 #Allen's  Table 5.2
+        info_dict['mu'] = 28e-3 #kg/mol
+    elif species.lower() == 'h2o':
+        cross_section_hydrogen_1um=2.49e-6 #m^2/kg; mass-weighted cross section of hydrogen at 1 micron from Pierrehumbert 2010 Table 5.2
+        info_dict['cross_section_1um'] = 0.3743 * cross_section_hydrogen_1um #m^2/kg; mass weighted rayleigh cross section of water, from same table as h2
+        info_dict['normalization_wavelength'] = 1e-6 #m; 1 micron
+    return info_dict
 
 # Function for calculating raleigh scattering coefficient at a given wavelength 
 # for a species w/ given index of refraction info (info which is obtained from species_info function)
-def cross_section(wavelength, A, B, Delta, mu):#wavelength in m 
-    microns = wavelength * 10**6
-    delta = (6+3*Delta)/(6-7*Delta) #V&C 1984
-    coefficient = 4.577e-21 * delta/microns ** 4 * (A * (1 + B / microns**2)) ** 2 * (10**-4 * 6.022e23) / mu #V&C 1984; m^2/kg
+def cross_section(wavelength, info_dict):#wavelength in m 
+    if 'Delta' in info_dict:
+        Delta = info_dict['Delta']
+        A = info_dict['A']
+        B = info_dict['B']
+        mu = info_dict['mu']
+        microns = wavelength * 10**6
+        delta = (6+3*Delta)/(6-7*Delta) #V&C 1984
+        coefficient = 4.577e-21 * delta/microns ** 4 * (A * (1 + B / microns**2)) ** 2 * (10**-4 * 6.022e23) / mu #V&C 1984; m^2/kg
+    else:
+        cross_section_1um = info_dict['cross_section_1um']
+        normalization_wavelength = info_dict['normalization_wavelength']
+        coefficient = cross_section_1um * normalization_wavelength ** 4. / wavelength ** 4
     return coefficient
 
 
@@ -53,13 +67,12 @@ def band_integrator(species_list, molar_mixing_ratio_list, wavelength1_list, wav
     return total_coefficient
 
 # This is the function that adds  Rayleigh coefficients to spectral files
-def rayleigh_coeff_adder(species_list = ['co2'], mixing_ratio_list = [1.], spectral_file_path= '/home/grahamr/socrates/socrates_1906/data/spectra/thickCO2/sp_b318_HITRAN_a16_rayleigh'):
+def rayleigh_coeff_adder(species_list = ['co2'], mixing_ratio_list = [1.], spectral_file_path= '/home/grahamr/socrates/socrates_1906/data/spectra/thickCO2/sp_b318_HITRAN_a16_rayleigh',wavelength_dummy_file_path='/home/grahamr/socrates/socrates_1906/data/spectra/thickCO2/wavelength_band_file.txt'):
     spectral_file = open(spectral_file_path,'r')
     
     #Load a dummy file that will hold the wavelength bands
-    wavelength_file_path='/home/grahamr/socrates/socrates_1906/data/spectra/thickCO2/wavelength_band_file.txt'
     
-    wavelength_band_file = open(wavelength_file_path,'wt')
+    wavelength_band_file = open(wavelength_dummy_file_path,'wt')
     
     #Make a loop that runs through the lines in the spectral file until it finds BLOCK 1,
     #at which point it begins to "pay attention" and read the relevant lines w/ the wavelength data in that file
@@ -92,9 +105,9 @@ def rayleigh_coeff_adder(species_list = ['co2'], mixing_ratio_list = [1.], spect
     wavelength_band_file.close()
     
     #Now we generate an array from the wavelength band file
-    wavelength_bands = np.genfromtxt(wavelength_file_path,usecols=np.arange(0,3))
+    wavelength_bands = np.genfromtxt(wavelength_dummy_file_path,usecols=np.arange(0,3))
     #Delete the temporary wavelength band file
-    os.remove(wavelength_file_path)
+    os.remove(wavelength_dummy_file_path)
     #%%
     
     # This function calculates the rayleigh scattering cross section for a species at a given wavelength
