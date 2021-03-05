@@ -27,8 +27,16 @@ def species_info(species):
         info_dict['mu'] = 28e-3 #kg/mol
     elif species.lower() == 'h2o':
         cross_section_hydrogen_1um=2.49e-6 #m^2/kg; mass-weighted cross section of hydrogen at 1 micron from Pierrehumbert 2010 Table 5.2
-        info_dict['cross_section_1um'] = 0.3743 * cross_section_hydrogen_1um #m^2/kg; mass weighted rayleigh cross section of water, from same table as h2
+        info_dict['cross_section'] = 0.3743 * cross_section_hydrogen_1um #m^2/kg; mass weighted rayleigh cross section of water, from same table as h2
         info_dict['normalization_wavelength'] = 1e-6 #m; 1 micron
+    elif species.lower() == 'pluriel_h2o':
+        cross_section_cm2_molecule = 2.5e-27 #normalization cross section in cm^2 / molecule
+        info_dict['cross_section'] =  cross_section_cm2_molecule * 10**-4 * 6.022e23 / 18e-3 #converting to m^2/kg
+        info_dict['normalization_wavelength'] = 0.6e-6 #m
+    elif species.lower() == 'pluriel_co2':
+        cross_section_cm2_molecule = 1.24e-26 #normalization cross section in cm^2/molecule
+        info_dict['cross_section'] = cross_section_cm2_molecule * 10**-4 * 6.022e23 / 44e-3 # converting to m^2/kg
+        info_dict['normalization_wavelength'] = 0.532e-6 #m
     return info_dict
 
 # Function for calculating raleigh scattering coefficient at a given wavelength 
@@ -43,7 +51,7 @@ def cross_section(wavelength, info_dict):#wavelength in m
         delta = (6+3*Delta)/(6-7*Delta) #V&C 1984
         coefficient = 4.577e-21 * delta/microns ** 4 * (A * (1 + B / microns**2)) ** 2 * (10**-4 * 6.022e23) / mu #V&C 1984; m^2/kg
     else:
-        cross_section_1um = info_dict['cross_section_1um']
+        cross_section_1um = info_dict['cross_section']
         normalization_wavelength = info_dict['normalization_wavelength']
         coefficient = cross_section_1um * normalization_wavelength ** 4. / wavelength ** 4
     return coefficient
