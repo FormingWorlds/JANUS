@@ -619,7 +619,7 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 2.0                 # au, orbital distance
+    mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
     
