@@ -537,7 +537,7 @@ def set_stratosphere(atm):
 
     return atm
 
-def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo):
+def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo, Sfrac):
 
     # Constants
     L_sun                   = 3.828e+26        # W, IAU definition
@@ -601,6 +601,9 @@ def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo):
 
     # Stellar constant, W m-2
     S_0    = interpolated_luminosity * L_sun / ( 4. * np.pi * (mean_distance*AU)**2. )
+
+    # Scale instellation by fixed fraction
+    S_0    = S_0 * Sfrac
 
     # Mean flux averaged over surface area, W m-2
     toa_heating             = ( 1. - albedo ) * S_0 / 4.
@@ -667,13 +670,16 @@ if __name__ == "__main__":
     # Rayleigh scattering on/off
     rscatter = True
 
+    # Instellation scaling | 1.0 == no scaling
+    Sfrac = 1.0
+
     ##### Function calls
 
     # Create atmosphere object
     atm            = atmos(T_surf, P_surf, vol_list)
 
     # Compute stellar heating
-    atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl)
+    atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
