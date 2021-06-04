@@ -75,7 +75,7 @@ def band_integrator(species_list, molar_mixing_ratio_list, wavelength1_list, wav
     return total_coefficient
 
 # This is the function that adds  Rayleigh coefficients to spectral files
-def rayleigh_coeff_adder(species_list = ['co2'], mixing_ratio_list = [1.], spectral_file_path= '/home/grahamr/socrates/socrates_1906/data/spectra/thickCO2/sp_b318_HITRAN_a16_rayleigh',wavelength_dummy_file_path='/home/grahamr/socrates/socrates_1906/data/spectra/thickCO2/wavelength_band_file.txt'):
+def rayleigh_coeff_adder(species_list = ['co2'], mixing_ratio_list = [1.], spectral_file_path= './spectral_files/sp_b318_HITRAN_a16_RS/sp_b318_HITRAN_a16',wavelength_dummy_file_path='./spectral_files/sp_b318_HITRAN_a16_RS/wavelength_band_file.txt'):
     spectral_file = open(spectral_file_path,'r')
     
     #Load a dummy file that will hold the wavelength bands
@@ -190,7 +190,7 @@ def rayleigh_coeff_adder(species_list = ['co2'], mixing_ratio_list = [1.], spect
     
     #%%
     #now we create a dummy file to read all of the blocks into
-    temp_spectral_file_path =  '/home/grahamr/socrates/socrates_1906/data/spectra/thickCO2/temp_spectral_file'
+    temp_spectral_file_path =  spectral_file_path+'_temp_spectral_file'
     temp_spectral_file = open(temp_spectral_file_path,'w')
     
     #First, blocks 0 to 2 are read in
@@ -210,4 +210,9 @@ def rayleigh_coeff_adder(species_list = ['co2'], mixing_ratio_list = [1.], spect
     # The last step is to delete the original spectral file and replace it with the new one
     os.remove(spectral_file_path)
     os.rename(temp_spectral_file_path,spectral_file_path)
+
+# For executing as standalone script
+if __name__ == "__main__":
+
+    rayleigh_coeff_adder(species_list = ['co2'], mixing_ratio_list = [1.], spectral_file_path= './spectral_files/sp_b318_HITRAN_a16_RS/sp_b318_HITRAN_a16',wavelength_dummy_file_path='./spectral_files/sp_b318_HITRAN_a16_RS/wavelength_band_file.txt')
 
