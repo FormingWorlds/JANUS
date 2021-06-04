@@ -39,8 +39,8 @@ class atmos:
 		self.toa_heating    = 0. 							# W/m^2
 		self.star_lum       = 0. 							# L_sun
 
-		self.albedo_s   	= 0.1 							# surface albedo
-		self.albedo_pl   	= 0.2 							# Bond albedo (scattering)
+		self.albedo_s   	= 0.0 							# surface albedo
+		self.albedo_pl   	= 0.0 							# Bond albedo (scattering)
 		self.zenith_angle  	= 54.55							# solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+ 10: 48.19 (arccos(2/3)), see Cronin 14 (mu = 0.58 -> theta = arccos(0.58) = 54.55) for definitions
 
 		self.planet_mass 	= 5.972e+24 					# kg
