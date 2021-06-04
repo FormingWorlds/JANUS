@@ -4,7 +4,7 @@ Returns heating rates
 MDH 25/01/19
 '''
 
-import os, glob, re
+import os, glob, re, shutil
 import netCDF4 as net
 import sys
 import numpy as np
@@ -13,6 +13,7 @@ import matplotlib
 import math
 import subprocess
 import nctools
+import RayleighSpectrum
 from subprocess import call
 from netCDF4 import Dataset
 
@@ -22,7 +23,7 @@ except:
     from atm_rad_conv.atmosphere_column import atmos
 # from natsort import natsorted # https://pypi.python.org/pypi/natsort
 
-def radCompSoc(atm, dirs, recalc, calc_cf):
+def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
 
     # Enable or disable calculating contribution function
     # ENABLE RIGHT ENVIRONMENT IN TERMINAL FIRST
@@ -46,8 +47,32 @@ def radCompSoc(atm, dirs, recalc, calc_cf):
               "NH3" : 0.017031,             # kg mol−1 
             }
     # Define path to spectral file
-    # spectral_file = dirs["rad_conv"]+"/spectral_files/sp_318_hitran_200427/sp_all_318"
-    spectral_file = dirs["rad_conv"]+"/spectral_files/sp_b318_HITRAN_a16/sp_b318_HITRAN_a16"
+    spectral_name = "sp_b318_HITRAN_a16"
+    spectral_dir  = dirs["rad_conv"]+"/spectral_files/"+spectral_name+"/"
+    spectral_file = spectral_dir+spectral_name
+
+    # Rayleigh scattering for CO2
+    if rscatter == True:
+
+        # Generate new temp directory for scattering spectral file
+        scatter_dir = dirs["output"]+"/"+"scatter_spectral_file/"
+        if not os.path.isdir(scatter_dir):
+            print(">>> Generate scatter spectral file dir:", scatter_dir)
+            os.makedirs(scatter_dir)
+
+        # New file
+        spectral_file = scatter_dir+spectral_name
+
+        # Copy if not there yet
+        if not os.path.isfile(spectral_file):
+            print(">>> Copy non-scatter spectral file to:", scatter_dir)
+            for file in natural_sort(glob.glob(spectral_dir+"*")):
+                shutil.copy(file, scatter_dir+os.path.basename(file))
+                print(os.path.basename(file), end =" ")
+
+        # Insert Rayleigh scattering into spectral file
+        RayleighSpectrum.rayleigh_coeff_adder(species_list = ['co2', 'h2o', 'n2'], mixing_ratio_list = [atm.x_gas["CO2"][-1], atm.x_gas["H2O"][-1], atm.x_gas["N2"][-1]], spectral_file_path=spectral_file,wavelength_dummy_file_path=scatter_dir+'wavelength_band_file.txt')
+
 
     # # Enable cf SOCRATES environment
     # if calc_cf == True:
@@ -118,16 +143,20 @@ def radCompSoc(atm, dirs, recalc, calc_cf):
     basename = 'profile'
     s = " "
 
+    if rscatter == True:
+        scatter_flag = " -r"
+    else:
+        scatter_flag = ""
+
     # Anchor spectral files and run SOCRATES
-    seq4 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u")
+    seq4 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag)
     seq5 = ("fmove", basename,"currentsw")
-    seq6 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u")
+    seq6 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag)
     seq7 = ("fmove", basename,"currentlw")
 
     if calc_cf == True:
-        seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1")
+        seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", scatter_flag)
         seq9 = ("fmove", basename, "currentlw_cff")
-
 
     comline1 = s.join(seq4)
     comline2 = s.join(seq5)
