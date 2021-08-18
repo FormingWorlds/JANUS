@@ -51,16 +51,16 @@ def surf_Planck_nu(atm):
     B   = (1.-atm.albedo_s) * np.pi * B * atm.band_widths/1000.0
     return B
 
-def RadConvEqm(dirs, time, atm, loop_counter, COUPLER_options, standalone, cp_dry, trpp, rscatter):
+def RadConvEqm(dirs, time, atm, loop_counter, COUPLER_options, standalone, cp_dry, trpp, calc_cf, rscatter):
 
     ### Moist/general adiabat
-    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter)
+    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trpp, calc_cf, rscatter)
 
     ### Dry adiabat
     if cp_dry == True:
 
         # Compute dry adiabat  w/ timestepping
-        atm_dry   = compute_dry_adiabat(atm, dirs, standalone, rscatter)
+        atm_dry   = compute_dry_adiabat(atm, dirs, standalone, calc_cf, rscatter)
 
         if standalone == True:
             print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
@@ -302,7 +302,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     #     json.dump(json_atm, atm_file)
 
 # Time integration for n steps
-def compute_dry_adiabat(atm, dirs, standalone, rscatter):
+def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False):
 
     # Dry adiabat settings 
     rad_steps   = 100  # Maximum number of radiation steps
@@ -328,7 +328,7 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
 
         # Compute radiation, midpoint method time stepping
         try:
-            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
+            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
             
             dT_dry          = atm_dry.net_heating * atm_dry.dt
 
@@ -388,13 +388,13 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
     return atm_dry
 
 
-def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter):
+def compute_moist_adiabat(atm, dirs, standalone, trpp, calc_cf=False, rscatter=False):
 
     # Build general adiabat structure
     atm_moist = ga.general_adiabat(copy.deepcopy(atm))
 
     # Run SOCRATES
-    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
+    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
 
     if standalone == True:
         print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
@@ -408,7 +408,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter):
         atm_moist = set_stratosphere(atm_moist)
 
         # Recalculate fluxes w/ new atmosphere structure
-        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=False, rscatter=rscatter)
+        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=calc_cf, rscatter=rscatter)
 
         if standalone == True:
             print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
@@ -670,13 +670,16 @@ if __name__ == "__main__":
     # Rayleigh scattering on/off
     rscatter = True
 
+    # Compute contribution function
+    calc_cf = False
+
     # Instellation scaling | 1.0 == no scaling
     Sfrac = 1.0
 
     ##### Function calls
 
     # Create atmosphere object
-    atm            = atmos(T_surf, P_surf, vol_list)
+    atm            = atmos(T_surf, P_surf, vol_list, calc_cf=calc_cf)
 
     # Compute stellar heating
     atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
@@ -688,7 +691,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True, rscatter=rscatter) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True, calc_cf=calc_cf, rscatter=rscatter) 
 
     print(len(atm_moist.p))
 
