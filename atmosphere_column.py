@@ -9,7 +9,7 @@ class atmos:
 	'''
 	Atmosphere class
 	'''
-	def __init__(self, T_surf, P_surf, vol_list, calc_cf=False):
+	def __init__(self, T_surf, P_surf, vol_list, calc_cf=False, trppT=0):
 		self.alpha_cloud 	= 0.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
 
 		# If vol_list is given in partial pressures, calculate mixing ratios
@@ -32,7 +32,9 @@ class atmos:
 		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
 		self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
 
-		self.trpp 			= np.zeros(3) 				 	# Tropopause: idx, prs, tmp
+		self.trppidx		= 0 				 	# Tropopause: idx
+		self.trppP 			= 0 				 	# Tropopause: prs
+		self.trppT 			= 150 				 	# Tropopause: tmp
 		
 		self.dt 			= 0.5 							# days
 
