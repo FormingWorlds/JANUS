@@ -99,8 +99,8 @@ def dry_adiabat_atm(atm):
 
     return atm
   
-# Dry convective adjustment
-def DryAdj(atm):
+# Dry convective adjustment - changes tmp directly: bad
+def DryAdj_old(atm):
 
     T   = atm.tmp
     p   = atm.p
@@ -141,6 +141,53 @@ def DryAdj(atm):
             atm.tmp[i+1] = T2 
 
     return atm      
+
+# Dry convective adjustment - returns the tendency: good. Also conserves dry enthalpy.
+def DryAdj(atm, itermax):
+
+    Tl   = atm.tmpl
+    pl   = atm.pl
+    pe   = atm.p
+    Tl_cc = Tl
+    d_p = np.ones(len(pl))
+
+    small = 1.0e-6
+
+    for i in range(1, nlay+1):
+        d_p[i] = pe[i+1] - pe[i]
+
+    for iteration in range(1, itermax+1):
+        did_adj = False
+
+        # Downward pass
+        for i in range(1, nlay): # from layer 1 to layer nlay-1
+
+            pfact = (pl[i]/pl[i+1])**atm.Rcp
+            if (Tl_cc[i] < (Tl_cc[i+1]*pfact - small)):
+                Tbar = (d_p[i]*Tl_cc[i] + d_p[i+1]*Tl_cc[i+1]) / (d_p[i] + d_p[i+1])
+                Tl_cc[i+1] = (d_p[i] + d_p[i+1])*Tbar / (d_p[i+1]+pfact*d_p[i])
+                Tl_cc[i] = Tl_cc[i+1] * pfact
+                did_adj = True
+
+        # Upward pass
+        for i in range(nlay-1, 0, -1): # from layer nlay-1 to layer 1
+
+            pfact = (pl[i]/pl[i+1])**atm.Rcp
+            if (Tl_cc[i] < (Tl_cc[i+1]*pfact - small)):
+                Tbar = (d_p[i]*Tl_cc[i] + d_p[i+1]*Tl_cc[i+1]) / (d_p[i] + d_p[i+1])
+                Tl_cc[i+1] = (d_p[i] + d_p[i+1])*Tbar / (d_p[i+1]+pfact*d_p[i])
+                Tl_cc[i] = Tl_cc[i+1] * pfact
+                did_adj = True
+
+        # If no adjustment required, exit the loop
+        if (did_adj == False):
+            break
+
+    # Change in temperature is Tl_cc - Tl
+    # adjust on timescale of 1 timestep (i.e. instant correction across one timestep)
+    dT_dryconv = (Tl_cc - Tl)/atm_dry.dt
+    return dT_dryconv 
+
 
 # # Moist convective adjustment
 # def MoistAdj(atm, dT):
@@ -305,8 +352,8 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
 def compute_dry_adiabat(atm, dirs, standalone, rscatter):
 
     # Dry adiabat settings 
-    rad_steps   = 100  # Maximum number of radiation steps
-    conv_steps  = 30   # Number of convective adjustment steps (per radiation step)
+    rad_steps   = 3#100  # Maximum number of radiation steps
+    conv_steps  = 5#30   # Number of convective adjustment steps (per radiation step)
     dT_max      = 20.  # K, Maximum temperature change per radiation step
     T_floor     = 10.  # K, Temperature floor to prevent SOCRATES crash
 
@@ -332,6 +379,11 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
             
             dT_dry          = atm_dry.net_heating * atm_dry.dt
 
+            # Dry convective adjustment
+            dT_dryconv  = DryAdj(atm_dry, conv_steps)
+            # Apply temperature tendency due to dry convection
+            dT_dry += dT_dryconv
+
             # Limit the temperature change per step
             dT_dry          = np.where(dT_dry > dT_max, dT_max, dT_dry)
             dT_dry          = np.where(dT_dry < -dT_max, -dT_max, dT_dry)
@@ -343,9 +395,9 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
             # kturb       = .1
             # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
             
-            # Dry convective adjustment
-            for iadj in range(conv_steps):
-                atm_dry     = DryAdj(atm_dry)
+            # Dry convective adjustment (old, changed tmp directly)
+            #for iadj in range(conv_steps):
+                #atm_dry     = DryAdj(atm_dry)
 
             # Temperature floor to prevent SOCRATES crash
             if np.min(atm_dry.tmp) < T_floor:
@@ -388,7 +440,7 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
     return atm_dry
 
 
-def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter):
+def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter): # no time-stepping
 
     # Build general adiabat structure
     atm_moist = ga.general_adiabat(copy.deepcopy(atm))
@@ -622,11 +674,11 @@ if __name__ == "__main__":
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                 # au, orbital distance
+    mean_distance = 0.723                 # au, orbital distance
 
     # Surface pressure & temperature
     
-    T_surf        = 290.                # K
+    T_surf        = 800.                # K
 
     # # Volatile molar concentrations: must sum to ~1 !
     # P_surf        = 210e+5              # Pa
@@ -654,14 +706,14 @@ if __name__ == "__main__":
     P_surf      = "calc"   
      # Volatiles considered
     vol_list    = { 
-                          "H2O" :  0.01e+5,
+                          "H2O" :  1e+6,
                           "NH3" :  0.,
-                          "CO2" :  35e+5,
-                          "CH4" :  0e+5,
+                          "CO2" :  0.,
+                          "CH4" :  0.,
                           "CO"  :  0.,
                           "O2"  :  0.,
                           "N2"  :  1e+5,
-                          "H2"  :  0e+5,
+                          "H2"  :  0.,
                         }
 
     # Stellar heating on/off
@@ -688,7 +740,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True, rscatter=rscatter) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=True, trpp=True, rscatter=rscatter) 
 
     print(len(atm_moist.p))
 
