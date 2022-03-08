@@ -390,97 +390,28 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
 
 def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter):
 
-    rad_steps   = 100  # Maximum number of radiation steps
-    conv_steps  = 30   # Number of convective adjustment steps (per radiation step)
-    dT_max      = 20.  # K, Maximum temperature change per radiation step
-    T_floor     = 10.  # K, Temperature floor to prevent SOCRATES crash
-
     # Build general adiabat structure
     atm_moist = ga.general_adiabat(copy.deepcopy(atm))
 
-    # Initialise previous OLR and TOA heating to zero
-    PrevOLR_moist       = 0.
-    PrevMaxHeat_moist   = 0.
-    PrevTemp_moist      = atm.tmp * 0.
+    # Run SOCRATES
+    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
 
-    # Time stepping
-    for i in range(0, rad_steps):
+    if standalone == True:
+        print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
-        # atm.toa_heating = 0
-
-        # Compute radiation, midpoint method time stepping
-        try:
-
-            # Run SOCRATES
-            atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
-
-            dT_moist        = atm_moist.net_heating * atm_moist.dt
-
-            # Limit the temperature change per step
-            dT_moist        = np.where(dT_moist > dT_max, dT_max, dT_moist)
-            dT_moist        = np.where(dT_moist < -dT_max, -dT_max, dT_moist)
-
-            # Apply heating
-            atm_moist.tmp   += dT_moist
-
-            # # Do the surface balance
-            # kturb       = .1
-            # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
-
-            if standalone == True:
-                print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
-
-            if trpp == True:
+    if trpp == True:
         
-                # Find tropopause index
-                atm_moist = find_tropopause(atm_moist)
+        # Find tropopause index
+        atm_moist = find_tropopause(atm_moist)
 
-                # Reset stratosphere temperature and abundance levels
-                atm_moist = set_stratosphere(atm_moist)
+        # Reset stratosphere temperature and abundance levels
+        atm_moist = set_stratosphere(atm_moist)
 
-                # Recalculate fluxes w/ new atmosphere structure
-                atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=False, rscatter=rscatter)
+        # Recalculate fluxes w/ new atmosphere structure
+        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=False, rscatter=rscatter)
 
-                if standalone == True:
-                    print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
-
-            # Temperature floor to prevent SOCRATES crash
-            if np.min(atm_moist.tmp) < T_floor:
-                atm_moist.tmp = np.where(atm_moist.tmp < T_floor, T_floor, atm_moist.tmp)
-
-                # Convergence criteria
-                dTglobal_moist  = abs(round(np.max(atm_moist.tmp-PrevTemp_moist[:]), 4))
-                dTtop_moist     = abs(round(atm_moist.tmp[0]-atm_moist.tmp[1], 4))
-
-                # Break criteria
-                dOLR_moist      = abs(round(atm_moist.LW_flux_up[0]-PrevOLR_moist, 6))
-                dbreak_moist    = (0.01*(5.67e-8*atm_moist.ts**4)**0.5)
-
-                # Inform during runtime
-                if i % 2 == 1 and standalone == True:
-                    print("Dry adjustment step", i+1, end=": ")
-                    print("OLR = " + str(atm_moist.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_moist) + " K, dT_top = " + str(dTtop_moist) + " K, dOLR = " + str(dOLR_moist) + " W/m^2,")
-
-            # Reduce timestep if heating is not converging
-            if dTglobal_moist < 0.05 or dTtop_moist > dT_max:
-                atm_moist.dt  = atm_moist.dt*0.99
-                if standalone == True:
-                    print("Moist adiabat not converging -> dt_new =", round(atm_moist.dt,5), "days")
-
-            # Sensitivity break condition
-            if (dOLR_moist < dbreak_moist) and i > 5:
-                if standalone == True:
-                    print("Timestepping break ->", end=" ")
-                    print("dOLR/step =", dOLR_moist, "W/m^2, dTglobal_moist =", dTglobal_moist)
-                break    # break here
-        except:
-            if standalone == True:
-                print("Socrates cannot be executed properly, T profile:", atm_moist.tmp)
-            break    # break here
-
-        PrevOLR_moist       = atm_moist.LW_flux_up[0]
-        PrevMaxHeat_moist   = abs(np.max(atm_moist.net_heating))
-        PrevTemp_moist[:]   = atm_moist.tmp[:]
+        if standalone == True:
+            print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
     return atm_moist
 
@@ -687,7 +618,7 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet age and orbit
-    time = { "planet": 0., "star": 567e+6 } # yr,  # 4567e+6, 567e+6 is 4 Ga years ago. Sun was 25% fainter
+    time = { "planet": 0., "star": 4567e+6 } # yr,
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
@@ -695,7 +626,7 @@ if __name__ == "__main__":
 
     # Surface pressure & temperature
     
-    T_surf        = 900. #290.                # K
+    T_surf        = 290.                # K
 
     # # Volatile molar concentrations: must sum to ~1 !
     # P_surf        = 210e+5              # Pa
@@ -723,9 +654,9 @@ if __name__ == "__main__":
     P_surf      = "calc"   
      # Volatiles considered
     vol_list    = { 
-                          "H2O" :  10e+5, #0.01e+5,
+                          "H2O" :  0.01e+5,
                           "NH3" :  0.,
-                          "CO2" :  0.,    #35e+5,
+                          "CO2" :  35e+5,
                           "CH4" :  0e+5,
                           "CO"  :  0.,
                           "O2"  :  0.,
@@ -740,7 +671,7 @@ if __name__ == "__main__":
     rscatter = True
 
     # Instellation scaling | 1.0 == no scaling
-    Sfrac = 0.75 #1.0. 4 Ga years ago, the Sun was 25% fainter
+    Sfrac = 1.0
 
     ##### Function calls
 
