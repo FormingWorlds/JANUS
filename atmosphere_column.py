@@ -34,7 +34,9 @@ class atmos:
 
 		self.trppidx		= 0 				 	# Tropopause: idx
 		self.trppP 			= 0 				 	# Tropopause: prs
-		self.trppT 			= 150 				 	# Tropopause: tmp
+
+		# Nominal tropopause T in K; if set to zero dynamically calculated in SocRadConv.py
+		self.trppT 			= 0 				 	# Tropopause: tmp
 		
 		self.dt 			= 0.5 							# days
 
