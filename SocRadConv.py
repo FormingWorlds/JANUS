@@ -99,8 +99,8 @@ def dry_adiabat_atm(atm):
 
     return atm
   
-# Dry convective adjustment - changes tmp directly: bad
-def DryAdj_old(atm):
+# Dry convective adjustment
+def DryAdj(atm):
 
     T   = atm.tmp
     p   = atm.p
@@ -141,53 +141,6 @@ def DryAdj_old(atm):
             atm.tmp[i+1] = T2 
 
     return atm      
-
-# Dry convective adjustment - returns the tendency: good. Also conserves dry enthalpy.
-def DryAdj(atm, itermax):
-
-    Tl   = atm.tmpl
-    pl   = atm.pl
-    pe   = atm.p
-    Tl_cc = Tl
-    d_p = np.ones(len(pl))
-
-    small = 1.0e-6
-
-    for i in range(1, nlay+1):
-        d_p[i] = pe[i+1] - pe[i]
-
-    for iteration in range(1, itermax+1):
-        did_adj = False
-
-        # Downward pass
-        for i in range(1, nlay): # from layer 1 to layer nlay-1
-
-            pfact = (pl[i]/pl[i+1])**atm.Rcp
-            if (Tl_cc[i] < (Tl_cc[i+1]*pfact - small)):
-                Tbar = (d_p[i]*Tl_cc[i] + d_p[i+1]*Tl_cc[i+1]) / (d_p[i] + d_p[i+1])
-                Tl_cc[i+1] = (d_p[i] + d_p[i+1])*Tbar / (d_p[i+1]+pfact*d_p[i])
-                Tl_cc[i] = Tl_cc[i+1] * pfact
-                did_adj = True
-
-        # Upward pass
-        for i in range(nlay-1, 0, -1): # from layer nlay-1 to layer 1
-
-            pfact = (pl[i]/pl[i+1])**atm.Rcp
-            if (Tl_cc[i] < (Tl_cc[i+1]*pfact - small)):
-                Tbar = (d_p[i]*Tl_cc[i] + d_p[i+1]*Tl_cc[i+1]) / (d_p[i] + d_p[i+1])
-                Tl_cc[i+1] = (d_p[i] + d_p[i+1])*Tbar / (d_p[i+1]+pfact*d_p[i])
-                Tl_cc[i] = Tl_cc[i+1] * pfact
-                did_adj = True
-
-        # If no adjustment required, exit the loop
-        if (did_adj == False):
-            break
-
-    # Change in temperature is Tl_cc - Tl
-    # adjust on timescale of 1 timestep (i.e. instant correction across one timestep)
-    dT_dryconv = (Tl_cc - Tl)/atm_dry.dt
-    return dT_dryconv 
-
 
 # # Moist convective adjustment
 # def MoistAdj(atm, dT):
@@ -352,8 +305,8 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
 def compute_dry_adiabat(atm, dirs, standalone, rscatter):
 
     # Dry adiabat settings 
-    rad_steps   = 3#100  # Maximum number of radiation steps
-    conv_steps  = 5#30   # Number of convective adjustment steps (per radiation step)
+    rad_steps   = 100  # Maximum number of radiation steps
+    conv_steps  = 30   # Number of convective adjustment steps (per radiation step)
     dT_max      = 20.  # K, Maximum temperature change per radiation step
     T_floor     = 10.  # K, Temperature floor to prevent SOCRATES crash
 
@@ -379,11 +332,6 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
             
             dT_dry          = atm_dry.net_heating * atm_dry.dt
 
-            # Dry convective adjustment
-            dT_dryconv  = DryAdj(atm_dry, conv_steps)
-            # Apply temperature tendency due to dry convection
-            dT_dry += dT_dryconv
-
             # Limit the temperature change per step
             dT_dry          = np.where(dT_dry > dT_max, dT_max, dT_dry)
             dT_dry          = np.where(dT_dry < -dT_max, -dT_max, dT_dry)
@@ -395,9 +343,9 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
             # kturb       = .1
             # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
             
-            # Dry convective adjustment (old, changed tmp directly)
-            #for iadj in range(conv_steps):
-                #atm_dry     = DryAdj(atm_dry)
+            # Dry convective adjustment
+            for iadj in range(conv_steps):
+                atm_dry     = DryAdj(atm_dry)
 
             # Temperature floor to prevent SOCRATES crash
             if np.min(atm_dry.tmp) < T_floor:
@@ -440,30 +388,120 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
     return atm_dry
 
 
-def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter): # no time-stepping
+def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter):
+
+    # For this run I changed npd_k_term = 20!150 and npd_phase_term = 1!501 in socrates_main/src/modules_core/dimensions_spec_ucf.F90
+    rad_steps   = 10000  # Maximum number of radiation steps
+    conv_steps  = 30   # Number of convective adjustment steps (per radiation step)
+    dT_max      = 20.  # K, Maximum temperature change per radiation step
+    T_floor     = 10.  # K, Temperature floor to prevent SOCRATES crash
 
     # Build general adiabat structure
     atm_moist = ga.general_adiabat(copy.deepcopy(atm))
 
-    # Run SOCRATES
-    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
+    # Initialise previous OLR and TOA heating to zero
+    PrevOLR_moist       = 0.
+    PrevMaxHeat_moist   = 0.
+    PrevTemp_moist      = atm.tmp * 0.
 
-    if standalone == True:
-        print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+    # Time stepping
+    for i in range(0, rad_steps):
 
-    if trpp == True:
+        # atm.toa_heating = 0
+
+        # Compute radiation, midpoint method time stepping
+        try:
+
+            # Run SOCRATES
+            print("BADGER1")
+            atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
+            print("BADGER2. atm_moist.net_heating = "+atm_moist.net_heating)
+            print("atm_moist.dt = "+atm_moist.dt)
+
+            dT_moist        = atm_moist.net_heating * atm_moist.dt
+            print("BADGER3. dT_moist = "+dT_moist)
+
+            # Limit the temperature change per step
+            dT_moist        = np.where(dT_moist > dT_max, dT_max, dT_moist)
+            print("BADGER4. dT_moist = "+dT_moist)
+            dT_moist        = np.where(dT_moist < -dT_max, -dT_max, dT_moist)
+            print("BADGER5. dT_moist = "+dT_moist)
+
+            # Apply heating
+            atm_moist.tmp   += dT_moist
+            print("BADGER6. dT_moist = "+dT_moist)
+
+            # # Do the surface balance
+            # kturb       = .1
+            # atm.tmp[-1] += -atm.dt * kturb * (atm.tmp[-1] - atm.ts)
+
+            if standalone == True:
+                print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+
+            if trpp == True:
         
-        # Find tropopause index
-        atm_moist = find_tropopause(atm_moist)
+                print("BADGER7")
+                # Find tropopause index
+                atm_moist = find_tropopause(atm_moist)
+                print("BADGER8")
 
-        # Reset stratosphere temperature and abundance levels
-        atm_moist = set_stratosphere(atm_moist)
+                # Reset stratosphere temperature and abundance levels
+                atm_moist = set_stratosphere(atm_moist)
+                print("BADGER9")
 
-        # Recalculate fluxes w/ new atmosphere structure
-        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=False, rscatter=rscatter)
+                # Recalculate fluxes w/ new atmosphere structure
+                atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=False, rscatter=rscatter)
+                print("BADGER10")
 
-        if standalone == True:
-            print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+                if standalone == True:
+                    print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+                print("BADGER11")
+
+            # Temperature floor to prevent SOCRATES crash
+            if np.min(atm_moist.tmp) < T_floor:
+                atm_moist.tmp = np.where(atm_moist.tmp < T_floor, T_floor, atm_moist.tmp)
+                print("BADGER12")
+
+                # Convergence criteria
+                dTglobal_moist  = abs(round(np.max(atm_moist.tmp-PrevTemp_moist[:]), 4))
+                print("BADGER13")
+                dTtop_moist     = abs(round(atm_moist.tmp[0]-atm_moist.tmp[1], 4))
+                print("BADGER14")
+
+                # Break criteria
+                dOLR_moist      = abs(round(atm_moist.LW_flux_up[0]-PrevOLR_moist, 6))
+                print("BADGER15")
+                dbreak_moist    = (0.01*(5.67e-8*atm_moist.ts**4)**0.5)
+                print("BADGER16")
+
+                # Inform during runtime
+                if i % 2 == 1 and standalone == True:
+                    print("Dry adjustment step", i+1, end=": ")
+                    print("OLR = " + str(atm_moist.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_moist) + " K, dT_top = " + str(dTtop_moist) + " K, dOLR = " + str(dOLR_moist) + " W/m^2,")
+
+                    print("BADGER17")
+
+            # Reduce timestep if heating is not converging
+            if dTglobal_moist < 0.05 or dTtop_moist > dT_max:
+                atm_moist.dt  = atm_moist.dt*0.99
+                if standalone == True:
+                    print("Moist adiabat not converging -> dt_new =", round(atm_moist.dt,5), "days")
+
+            # Sensitivity break condition
+            if (dOLR_moist < dbreak_moist) and i > 5:
+                if standalone == True:
+                    print("Timestepping break ->", end=" ")
+                    print("dOLR/step =", dOLR_moist, "W/m^2, dTglobal_moist =", dTglobal_moist)
+                break    # break here
+        except:
+            if standalone == True:
+                print("Socrates cannot be executed properly, T profile:", atm_moist.tmp)
+                print("BADGER18")
+            break    # break here
+
+        PrevOLR_moist       = atm_moist.LW_flux_up[0]
+        PrevMaxHeat_moist   = abs(np.max(atm_moist.net_heating))
+        PrevTemp_moist[:]   = atm_moist.tmp[:]
 
     return atm_moist
 
@@ -670,15 +708,15 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet age and orbit
-    time = { "planet": 0., "star": 4567e+6 } # yr,
+    time = { "planet": 0., "star": 567e+6 } # yr,  # 4567e+6, 567e+6 is 4 Ga years ago. Sun was 25% fainter
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 0.723                 # au, orbital distance
+    mean_distance = 1.0                 # au, orbital distance
 
     # Surface pressure & temperature
     
-    T_surf        = 800.                # K
+    T_surf        = 900. #290.                # K
 
     # # Volatile molar concentrations: must sum to ~1 !
     # P_surf        = 210e+5              # Pa
@@ -706,14 +744,14 @@ if __name__ == "__main__":
     P_surf      = "calc"   
      # Volatiles considered
     vol_list    = { 
-                          "H2O" :  1e+6,
+                          "H2O" :  10e+5, #0.01e+5,
                           "NH3" :  0.,
-                          "CO2" :  0.,
-                          "CH4" :  0.,
+                          "CO2" :  0.,    #35e+5,
+                          "CH4" :  0e+5,
                           "CO"  :  0.,
                           "O2"  :  0.,
                           "N2"  :  1e+5,
-                          "H2"  :  0.,
+                          "H2"  :  0e+5,
                         }
 
     # Stellar heating on/off
@@ -723,7 +761,7 @@ if __name__ == "__main__":
     rscatter = True
 
     # Instellation scaling | 1.0 == no scaling
-    Sfrac = 1.0
+    Sfrac = 0.75 #1.0. 4 Ga years ago, the Sun was 25% fainter
 
     ##### Function calls
 
@@ -740,7 +778,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=True, trpp=True, rscatter=rscatter) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True, rscatter=rscatter) 
 
     print(len(atm_moist.p))
 
