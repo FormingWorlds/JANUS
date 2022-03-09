@@ -9,7 +9,7 @@ class atmos:
 	'''
 	Atmosphere class
 	'''
-	def __init__(self, T_surf, P_surf, vol_list):
+	def __init__(self, T_surf, P_surf, vol_list, calc_cf=False, trppT=0):
 		self.alpha_cloud 	= 0.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
 
 		# If vol_list is given in partial pressures, calculate mixing ratios
@@ -32,7 +32,11 @@ class atmos:
 		self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
 		self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
 
-		self.trpp 			= np.zeros(3) 				 	# Tropopause: idx, prs, tmp
+		self.trppidx		= 0 				 	# Tropopause: idx
+		self.trppP 			= 0 				 	# Tropopause: prs
+
+		# Nominal tropopause T in K; if set to zero dynamically calculated in SocRadConv.py
+		self.trppT 			= 0 				 	# Tropopause: tmp
 		
 		self.dt 			= 0.5 							# days
 
@@ -114,9 +118,11 @@ class atmos:
 		self.net_flux				= np.zeros(self.nlev)				# W/m^2
 		self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
 		self.net_heating 			= np.zeros(self.nlev) 				# K/day
-		self.cff 					= np.zeros(self.nlev) 				# normalised
-		self.cff_i					= np.zeros([self.nbands,self.nlev]) # cf per band
-		self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev])
+		# Contribution function arrays
+		if calc_cf == True:
+			self.cff 					= np.zeros(self.nlev) 				# normalised
+			self.cff_i					= np.zeros([self.nbands,self.nlev]) # cf per band
+			self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev])
 
 
 		
