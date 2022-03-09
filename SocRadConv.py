@@ -51,16 +51,16 @@ def surf_Planck_nu(atm):
     B   = (1.-atm.albedo_s) * np.pi * B * atm.band_widths/1000.0
     return B
 
-def RadConvEqm(dirs, time, atm, loop_counter, COUPLER_options, standalone, cp_dry, trpp, rscatter):
+def RadConvEqm(dirs, time, atm, loop_counter, COUPLER_options, standalone, cp_dry, trpp, calc_cf, rscatter):
 
     ### Moist/general adiabat
-    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter)
+    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trpp, calc_cf, rscatter)
 
     ### Dry adiabat
     if cp_dry == True:
 
         # Compute dry adiabat  w/ timestepping
-        atm_dry   = compute_dry_adiabat(atm, dirs, standalone, rscatter)
+        atm_dry   = compute_dry_adiabat(atm, dirs, standalone, calc_cf, rscatter)
 
         if standalone == True:
             print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
@@ -250,7 +250,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     ax4.plot(atm_moist.SW_heating, atm_moist.p, ls=":", color=ga.vol_colors[col_vol1][col_idx+1], label=r'SW')
 
     # Plot tropopause
-    trpp_idx = int(atm_moist.trpp[0])
+    trpp_idx = int(atm_moist.trppidx)
     if trpp_idx > 0:
         ax4.axhline(atm_moist.pl[trpp_idx], color=ga.vol_colors[col_vol2][col_idx], lw=1.0, ls="-.", label=r'Tropopause')
     
@@ -302,7 +302,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     #     json.dump(json_atm, atm_file)
 
 # Time integration for n steps
-def compute_dry_adiabat(atm, dirs, standalone, rscatter):
+def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False):
 
     # Dry adiabat settings 
     rad_steps   = 100  # Maximum number of radiation steps
@@ -328,7 +328,7 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
 
         # Compute radiation, midpoint method time stepping
         try:
-            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
+            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
             
             dT_dry          = atm_dry.net_heating * atm_dry.dt
 
@@ -388,19 +388,21 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter):
     return atm_dry
 
 
-def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter):
+def compute_moist_adiabat(atm, dirs, standalone, trpp, calc_cf=False, rscatter=False):
+
+    atm_moist = copy.deepcopy(atm)
 
     # Build general adiabat structure
-    atm_moist = ga.general_adiabat(copy.deepcopy(atm))
+    atm_moist = ga.general_adiabat(atm_moist)
 
     # Run SOCRATES
-    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
+    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
 
     if standalone == True:
         print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
     if trpp == True:
-        
+      
         # Find tropopause index
         atm_moist = find_tropopause(atm_moist)
 
@@ -408,7 +410,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter):
         atm_moist = set_stratosphere(atm_moist)
 
         # Recalculate fluxes w/ new atmosphere structure
-        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=False, rscatter=rscatter)
+        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=calc_cf, rscatter=rscatter)
 
         if standalone == True:
             print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
@@ -417,75 +419,94 @@ def compute_moist_adiabat(atm, dirs, standalone, trpp, rscatter):
 
 def find_tropopause(atm_moist):
 
-    # Find tropopause index
-    trpp_idx   = 0 
-    signchange = ((np.roll(np.sign(atm_moist.net_heating), 1) - np.sign(atm_moist.net_heating)) != 0).astype(int)[1:]
-    signchange_indices = np.nonzero(signchange)[0]
+    # Heating criterion
+    if atm_moist.trppT == 0:
 
-    # Criteria for "significant " heating
-    DeltaT_max_sign  = 50.
-    DeltaT_at_trpp   = 30.
-    DeltaT_mean_sign = 10.
-    dZ_strato        = round(len(atm_moist.net_heating)*0.02)
+        print("TROPOPAUSE SET BY HEATING")
+
+        # Find tropopause index
+        trpp_idx   = 0 
+        signchange = ((np.roll(np.sign(atm_moist.net_heating), 1) - np.sign(atm_moist.net_heating)) != 0).astype(int)[1:]
+        signchange_indices = np.nonzero(signchange)[0]
+
+        # Criteria for "significant " heating
+        DeltaT_max_sign  = 50.
+        DeltaT_at_trpp   = 30.
+        DeltaT_mean_sign = 10.
+        dZ_strato        = round(len(atm_moist.net_heating)*0.02)
+        
+        # If heating sign change below TOA -> tropopause
+        if np.size(signchange_indices) > 0 and np.max(atm_moist.net_heating) > DeltaT_max_sign:
+
+            # First guess: maximum heating index
+            # print(np.argmax(atm_moist.net_heating))
+            max_heat_idx = np.argmax(atm_moist.net_heating)
+
+            # Lower height while heating still significant
+            while atm_moist.net_heating[max_heat_idx] > DeltaT_at_trpp and max_heat_idx < len(atm_moist.p)-1:
+                max_heat_idx += 1
+
+            trpp_idx     = max_heat_idx
+
+
+            # # First guess: uppermost sign change (below TOA)
+            # if atm_moist.net_heating[signchange_indices[0]-1] > 0 and np.mean(atm_moist.net_heating[:signchange_indices[0]-1]) > DeltaT_mean_sign:
+            #     trpp_idx = signchange_indices[0]
+
+            # # Decrease trpp height (== increase idx) while heating in trpp layer is significant
+            # for idx, sgn_idx_top in enumerate(signchange_indices):
+
+            #     if idx < np.size(signchange_indices)-1:
+            #         sgn_idx_down = signchange_indices[idx+1]
+                
+            #         # Check mean and max heating and extent of layer above trpp idx
+            #         if np.mean(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_mean_sign and np.max(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_max_sign and abs(sgn_idx_down-sgn_idx_top) > dZ_strato:
+            #             trpp_idx = sgn_idx_down
+
+            # Only consider tropopause if deeper than X% below TOA
+            if trpp_idx < dZ_strato: 
+                trpp_idx = 0
+
+            # Only consider if mean heating above tropopause significant
+            if np.mean(atm_moist.net_heating[0:trpp_idx]) < DeltaT_mean_sign:
+                trpp_idx = 0
+
+
+        # # If heating everywhere (close to star) & heating is significant
+        # if np.size(signchange_indices) <= 1 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
+        #     trpp_idx = np.size(atm_moist.tmp)-1
+
+        # If significant tropopause found or isothermal atmosphere from stellar heating
+        if trpp_idx != 0:
+
+            # # Print tropopause index for debugging
+            # print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],3), round(atm_moist.tmpl[trpp_idx],3))
+        
+            atm_moist.trppidx   = trpp_idx                  # index
+            atm_moist.trppP     = atm_moist.pl[trpp_idx]    # pressure 
+            atm_moist.trppT     = atm_moist.tmpl[trpp_idx]  # temperature
+
+    # Temperature criterion
+    else:
+
+        print("TROPOPAUSE SET TO", atm_moist.trppT, "K")
+        trpp_idx = (np.abs(atm_moist.tmp - atm_moist.trppT)).argmin()
+
+        atm_moist.trppidx   = trpp_idx                  # index
+        atm_moist.trppP     = atm_moist.pl[trpp_idx]    # pressure 
+        atm_moist.trppT     = atm_moist.tmpl[trpp_idx]  # temperature
+
+
     
-    # If heating sign change below TOA -> tropopause
-    if np.size(signchange_indices) > 0 and np.max(atm_moist.net_heating) > DeltaT_max_sign:
-
-        # First guess: maximum heating index
-        # print(np.argmax(atm_moist.net_heating))
-        max_heat_idx = np.argmax(atm_moist.net_heating)
-
-        # Lower height while heating still significant
-        while atm_moist.net_heating[max_heat_idx] > DeltaT_at_trpp and max_heat_idx < len(atm_moist.p)-1:
-            max_heat_idx += 1
-
-        trpp_idx     = max_heat_idx
-
-
-        # # First guess: uppermost sign change (below TOA)
-        # if atm_moist.net_heating[signchange_indices[0]-1] > 0 and np.mean(atm_moist.net_heating[:signchange_indices[0]-1]) > DeltaT_mean_sign:
-        #     trpp_idx = signchange_indices[0]
-
-        # # Decrease trpp height (== increase idx) while heating in trpp layer is significant
-        # for idx, sgn_idx_top in enumerate(signchange_indices):
-
-        #     if idx < np.size(signchange_indices)-1:
-        #         sgn_idx_down = signchange_indices[idx+1]
-            
-        #         # Check mean and max heating and extent of layer above trpp idx
-        #         if np.mean(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_mean_sign and np.max(atm_moist.net_heating[sgn_idx_top:sgn_idx_down]) > DeltaT_max_sign and abs(sgn_idx_down-sgn_idx_top) > dZ_strato:
-        #             trpp_idx = sgn_idx_down
-
-        # Only consider tropopause if deeper than X% below TOA
-        if trpp_idx < dZ_strato: 
-            trpp_idx = 0
-
-        # Only consider if mean heating above tropopause significant
-        if np.mean(atm_moist.net_heating[0:trpp_idx]) < DeltaT_mean_sign:
-            trpp_idx = 0
-
-    # # If heating everywhere (close to star) & heating is significant
-    # if np.size(signchange_indices) <= 1 and np.mean(atm_moist.net_heating) > DeltaT_mean_sign:
-    #     trpp_idx = np.size(atm_moist.tmp)-1
-
-    # If significant tropopause found or isothermal atmosphere from stellar heating
-    if trpp_idx != 0:
-
-        # # Print tropopause index for debugging
-        # print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],3), round(atm_moist.tmpl[trpp_idx],3))
-    
-        atm_moist.trpp[0] = trpp_idx                  # index
-        atm_moist.trpp[1] = atm_moist.pl[trpp_idx]    # pressure 
-        atm_moist.trpp[2] = atm_moist.tmpl[trpp_idx]  # temperature
 
     return atm_moist
 
 
 def set_stratosphere(atm):
 
-    trpp_idx = int(atm.trpp[0])
-    trpp_prs = atm.trpp[1]
-    trpp_tmp = atm.trpp[2]
+    trpp_idx = int(atm.trppidx)
+    trpp_prs = atm.trppP
+    trpp_tmp = atm.trppT
 
     # Standard nodes
     for prs_idx, prs in enumerate(atm.p):
@@ -670,13 +691,16 @@ if __name__ == "__main__":
     # Rayleigh scattering on/off
     rscatter = True
 
+    # Compute contribution function
+    calc_cf = False
+
     # Instellation scaling | 1.0 == no scaling
     Sfrac = 1.0
 
     ##### Function calls
 
     # Create atmosphere object
-    atm            = atmos(T_surf, P_surf, vol_list)
+    atm            = atmos(T_surf, P_surf, vol_list, calc_cf=calc_cf)
 
     # Compute stellar heating
     atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
@@ -688,7 +712,7 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True, rscatter=rscatter) 
+    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=True, calc_cf=calc_cf, rscatter=rscatter) 
 
     print(len(atm_moist.p))
 
