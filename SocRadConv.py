@@ -639,7 +639,7 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet age and orbit
-    time = { "planet": 0., "star": 567e+6 } # yr,
+    time = { "planet": 0., "star": 4567e+6 } # yr,
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
