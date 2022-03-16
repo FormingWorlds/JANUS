@@ -1,13 +1,14 @@
+#!/bin/bash
 # Usage: bash insert_star_spectrum.sh
 
 # Define path and stellar spectrum to use
 STAR_PATH=/Users/timlichtenberg/git/proteus/atm_rad_conv/spectral_files/stellar_spectra/
 
-# Options: Sun_t456myr_kurucz_95, F2V_hd128167, M45_ADLeo
-STAR_NAME=Sun_t456myr_kurucz_95
-
 # File name ending
 STAR_FILE=.txt
+
+# Options: F2V_hd128167 M45_ADLeo Sun_t0_0Ga_claire_12 (t: 0.0 – 4.55)
+STAR_NAME=Sun_t4_4Ga_claire_12
 
 # New spectral file name
 NEW_FILE=sp_b318_HITRAN_a16_${STAR_NAME}

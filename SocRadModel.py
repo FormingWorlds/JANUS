@@ -48,8 +48,8 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
             }
 
     # Define stellar spectrum to use, options:
-    # Sun_t456myr_kurucz_95, F2V_hd128167, M45_ADLeo
-    star_name           = "Sun_t456myr_kurucz_95"
+    # Sun_t456Myr_kurucz_95 F2V_hd128167 M45_ADLeo Sun_t0_0Ga_claire_12 (t: 0.0 – 4.55)
+    star_name           = "Sun_t0_0Ga_claire_12"
     
     # Define path to spectral file
     spectral_base_name  = "sp_b318_HITRAN_a16"
