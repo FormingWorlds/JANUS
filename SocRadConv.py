@@ -639,7 +639,7 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet age and orbit
-    time = { "planet": 0., "star": 4567e+6 } # yr,
+    time = { "planet": 0., "star": 567e+6 } # yr,
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
@@ -647,7 +647,7 @@ if __name__ == "__main__":
 
     # Surface pressure & temperature
     
-    T_surf        = 290.                # K
+    T_surf        = 1200.                # K
 
     # # Volatile molar concentrations: must sum to ~1 !
     # P_surf        = 210e+5              # Pa
@@ -675,13 +675,13 @@ if __name__ == "__main__":
     P_surf      = "calc"   
      # Volatiles considered
     vol_list    = { 
-                          "H2O" :  0.01e+5,
+                          "H2O" :  1.00e+5,
                           "NH3" :  0.,
-                          "CO2" :  35e+5,
-                          "CH4" :  0e+5,
+                          "CO2" :  40.e+5,
+                          "CH4" :  0.e+5,
                           "CO"  :  0.,
                           "O2"  :  0.,
-                          "N2"  :  1e+5,
+                          "N2"  :  1.e+5,
                           "H2"  :  0e+5,
                         }
 
