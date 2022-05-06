@@ -735,7 +735,7 @@ def general_adiabat( atm ):
     moist_tuple     = [] #[tuple([np.log(atm.ps), atm.ts])] 
    
     # Negative increment to go from ps to ptop < ps       
-    step            = -.001
+    step            = -1.*atm.step
 
     # Integration counter
     idx             = 0  
