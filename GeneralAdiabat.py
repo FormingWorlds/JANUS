@@ -945,15 +945,15 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    P_surf                  = 20e+5       # Pa
-    T_surf                  = 300         # K
+    P_surf                  = p_sat('H2O',350)+1e+5      # Pa
+    T_surf                  = 350         # K
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : 0,    # 300e+5/P_surf --> specific p_surf
-                  "CO2" : 1,     # 100e+5/P_surf
+                  "H2O" : p_sat('H2O',350)/P_surf,        # 300e+5/P_surf --> specific p_surf
+                  "CO2" : .0,        # 100e+5/P_surf
                   "H2"  : .0, 
-                  "N2"  : .0,     # 1e+5/P_surf
+                  "N2"  : 1e+5/P_surf,       # 1e+5/P_surf
                   "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 

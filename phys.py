@@ -319,13 +319,13 @@ H2.TriplePointP = 7.200000e+03
 H2.L_vaporization_BoilingPoint = 4.540000e+05
 H2.L_vaporization_TriplePoint = None
 H2.L_fusion = 5.820000e+04
-H2.L_sublimation = 0.1e-99#4.540000e+05 # !CAREFUL! Actually: None
+H2.L_sublimation = 0.1e-99 # !CAREFUL! Actually: None
 H2.rho_liquid_BoilingPoint = 7.097000e+01
 H2.rho_liquid_TriplePoint = None
 H2.rho_solid = 8.800000e+01
 H2.cp = 1.423000e+04
 H2.gamma = 1.384000e+00
-H2.MolecularWeight = 2.015680e+00
+H2.MolecularWeight = 2.015680e+00 # original: 2.000000e+00
 H2.name = 'Hydrogen' 
 H2.formula = 'H2' 
 H2.L_vaporization=4.540000e+05
@@ -339,7 +339,7 @@ He.TriplePointP = 5.070000e+03
 He.L_vaporization_BoilingPoint = 2.030000e+04
 He.L_vaporization_TriplePoint = None
 He.L_fusion = None
-He.L_sublimation = 2.030000e+04 # !CAREFUL! Actually: None
+He.L_sublimation = 0.1e-99 # !CAREFUL! Actually: None
 He.rho_liquid_BoilingPoint = 1.249600e+02
 He.rho_liquid_TriplePoint = None
 He.rho_solid = 2.000000e+02
@@ -545,9 +545,6 @@ class satvps_function:
             self.e0 = Gas_or_T0.TriplePointP
             if self.iceFlag == 'ice':
                 self.L = Gas_or_T0.L_sublimation
-                # if Gas_or_T0.L_sublimation is None:
-                #   L_sublimation = Gas_or_T0.L_vaporization
-                #   self.L = L_sublimation
             elif self.iceFlag == 'liquid':
                 self.L = Gas_or_T0.L_vaporization
             else:
