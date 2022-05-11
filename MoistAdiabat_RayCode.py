@@ -17,6 +17,8 @@ import phys
 from ClimateUtilities import *
 import matplotlib.pyplot as plt
 from math import *
+import numpy as np
+
 #%%
 #Dry and one-component adiabat functions, for comparison
 #Note that the use of Numeric.log lets this take
@@ -111,14 +113,18 @@ psat_ref = condensible.TriplePointP
 #%%
 #matplotlib notebook
 ps = 1.e5
-Ts = 350.
+Ts = 750.
 p,T,molarCon,q = MoistAdiabat(ps,Ts,condensible,noncon)
 
 #Plot temperature
 plt.figure(1)
 plt.plot(T, p,'r-')
 
-plt.plot(Tdry(Ts,p),p,'b--')
+satvp_h2o=phys.satvps_function(phys.H2O,'liquid')
+
+plt.plot(T,p-np.vectorize(satvp_h2o)(T))
+
+#plt.plot(Tdry(Ts,p),p,'b--')
 plt.yscale('log')
 plt.gca().invert_yaxis()
 plt.title('Temperature Profile')
@@ -140,6 +146,7 @@ plt.xscale('log')
 plt.xlim(10**-4,1)
 
 #%%
+'''
 ps = 1.e5
 Ts = 300.
 
@@ -148,8 +155,6 @@ p,T,molarCon,q = MoistAdiabat(ps,Ts,condensible,noncon)
 #Plot temperature
 plt.figure(1)
 plt.plot(T, p,'r-')
-
-plt.savefig("output/"+"ray_adiabat_TP.pdf")
 
 
 #Plot Molar Concentration
@@ -160,11 +165,10 @@ plt.plot(molarCon+1.e-30,p,'r-')
 plt.title("Molar Concentration Profile")
 plt.xlabel("Concentration (fraction)")
 plt.ylabel("Pressure (Pa)")
-plt.savefig("output/"+"ray_adiabat_mol.pdf")
 
 
 #%%
-'''
+'''''''
 Since many calculations require the computation of a moist adiabat, an implementation 
 of the calculation has been provided in the phys.py module. The calculation is 
 implemented as a "callable object," which works much like a function, but has the 
