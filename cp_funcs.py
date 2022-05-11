@@ -11,7 +11,7 @@ import scipy.interpolate as spint
 # https://webbook.nist.gov/chemistry/
 # Choose cp functions
 
-def cpv( vol, tmp, cp_mode = "T-dependent" ):
+def cpv( vol, tmp, cp_mode = "constant" ):
 
     
     # cp_mode = "T-dependent" # NIST Chemistry WebBook

@@ -606,7 +606,6 @@ def condensation( atm, idx, wet_list, dry_list, prs_reset):
     
     if idx==0:
         
-        #p_tot_pre_condensation = atm.p[idx]
         # Renormalize mixing ratios to ensure sum == 1
         if sum(atm.vol_list.values()) != 1.:
             vol_list_new = {}
@@ -614,134 +613,81 @@ def condensation( atm, idx, wet_list, dry_list, prs_reset):
                 vol_list_new[vol]   = atm.vol_list[vol] / sum(atm.vol_list.values())
             for vol in atm.vol_list.keys():
                 atm.vol_list[vol] = vol_list_new[vol]
-    # Account for condensation
-    
-    # Total pressure of condensing phases
-    p_cond_sum = 0
-    for vol in atm.vol_list:
-        if vol in wet_list:
-            atm.p_vol[vol][idx] = p_sat(vol, atm.tmp[idx])
-            p_cond_sum += atm.p_vol[vol][idx]
-            
-    # Calculate the total partial pressure of dry species
-    p_dry_tot = atm.p[idx] - p_cond_sum
-    
-    
-    # Partial pressures and molar mass: pre-condensation values
-    for vol in atm.vol_list.keys():
-        if idx == 0:
-    
-            # Partial pressures scaled 
+        # Partial pressures scaled 
+        for vol in atm.vol_list:
             atm.p_vol[vol][idx] = atm.vol_list[vol] * atm.p[idx]
             #atm.p_vol[vol][idx] = atm.vol_list[vol] * p_tot_pre_condensation
             # Mean gas phase molar mass
             atm.mu[idx]       += atm.vol_list[vol] * molar_mass[vol]
-        else:
-            # Sum up gaseous mixing ratios to normalize
-            x_sum = 0
-            
-            for vol1 in atm.vol_list.keys():
-                x_sum += atm.x_gas[vol1][idx-1]
+    
+    else:  
+        
+        # Total pressure & partial pressures of condensing phases
+        p_cond_sum = 0
+        for vol in atm.vol_list:
+            if vol in wet_list:
+                atm.p_vol[vol][idx] = p_sat(vol, atm.tmp[idx])
+                p_cond_sum += atm.p_vol[vol][idx]
                 
-            # Divide this volatile's mixing ratio by the sum of all gaseous mixing ratios to acquire volume mixing ratio  
-            x_vol = atm.x_gas[vol][idx-1] / x_sum
-            
-            # Scale the pre-condensation dry partial pressure by this volume mixing ratio
-            #atm.p_vol[vol][idx] = x_vol * p_tot_pre_condensation
-            atm.p_vol[vol][idx] = x_vol * atm.p[idx]
-            # Mean gas phase molar mass, pre-condensation
-            atm.mu[idx] += x_vol * molar_mass[vol]
+        # Calculate the total partial pressure of dry species
+        p_dry_tot = atm.p[idx] - p_cond_sum
+        dry_frac_sum = 0
+        # calculate sum of fractions of dry species for partial pressure calculation
+        for vol in atm.vol_list:
+            if vol in dry_list:
+                dry_frac_sum += atm.x_gas[vol][idx-1]
+        # Calculate the individual partial pressures of dry species
+        for vol in atm.vol_list:
+            if vol in dry_list:
+                atm.p_vol[vol][idx] = p_dry_tot * (atm.x_gas[vol][idx-1]/dry_frac_sum)
     
-    # Molar mass before condensation
-    mu_old = atm.mu[idx].copy()
-    
-    # Flag telling code to keep making new loops as long as new species condense
-    #condensation_flag = True
-    
-    # List of dry species
-    #dry_list = []
-    
-    # List of condensing species
-    #wet_list = []
-    
-    
-      
-    #while condensation_flag == True:
-    
-    # If new condensation does not occur, this flag will remain false and the loop
-    # will end after the next iteration
-    #condensation_flag = False
-    
-    
-    #print(dry_list)
-    
-    
-    # Sum of dry volatile fractions from vol_list
-    dry_frac_sum = 0
-    
-    if idx == 0:
-        # Calculate dry_frac_sum
-        for vol in dry_list:
-            dry_frac_sum += atm.vol_list[vol]
-    else:
-        for vol in dry_list:
-            dry_frac_sum += atm.x_gas[vol][idx-1]
-    # Calculate individual dry partial pressures by multiplying the total dry partial
-    # pressure by the mixing ratio of each dry species w.r.t. the rest of the dry species
-    if idx == 0:
-        for vol in dry_list:
-            #print(vol)
-            atm.p_vol[vol][idx] = p_dry_tot * ( atm.vol_list[vol] / dry_frac_sum )
-    else:
-        for vol in dry_list:
-            atm.p_vol[vol][idx] = p_dry_tot * ( atm.x_gas[vol][idx-1] / dry_frac_sum )
-            #atm.p_vol[vol][idx] = atm.p[idx] * ( atm.x_gas[vol][idx-1])
-    # Reset mean molar mass
+       
+    # Calculate mean molar mass
     atm.mu[idx]   = 0.
-    p_vol_sum       = 0.
     
-    # Calculate new mean molar mass
     for vol in atm.vol_list.keys():
         atm.mu[idx]   += molar_mass[vol] * atm.p_vol[vol][idx]
     atm.mu[idx] /= atm.p[idx]
+        
     
-    # Update mixing ratios
+
+    
+    # Update condensate mixing ratios
     for vol in atm.vol_list.keys():
-
-        # Mean molar mass
-        p_vol_sum       += atm.p_vol[vol][idx]
-
+       
         # Condensate phase
         if atm.p_vol[vol][idx] < p_sat(vol, tmp):
             atm.x_cond[vol][idx] = 0.
         else:
             #atm.x_cond[vol][idx] = atm.vol_list[vol] - ( atm.p_vol[vol][idx] / atm.p[idx] )
             if idx == 0:
-                atm.x_cond[vol][idx] = atm.vol_list[vol] - ( mu_old / atm.mu[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
+                #atm.x_cond[vol][idx] = atm.vol_list[vol] - ( mu_old / atm.mu[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
+                atm.x_cond[vol][idx] = 0.
             else:
-                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + atm.x_gas[vol][idx-1] - ( 1-atm.xc[idx-1] ) * ( mu_old / atm.mu[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
+                #mu_old = atm.mu[idx-1]
+                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + (1-atm.xc[idx-1])*(atm.x_gas[vol][idx-1] - atm.p_vol[vol][idx]/atm.p[idx])
             
 
         #atm.x_cond[vol][idx] *= atm.alpha_cloud
 
         # Add to molar concentration of total condensed phase
         atm.xc[idx]     += atm.x_cond[vol][idx]
-        
+    for vol in atm.vol_list.keys():    
         # Gas phase molar concentration
         #atm.x_gas[vol][idx] = atm.p_vol[vol][idx] / atm.p[idx]
         if idx == 0:
-            atm.x_gas[vol][idx] =  mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
-            #atm.x_gas[vol][idx] = ( 1-atm.xc[idx-1] ) *  mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+            #atm.x_gas[vol][idx] =  mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+            atm.x_gas[vol][idx] = atm.vol_list[vol]
             
         else:
-            atm.x_gas[vol][idx] =  ( 1-atm.xc[idx-1] ) * mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+            atm.x_gas[vol][idx] =  ( 1-atm.xc[idx] ) * atm.p_vol[vol][idx] /  atm.p[idx]
             #atm.x_gas[vol][idx] =  mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
         
         # Add to molar concentration of total gas (dry or moist) phase
         # ! REVISIT ! keeping xd == 0 leads to a bug, why?
-        if atm.p_vol[vol][idx] < p_sat(vol, tmp):
+        if vol in dry_list:
             atm.xd[idx]          += atm.x_gas[vol][idx]
-        else:
+        if vol in wet_list:
             atm.xv[idx]          += atm.x_gas[vol][idx]
         
         # Mean cp of both gas phase and retained condensates
@@ -796,6 +742,8 @@ def general_adiabat( atm ):
     # saturation vapor pressures, then adjust Vol_list and Psurf.
     new_psurf = 0
     new_p_vol = {}
+    wet_list = []
+    dry_list = []
     Tsurf = atm.ts
     alpha = atm.alpha_cloud
     for vol in atm.vol_list.keys():
@@ -811,7 +759,11 @@ def general_adiabat( atm ):
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
         atm = atmos(Tsurf, new_psurf, atm.vol_list, trppT=atm.trppT)
         atm.alpha_cloud = alpha
-        
+    for vol in atm.vol_list.keys():
+        if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts):
+            wet_list.append(vol)
+        else:
+            dry_list.append(vol)
     
     ### Initialization
     
@@ -825,7 +777,7 @@ def general_adiabat( atm ):
     idx             = 0  
     
     # Surface condensation
-    atm             = condensation(atm, idx, prs_reset=False)
+    atm, wet_list, dry_list  = condensation(atm, idx, wet_list, dry_list, prs_reset=False)
 
     # Create the integrator instance                                              
     int_slope       = integrator(moist_slope, np.log(atm.ps), np.log(atm.ts), step)
@@ -853,7 +805,7 @@ def general_adiabat( atm ):
         atm.ifatm[idx]  = idx
 
         # Calculate condensation at next level
-        atm             = condensation(atm, idx, prs_reset=False)
+        atm, wet_list, dry_list    = condensation(atm, idx, wet_list, dry_list, prs_reset=False)
 
     # Interpolate
     atm = interpolate_atm(atm)
@@ -1029,7 +981,7 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    T_surf                  = 750    # K
+    T_surf                  = 350    # K
     P_surf                  = 1e5+p_sat('H2O',T_surf)   # Pa
     
 
