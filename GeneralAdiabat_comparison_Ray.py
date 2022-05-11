@@ -237,16 +237,35 @@ def p_sat(switch,T):
     
     # Define volatile
     if switch == 'H2O':
+        e = phys.satvps_function(phys.water)
+    if switch == 'CH4':
+        e = phys.satvps_function(phys.methane)
+    if switch == 'CO2':
+        e = phys.satvps_function(phys.co2)
+    if switch == 'CO':
+        e = phys.satvps_function(phys.co)
+    if switch == 'N2':
+        e = phys.satvps_function(phys.n2)
+    if switch == 'O2':
+        e = phys.satvps_function(phys.o2)
+    if switch == 'H2':
+        e = phys.satvps_function(phys.h2)
+    if switch == 'He':
+        e = phys.satvps_function(phys.he)
+    if switch == 'NH3':
+        e = phys.satvps_function(phys.nh3)
+    
+    # Return saturation vapor pressure
+    return e(T)
+'''
+def p_sat(switch,T): 
+    
+    # Define volatile
+    if switch == 'H2O':
         if T >= phys.H2O.CriticalPointT:
             e = np.inf
         else:
-            '''
-            p_ref = phys.H2O.CriticalPointP
-            T_ref = phys.H2O.CriticalPointT
-            L     = phys.H2O.L_vaporization
-            M     = phys.H2O.MolecularWeight
-            e = p_ref*np.exp(-L/(phys.Rstar/M)*(1./T-1./T_ref))
-            '''
+            
             e = phys.satvps_function(phys.water,'liquid')(T)
             
     if switch == 'CH4':
@@ -292,7 +311,7 @@ def p_sat(switch,T):
     
     # Return saturation vapor pressure
     return e
-
+'''
 ## Dew point temperature [K] given a pressure p [Pa]. Select the molecule of interest with the switch argument (a string).
 def Tdew(switch, p): 
     
@@ -981,7 +1000,7 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    T_surf                  = 350    # K
+    T_surf                  = 750    # K
     P_surf                  = 1e5+p_sat('H2O',T_surf)   # Pa
     
 

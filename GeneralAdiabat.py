@@ -945,12 +945,13 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    P_surf                  = p_sat('H2O',350)+1e+5      # Pa
-    T_surf                  = 350         # K
+    T_surf                  = 750         # K
+    P_surf                  = p_sat('H2O',T_surf)+1e+5      # Pa
+    
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : p_sat('H2O',350)/P_surf,        # 300e+5/P_surf --> specific p_surf
+                  "H2O" : p_sat('H2O',T_surf)/P_surf,        # 300e+5/P_surf --> specific p_surf
                   "CO2" : .0,        # 100e+5/P_surf
                   "H2"  : .0, 
                   "N2"  : 1e+5/P_surf,       # 1e+5/P_surf
@@ -966,10 +967,10 @@ if __name__ == "__main__":
     
     # Set fraction of condensate retained in column
     atm.alpha_cloud         = 0.
-    
+    atm.step = 0.01
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)
-
+    
     # Plot adiabat
     plot_adiabats(atm)
     
