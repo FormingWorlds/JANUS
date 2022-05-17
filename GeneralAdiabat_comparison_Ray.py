@@ -658,8 +658,9 @@ def condensation( atm, idx, wet_list, dry_list, prs_reset):
         # Calculate the individual partial pressures of dry species
         for vol in atm.vol_list:
             if vol in dry_list:
+                print(atm.x_gas[vol][idx-1])
                 atm.p_vol[vol][idx] = p_dry_tot * (atm.x_gas[vol][idx-1]/dry_frac_sum)
-    
+                
        
     # Calculate mean molar mass
     atm.mu[idx]   = 0.
@@ -781,7 +782,7 @@ def general_adiabat( atm ):
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts):
             wet_list.append(vol)
-        else:
+        elif atm.vol_list[vol] * atm.ps != p_sat(vol,atm.ts) and atm.vol_list[vol] > 0:
             dry_list.append(vol)
     
     ### Initialization
