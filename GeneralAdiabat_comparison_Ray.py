@@ -658,7 +658,7 @@ def condensation( atm, idx, wet_list, dry_list, prs_reset):
         # Calculate the individual partial pressures of dry species
         for vol in atm.vol_list:
             if vol in dry_list:
-                print(atm.x_gas[vol][idx-1])
+                #print(atm.x_gas[vol][idx-1])
                 atm.p_vol[vol][idx] = p_dry_tot * (atm.x_gas[vol][idx-1]/dry_frac_sum)
                 
        
@@ -685,8 +685,7 @@ def condensation( atm, idx, wet_list, dry_list, prs_reset):
                 atm.x_cond[vol][idx] = 0.
             else:
                 #mu_old = atm.mu[idx-1]
-                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + (1-atm.xc[idx-1])*(atm.x_gas[vol][idx-1] - atm.p_vol[vol][idx]/atm.p[idx])
-            
+                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + atm.x_gas[vol][idx-1] - (1-atm.xc[idx-1])*(atm.p_vol[vol][idx]/atm.p[idx])
 
         #atm.x_cond[vol][idx] *= atm.alpha_cloud
 
@@ -839,7 +838,7 @@ def general_adiabat( atm ):
             atm.x_gas[vol][:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
     atm.xc[:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
     
-
+    
     return atm
 
 # Interpolate and flip pressure, temperature and volatile grids to fixed size
@@ -1001,28 +1000,27 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    T_surf                  = 750    # K
-    P_surf                  = 1e5+p_sat('H2O',T_surf)   # Pa
+    T_surf                  = 350         # K
+    P_surf                  = p_sat('H2O',T_surf)+1e+5      # Pa
     
 
     # Volatile molar concentrations: ! must sum to one !
     vol_list = { 
-                  "H2O" : p_sat('H2O',T_surf)/P_surf,    # 300e+5/P_surf --> specific p_surf
-                  "CO2" : 0.,     # 100e+5/P_surf
+                  "H2O" : p_sat('H2O',T_surf)/P_surf,        # 300e+5/P_surf --> specific p_surf
+                  "CO2" : .0,        # 100e+5/P_surf
                   "H2"  : .0, 
-                  "N2"  : 1e5/P_surf,     # 1e+5/P_surf
+                  "N2"  : 1e+5/P_surf,       # 1e+5/P_surf
                   "CH4" : .0, 
                   "O2"  : .0, 
                   "CO"  : .0, 
                   "He"  : .0,
                   "NH3" : .0, 
                 }
-
     # Create atmosphere object
     atm                     = atmos(T_surf, P_surf, vol_list)
     
     # Set fraction of condensate retained in column
-    atm.alpha_cloud         = 0.
+    atm.alpha_cloud         = 1.
     
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)
