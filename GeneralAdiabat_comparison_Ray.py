@@ -563,6 +563,60 @@ def moist_slope(lnP, lnT, atm):
     # Moist adiabat slope
     return dlnTdlnP
 
+
+def moist_slope_no_atm_no_cond(lnP, lnT, vol_list):
+    
+    # T instead lnT
+    tmp = math.exp(lnT)
+
+    # Sum terms in equation
+    num_sum     = 0.
+    denom_sum1  = 0. 
+    denom_sum2  = 0. 
+    denom_sum3  = 0.
+    cp          = 0.
+    xd          = 0.
+    xv          = 0.
+    for vol in vol_list.keys():
+        p_vol=np.exp(lnP)*vol_list[vol]
+        
+        if p_vol < p_sat(vol, tmp): 
+            
+            xd += vol_list[vol]
+        elif p_vol == p_sat(vol,tmp):
+            xv += vol_list[vol]
+        elif p_vol > p_sat(vol,tmp):
+            print('Warning: volatile ' + vol + ' is supersaturated. Psat=%.3f'%p_sat(vol,tmp)+', Pvol=%.3f'%p_vol)
+    # Calculate sums over volatiles
+    for vol in vol_list.keys(): 
+        p_vol=np.exp(lnP)*vol_list[vol]
+        # Coefficients
+        eta_vol     = vol_list[vol] / xd
+        beta_vol    = L_heat(vol, tmp, p_vol) / (phys.R_gas * tmp) 
+
+        # Beta terms zero if below saturation vapor pressure
+        if p_vol < p_sat(vol, tmp): beta_vol = 0.
+                   # Sum in numerator
+        num_sum     += eta_vol * beta_vol
+
+        # Sums in denominator
+        denom_sum1  += eta_vol * (beta_vol**2.)
+        denom_sum3  += eta_vol
+        cp    += vol_list[vol] * cpv(vol, tmp)
+    cp = cp / ( xd + xv )
+    # Sum 2 in denominator  
+    denom_sum2  = num_sum ** 2.
+
+    # Collect terms
+    numerator   = 1. + num_sum
+    denominator = (cp / phys.R_gas) + (denom_sum1 + denom_sum2) / (1. + denom_sum3)
+
+    # dlnT/dlnP
+    dlnTdlnP = numerator / denominator
+
+    # Moist adiabat slope
+    return dlnTdlnP
+
 #calculating dlnT / dlnPd (equation 15 in paper)
 def moist_slope_dry_component(lnP, lnT, atm):
     
@@ -1020,7 +1074,7 @@ if __name__ == "__main__":
     atm                     = atmos(T_surf, P_surf, vol_list)
     
     # Set fraction of condensate retained in column
-    atm.alpha_cloud         = 1.
+    atm.alpha_cloud         = 0.
     
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)
