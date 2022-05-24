@@ -256,7 +256,7 @@ def p_sat(switch,T):
         e = phys.satvps_function(phys.nh3)
     
     # Return saturation vapor pressure
-    return e(T)
+    return float(f'{e(T):.2f}')
 '''
 def p_sat(switch,T): 
     
@@ -580,11 +580,14 @@ def moist_slope_no_atm_no_cond(lnP, lnT, vol_list):
     for vol in vol_list.keys():
         p_vol=np.exp(lnP)*vol_list[vol]
         
-        if p_vol < p_sat(vol, tmp): 
+        
+        if np.isclose(p_vol, p_sat(vol,tmp)):
+            xv += vol_list[vol]
+            print(vol + ' saturated')
+        elif p_vol < p_sat(vol, tmp): 
             
             xd += vol_list[vol]
-        elif p_vol == p_sat(vol,tmp):
-            xv += vol_list[vol]
+            print(vol+' subsaturated')
         elif p_vol > p_sat(vol,tmp):
             print('Warning: volatile ' + vol + ' is supersaturated. Psat=%.3f'%p_sat(vol,tmp)+', Pvol=%.3f'%p_vol)
     # Calculate sums over volatiles
@@ -592,10 +595,12 @@ def moist_slope_no_atm_no_cond(lnP, lnT, vol_list):
         p_vol=np.exp(lnP)*vol_list[vol]
         # Coefficients
         eta_vol     = vol_list[vol] / xd
-        beta_vol    = L_heat(vol, tmp, p_vol) / (phys.R_gas * tmp) 
+        if np.isclose(p_vol,p_sat(vol,tmp)):
+            beta_vol    = L_heat(vol, tmp, p_vol) / (phys.R_gas * tmp) 
 
         # Beta terms zero if below saturation vapor pressure
-        if p_vol < p_sat(vol, tmp): beta_vol = 0.
+        elif p_vol < p_sat(vol, tmp): 
+            beta_vol = 0.
                    # Sum in numerator
         num_sum     += eta_vol * beta_vol
 
