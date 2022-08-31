@@ -476,8 +476,12 @@ def slopeRay( logpa, logT ):
     pa      = math.exp(logpa)
     T       = math.exp(logT)
     qsat    = eps*(satvph2o(T)/pa)
+    print('qsat=%.3f'%qsat)
     num     = (1. + (L/(Ra*T))*qsat)*Ra
+    print('numerator=%.3f'%num)
     den     = cpa + (cpc + (L/(Rc*T) - 1.)*(L/T))*qsat
+    print('denominator=%.3f'%den)
+    print('dlnT/dlnPa=%.3f'%(num/den))
     return num/den
 
 
@@ -589,13 +593,14 @@ def moist_slope_no_atm_no_cond(lnP, lnT, vol_list):
             xd += vol_list[vol]
             print(vol+' subsaturated')
         elif p_vol > p_sat(vol,tmp):
+            xv += vol_list[vol]
             print('Warning: volatile ' + vol + ' is supersaturated. Psat=%.3f'%p_sat(vol,tmp)+', Pvol=%.3f'%p_vol)
     # Calculate sums over volatiles
     for vol in vol_list.keys(): 
         p_vol=np.exp(lnP)*vol_list[vol]
         # Coefficients
         eta_vol     = vol_list[vol] / xd
-        if np.isclose(p_vol,p_sat(vol,tmp)):
+        if np.isclose(p_vol,p_sat(vol,tmp)) or p_vol > p_sat(vol,tmp):
             beta_vol    = L_heat(vol, tmp, p_vol) / (phys.R_gas * tmp) 
 
         # Beta terms zero if below saturation vapor pressure
@@ -622,52 +627,37 @@ def moist_slope_no_atm_no_cond(lnP, lnT, vol_list):
     # Moist adiabat slope
     return dlnTdlnP
 
-#calculating dlnT / dlnPd (equation 15 in paper)
-def moist_slope_dry_component(lnP, lnT, atm):
-    
-    # T instead lnT
-    tmp = math.exp(lnT)
+'''
+# Code for integrating simple case of no-condensate-retention adiabat
+T_surf                  = 350         # K
+P_surf                  = p_sat('H2O',T_surf) + 1e5      # Pa
 
-    # Find current atm index
-    idx = int(np.amax(atm.ifatm))
 
-    # Sum terms in equation
-    num_sum     = 0.
-    denom_sum   = 0.
-    
-    #Weighted average specific heat of dry components
-    cp_dry         = 0. 
-
-    # Calculate sums over volatiles
-    for vol in atm.vol_list.keys(): 
-        
-        # Coefficients
-        eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
-        L_vol       = L_heat(vol, tmp, atm.p_vol[vol][idx])
-        eta_cond    = atm.x_cond[vol][idx] / atm.xd[idx]
-        
-        
-        #Latent heat is zero if species is unsaturated
-        if atm.p_vol[vol][idx] < p_sat(vol, tmp): L_vol = 0.
-        
-        #Sum in numerator
-        num_sum     += eta_vol * L_vol / tmp
-        
-        #Sum in denominator
-        denom_sum   += (eta_vol * (cpv(vol, atm.tmp[idx]) - L_vol / tmp + L_vol**2 / phys.R_gas / tmp**2) + atm.alpha_cloud * eta_cond * cp_cond(vol, atm.tmp[idx]))
-        
-        # Calculate average specific heat per mole of dry components
-        if atm.p_vol[vol][idx] < p_sat(vol, tmp):
-            cp_dry += atm.x_gas[vol][idx] / atm.xd[idx] * cpv(vol, tmp)
-    
-    # Collect terms
-    numerator   = phys.R_gas + num_sum
-    denominator = cp_dry + denom_sum 
-    
-    #dlnT/dlnPd
-    dlnTdlnPd = numerator / denominator
-    
-    return dlnTdlnPd
+# Volatile molar concentrations: ! must sum to one !
+vol_list = { 
+              "H2O" : p_sat('H2O',T_surf)/P_surf,        # 300e+5/P_surf --> specific p_surf
+              "N2"  : 1e5/P_surf,       # 1e+5/P_surf
+              }
+moist_tuple = []
+pressure_list = []
+temp_list = []
+pressure_list.append(P_surf)
+temp_list.append(T_surf)
+int_slope = integrator(moist_slope_no_atm_no_cond,np.log(P_surf), np.log(T_surf), step)
+int_slope.setParams(vol_list)
+while pressure_list[-1] > atm.ptop:
+    moist_tuple.append(int_slope.next())
+    pressure_list.append(np.exp(int_slope.x))
+    temp_list.append(np.exp(int_slope.y))
+    p_h2o = p_sat('H2O',temp_list[-1])
+    p_n2 = pressure_list[-1] - p_h2o
+    vol_list = { 
+              "H2O" : p_h2o/pressure_list[-1],        # 300e+5/P_surf --> specific p_surf
+              "N2"  : p_n2/pressure_list[-1],       # 1e+5/P_surf
+              }
+    int_slope.setParams(vol_list)
+'''
+#%%
 
 #dlnPd/dlnT
 def invert_moist_slope_dry_component(lnP,lnT,atm):
