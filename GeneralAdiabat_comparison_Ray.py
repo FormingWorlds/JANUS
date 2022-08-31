@@ -379,7 +379,7 @@ def Tdew(switch, p):
     
 ## Molar latent heat [J mol-1] for gas phase considered given a temperature T [K]. 
 ## Select the molecule of interest with the switch argument (a string).
-def L_heat(switch, T, P):
+def L_heat(switch, T):
 
     if switch == 'H2O':
         L_sublimation   = phys.H2O.L_sublimation
@@ -521,7 +521,7 @@ def dry_adiabat_pressure( P_surf, T_array, cp_array ):
 
     return P_dry
 
-
+'''
 # dlnT/dlnP slope function 
 def moist_slope(lnP, lnT, atm):
     
@@ -627,7 +627,7 @@ def moist_slope_no_atm_no_cond(lnP, lnT, vol_list):
     # Moist adiabat slope
     return dlnTdlnP
 
-'''
+
 # Code for integrating simple case of no-condensate-retention adiabat
 T_surf                  = 350         # K
 P_surf                  = p_sat('H2O',T_surf) + 1e5      # Pa
@@ -656,14 +656,106 @@ while pressure_list[-1] > atm.ptop:
               "N2"  : p_n2/pressure_list[-1],       # 1e+5/P_surf
               }
     int_slope.setParams(vol_list)
-'''
+
 #%%
 
 #dlnPd/dlnT
 def invert_moist_slope_dry_component(lnP,lnT,atm):
     return 1 / moist_slope_dry_component(lnP, lnT, atm)
+'''
+def dlnT_dlnP_d(lnP, lnT, atm):
+    # T instead lnT
+    tmp = math.exp(lnT)
+
+
+    idx = int(np.amax(atm.ifatm))
+    
+    
+    # Sum terms in equation
+    num_sum     = 0.
+    denom_sum  = 0. 
+    
+    
+    # Calculate sums over volatiles
+    for vol in vol_list.keys(): 
+        # Coefficients
+        eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
+        eta_cond    = atm.x_cond[vol][idx] / atm.xd[idx]
+        #print(eta_vol)
+        # sums for saturated comps
+        if np.isclose(atm.p_vol[vol][idx] ,p_sat(vol,tmp)) or atm.p_vol[vol][idx]  > p_sat(vol,tmp):
+            L = L_heat(vol,tmp)
+            #beta_vol    = L_heat(vol, tmp) / (R_gas * tmp) #RTP
+            # Sum in numerator
+            num_sum     += eta_vol * L / tmp
+            # Sum in denominator
+            denom_sum  += eta_vol * (cpv(vol, tmp) - L/tmp + L**2/(phys.R_gas*tmp**2) + atm.alpha_cloud * eta_cond * cp_cond(vol,tmp))
+            
+        # sums for subsaturated comps
+        else: 
+            #print(eta_vol)
+            denom_sum += cpv(vol,tmp) * eta_vol #The eta_vol (x_vol/x_d) is there so that if there are multiple dry components the average dry specific heat is used
+        
+    
+        
+    
+    # Collect terms
+    numerator   = phys.R_gas + num_sum
+    denominator = denom_sum
+
+    # dlnT/dlnPd
+    dlnTdlnPd = numerator / denominator
+
+    # Moist adiabat slope
+    return dlnTdlnPd
+
+
+# In[70]:
+
+
+def moist_slope(lnP, lnT, atm):
+    # T instead lnT
+    tmp = math.exp(lnT)
+    
+    idx = int(np.amax(atm.ifatm))
+    # Sum terms in equation
+    num_sum     = 0.
+    denom_sum  = 0. 
 
     
+    
+    # Calculate sums over volatiles
+    for vol in vol_list.keys(): 
+        
+        # Coefficients
+        eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
+        
+        #print(eta_vol)
+        # sums for saturated comps
+        if np.isclose(atm.p_vol[vol][idx] ,p_sat(vol,tmp)) or atm.p_vol[vol][idx]  > p_sat(vol,tmp):
+            L = L_heat(vol,tmp)
+            
+            # Sum in numerator
+            num_sum     += eta_vol
+            # Sum in denominator
+            denom_sum  += L/phys.R_gas/tmp * eta_vol * dlnT_dlnP_d(lnP,lnT,atm)
+            
+        
+        
+    
+        
+    
+    # Collect terms
+    numerator   = 1 + num_sum
+    denominator = 1 + denom_sum
+    dlnPd_dlnP = numerator / denominator
+    # dlnT/dlnPd
+    dlnTdlnP = dlnPd_dlnP * dlnT_dlnP_d(lnP,lnT,atm)
+
+    # Moist adiabat slope
+    return dlnTdlnP
+
+
 
 
 def condensation( atm, idx, wet_list, dry_list, prs_reset):
@@ -1038,7 +1130,7 @@ def plot_adiabats(atm):
     #plt.show()
 
     plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
-    plt.close(fig)  
+    #plt.close(fig)  
 
     return
 
@@ -1049,7 +1141,7 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    T_surf                  = 350         # K
+    T_surf                  = 300         # K
     P_surf                  = p_sat('H2O',T_surf)+1e+5      # Pa
     
 
@@ -1069,7 +1161,7 @@ if __name__ == "__main__":
     atm                     = atmos(T_surf, P_surf, vol_list)
     
     # Set fraction of condensate retained in column
-    atm.alpha_cloud         = 0.
+    atm.alpha_cloud         = 0.0
     
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)

@@ -256,8 +256,62 @@ def p_sat(switch,T):
         e = phys.satvps_function(phys.nh3)
     
     # Return saturation vapor pressure
-    return e(T)
-
+    return float(f'{e(T):.2f}')
+'''
+def p_sat(switch,T): 
+    
+    # Define volatile
+    if switch == 'H2O':
+        if T >= phys.H2O.CriticalPointT:
+            e = np.inf
+        else:
+            
+            e = phys.satvps_function(phys.water,'liquid')(T)
+            
+    if switch == 'CH4':
+        if T >= phys.CH4.CriticalPointT:
+            e = np.inf
+        else:
+            e = phys.satvps_function(phys.methane)(T)
+    if switch == 'CO2':
+        if T >= phys.CO2.CriticalPointT:
+            e = np.inf
+        else:
+            e = phys.satvps_function(phys.co2)(T)
+    if switch == 'CO':
+        if T >= phys.CO.CriticalPointT:
+            e = np.inf
+        else:
+            e = phys.satvps_function(phys.co)(T)
+    if switch == 'N2':
+        if T >= phys.N2.CriticalPointT:
+            e = np.inf
+        else:
+            e = phys.satvps_function(phys.n2)(T)
+    if switch == 'O2':
+        if T >= phys.O2.CriticalPointT:
+            e = np.inf
+        else:
+            e = phys.satvps_function(phys.o2)(T)
+    if switch == 'H2':
+        if T >= phys.H2.CriticalPointT:
+            e = np.inf
+        else:
+            e = phys.satvps_function(phys.h2)(T)
+    if switch == 'He':
+        if T >= phys.He.CriticalPointT:
+            e = np.inf
+        else:
+            e = phys.satvps_function(phys.he)(T)
+    if switch == 'NH3':
+        if T >= phys.He.CriticalPointT:
+            e = np.inf
+        else:
+            e = phys.satvps_function(phys.nh3)(T)
+    
+    # Return saturation vapor pressure
+    return e
+'''
 ## Dew point temperature [K] given a pressure p [Pa]. Select the molecule of interest with the switch argument (a string).
 def Tdew(switch, p): 
     
@@ -325,7 +379,7 @@ def Tdew(switch, p):
     
 ## Molar latent heat [J mol-1] for gas phase considered given a temperature T [K]. 
 ## Select the molecule of interest with the switch argument (a string).
-def L_heat(switch, T, P):
+def L_heat(switch, T):
 
     if switch == 'H2O':
         L_sublimation   = phys.H2O.L_sublimation
@@ -422,8 +476,12 @@ def slopeRay( logpa, logT ):
     pa      = math.exp(logpa)
     T       = math.exp(logT)
     qsat    = eps*(satvph2o(T)/pa)
+    print('qsat=%.3f'%qsat)
     num     = (1. + (L/(Ra*T))*qsat)*Ra
+    print('numerator=%.3f'%num)
     den     = cpa + (cpc + (L/(Rc*T) - 1.)*(L/T))*qsat
+    print('denominator=%.3f'%den)
+    print('dlnT/dlnPa=%.3f'%(num/den))
     return num/den
 
 
@@ -463,7 +521,7 @@ def dry_adiabat_pressure( P_surf, T_array, cp_array ):
 
     return P_dry
 
-
+'''
 # dlnT/dlnP slope function 
 def moist_slope(lnP, lnT, atm):
     
@@ -509,7 +567,198 @@ def moist_slope(lnP, lnT, atm):
     # Moist adiabat slope
     return dlnTdlnP
 
-def condensation( atm, idx, prs_reset):
+
+def moist_slope_no_atm_no_cond(lnP, lnT, vol_list):
+    
+    # T instead lnT
+    tmp = math.exp(lnT)
+
+    # Sum terms in equation
+    num_sum     = 0.
+    denom_sum1  = 0. 
+    denom_sum2  = 0. 
+    denom_sum3  = 0.
+    cp          = 0.
+    xd          = 0.
+    xv          = 0.
+    for vol in vol_list.keys():
+        p_vol=np.exp(lnP)*vol_list[vol]
+        
+        
+        if np.isclose(p_vol, p_sat(vol,tmp)):
+            xv += vol_list[vol]
+            print(vol + ' saturated')
+        elif p_vol < p_sat(vol, tmp): 
+            
+            xd += vol_list[vol]
+            print(vol+' subsaturated')
+        elif p_vol > p_sat(vol,tmp):
+            xv += vol_list[vol]
+            print('Warning: volatile ' + vol + ' is supersaturated. Psat=%.3f'%p_sat(vol,tmp)+', Pvol=%.3f'%p_vol)
+    # Calculate sums over volatiles
+    for vol in vol_list.keys(): 
+        p_vol=np.exp(lnP)*vol_list[vol]
+        # Coefficients
+        eta_vol     = vol_list[vol] / xd
+        if np.isclose(p_vol,p_sat(vol,tmp)) or p_vol > p_sat(vol,tmp):
+            beta_vol    = L_heat(vol, tmp, p_vol) / (phys.R_gas * tmp) 
+
+        # Beta terms zero if below saturation vapor pressure
+        elif p_vol < p_sat(vol, tmp): 
+            beta_vol = 0.
+                   # Sum in numerator
+        num_sum     += eta_vol * beta_vol
+
+        # Sums in denominator
+        denom_sum1  += eta_vol * (beta_vol**2.)
+        denom_sum3  += eta_vol
+        cp    += vol_list[vol] * cpv(vol, tmp)
+    cp = cp / ( xd + xv )
+    # Sum 2 in denominator  
+    denom_sum2  = num_sum ** 2.
+
+    # Collect terms
+    numerator   = 1. + num_sum
+    denominator = (cp / phys.R_gas) + (denom_sum1 + denom_sum2) / (1. + denom_sum3)
+
+    # dlnT/dlnP
+    dlnTdlnP = numerator / denominator
+
+    # Moist adiabat slope
+    return dlnTdlnP
+
+
+# Code for integrating simple case of no-condensate-retention adiabat
+T_surf                  = 350         # K
+P_surf                  = p_sat('H2O',T_surf) + 1e5      # Pa
+
+
+# Volatile molar concentrations: ! must sum to one !
+vol_list = { 
+              "H2O" : p_sat('H2O',T_surf)/P_surf,        # 300e+5/P_surf --> specific p_surf
+              "N2"  : 1e5/P_surf,       # 1e+5/P_surf
+              }
+moist_tuple = []
+pressure_list = []
+temp_list = []
+pressure_list.append(P_surf)
+temp_list.append(T_surf)
+int_slope = integrator(moist_slope_no_atm_no_cond,np.log(P_surf), np.log(T_surf), step)
+int_slope.setParams(vol_list)
+while pressure_list[-1] > atm.ptop:
+    moist_tuple.append(int_slope.next())
+    pressure_list.append(np.exp(int_slope.x))
+    temp_list.append(np.exp(int_slope.y))
+    p_h2o = p_sat('H2O',temp_list[-1])
+    p_n2 = pressure_list[-1] - p_h2o
+    vol_list = { 
+              "H2O" : p_h2o/pressure_list[-1],        # 300e+5/P_surf --> specific p_surf
+              "N2"  : p_n2/pressure_list[-1],       # 1e+5/P_surf
+              }
+    int_slope.setParams(vol_list)
+
+#%%
+
+#dlnPd/dlnT
+def invert_moist_slope_dry_component(lnP,lnT,atm):
+    return 1 / moist_slope_dry_component(lnP, lnT, atm)
+'''
+def dlnT_dlnP_d(lnP, lnT, atm):
+    # T instead lnT
+    tmp = math.exp(lnT)
+
+
+    idx = int(np.amax(atm.ifatm))
+    
+    
+    # Sum terms in equation
+    num_sum     = 0.
+    denom_sum  = 0. 
+    
+    
+    # Calculate sums over volatiles
+    for vol in vol_list.keys(): 
+        # Coefficients
+        eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
+        eta_cond    = atm.x_cond[vol][idx] / atm.xd[idx]
+        #print(eta_vol)
+        # sums for saturated comps
+        if np.isclose(atm.p_vol[vol][idx] ,p_sat(vol,tmp)) or atm.p_vol[vol][idx]  > p_sat(vol,tmp):
+            L = L_heat(vol,tmp)
+            #beta_vol    = L_heat(vol, tmp) / (R_gas * tmp) #RTP
+            # Sum in numerator
+            num_sum     += eta_vol * L / tmp
+            # Sum in denominator
+            denom_sum  += eta_vol * (cpv(vol, tmp) - L/tmp + L**2/(phys.R_gas*tmp**2) + atm.alpha_cloud * eta_cond * cp_cond(vol,tmp))
+            
+        # sums for subsaturated comps
+        else: 
+            #print(eta_vol)
+            denom_sum += cpv(vol,tmp) * eta_vol #The eta_vol (x_vol/x_d) is there so that if there are multiple dry components the average dry specific heat is used
+        
+    
+        
+    
+    # Collect terms
+    numerator   = phys.R_gas + num_sum
+    denominator = denom_sum
+
+    # dlnT/dlnPd
+    dlnTdlnPd = numerator / denominator
+
+    # Moist adiabat slope
+    return dlnTdlnPd
+
+
+# In[70]:
+
+
+def moist_slope(lnP, lnT, atm):
+    # T instead lnT
+    tmp = math.exp(lnT)
+    
+    idx = int(np.amax(atm.ifatm))
+    # Sum terms in equation
+    num_sum     = 0.
+    denom_sum  = 0. 
+
+    
+    
+    # Calculate sums over volatiles
+    for vol in vol_list.keys(): 
+        
+        # Coefficients
+        eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
+        
+        #print(eta_vol)
+        # sums for saturated comps
+        if np.isclose(atm.p_vol[vol][idx] ,p_sat(vol,tmp)) or atm.p_vol[vol][idx]  > p_sat(vol,tmp):
+            L = L_heat(vol,tmp)
+            
+            # Sum in numerator
+            num_sum     += eta_vol
+            # Sum in denominator
+            denom_sum  += L/phys.R_gas/tmp * eta_vol * dlnT_dlnP_d(lnP,lnT,atm)
+            
+        
+        
+    
+        
+    
+    # Collect terms
+    numerator   = 1 + num_sum
+    denominator = 1 + denom_sum
+    dlnPd_dlnP = numerator / denominator
+    # dlnT/dlnPd
+    dlnTdlnP = dlnPd_dlnP * dlnT_dlnP_d(lnP,lnT,atm)
+
+    # Moist adiabat slope
+    return dlnTdlnP
+
+
+
+
+def condensation( atm, idx, wet_list, dry_list, prs_reset):
 
     # Temperature floor
     tmp = np.amax([atm.tmp[idx], 20.])
@@ -517,7 +766,6 @@ def condensation( atm, idx, prs_reset):
     
     if idx==0:
         
-        p_tot_pre_condensation = atm.p[idx]
         # Renormalize mixing ratios to ensure sum == 1
         if sum(atm.vol_list.values()) != 1.:
             vol_list_new = {}
@@ -525,169 +773,81 @@ def condensation( atm, idx, prs_reset):
                 vol_list_new[vol]   = atm.vol_list[vol] / sum(atm.vol_list.values())
             for vol in atm.vol_list.keys():
                 atm.vol_list[vol] = vol_list_new[vol]
-    # Calculating the pressure an air parcel would have at this temperature IF 
-    # the parcel moved adiabatically upward from the below level w/o condensation
-    # e.g. following dry adiabat from previous level
-    else:
-        # Calculating mean cp in layer below; multiplied  by xd+xv because this cp is renormalized by that sum during the calculation
-        cp_local = atm.cp[idx-1] * ( atm.xd[idx-1] + atm.xv[idx-1] ) 
-        #print(cp_local)
-        
-        # Dry adiabatic pressure calculated from dP/dT = P/T * cp/R
-        p_tot_pre_condensation = atm.p[idx-1] + ( tmp - atm.tmp[idx-1] ) * atm.p[idx-1] / atm.tmp[idx-1] * cp_local / phys.R_gas
-        #print(p_tot_pre_condensation)
-    
-    
-    
-    # Partial pressures and molar mass: pre-condensation values
-    for vol in atm.vol_list.keys():
-        if idx == 0:
-    
-            # Partial pressures scaled 
-            # atm.p_vol[vol][idx] = atm.vol_list[vol] * atm.p[idx]
-            atm.p_vol[vol][idx] = atm.vol_list[vol] * p_tot_pre_condensation
+        # Partial pressures scaled 
+        for vol in atm.vol_list:
+            atm.p_vol[vol][idx] = atm.vol_list[vol] * atm.p[idx]
+            #atm.p_vol[vol][idx] = atm.vol_list[vol] * p_tot_pre_condensation
             # Mean gas phase molar mass
             atm.mu[idx]       += atm.vol_list[vol] * molar_mass[vol]
-        else:
-            # Sum up gaseous mixing ratios to normalize
-            x_sum = 0
-            
-            for vol1 in atm.vol_list.keys():
-                x_sum += atm.x_gas[vol1][idx-1]
-                
-            # Divide this volatile's mixing ratio by the sum of all mixing ratiosto acquire volume mixing ratio  
-            x_vol = atm.x_gas[vol][idx-1] / x_sum
-            
-            # Scale the pre-condensation dry partial pressure by this volume mixing ratio
-            atm.p_vol[vol][idx] = x_vol * p_tot_pre_condensation
-            
-            # Mean gas phase molar mass, pre-condensation
-            atm.mu[idx] += x_vol * molar_mass[vol]
-    # Account for condensation
     
-    # Total pressure of condensing phases
-    p_cond_sum = 0
-    
-    # Molar mass before condensation
-    mu_old = atm.mu[idx].copy()
-    
-    # Flag telling code to keep making new loops as long as new species condense
-    condensation_flag = True
-    
-    # List of dry species
-    dry_list = []
-    
-    # List of condensing species
-    wet_list = []
-    
-    
-      
-    while condensation_flag == True:
+    else:  
         
-        # If new condensation does not occur, this flag will remain false and the loop
-        # will end after the next iteration
-        condensation_flag = False
-        
-        # Loop through species
-        
-        for vol in atm.vol_list.keys():
-            
-            
-            # Condensation if p_i > p_sat
-            if atm.p_vol[vol][idx] > p_sat(vol, tmp):
-                
-                # Add condensing species to wet_list
-                wet_list.append(vol)
-                
-                # Set condensation_flag to True -- this will force the loop
-                # to iterate again to check if any new species are made to
-                # condense by the condensation of this species
-                condensation_flag = True
-                
-                # Set species partial pressure to p_sat
-                atm.p_vol[vol][idx]  = p_sat(vol, tmp)
-                
-                # Add the species partial pressure to the condensing species sum
+        # Total pressure & partial pressures of condensing phases
+        p_cond_sum = 0
+        for vol in atm.vol_list:
+            if vol in wet_list:
+                atm.p_vol[vol][idx] = p_sat(vol, atm.tmp[idx])
                 p_cond_sum += atm.p_vol[vol][idx]
                 
-                # If the species is in dry_list from previous iteration of while loop, remove it
-                if vol in dry_list:
-                    
-                    dry_list.remove(vol)
+        # Calculate the total partial pressure of dry species
+        p_dry_tot = atm.p[idx] - p_cond_sum
+        dry_frac_sum = 0
+        # calculate sum of fractions of dry species for partial pressure calculation
+        for vol in atm.vol_list:
+            if vol in dry_list:
+                dry_frac_sum += atm.x_gas[vol][idx-1]
+        # Calculate the individual partial pressures of dry species
+        for vol in atm.vol_list:
+            if vol in dry_list:
+                #print(atm.x_gas[vol][idx-1])
+                atm.p_vol[vol][idx] = p_dry_tot * (atm.x_gas[vol][idx-1]/dry_frac_sum)
                 
-            else:
-                
-                # Add a non-condensing species to the list of dry species
-                # if it's present (>0) and if it's not in a list already
-                if atm.vol_list[vol] > 0. and vol not in dry_list and vol not in wet_list:
-                    dry_list.append(vol)
-    
-    #print(dry_list)
-    # Calculate the total partial pressure of dry species
-    p_dry_tot = atm.p[idx] - p_cond_sum
-    
-    # Sum of dry volatile fractions from vol_list
-    dry_frac_sum = 0
-    
-    if idx == 0:
-        # Calculate dry_frac_sum
-        for vol in dry_list:
-            dry_frac_sum += atm.vol_list[vol]
-    else:
-        for vol in dry_list:
-            dry_frac_sum += atm.x_gas[vol][idx-1]
-    # Calculate individual dry partial pressures by multiplying the total dry partial
-    # pressure by the mixing ratio of each dry species w.r.t. the rest of the dry species
-    if idx == 0:
-        for vol in dry_list:
-            #print(vol)
-            atm.p_vol[vol][idx] = p_dry_tot * ( atm.vol_list[vol] / dry_frac_sum )
-    else:
-        for vol in dry_list:
-            atm.p_vol[vol][idx] = p_dry_tot * ( atm.x_gas[vol][idx-1] / dry_frac_sum )
-    # Reset mean molar mass
+       
+    # Calculate mean molar mass
     atm.mu[idx]   = 0.
-    p_vol_sum       = 0.
     
-    # Calculate new mean molar mass
     for vol in atm.vol_list.keys():
         atm.mu[idx]   += molar_mass[vol] * atm.p_vol[vol][idx]
     atm.mu[idx] /= atm.p[idx]
+        
     
-    # Update mixing ratios
+
+    
+    # Update condensate mixing ratios
     for vol in atm.vol_list.keys():
-
-        # Mean molar mass
-        p_vol_sum       += atm.p_vol[vol][idx]
-
+       
         # Condensate phase
         if atm.p_vol[vol][idx] < p_sat(vol, tmp):
             atm.x_cond[vol][idx] = 0.
         else:
             #atm.x_cond[vol][idx] = atm.vol_list[vol] - ( atm.p_vol[vol][idx] / atm.p[idx] )
             if idx == 0:
-                atm.x_cond[vol][idx] = atm.vol_list[vol] - ( mu_old / atm.mu[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
+                #atm.x_cond[vol][idx] = atm.vol_list[vol] - ( mu_old / atm.mu[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
+                atm.x_cond[vol][idx] = 0.
             else:
-                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + atm.x_gas[vol][idx-1] - ( 1-atm.xc[idx-1] ) * ( mu_old / atm.mu[idx] * atm.p_vol[vol][idx] / p_tot_pre_condensation )
-            
+                #mu_old = atm.mu[idx-1]
+                atm.x_cond[vol][idx] = atm.x_cond[vol][idx-1] + atm.x_gas[vol][idx-1] - (1-atm.xc[idx-1])*(atm.p_vol[vol][idx]/atm.p[idx])
 
         #atm.x_cond[vol][idx] *= atm.alpha_cloud
 
         # Add to molar concentration of total condensed phase
         atm.xc[idx]     += atm.x_cond[vol][idx]
-        
+    for vol in atm.vol_list.keys():    
         # Gas phase molar concentration
         #atm.x_gas[vol][idx] = atm.p_vol[vol][idx] / atm.p[idx]
         if idx == 0:
-            atm.x_gas[vol][idx] =  mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+            #atm.x_gas[vol][idx] =  mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+            atm.x_gas[vol][idx] = atm.vol_list[vol]
+            
         else:
-            atm.x_gas[vol][idx] =  ( 1-atm.xc[idx-1] ) * mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
+            atm.x_gas[vol][idx] =  ( 1-atm.xc[idx] ) * atm.p_vol[vol][idx] /  atm.p[idx]
+            #atm.x_gas[vol][idx] =  mu_old / atm.mu[idx] * atm.p_vol[vol][idx] /  p_tot_pre_condensation
         
         # Add to molar concentration of total gas (dry or moist) phase
         # ! REVISIT ! keeping xd == 0 leads to a bug, why?
-        if atm.p_vol[vol][idx] < p_sat(vol, tmp):
+        if vol in dry_list:
             atm.xd[idx]          += atm.x_gas[vol][idx]
-        else:
+        if vol in wet_list:
             atm.xv[idx]          += atm.x_gas[vol][idx]
         
         # Mean cp of both gas phase and retained condensates
@@ -699,8 +859,38 @@ def condensation( atm, idx, prs_reset):
     # Dry concentration floor
     atm.xd[idx]  = np.amax([atm.xd[idx], 1e-10])
     
+    # Loop through species to determine wet_list and dry_list for next level
     
-    return atm
+    for vol in atm.vol_list.keys():
+        
+        
+        # Condensation if p_i > p_sat
+        if atm.p_vol[vol][idx] >= p_sat(vol, tmp):
+            
+            # Add condensing species to wet_list
+            if vol not in wet_list:
+                wet_list.append(vol)
+                
+            
+            # Set species partial pressure to p_sat
+            #atm.p_vol[vol][idx]  = p_sat(vol, tmp)
+            
+            # Add the species partial pressure to the condensing species sum
+            #p_cond_sum += atm.p_vol[vol][idx]
+            
+            # If the species is in dry_list from previous iteration of while loop, remove it
+            if vol in dry_list:
+                
+                dry_list.remove(vol)
+            
+        else:
+            
+            # Add a non-condensing species to the list of dry species
+            # if it's present (>0) and if it's not in a list already
+            if atm.vol_list[vol] > 0. and vol not in dry_list and vol not in wet_list:
+                dry_list.append(vol)
+    
+    return atm, wet_list, dry_list
 
 # Builds the generalized moist adiabat from slope(lnP, lnT, atm object)
 def general_adiabat( atm ):
@@ -712,6 +902,8 @@ def general_adiabat( atm ):
     # saturation vapor pressures, then adjust Vol_list and Psurf.
     new_psurf = 0
     new_p_vol = {}
+    wet_list = []
+    dry_list = []
     Tsurf = atm.ts
     alpha = atm.alpha_cloud
     for vol in atm.vol_list.keys():
@@ -727,7 +919,11 @@ def general_adiabat( atm ):
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
         atm = atmos(Tsurf, new_psurf, atm.vol_list, trppT=atm.trppT)
         atm.alpha_cloud = alpha
-        
+    for vol in atm.vol_list.keys():
+        if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts):
+            wet_list.append(vol)
+        elif atm.vol_list[vol] * atm.ps != p_sat(vol,atm.ts) and atm.vol_list[vol] > 0:
+            dry_list.append(vol)
     
     ### Initialization
     
@@ -735,13 +931,13 @@ def general_adiabat( atm ):
     moist_tuple     = [] #[tuple([np.log(atm.ps), atm.ts])] 
    
     # Negative increment to go from ps to ptop < ps       
-    step            = -1.*atm.step
+    step            = -.01
 
     # Integration counter
     idx             = 0  
     
     # Surface condensation
-    atm             = condensation(atm, idx, prs_reset=False)
+    atm, wet_list, dry_list  = condensation(atm, idx, wet_list, dry_list, prs_reset=False)
 
     # Create the integrator instance                                              
     int_slope       = integrator(moist_slope, np.log(atm.ps), np.log(atm.ts), step)
@@ -769,7 +965,7 @@ def general_adiabat( atm ):
         atm.ifatm[idx]  = idx
 
         # Calculate condensation at next level
-        atm             = condensation(atm, idx, prs_reset=False)
+        atm, wet_list, dry_list    = condensation(atm, idx, wet_list, dry_list, prs_reset=False)
 
     # Interpolate
     atm = interpolate_atm(atm)
@@ -783,7 +979,7 @@ def general_adiabat( atm ):
             atm.x_gas[vol][:] *= 1 / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
     atm.xc[:] *= atm.alpha_cloud / ( 1 - (1-atm.alpha_cloud) * atm.xc[:])
     
-
+    
     return atm
 
 # Interpolate and flip pressure, temperature and volatile grids to fixed size
@@ -934,7 +1130,7 @@ def plot_adiabats(atm):
     #plt.show()
 
     plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
-    plt.close(fig)  
+    #plt.close(fig)  
 
     return
 
@@ -945,7 +1141,7 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    T_surf                  = 750         # K
+    T_surf                  = 300         # K
     P_surf                  = p_sat('H2O',T_surf)+1e+5      # Pa
     
 
@@ -961,16 +1157,15 @@ if __name__ == "__main__":
                   "He"  : .0,
                   "NH3" : .0, 
                 }
-
     # Create atmosphere object
     atm                     = atmos(T_surf, P_surf, vol_list)
     
     # Set fraction of condensate retained in column
-    atm.alpha_cloud         = 0.
-    atm.step = 0.01
+    atm.alpha_cloud         = 0.0
+    
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)
-    
+
     # Plot adiabat
     plot_adiabats(atm)
     
