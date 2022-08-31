@@ -8,10 +8,10 @@ Plotting script for cases 1–3
 
 import numpy as np
 import matplotlib.pyplot as plt
-#import os
-#os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv')
+import os
+os.chdir('C:/Users/grahamr/Documents/GitHub/soc-rad-conv/')
 import GeneralAdiabat as ga
-#os.chdir('C:/Users/sobcr/Documents/GitHub/soc-rad-conv/plotting_tools/paper_plots/Graham+21')
+os.chdir('C:/Users/grahamr/Documents/GitHub/soc-rad-conv/plotting_tools/paper_plots/Graham+21')
 
 from matplotlib import cm
 import seaborn as sns
@@ -289,5 +289,5 @@ for set_idx, setting in enumerate([ "case1", "case2", "case3" ]): # "case1", "ca
     #plt.show()
         
     plt.savefig(setting+'.pdf', bbox_inches='tight')
-    plt.close(fig)  
+    #plt.close(fig)  
 

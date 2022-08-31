@@ -677,7 +677,7 @@ def dlnT_dlnP_d(lnP, lnT, atm):
     
     
     # Calculate sums over volatiles
-    for vol in vol_list.keys(): 
+    for vol in atm.vol_list.keys(): 
         # Coefficients
         eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
         eta_cond    = atm.x_cond[vol][idx] / atm.xd[idx]
@@ -725,7 +725,7 @@ def moist_slope(lnP, lnT, atm):
     
     
     # Calculate sums over volatiles
-    for vol in vol_list.keys(): 
+    for vol in atm.vol_list.keys(): 
         
         # Coefficients
         eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
@@ -1126,7 +1126,8 @@ def plot_adiabats(atm):
     
     ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax1.transAxes)
     ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax2.transAxes)
-    fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
+    #fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
+    fig.suptitle(r'T_$\rm{surf}$=%.0f K'%atm.ts)
     #plt.show()
 
     plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
@@ -1141,7 +1142,7 @@ def plot_adiabats(atm):
 if __name__ == "__main__":
 
     # Surface pressure & temperature
-    T_surf                  = 300         # K
+    T_surf                  = 500         # K
     P_surf                  = p_sat('H2O',T_surf)+1e+5      # Pa
     
 
@@ -1161,7 +1162,7 @@ if __name__ == "__main__":
     atm                     = atmos(T_surf, P_surf, vol_list)
     
     # Set fraction of condensate retained in column
-    atm.alpha_cloud         = 0.0
+    atm.alpha_cloud         = 1.0
     
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)
