@@ -113,16 +113,16 @@ psat_ref = condensible.TriplePointP
 #%%
 #matplotlib notebook
 ps = 1.e5
-Ts = 750.
+Ts = 350.
 p,T,molarCon,q = MoistAdiabat(ps,Ts,condensible,noncon)
 
 #Plot temperature
 plt.figure(1)
-plt.plot(T, p,'r-')
+plt.plot(T, p,'r-', label = 'Ray adiabat')
 
 satvp_h2o=phys.satvps_function(phys.H2O,'liquid')
 
-plt.plot(T,p-np.vectorize(satvp_h2o)(T))
+#plt.plot(T,p-np.vectorize(satvp_h2o)(T))
 
 #plt.plot(Tdry(Ts,p),p,'b--')
 plt.yscale('log')
@@ -131,7 +131,7 @@ plt.title('Temperature Profile')
 plt.xlabel('Temperature (K)')
 plt.ylabel('Pressure (Pa)')
 
-
+'''
 #Plot Molar Concentration
 plt.figure(2)
 
@@ -143,7 +143,7 @@ plt.ylabel("Pressure (Pa)")
 plt.gca().invert_yaxis()
 plt.yscale('log')
 plt.xscale('log')
-plt.xlim(10**-4,1)
+plt.xlim(10**-4,1)'''
 
 #%%
 '''
