@@ -26,7 +26,7 @@ class atmos:
 		self.ts 			= T_surf		# Surface temperature, K
 		self.vol_list 		= vol_list		# Names + mixing ratios dict
 
-		self.ptop 			= 1 			# Top pressure in Pa
+		self.ptop 			= 100 			# Top pressure in Pa
 		self.nlev 			= 10000  	   	# Number of vertical levels for adiabat integration
 		self.step    		= 0.01  		# Adjust to match self.nlev
 		self.nlev_save		= 100   		# Number of levels to save object
