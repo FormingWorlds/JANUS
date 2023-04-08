@@ -689,7 +689,7 @@ if __name__ == "__main__":
     stellar_heating = True
 
     # Rayleigh scattering on/off
-    rscatter = True
+    rscatter = False
 
     # Compute contribution function
     calc_cf = False

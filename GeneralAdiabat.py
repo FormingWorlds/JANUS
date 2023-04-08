@@ -28,9 +28,9 @@ try:
     from atmosphere_column import atmos
     import phys
 except:
-    from atm_rad_conv.ClimateUtilities import *
-    from atm_rad_conv.atmosphere_column import atmos
-    import atm_rad_conv.phys as phys
+    from AEOLUS.ClimateUtilities import *
+    from AEOLUS.atmosphere_column import atmos
+    import AEOLUS.phys as phys
 
 # Color definitions: 
 # https://www.codecademy.com/articles/seaborn-design-ii
