@@ -20,7 +20,7 @@ from netCDF4 import Dataset
 try:
     from atmosphere_column import atmos
 except:
-    from atm_rad_conv.atmosphere_column import atmos
+    from AEOLUS.atmosphere_column import atmos
 # from natsort import natsorted # https://pypi.python.org/pypi/natsort
 
 def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
