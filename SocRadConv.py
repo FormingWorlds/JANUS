@@ -20,10 +20,10 @@ import pickle as pkl
 import json
 import glob, re, os
 
-import phys
-import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import SocRadModel
-from   atmosphere_column import atmos
+import utils.phys as phys
+import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import utils.SocRadModel as SocRadModel
+from   utils.atmosphere_column import atmos
 
 # String sorting not based on natsorted package
 def natural_sort(l): 

@@ -2,14 +2,14 @@
 GGRadConv.py
 '''
 
-
-
-import GreyHeat as Grey
-# from ClimateUtilities import *
-import math,phys
-import planets
+import math
 import numpy as np
 import matplotlib.pyplot as plt
+
+import utils.phys as phys
+import utils.planets as planets
+import utils.GreyHeat as Grey
+
 
 #Set the gravity and thermodynamic constants
 Rcp = 2./7.

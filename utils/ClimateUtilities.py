@@ -58,7 +58,7 @@ import numpy
 #is not hard to adapt ClimateGraphicsMPL to use PyNgl instead
 #------------------------------------------------------
 
-from ClimateGraphicsMPL import * #Try importing MatPlotLib
+from utils.ClimateGraphicsMPL import * #Try importing MatPlotLib
 
 #Section 1: -----Data handling utilities-------------------------------
 

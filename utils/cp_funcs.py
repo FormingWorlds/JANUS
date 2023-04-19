@@ -5,8 +5,9 @@ Created on Thu Nov 12 13:57:05 2020
 @author: sobcr
 """
 import numpy as np
-import phys
 import scipy.interpolate as spint
+
+import utils.phys as phys
 # Temperature-dependent molar gas phase heat capacities (J K-1 mol-1)
 # https://webbook.nist.gov/chemistry/
 # Choose cp functions

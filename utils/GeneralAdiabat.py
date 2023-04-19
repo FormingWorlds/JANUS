@@ -8,23 +8,20 @@ Tim Lichtenberg (TL)
 RJ Graham (RJ)
 This file builds a self-consistent temperature profile from either Li, Ingersoll & Oyafuso 2018 or 
 Graham, Boukrouche, Lichtenberg, & Pierrehumbert 2020, from the ground up using the Runge-Kutta 4 scheme 
-from ClimateUtilities.py.
 '''
 
 import time
 import numpy as np
 import scipy.interpolate as spint
 import math
-# from scipy.integrate import odeint
-# from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
-# import seaborn as sns
 import copy
 from matplotlib import cm
-from cp_funcs import *
-from ClimateUtilities import *
-from atmosphere_column import atmos
-import phys
+
+from utils.cp_funcs import *
+from utils.ClimateUtilities import *
+from utils.atmosphere_column import atmos
+import utils.phys as phys
 
 # Color definitions: 
 # https://www.codecademy.com/articles/seaborn-design-ii

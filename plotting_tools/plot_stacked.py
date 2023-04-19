@@ -112,13 +112,13 @@ def plot_stacked( times ):
             # MIX = myjson_o.get_mixed_phase_boolean_array( 'basic_internal' )
             # MIX_s = myjson_o.get_mixed_phase_boolean_array( 'staggered' )
 
-            label = coupler_utils.latex_float(time)+" yr"
+            label = coupler_latex_float(time)+" yr"
 
             # Pressure-height conversion for y-axis
             
             # Plot height instead of pressure as y-axis
             ### CAREFUL: HARDCODED TO M_EARTH !!!
-            z_profile = coupler_utils.AtmosphericHeight(temperature_atmosphere, pressure_atmosphere, 5.972E24, r_planet) ## WRONG UNITS!
+            z_profile = coupler_AtmosphericHeight(temperature_atmosphere, pressure_atmosphere, 5.972E24, r_planet) ## WRONG UNITS!
             z_profile = z_profile*1e-3 # km
             # ax0.plot( temperature_atmosphere, z_profile, '-', color=color, label=label, lw=1.5)
 
@@ -204,7 +204,7 @@ def plot_stacked( times ):
     # ax0b = ax0.twinx()
     # r_planet = np.max(xx_radius*1e3) # m
     # ### CAREFUL: HARDCODED TO M_EARTH !!!
-    # z_profile = coupler_utils.AtmosphericHeight(temperature_atmosphere, pressure_atmosphere, 5.972E24, r_planet)
+    # z_profile = coupler_AtmosphericHeight(temperature_atmosphere, pressure_atmosphere, 5.972E24, r_planet)
     # z_profile = z_profile*1e-3 # km
     # ax0b.plot( temperature_atmosphere, z_profile, alpha=0.0)
     # ax0b.set_xlim( right=xmax, left=xmin )
