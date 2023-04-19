@@ -1,87 +1,34 @@
-## COUPLED MODEL DESCRIPTION
+## AEOLUS (Radiative-convective solver)
 
-Run *RadInteriorCoupler.py*.
+Runs until the OLR changes by less than a threshold value in W/m<sup>2</sup>, or stops after a fixed number of iterations.
 
-It runs until the OLR changes by less than a threshold value in W/m<sup>2</sup>, or stops after a fixed number of iterations.
+### Contributors (abbreviations & email addresses):
+* TL - Tim Lichtenberg (tim.lichtenberg@rug.nl)
+* MH - Mark Hammond (mark.hammond@physics.ox.ac.uk)
+* RTP - Ray Pierrehumbert (raymond.pierrehumbert@physics.ox.ac.uk)
+* RB – Ryan Boukrouche (ryan.boukrouche@astro.su.se)
+* HN - Harrison Nicholls (harrison.nicholls@physics.ox.ac.uk)
 
-ABBREVIATIONS:
-* MH - Mark Hammond
-* TL - Tim Lichtenberg
-* PS – Patrick Sanan
-* RP - Ray Pierrehumbert
-* DB - Dan Bower
-* ST - Shang-Min Tsai
-
-#### COMMUNICATION
-
-###### LaTeX file for discussion/draft
-
-Read-only: https://www.overleaf.com/read/cbbvgpyttcqm
-
-Edit: https://www.overleaf.com/8481699571kkycnphnmgdg
-
-###### LaTeX file for PAPER I
-
-Read-only: https://www.overleaf.com/read/fwqkyfcrfftb
-
-Edit: https://www.overleaf.com/6487644842trtffrfrfxmj
-
-###### Slack channel for day-to-day use
-
-http://bit.ly/2LvB1FR
-
---> Channel: #interior-atmosphere
-
-## FILE DESCRIPTIONS
+### Repository structure
 
 * GGRadConv.py - Grey gas radiative convective model
 * GreyHeat.py - Calculates heating rates in grey model
-* OLRFlux.txt - Outgoing heat flux in W, coupler-file
 * SocRadConv.py - Radiative convective model w/ SOCRATES
 * SocRadModel.py - Calculates heating rates in for SOCRATES version
 * atmosphere_column.py - Class for atmospheric column data
 * nctools.py - Some useful functions for netCDF
 * phys.py - Constants
 * planets.py - Planet-specific constants
-* profile.* -
 * README.md - This file
+* INSTALL.md - Installation instructions
 * surfaceT.txt - Surface temperature form interior model, coupler-file
 
-## INSTALLATION
+### Installation instructions
+See INSTALL.md for steps.
 
-1. Ensure that submodules are up to date
-
-        git submodule update --init --recursive
-
-1. Install SPIDER, making sure that the `spider` executable's location is in `$PATH`
-
-1. Get access to SOCRATES: https://code.metoffice.gov.uk/trac/home
-    * For website access talk to MH
-    * Download the latest version, unzip to /socrates/socrates_main/
-
-1. Install dependencies:
-    * Make sure you have the FORTRAN version of netCDF installed:
-        * e.g. with Homebrew, $ brew install netcdf
-        * e.g. for MacPorts with GCC 8, $ sudo port install netcdf-fortran +gcc8
-    * Same for netCDF python:
-        * e.g. with Anaconda, $ conda install netcdf4 natsort
-        * e.g. for MacPorts with Python 3.7, $ sudo port install py37-netcdf py37-natsort
-        * make sure you use a Python 3 environment, possibly need to reinstall all typical packages, see e.g., here: http://bit.ly/2HowQaA
-    * Relaunch terminal window, or source bash_profile, to reset environment
-
-1. Compile SOCRATES:
-    - Overwrite Mk_cmd in /socrates/socrates_main/make/:
-        $ cd /socrates/ && cp -rf Mk_cmd /socrates_main/make/
-        With MacPorts, change "usr" to "opt" in this file, to find the netcdf module
-    - Build SOCRATES:
-        $ cd /socrates/socrates_main/
-        $ ./build_code
-    - Set environment:
-        $ cd /socrates/socrates_main/
-        $ . ./set_rad_env # Ignore "-bash: ulimit: ... " error
-    - If you want SOCRATES to be readily available in every new shell, put the following in you .bash_profile:
-        $ source /PATH_TO_COUPLER/socrates/socrates_main/set_rad_env
-
-1. Run code:
-    $ python CouplerMain.py
-    # Examine plots produced in the output/ directory
+### Run instructions
+Only attempt to run AEOLUS after you have followed all of the instructions in INSTALL.md    
+If using a fresh shell, it is necessary to perform the following steps:     
+1. `source AEOLUS.env`
+2. `conda activate aeolus`
+Then you can run the code by running: `python SocRadConv.py`      

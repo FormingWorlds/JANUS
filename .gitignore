@@ -17,10 +17,9 @@ Tprofile.pdf
 .DS_Store
 __pycache__/
 rad_trans/socrates_code/*
-output10000000_atm_spectral_flux.dat
-output10000000_atm_TP_profile.dat
-*.pdf
-*.pkl
+
+output/*
+!output/.gitkeep
 
 # Ignore SOCRATES code files
 rad_trans/socrates_code/*

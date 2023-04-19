@@ -1,5 +1,5 @@
 #
-# Pathnames for atmlxmaster
+# Pathnames for AOPP Cluster
 # 
 FORTCOMP        = gfortran -O -c
 LINK            = gfortran -O

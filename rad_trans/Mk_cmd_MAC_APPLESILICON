@@ -1,5 +1,5 @@
 #
-# Pathnames for compilers and global options for naming files
+# Pathnames for MacOS on an ARM platform
 #
 FORTCOMP        = gfortran -c -fcheck=all,no-recursion -fbacktrace -g
 LINK            = gfortran -fcheck=all,no-recursion -fbacktrace -g

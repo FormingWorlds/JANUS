@@ -40,13 +40,7 @@ from __future__ import print_function
 #Import array package
 #
 #------------------------------------------------
-
-
-
-try:
-    import numpy
-except:
-	print('numpy not found. Please install numpy')
+import numpy
 
 #-----------------------------------------------------
 #Import graphics utilities
@@ -64,18 +58,7 @@ except:
 #is not hard to adapt ClimateGraphicsMPL to use PyNgl instead
 #------------------------------------------------------
 
-try:
-    from ClimateGraphicsMPL import * #Try importing MatPlotLib
-    #print('Using MatPlotLib graphics')    
-except:
-    from atm_rad_conv.ClimateGraphicsMPL import *
-        #print("Graphics not implemented.")
-        #print("Plot routines will not produce graphs.")
-        #print("Instead, you can save results from a Curve")
-        #print("object c into a text file using c.dump(<FILENAME>)")
-        #print("and then plot the data using the graphics program")
-        #print ("of your choice.")
-        #from DummyGraphics import *
+from ClimateGraphicsMPL import * #Try importing MatPlotLib
 
 #Section 1: -----Data handling utilities-------------------------------
 
