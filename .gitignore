@@ -16,15 +16,14 @@ radiation_code.lock
 Tprofile.pdf
 .DS_Store
 __pycache__/
-rad_trans/socrates_code/
+rad_trans/socrates_code/*
 output10000000_atm_spectral_flux.dat
 output10000000_atm_TP_profile.dat
 *.pdf
 *.pkl
 
 # Ignore SOCRATES code files
-rad_trans/socrates_code/
-rad_trans/socrates_cff/
+rad_trans/socrates_code/*
 
 # Video files
 *.mp4

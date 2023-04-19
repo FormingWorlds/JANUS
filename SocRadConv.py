@@ -14,23 +14,16 @@ import matplotlib.pyplot as plt
 import matplotlib
 import pandas as pd
 from scipy import interpolate
-# import seaborn as sns
 import copy
 import pathlib
 import pickle as pkl
 import json
 import glob, re, os
 
-try:
-    import phys
-    import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-    import SocRadModel
-    from atmosphere_column import atmos
-except:
-    import atm_rad_conv.phys as phys
-    import atm_rad_conv.GeneralAdiabat as ga
-    import atm_rad_conv.SocRadModel as SocRadModel
-    from atm_rad_conv.atmosphere_column import atmos
+import phys
+import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import SocRadModel
+from   atmosphere_column import atmos
 
 # String sorting not based on natsorted package
 def natural_sort(l): 
