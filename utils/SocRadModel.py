@@ -12,13 +12,12 @@ import matplotlib.pyplot as plt
 import matplotlib
 import math
 import subprocess
-import nctools
-import RayleighSpectrum
 from subprocess import call
 from netCDF4 import Dataset
 
-from atmosphere_column import atmos
-# from natsort import natsorted # https://pypi.python.org/pypi/natsort
+import utils.nctools as nctools
+import utils.RayleighSpectrum as RayleighSpectrum
+from utils.atmosphere_column import atmos
 
 def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
 

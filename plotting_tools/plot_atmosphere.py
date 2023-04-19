@@ -121,11 +121,11 @@ def plot_atmosphere( times ):
             # use melt fraction to determine mixed region
             MIX = myjson_o.get_mixed_phase_boolean_array( 'basic' )
 
-            label = coupler_utils.latex_float(time)+" yr"
+            label = coupler_latex_float(time)+" yr"
             
             # Atmosphere T-Z
             pressure_atmosphere_Pa = [ n*100. for n in pressure_atmosphere]     # Pa
-            z_profile = coupler_utils.AtmosphericHeight(temperature_atmosphere, pressure_atmosphere_Pa, planet_mass, r_planet) # m
+            z_profile = coupler_AtmosphericHeight(temperature_atmosphere, pressure_atmosphere_Pa, planet_mass, r_planet) # m
             z_profile = z_profile*1e-3 # km
             ax0.plot( temperature_atmosphere, z_profile, '-', color=color, label=label, lw=1.5)
 
@@ -142,7 +142,7 @@ def plot_atmosphere( times ):
             n2_kg  = 0  # kg
             o2_kg  = 0  # kg
             he_kg  = 0  # kg
-            h2o_ratio, co2_ratio, h2_ratio, ch4_ratio, co_ratio, n2_ratio, o2_ratio, he_ratio = coupler_utils.CalcMolRatios(h2o_kg, co2_kg, h2_kg, ch4_kg, co_kg, n2_kg, o2_kg, he_kg)
+            h2o_ratio, co2_ratio, h2_ratio, ch4_ratio, co_ratio, n2_ratio, o2_ratio, he_ratio = coupler_CalcMolRatios(h2o_kg, co2_kg, h2_kg, ch4_kg, co_kg, n2_kg, o2_kg, he_kg)
             h2o_ratio = h2o_ratio*np.ones(len(z_profile))
             co2_ratio = co2_ratio*np.ones(len(z_profile))
             ax2.plot( h2o_ratio, z_profile, '-', color=color, label=label, lw=1.5)

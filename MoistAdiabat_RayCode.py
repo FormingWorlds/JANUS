@@ -7,19 +7,19 @@ Created on Mon May  9 16:37:18 2022
 Converting Ray's Moist Adiabat Jupyter Notebook to normal code
 """
 
-#%%
+
 #Data on section of text which this script is associated with
 Chapter = '2.**'
 Figure = '**'
-#%%
+
 #Insert __from__future imports for backwards compatibility with Python 2.7
-import phys
-from ClimateUtilities import *
+import util.phys
+from util.ClimateUtilities import *
 import matplotlib.pyplot as plt
 from math import *
 import numpy as np
 
-#%%
+#
 #Dry and one-component adiabat functions, for comparison
 #Note that the use of Numeric.log lets this take
 #an array as an argument for p. The rest of the arithmetic,
@@ -96,7 +96,7 @@ def MoistAdiabat(ps,Ts,condensible=phys.H2O,noncondensible = phys.air):
     Mbar = molarConL*Mc +(1.-molarConL)*Mnc
     qL = (Mc/Mbar)*molarConL     
     return pL,TL,molarConL,qL
-#%%
+#
 #Choose your mix of gases here
 condensible = phys.H2O
 noncon = phys.air
@@ -110,7 +110,7 @@ Rc = condensible.R
 cpa = noncon.cp
 Tr = condensible.TriplePointT
 psat_ref = condensible.TriplePointP
-#%%
+#
 #matplotlib notebook
 ps = 1.e5
 Ts = 350.
@@ -145,7 +145,7 @@ plt.yscale('log')
 plt.xscale('log')
 plt.xlim(10**-4,1)'''
 
-#%%
+#
 '''
 ps = 1.e5
 Ts = 300.
@@ -167,7 +167,7 @@ plt.xlabel("Concentration (fraction)")
 plt.ylabel("Pressure (Pa)")
 
 
-#%%
+
 '''''''
 Since many calculations require the computation of a moist adiabat, an implementation 
 of the calculation has been provided in the phys.py module. The calculation is 
@@ -186,7 +186,7 @@ or to switch L in the moist adiabat calculation to ice or liquid according to T.
 Ideally it should be extended to allow a more general specification of L(T) and the
  saturation vapour pressure function, allowing the defaults to be over-ridden.
  
-#%%
+
 condensible = phys.H2O
 noncondensible = phys.air
 m = phys.MoistAdiabat(condensible,noncondensible)
@@ -219,7 +219,7 @@ at the surface, the net mass of noncondensible in the atmosphere varies
  constant.
 '''
 
-#%%
+#
 
 
 

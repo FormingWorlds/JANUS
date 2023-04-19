@@ -17,6 +17,7 @@ Tprofile.pdf
 .DS_Store
 __pycache__/
 rad_trans/socrates_code/*
+!rad_trans/socrates_code/.gitkeep
 
 output/*
 !output/.gitkeep
