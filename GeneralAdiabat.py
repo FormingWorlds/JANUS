@@ -22,15 +22,9 @@ import matplotlib.pyplot as plt
 import copy
 from matplotlib import cm
 from cp_funcs import *
-# Coupler-specific modules
-try:
-    from ClimateUtilities import *
-    from atmosphere_column import atmos
-    import phys
-except:
-    from AEOLUS.ClimateUtilities import *
-    from AEOLUS.atmosphere_column import atmos
-    import AEOLUS.phys as phys
+from ClimateUtilities import *
+from atmosphere_column import atmos
+import phys
 
 # Color definitions: 
 # https://www.codecademy.com/articles/seaborn-design-ii
