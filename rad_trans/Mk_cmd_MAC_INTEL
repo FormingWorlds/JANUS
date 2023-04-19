@@ -1,5 +1,5 @@
 #
-# Pathnames for compilers and global options for naming files
+# Pathnames for MacOS on an Intel platform
 #
 FORTCOMP        = gfortran -O -c
 LINK            = gfortran -O
