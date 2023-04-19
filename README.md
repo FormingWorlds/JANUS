@@ -11,6 +11,7 @@ ABBREVIATIONS:
 * RP - Ray Pierrehumbert
 * DB - Dan Bower
 * ST - Shang-Min Tsai
+* RB - Ryan Boukrouche
 
 #### COMMUNICATION
 
