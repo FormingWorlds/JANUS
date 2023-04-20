@@ -19,9 +19,6 @@ __pycache__/
 rad_trans/socrates_code/*
 !rad_trans/socrates_code/.gitkeep
 
-output/*
-!output/.gitkeep
-
 # Ignore SOCRATES code files
 rad_trans/socrates_code/*
 
