@@ -145,8 +145,6 @@ def plot_stacked( times ):
 
             # ymax_atm = pressure_atmosphere[-1]*1.1
 
-            print(time)
-
     xticks = [50, 1000, 2000, 3000, 4000, 5000]
     xmin = 50
     xmax = 5000

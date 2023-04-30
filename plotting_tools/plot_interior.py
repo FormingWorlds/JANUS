@@ -120,8 +120,6 @@ def plot_interior( times ):
         # legend
         handle_l.append( handle )
 
-        print(time)
-
     yticks = [0,20,40,60,80,100,120,int(xx_pres_s[-1])]
     ymax = int(xx_pres_s[-1])
 
