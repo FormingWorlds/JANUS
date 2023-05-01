@@ -622,7 +622,7 @@ def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo, Sfrac):
     # Mean flux averaged over surface area, W m-2
     toa_heating             = ( 1. - albedo ) * S_0 / 4.
    
-    return toa_heating
+    return S_0, toa_heating
 
 ####################################
 ##### Stand-alone initial conditions
@@ -696,7 +696,7 @@ if __name__ == "__main__":
     atm            = atmos(T_surf, P_surf, vol_list, calc_cf=calc_cf)
 
     # Compute stellar heating
-    atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
+    _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
