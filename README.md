@@ -5,26 +5,30 @@ Runs until the OLR changes by less than a threshold value in W/m<sup>2</sup>, or
 ### Contributors (abbreviations & email addresses):
 * TL - Tim Lichtenberg (tim.lichtenberg@rug.nl)
 * MH - Mark Hammond (mark.hammond@physics.ox.ac.uk)
-* RTP - Ray Pierrehumbert (raymond.pierrehumbert@physics.ox.ac.uk)
 * RB – Ryan Boukrouche (ryan.boukrouche@astro.su.se)
+* RJG – RJ Graham (arejaygraham@uchicago.edu)
 * HN - Harrison Nicholls (harrison.nicholls@physics.ox.ac.uk)
 
 ### Repository structure
 
-* GGRadConv.py - Grey gas radiative convective model
-* GreyHeat.py - Calculates heating rates in grey model
-* SocRadConv.py - Radiative convective model w/ SOCRATES
-* SocRadModel.py - Calculates heating rates in for SOCRATES version
-* atmosphere_column.py - Class for atmospheric column data
-* nctools.py - Some useful functions for netCDF
-* phys.py - Constants
-* planets.py - Planet-specific constants
-* README.md - This file
-* INSTALL.md - Installation instructions
-* surfaceT.txt - Surface temperature form interior model, coupler-file
+* `SocRadConv.py`               - Main AEOLUS Python script
+* `README.md`                   - This file
+* `INSTALL.md`                  - Installation instructions
+* `AEOLUS.env`                  - Sets environment flags to run the code
+* `MoistAdiabat_RayCode.py`     - Legacy file
+* `utils/`                      - Utility python scripts
+* `modules/`                    - Utility python scripts
+* `output/`                     - Output folder
+* `luminosity_tracks/`          - Stellar evolution data
+* `plotting_tools/`             -  Plotting scripts
+* `rad_trans/`                  - Subfolder with adiative transfer code/s
+
+
+* `spectral_files`         - Spectral files for SOCRATES
 
 ### Installation instructions
-See INSTALL.md for steps.
+See `INSTALL.md` for steps. 
+For encountered issues check TROUBLESHOOTING.md in PROTEUS repository.
 
 ### Run instructions
 Only attempt to run AEOLUS after you have followed all of the instructions in INSTALL.md    
