@@ -1121,7 +1121,7 @@ def plot_adiabats(atm):
     fig.suptitle(r'T_$\rm{surf}$=%.0f K'%atm.ts)
     #plt.show()
 
-    plt.savefig('./output/general_adiabat.pdf', bbox_inches='tight')
+    plt.savefig('../output/general_adiabat.pdf', bbox_inches='tight')
     #plt.close(fig)  
 
     return
@@ -1132,29 +1132,39 @@ def plot_adiabats(atm):
 ####################################
 if __name__ == "__main__":
 
-    # Surface pressure & temperature
-    T_surf                  = 400         # K
-    pN2 =3e5
-    P_surf                  = p_sat('H2O',T_surf)+ pN2     # Pa
-    
+    # Surface temperature & partial pressures
+    T_surf                  = 400                           # K
+    pH2O                    = p_sat('H2O',T_surf)           # Pa
+    pCO2                    = 0.                            # Pa
+    pH2                     = 0.                            # Pa
+    pN2                     = 3e+5                          # Pa
+    pCH4                    = 0.                            # Pa
+    pO2                     = 0.                            # Pa
+    pHe                     = 0.                            # Pa
+    pNH3                    = 0.                            # Pa
+    P_surf                  = pH2O + pCO2 + pH2 + pN2 + pCH4 + pO2 + pHe + pNH3  # Pa
 
-    # Volatile molar concentrations: ! must sum to one !
+    # Set fraction of condensate retained in column (0 = full rainout)
+    alpha_cloud             = 0.0
+    
+    # Volatile molar concentrations in the dictionary below are defined as fractions that must sum to one
+    # The vanilla setting defines a water-saturated atmosphere with a 3 bar N2 background
     vol_list = { 
-                  "H2O" : p_sat('H2O',T_surf)/P_surf,        # 300e+5/P_surf --> specific p_surf
-                  "CO2" : .0,        # 100e+5/P_surf
-                  "H2"  : .0, 
-                  "N2"  : pN2/P_surf,       # 1e+5/P_surf
-                  "CH4" : .0, 
-                  "O2"  : .0, 
-                  "CO"  : .0, 
-                  "He"  : .0,
-                  "NH3" : .0, 
+                  "H2O" : pH2O / P_surf,   
+                  "CO2" : pCO2 / P_surf,
+                  "H2"  : pH2  / P_surf,
+                  "N2"  : pN2  / P_surf,
+                  "CH4" : pCH4 / P_surf,
+                  "O2"  : pO2  / P_surf,
+                  "CO"  : pN2  / P_surf,
+                  "He"  : pHe  / P_surf,
+                  "NH3" : pNH3 / P_surf,
                 }
     # Create atmosphere object
     atm                     = atmos(T_surf, P_surf, vol_list)
-    
-    # Set fraction of condensate retained in column
-    atm.alpha_cloud         = 0.0
+
+    # Set fraction of condensate retained in column (0 = full rainout)
+    atm.alpha_cloud         = alpha_cloud
     
     # Calculate moist adiabat + condensation
     atm                     = general_adiabat(atm)
