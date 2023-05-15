@@ -217,6 +217,10 @@ def atm_z(atm, idx):
     # Next gravity
     atm.grav_z[idx+1] = atm.grav_s * ((atm.planet_radius)**2) / ((atm.planet_radius+atm.z[idx+1])**2)
 
+    # Calculate scale height in km
+    # H = 1e-3 * phys.R_gas * atm.tmp[idx] / (atm.mu[idx] * atm.grav_z[idx])
+    # print(H)
+
     # print(idx, T_mean_down, dz, atm.z[idx], atm.z[idx+1], atm.grav_z[idx], atm.grav_z[idx+1])
 
     return atm
@@ -908,7 +912,7 @@ def general_adiabat( atm ):
     if new_psurf != atm.ps:
         for vol in atm.vol_list.keys():
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
-        atm = atmos(Tsurf, new_psurf, atm.vol_list, trppT=atm.trppT)
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT)
         atm.alpha_cloud = alpha
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts):
@@ -1029,7 +1033,7 @@ def interpolate_atm(atm):
     return atm
 
 # Plotting
-def plot_adiabats(atm):
+def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
 
     # sns.set_style("ticks")
     # sns.despine()
@@ -1121,54 +1125,8 @@ def plot_adiabats(atm):
     fig.suptitle(r'T_$\rm{surf}$=%.0f K'%atm.ts)
     #plt.show()
 
-    plt.savefig('../output/general_adiabat.pdf', bbox_inches='tight')
+    plt.savefig(filename, bbox_inches='tight')
     #plt.close(fig)  
 
     return
 
-
-####################################
-##### Stand-alone initial conditions
-####################################
-if __name__ == "__main__":
-
-    # Surface temperature & partial pressures
-    T_surf                  = 400                           # K
-    pH2O                    = p_sat('H2O',T_surf)           # Pa
-    pCO2                    = 0.                            # Pa
-    pH2                     = 0.                            # Pa
-    pN2                     = 3e+5                          # Pa
-    pCH4                    = 0.                            # Pa
-    pO2                     = 0.                            # Pa
-    pHe                     = 0.                            # Pa
-    pNH3                    = 0.                            # Pa
-    P_surf                  = pH2O + pCO2 + pH2 + pN2 + pCH4 + pO2 + pHe + pNH3  # Pa
-
-    # Set fraction of condensate retained in column (0 = full rainout)
-    alpha_cloud             = 0.0
-    
-    # Volatile molar concentrations in the dictionary below are defined as fractions that must sum to one
-    # The vanilla setting defines a water-saturated atmosphere with a 3 bar N2 background
-    vol_list = { 
-                  "H2O" : pH2O / P_surf,   
-                  "CO2" : pCO2 / P_surf,
-                  "H2"  : pH2  / P_surf,
-                  "N2"  : pN2  / P_surf,
-                  "CH4" : pCH4 / P_surf,
-                  "O2"  : pO2  / P_surf,
-                  "CO"  : pN2  / P_surf,
-                  "He"  : pHe  / P_surf,
-                  "NH3" : pNH3 / P_surf,
-                }
-    # Create atmosphere object
-    atm                     = atmos(T_surf, P_surf, vol_list)
-
-    # Set fraction of condensate retained in column (0 = full rainout)
-    atm.alpha_cloud         = alpha_cloud
-    
-    # Calculate moist adiabat + condensation
-    atm                     = general_adiabat(atm)
-
-    # Plot adiabat
-    plot_adiabats(atm)
-    

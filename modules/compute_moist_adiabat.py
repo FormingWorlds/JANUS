@@ -15,7 +15,25 @@ from modules.set_stratosphere import set_stratosphere
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import utils.SocRadModel as SocRadModel
 
-def compute_moist_adiabat(atm, dirs, standalone, trpp, calc_cf=False, rscatter=False):
+def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=False):
+    """Compute moist adiabat case
+
+    Parameters
+    ----------
+        atm : atmos
+            Atmosphere object from atmosphere_column.py
+        dirs : dict
+            Named directories
+        standalone : bool
+            Running AEOLUS as standalone code?
+        trppD : bool 
+            Calculate tropopause dynamically?
+        calc_cf : bool
+            Calculate contribution function?
+        rscatter : bool
+            Include Rayleigh scattering?
+            
+    """
 
     atm_moist = copy.deepcopy(atm)
 
@@ -28,10 +46,11 @@ def compute_moist_adiabat(atm, dirs, standalone, trpp, calc_cf=False, rscatter=F
     if standalone == True:
         print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
-    if trpp == True:
+    # Calculate tropopause dynamically
+    if (trppD == True) or ( (trppD == False) and (atm_moist.trppT > 0.0) ):
       
         # Find tropopause index
-        atm_moist = find_tropopause(atm_moist)
+        atm_moist = find_tropopause(atm_moist,trppD)
 
         # Reset stratosphere temperature and abundance levels
         atm_moist = set_stratosphere(atm_moist)
