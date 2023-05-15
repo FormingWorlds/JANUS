@@ -20,10 +20,23 @@ import utils.RayleighSpectrum as RayleighSpectrum
 from utils.atmosphere_column import atmos
 
 def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
+    """Runs SOCRATES to calculate fluxes and heating rates
 
-    # Enable or disable calculating contribution function
-    # ENABLE RIGHT ENVIRONMENT IN TERMINAL FIRST
-    # calc_cf = False
+    Parameters
+    ----------
+        atm : atmos
+            Atmosphere object from atmosphere_column.py
+        dirs : dict
+            Named directories
+        recalc : bool
+            Is this function call a 'recalculation' case accounting for a tropopause?
+        calc_cf : bool
+            Calculate contribution function?
+        rscatter : bool
+            Include Rayleigh scattering?
+            
+    """
+
     molar_mass      = {
               "H2O" : 0.01801528,           # kg mol−1
               "CO2" : 0.04401,              # kg mol−1

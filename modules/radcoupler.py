@@ -6,6 +6,7 @@ Created on Mon Jan 23 13:05:00 2023
 @authors: 
 Tim Lichtenberg (TL)    
 Ryan Boukrouche (RB)
+Harrison Nicholls (HN)
 """
 
 import pickle as pkl
@@ -13,10 +14,40 @@ import pickle as pkl
 from modules.compute_moist_adiabat import compute_moist_adiabat
 from modules.dry_adiabat_timestep import compute_dry_adiabat
 
-def RadConvEqm(dirs, time, atm, loop_counter, COUPLER_options, standalone, cp_dry, trpp, calc_cf, rscatter, pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
+def RadConvEqm(dirs, time, atm, standalone, cp_dry, trppD, calc_cf, rscatter, pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
+    """Solves system for radiative-convective eqm
+
+    Parameters
+    ----------
+        dirs : dict
+            Named directories
+        time : dict
+            Dictionary of time values, including stellar age and evolution of planet
+        atm : atmos
+            Atmosphere object from atmosphere_column.py
+        standalone : bool
+            Running AEOLUS as standalone code?
+        cp_dry : bool
+            Compute dry adiabat case
+        trppD : bool 
+            Calculate tropopause dynamically?
+        calc_cf : bool
+            Calculate contribution function?
+        pure_steam_adj : bool
+            Use pure steam adjustment?
+        surf_dt : float
+            Timestep to use for T_surf timestepping cases
+        cp_surf : float
+            Surface heat capacity in T_surf timestepping cases
+        mix_coeff_atmos : float
+            Mixing coefficient (atmosphere) for T_surf timestepping cases?
+        mix_coeff_surf : float
+            Mixing coefficient (surface) for T_surf timestepping cases?
+            
+    """
 
     ### Moist/general adiabat
-    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trpp, calc_cf, rscatter)
+    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf, rscatter)
 
     ### Dry adiabat
     if cp_dry == True:
@@ -29,7 +60,8 @@ def RadConvEqm(dirs, time, atm, loop_counter, COUPLER_options, standalone, cp_dr
             print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
             print("| dry:", str(round(atm_dry.net_flux[0], 3)), str(round(atm_dry.LW_flux_up[0], 3)) + " W/m^2", end=" ")
             print()
-    else: atm_dry = {}
+    else: 
+        atm_dry = {}
     
     # Plot
     if standalone == True:

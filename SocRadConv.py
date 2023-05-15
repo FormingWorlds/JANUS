@@ -9,7 +9,7 @@ Tim Lichtenberg (TL)
 Ryan Boukrouche (RB)
 Harrison Nicholls (HN)
 
-SOCRATES radiative-convective model
+AEOLUS radiative-convective model, using SOCRATES for radiative-transfer.
 """
 
 import time as t
@@ -28,6 +28,8 @@ from utils.atmosphere_column import atmos
 ####################################
 if __name__ == "__main__":
 
+    print("Start AEOLUS")
+
     start = t.time()
     ##### Settings
 
@@ -35,43 +37,46 @@ if __name__ == "__main__":
     L_sun                   = 3.828e+26        # W, IAU definition
     AU                      = 1.495978707e+11  # m
     
-    # Planet age and orbit
+    # Planet 
     time = { "planet": 0., "star": 4567e+6 } # yr,
     # time_current  = 0                 # yr, time after start of MO
     # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
     mean_distance = 1.0                 # au, orbital distance
+    pl_radius     = 6.371e6             # m, planet radius
+    pl_mass       = 5.972e24            # kg, planet mass
 
-    # Surface pressure & temperature
-    
-    T_surf        = 288.0                # K
+    # Boundary conditions for pressure & temperature
+    T_surf        = 310.0                # K
+    P_top         = 1.0                  # Pa
 
-    # # Volatile molar concentrations: must sum to ~1 !
-    # P_surf        = 210e+5              # Pa
-    # vol_list = { 
-    #               "H2O"  : 100e5/P_surf,
-    #               "CO2"  : 100e5/P_surf,
-    #               "H2"   : 0., 
-    #               "NH3"  : 100e5/P_surf,
-    #               "N2"   : 10e5/P_surf,  
-    #               "CH4"  : 0., 
-    #               "O2"   : 0., 
-    #               "CO"   : 0., 
-    #               # # No thermodynamic data, RT only
-    #               # "O3"   : 0.01, 
-    #               # "N2O"  : 0.01, 
-    #               # "NO"   : 0.01, 
-    #               # "SO2"  : 0.01, 
-    #               # "NO2"  : 0.01, 
-    #               # "HNO3" : 0.01, 
-    #               # "He"   : 0.01, 
-    #               # "OCS"  : 0.01,
+    # Define volatiles by mole fractions
+    # P_surf       = 50 * 1e5
+    # vol_mixing = { 
+    #                 "CO2"  : 1.0 - 5e-2,
+    #                 "H2O"  : 5e-2 - 1e-6,
+    #                 "N2"   : 1e-6,  
+    #                 "H2"   : 0.0, 
+    #                 "NH3"  : 0.0,
+    #                 "CH4"  : 0.0, 
+    #                 "O2"   : 0.0, 
+    #                 "CO"   : 0.0, 
+    #                 # # No thermodynamic data, RT only
+    #                 # "O3"   : 0.01, 
+    #                 # "N2O"  : 0.01, 
+    #                 # "NO"   : 0.01, 
+    #                 # "SO2"  : 0.01, 
+    #                 # "NO2"  : 0.01, 
+    #                 # "HNO3" : 0.01, 
+    #                 # "He"   : 0.01, 
+    #                 # "OCS"  : 0.01,
     #             }
-    
-    # Partial pressure guesses
-    P_surf      = "calc"  
-     # Volatiles considered
-    vol_list    = { 
+    # vol_partial = {}
+
+    # Define volatiles by partial pressures
+    P_surf = 0.0
+    vol_mixing = {}
+    vol_partial    = { 
                           "H2O" :  0.004e5,
                           "NH3" :  0.,
                           "CO2" :  0.035e5,
@@ -97,11 +102,13 @@ if __name__ == "__main__":
     # Pure steam convective adjustment
     pure_steam_adj = False
 
-    # Set fixed or flux-computed tropopause
-    trpp = False
-
+    # Tropopause calculation
+    trppD = True   # Calculate dynamically?
+    trppT = 70.0     # Fixed tropopause value if not calculated dynamically
+    
     # Surface temperature time-stepping
     surf_dt = False
+    cp_dry = False
     # Options activated by surf_dt
     cp_surf = 1e5         # Heat capacity of the ground [J.kg^-1.K^-1]
     mix_coeff_atmos = 1e6 # mixing coefficient of the atmosphere [s]
@@ -113,10 +120,10 @@ if __name__ == "__main__":
     ##### Function calls
 
     # Create atmosphere object
-    atm            = atmos(T_surf, P_surf, vol_list, calc_cf=calc_cf)
+    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT)
 
     # Compute stellar heating
-    _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
+    S_0, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
@@ -125,10 +132,14 @@ if __name__ == "__main__":
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
         
     # Compute heat flux
-    atm_dry, atm_moist = RadConvEqm({"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}, time, atm, [], [], standalone=True, cp_dry=False, trpp=trpp, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
+    dirs = {"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}
+    atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
     
     # Plot abundances w/ TP structure
     ga.plot_adiabats(atm_moist)
 
+    atm_moist.write_PT()
+
     end = t.time()
     print("Runtime:", round(end - start,2), "s")
+
