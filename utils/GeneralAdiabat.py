@@ -16,7 +16,8 @@ import scipy.interpolate as spint
 import math
 import matplotlib.pyplot as plt
 import copy
-from matplotlib import cm
+import matplotlib as mpl
+import numpy as np
 
 from utils.cp_funcs import *
 from utils.ClimateUtilities import *
@@ -30,56 +31,32 @@ import utils.phys as phys
 # https://chrisalbon.com/python/data_visualization/seaborn_color_palettes/
 no_colors   = 7
 vol_colors = {
-    "H2O"            : cm.get_cmap('PuBu', no_colors)(range(no_colors)),
-    "CO2"            : cm.get_cmap("Reds", no_colors)(range(no_colors)),
-    "H2"             : cm.get_cmap("Greens", no_colors)(range(no_colors)),
-    "N2"             : cm.get_cmap("Purples", no_colors)(range(no_colors)),
-    "O2"             : cm.get_cmap("Wistia", no_colors+2)(range(no_colors+2)),
-    "CH4"            : cm.get_cmap("RdPu", no_colors)(range(no_colors)),
-    "CO"             : cm.get_cmap("pink_r", no_colors)(range(no_colors)),
-    "S"              : cm.get_cmap("YlOrBr", no_colors)(range(no_colors)),
-    "He"             : cm.get_cmap("Greys", no_colors)(range(no_colors)),
-    "NH3"            : cm.get_cmap("summer", no_colors)(range(no_colors)),
-    "mixtures"       : cm.get_cmap("Set3", 9)(range(no_colors)),
-    "H2O-CO2"        : cm.get_cmap("Set3", 9)(range(no_colors))[1],
-    "CO2-H2O"        : cm.get_cmap("Set3", 9)(range(no_colors))[1],
-    "H2O-H2"         : cm.get_cmap("Set3", 9)(range(no_colors))[2],
-    "H2-H2O"         : cm.get_cmap("Set3", 9)(range(no_colors))[2],
-    "H2-CO"          : cm.get_cmap("Set3", 9)(range(no_colors))[3],
-    "CO-H2"          : cm.get_cmap("Set3", 9)(range(no_colors))[3],
-    "H2-CO2"         : cm.get_cmap("Set3", 9)(range(no_colors))[4],
-    "CO2-H2"         : cm.get_cmap("Set3", 9)(range(no_colors))[4],
-    "H2-CH4"         : cm.get_cmap("Set3", 9)(range(no_colors))[5],
-    "CH4-H2"         : cm.get_cmap("Set3", 9)(range(no_colors))[5],
-    "H2-N2"          : cm.get_cmap("Set2", 9)(range(no_colors))[0],
-    "N2-H2"          : cm.get_cmap("Set2", 9)(range(no_colors))[0],
-    "CO2-N2"         : cm.get_cmap("Set2", 9)(range(no_colors))[1],
-    "N2-CO2"         : cm.get_cmap("Set2", 9)(range(no_colors))[1],
-    # "H2O"            : sns.color_palette("PuBu", no_colors),
-    # "CO2"            : sns.color_palette("Reds", no_colors),
-    # "H2"             : sns.color_palette("Greens", no_colors),
-    # "N2"             : sns.color_palette("Purples", no_colors), # sns.cubehelix_palette(7)
-    # "O2"             : sns.light_palette("darkturquoise", no_colors),
-    # "CH4"            : sns.color_palette("RdPu", no_colors),
-    # "CO"             : sns.light_palette("#731d1d", no_colors),
-    # "S"              : sns.light_palette("#EBB434", no_colors),
-    # "He"             : sns.color_palette("Greys", no_colors),
-    # "NH3"            : sns.light_palette("teal", no_colors),
-    # "mixtures"       : sns.color_palette("Set2", 11),
-    # "H2O-CO2"        : sns.color_palette("Set2", 11)[9],
-    # "CO2-H2O"        : sns.color_palette("Set2", 11)[9],
-    # "H2O-H2"         : sns.color_palette("Set2", 11)[3],
-    # "H2-H2O"         : sns.color_palette("Set2", 11)[3],
-    # "H2-CO"          : sns.color_palette("Set2", 11)[7],
-    # "CO-H2"          : sns.color_palette("Set2", 11)[7],
-    # "H2-CO2"         : sns.color_palette("Set2", 11)[8],
-    # "CO2-H2"         : sns.color_palette("Set2", 11)[8],
-    # "H2-CH4"         : sns.color_palette("Set2", 11)[2],
-    # "CH4-H2"         : sns.color_palette("Set2", 11)[2],
-    # "H2-N2"          : sns.color_palette("Set2", 11)[4],
-    # "N2-H2"          : sns.color_palette("Set2", 11)[4],
-    # "CO2-N2"         : sns.color_palette("Set2", 11)[5],
-    # "N2-CO2"         : sns.color_palette("Set2", 11)[5],
+    "H2O"            : [mpl.colormaps["PuBu"](i) for i in np.linspace(0,1.0,no_colors)],
+    "CO2"            : [mpl.colormaps["Reds"](i) for i in np.linspace(0,1.0,no_colors)],
+    "H2"             : [mpl.colormaps["Greens"](i) for i in np.linspace(0,1.0,no_colors)],
+    "N2"             : [mpl.colormaps["Purples"](i) for i in np.linspace(0,1.0,no_colors)],
+    "O2"             : [mpl.colormaps["Wistia"](i) for i in np.linspace(0,1.0,no_colors+2)],
+    "CH4"            : [mpl.colormaps["RdPu"](i) for i in np.linspace(0,1.0,no_colors)],
+    "CO"             : [mpl.colormaps["pink_r"](i) for i in np.linspace(0,1.0,no_colors)],
+    "S"              : [mpl.colormaps["YlOrBr"](i) for i in np.linspace(0,1.0,no_colors)],
+    "He"             : [mpl.colormaps["Greys"](i) for i in np.linspace(0,1.0,no_colors)],
+    "NH3"            : [mpl.colormaps["summer"](i) for i in np.linspace(0,1.0,no_colors)],
+    "mixtures"       : [mpl.colormaps["Set3"](i) for i in np.linspace(0,1.0,no_colors)],
+    "H2O-CO2"        : mpl.colormaps["Set3"](1.0/no_colors),
+    "CO2-H2O"        : mpl.colormaps["Set3"](1.0/no_colors),
+    "H2O-H2"         : mpl.colormaps["Set3"](2.0/no_colors),
+    "H2-H2O"         : mpl.colormaps["Set3"](2.0/no_colors),
+    "CO-H2"          : mpl.colormaps["Set3"](3.0/no_colors),
+    "H2-CO"          : mpl.colormaps["Set3"](3.0/no_colors),
+    "H2-CO2"         : mpl.colormaps["Set3"](4.0/no_colors),
+    "CO2-H2"         : mpl.colormaps["Set3"](4.0/no_colors),
+    "CH4-H2"         : mpl.colormaps["Set3"](5.0/no_colors),
+    "H2-CH4"         : mpl.colormaps["Set3"](5.0/no_colors),
+    "H2-CH4"         : mpl.colormaps["Set3"](5.0/no_colors),
+    "H2-N2"          : mpl.colormaps["Set2"](0.0/no_colors),
+    "N2-H2"          : mpl.colormaps["Set2"](0.0/no_colors),
+    "CO2-N2"         : mpl.colormaps["Set2"](1.0/no_colors),
+    "N2-CO2"         : mpl.colormaps["Set2"](1.0/no_colors),
     "black_1"        : "#000000",
     "black_2"        : "#323232",
     "black_3"        : "#7f7f7f",
@@ -1134,3 +1111,53 @@ def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
 
     return
 
+
+####################################
+##### Stand-alone initial conditions
+####################################
+if __name__ == "__main__":
+
+    # Surface temperature & partial pressures
+    T_surf                  = 400                           # K
+    pH2O                    = p_sat('H2O',T_surf)           # Pa
+    pCO2                    = 0.                            # Pa
+    pH2                     = 0.                            # Pa
+    pN2                     = 3e+5                          # Pa
+    pCH4                    = 0.                            # Pa
+    pO2                     = 0.                            # Pa
+    pHe                     = 0.                            # Pa
+    pNH3                    = 0.                            # Pa
+    P_surf                  = pH2O + pCO2 + pH2 + pN2 + pCH4 + pO2 + pHe + pNH3  # Pa
+
+    # Set fraction of condensate retained in column (0 = full rainout)
+    alpha_cloud             = 0.0
+
+    pl_radius     = 6.371e6             # m, planet radius
+    pl_mass       = 5.972e24            # kg, planet mass
+    P_top         = 1.0                 # Pa
+    
+    # Volatile molar concentrations in the dictionary below are defined as fractions that must sum to one
+    # The vanilla setting defines a water-saturated atmosphere with a 3 bar N2 background
+    vol_list = { 
+                  "H2O" : pH2O / P_surf,   
+                  "CO2" : pCO2 / P_surf,
+                  "H2"  : pH2  / P_surf,
+                  "N2"  : pN2  / P_surf,
+                  "CH4" : pCH4 / P_surf,
+                  "O2"  : pO2  / P_surf,
+                  "CO"  : pN2  / P_surf,
+                  "He"  : pHe  / P_surf,
+                  "NH3" : pNH3 / P_surf,
+                }
+    # Create atmosphere object
+    atm                     = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_list)
+
+    # Set fraction of condensate retained in column (0 = full rainout)
+    atm.alpha_cloud         = alpha_cloud
+    
+    # Calculate moist adiabat + condensation
+    atm                     = general_adiabat(atm)
+
+    # Plot adiabat
+    plot_adiabats(atm, filename="../output/general_adiabat.pdf")
+    

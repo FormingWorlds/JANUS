@@ -5,19 +5,16 @@ import numpy as np
 from utils import phys
 
 class atmos:
-    """Atmosphere class    
-    
-    Stores compositional and thermodynamic information for the column.    
-    Also stores planetary parameters.   
-
-    """
     
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
                  calc_cf: bool=False, 
                  trppT: float = 290):
         
-        """Inits atmos class.
+        """Atmosphere class    
+    
+        Stores compositional and thermodynamic information for the column.    
+        Also stores planetary parameters.   
 
         One of either vol_mixing or vol_partial must be passed in. 
         If vol_partial is passed, then the value of P_surf is recalculated as the sum of partial pressures.
