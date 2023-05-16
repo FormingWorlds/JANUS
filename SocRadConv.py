@@ -47,8 +47,8 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 1000.0                # K
-    P_top         = 1.0                  # Pa
+    T_surf        = 300.0                # K
+    P_top         = 10.0                  # Pa
 
     # Define volatiles by mole fractions
     # P_surf       = 50 * 1e5
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     
     # Surface temperature time-stepping
     surf_dt = False
-    cp_dry = False
+    cp_dry = True
     # Options activated by surf_dt
     cp_surf = 1e5         # Heat capacity of the ground [J.kg^-1.K^-1]
     mix_coeff_atmos = 1e6 # mixing coefficient of the atmosphere [s]
