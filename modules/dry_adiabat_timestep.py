@@ -18,6 +18,7 @@ from modules.simple_boundary import simple_boundary_tend
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import utils.SocRadModel as SocRadModel
+import utils.phys as phys
 
 # Time integration for n steps
 def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
@@ -28,14 +29,14 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
     dT_max      = 20.  # K, Maximum temperature change per radiation step
     T_floor     = 10.  # K, Temperature floor to prevent SOCRATES crash
 
-    print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
+    # print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
     # Build general adiabat structure
     atm                 = ga.general_adiabat(copy.deepcopy(atm))
-    print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
+    # print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
 
     # Copy moist pressure arrays for dry adiabat
     atm_dry             = dry_adiabat_atm(atm)
-    print("atm_dry.toa_heating in compute_dry_adiabat = ", atm_dry.toa_heating)
+    # print("atm_dry.toa_heating in compute_dry_adiabat = ", atm_dry.toa_heating)
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry         = 0.
@@ -52,8 +53,8 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
         # Compute radiation, midpoint method time stepping
         try:
             atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
-            print("atm_dry.net_heating in compute_dry_adiabat = ", atm_dry.net_heating)
-            print("atm_dry.SW_flux_down in compute_dry_adiabat = ", atm_dry.SW_flux_down)
+            # print("atm_dry.net_heating in compute_dry_adiabat = ", atm_dry.net_heating)
+            # print("atm_dry.SW_flux_down in compute_dry_adiabat = ", atm_dry.SW_flux_down)
             
             dT_dry          = atm_dry.net_heating * atm_dry.dt
     
@@ -68,13 +69,13 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
                 dT_surf += net_Fs/cp_surf 
                 dT_dry, dT_surf = simple_boundary_tend(len(dT_dry)-1,atm_dry.tmp,atm_dry.ts,dT_dry,dT_surf,mix_coeff_atmos,mix_coeff_surf)
                 # Apply surface heating
-                atm_dry.ts      += dT_surf * atm_dry.dt            
-                #k_turb          = .1
-                #mix_coeff_atmos = 1.e6
-                #mix_coeff_surf  = 1.e6
-                #dT_dry[-1] += (atm_dry.ts - atm_dry.tmp[-1])/mix_coeff_atmos
-                #dT_surf    -= (atm_dry.ts - atm_dry.tmp[-1])/mix_coeff_surf
-                #atm_dry.tmp[-1] += dT_dry[-1] * k_turb * (atm_dry.tmp[-1] - atm_dry.ts) 
+                atm_dry.ts      += dT_surf * atm_dry.dt
+
+                # Update temperature of lowest cell
+                k_turb          = .1
+                dT_dry[-1] += (atm_dry.ts - atm_dry.tmp[-1])/mix_coeff_atmos
+                dT_surf    -= (atm_dry.ts - atm_dry.tmp[-1])/mix_coeff_surf
+                atm_dry.tmp[-1] += dT_dry[-1] * k_turb * (atm_dry.tmp[-1] - atm_dry.ts) 
                 
             # Apply heating
             atm_dry.tmp     += dT_dry
@@ -98,18 +99,22 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
     
             # Break criteria
             dOLR_dry        = abs(round(atm_dry.LW_flux_up[0]-PrevOLR_dry, 6))
-            dbreak_dry      = (0.01*(5.67e-8*atm_dry.ts**4)**0.5)
+            dbreak_dry      = (0.01*(phys.sigma*atm_dry.ts**4)**0.5)
     
             # Inform during runtime
             if i % 2 == 1 and standalone == True:
-                print("Dry adjustment step", i+1, end=": ")
-                print("OLR = " + str(atm_dry.LW_flux_up[0]) + " W/m^2,", "dT_max = " + str(dTglobal_dry) + " K, dT_top = " + str(dTtop_dry) + " K, dOLR = " + str(dOLR_dry) + " W/m^2,")
+                print("Dry adjustment step %d:" % (i+1))
+                print("\tOLR = " + str(atm_dry.LW_flux_up[0]) + " W/m^2", "dOLR = " + str(dOLR_dry) + " W/m^2")
+                print("\tT_top = " + str(atm_dry.tmp[0]) + " K,",  "dT_top = " + str(dTtop_dry) + " K")
+                print("\tT_bot = " + str(atm_dry.tmp[-1]) + " K,",  "dT_max = " + str(dTglobal_dry) + " K")
+                print("\tT_surf = " +str(atm_dry.ts) + " K" )
+                
     
             # Reduce timestep if heating is not converging
             if dTglobal_dry < 0.05 or dTtop_dry > dT_max:
                 atm_dry.dt  = atm_dry.dt*0.99
-                if standalone == True:
-                    print("Dry adiabat not converging -> dt_new =", round(atm_dry.dt,5), "days")
+                # if standalone == True:
+                #     print("Dry adiabat not converging -> dt_new =", round(atm_dry.dt,5), "days")
     
             # Sensitivity break condition
             if (dOLR_dry < dbreak_dry) and i > 5:
