@@ -184,7 +184,7 @@ class atmos:
             filename : string
                 Output filename
             punit : string
-                Pressure unit to save with
+                Pressure unit to use. Options: Pa, bar, dyne/cm2, atm.
 
         """
 
@@ -201,8 +201,8 @@ class atmos:
             case _:
                 raise Exception("Unrecognised pressure unit '%s'"%punit)
 
-        p_save = np.array(self.pl) * p_scalefactor
-        T_save = np.array(self.tmpl)
+        p_save = np.array(self.p) * p_scalefactor
+        T_save = np.array(self.tmp)
 
         X = np.array([p_save,T_save]).T[::-1]
 

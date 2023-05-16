@@ -47,7 +47,7 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 310.0                # K
+    T_surf        = 1000.0                # K
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     pure_steam_adj = False
 
     # Tropopause calculation
-    trppD = True   # Calculate dynamically?
+    trppD = False   # Calculate dynamically?
     trppT = 70.0     # Fixed tropopause value if not calculated dynamically
     
     # Surface temperature time-stepping
@@ -136,9 +136,13 @@ if __name__ == "__main__":
     atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
     
     # Plot abundances w/ TP structure
-    ga.plot_adiabats(atm_moist)
+    if (cp_dry):
+        ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
+        atm_dry.write_PT(filename="output/dry_pt.tsv")
 
-    atm_moist.write_PT()
+    ga.plot_adiabats(atm_moist,filename="output/moist_ga.pdf")
+    atm_moist.write_PT(filename="output/moist_pt.tsv")
+
 
     end = t.time()
     print("Runtime:", round(end - start,2), "s")

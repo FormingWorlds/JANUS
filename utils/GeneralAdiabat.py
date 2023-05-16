@@ -229,27 +229,30 @@ def atm_z(atm, idx):
 ## Assuming the ideal gas law and a constant latent heat of vaporization. 
 ## Select the molecule of interest with the switch argument (a string).
 def p_sat(switch,T): 
-    
+
     # Define volatile
-    if switch == 'H2O':
-        e = phys.satvps_function(phys.water)
-    if switch == 'CH4':
-        e = phys.satvps_function(phys.methane)
-    if switch == 'CO2':
-        e = phys.satvps_function(phys.co2)
-    if switch == 'CO':
-        e = phys.satvps_function(phys.co)
-    if switch == 'N2':
-        e = phys.satvps_function(phys.n2)
-    if switch == 'O2':
-        e = phys.satvps_function(phys.o2)
-    if switch == 'H2':
-        e = phys.satvps_function(phys.h2)
-    if switch == 'He':
-        e = phys.satvps_function(phys.he)
-    if switch == 'NH3':
-        e = phys.satvps_function(phys.nh3)
-    
+    match switch:
+        case 'H2O':
+            e = phys.satvps_function(phys.water)
+        case 'CH4':
+            e = phys.satvps_function(phys.methane)
+        case 'CO2':
+            e = phys.satvps_function(phys.co2)
+        case 'CO':
+            e = phys.satvps_function(phys.co)
+        case 'N2':
+            e = phys.satvps_function(phys.n2)
+        case 'O2':
+            e = phys.satvps_function(phys.o2)
+        case 'H2':
+            e = phys.satvps_function(phys.h2)
+        case 'He':
+            e = phys.satvps_function(phys.he)
+        case 'NH3':
+            e = phys.satvps_function(phys.nh3)   
+        case _:
+            raise Exception("Invalid volatile '%s' in p_sat()" % switch)
+        
     # Return saturation vapor pressure
     return float(f'{e(T):.2f}')
 '''
@@ -376,68 +379,69 @@ def Tdew(switch, p):
 ## Select the molecule of interest with the switch argument (a string).
 def L_heat(switch, T):
 
-    if switch == 'H2O':
-        L_sublimation   = phys.H2O.L_sublimation
-        L_vaporization  = phys.H2O.L_vaporization
-        MolecularWeight = phys.H2O.MolecularWeight
-        T_triple        = phys.H2O.TriplePointT
-        T_crit          = phys.H2O.CriticalPointT
-    
-    if switch == 'CH4':
-        L_sublimation   = phys.CH4.L_sublimation
-        L_vaporization  = phys.CH4.L_vaporization
-        MolecularWeight = phys.CH4.MolecularWeight
-        T_triple        = phys.CH4.TriplePointT
-        T_crit          = phys.CH4.CriticalPointT
+    match switch:
+        case 'H2O':
+            L_sublimation   = phys.H2O.L_sublimation
+            L_vaporization  = phys.H2O.L_vaporization
+            MolecularWeight = phys.H2O.MolecularWeight
+            T_triple        = phys.H2O.TriplePointT
+            T_crit          = phys.H2O.CriticalPointT
         
-    if switch == 'CO2':
-        L_sublimation   = phys.CO2.L_sublimation
-        L_vaporization  = phys.CO2.L_vaporization
-        MolecularWeight = phys.CO2.MolecularWeight
-        T_triple        = phys.CO2.TriplePointT
-        T_crit          = phys.CO2.CriticalPointT
-        
-    if switch == 'CO':
-        L_sublimation   = phys.CO.L_sublimation
-        L_vaporization  = phys.CO.L_vaporization
-        MolecularWeight = phys.CO.MolecularWeight
-        T_triple        = phys.CO.TriplePointT
-        T_crit          = phys.CO.CriticalPointT
+        case 'CH4':
+            L_sublimation   = phys.CH4.L_sublimation
+            L_vaporization  = phys.CH4.L_vaporization
+            MolecularWeight = phys.CH4.MolecularWeight
+            T_triple        = phys.CH4.TriplePointT
+            T_crit          = phys.CH4.CriticalPointT
             
-    if switch == 'N2':
-        L_sublimation   = phys.N2.L_sublimation
-        L_vaporization  = phys.N2.L_vaporization
-        MolecularWeight = phys.N2.MolecularWeight
-        T_triple        = phys.N2.TriplePointT
-        T_crit          = phys.N2.CriticalPointT
+        case 'CO2':
+            L_sublimation   = phys.CO2.L_sublimation
+            L_vaporization  = phys.CO2.L_vaporization
+            MolecularWeight = phys.CO2.MolecularWeight
+            T_triple        = phys.CO2.TriplePointT
+            T_crit          = phys.CO2.CriticalPointT
+            
+        case 'CO':
+            L_sublimation   = phys.CO.L_sublimation
+            L_vaporization  = phys.CO.L_vaporization
+            MolecularWeight = phys.CO.MolecularWeight
+            T_triple        = phys.CO.TriplePointT
+            T_crit          = phys.CO.CriticalPointT
+                
+        case 'N2':
+            L_sublimation   = phys.N2.L_sublimation
+            L_vaporization  = phys.N2.L_vaporization
+            MolecularWeight = phys.N2.MolecularWeight
+            T_triple        = phys.N2.TriplePointT
+            T_crit          = phys.N2.CriticalPointT
+            
+        case 'O2':
+            L_sublimation   = phys.O2.L_sublimation
+            L_vaporization  = phys.O2.L_vaporization
+            MolecularWeight = phys.O2.MolecularWeight
+            T_triple        = phys.O2.TriplePointT
+            T_crit          = phys.O2.CriticalPointT
         
-    if switch == 'O2':
-        L_sublimation   = phys.O2.L_sublimation
-        L_vaporization  = phys.O2.L_vaporization
-        MolecularWeight = phys.O2.MolecularWeight
-        T_triple        = phys.O2.TriplePointT
-        T_crit          = phys.O2.CriticalPointT
-    
-    if switch == 'H2':
-        L_sublimation   = phys.H2.L_vaporization # No H2 sublimation
-        L_vaporization  = phys.H2.L_vaporization
-        MolecularWeight = phys.H2.MolecularWeight
-        T_triple        = phys.H2.TriplePointT
-        T_crit          = phys.H2.CriticalPointT
-        
-    if switch == 'He':
-        L_sublimation   = phys.He.L_vaporization  # No He sublimation
-        L_vaporization  = phys.He.L_vaporization
-        MolecularWeight = phys.He.MolecularWeight
-        T_triple        = phys.He.TriplePointT
-        T_crit          = phys.He.CriticalPointT
-        
-    if switch == 'NH3':
-        L_sublimation   = phys.NH3.L_sublimation
-        L_vaporization  = phys.NH3.L_vaporization
-        MolecularWeight = phys.NH3.MolecularWeight
-        T_triple        = phys.NH3.TriplePointT
-        T_crit          = phys.NH3.CriticalPointT
+        case 'H2':
+            L_sublimation   = phys.H2.L_vaporization # No H2 sublimation
+            L_vaporization  = phys.H2.L_vaporization
+            MolecularWeight = phys.H2.MolecularWeight
+            T_triple        = phys.H2.TriplePointT
+            T_crit          = phys.H2.CriticalPointT
+            
+        case 'He':
+            L_sublimation   = phys.He.L_vaporization  # No He sublimation
+            L_vaporization  = phys.He.L_vaporization
+            MolecularWeight = phys.He.MolecularWeight
+            T_triple        = phys.He.TriplePointT
+            T_crit          = phys.He.CriticalPointT
+            
+        case 'NH3':
+            L_sublimation   = phys.NH3.L_sublimation
+            L_vaporization  = phys.NH3.L_vaporization
+            MolecularWeight = phys.NH3.MolecularWeight
+            T_triple        = phys.NH3.TriplePointT
+            T_crit          = phys.NH3.CriticalPointT
 
     # Gas-solid transition
     if T <= T_triple:
@@ -1122,7 +1126,7 @@ def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
     ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax1.transAxes)
     ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax2.transAxes)
     #fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
-    fig.suptitle(r'T_$\rm{surf}$=%.0f K'%atm.ts)
+    fig.suptitle('$T_{surf}$=%.1f K, $T_{bot}$=%.1f K'% (atm.ts,atm.tmp[-1]))
     #plt.show()
 
     plt.savefig(filename, bbox_inches='tight')
