@@ -73,6 +73,7 @@ if __name__ == "__main__":
     #             }
     # vol_partial = {}
 
+    # OR:
     # Define volatiles by partial pressures
     P_surf = 0.0
     vol_mixing = {}
@@ -108,7 +109,7 @@ if __name__ == "__main__":
     
     # Surface temperature time-stepping
     surf_dt = False
-    cp_dry = True
+    cp_dry = False
     # Options activated by surf_dt
     cp_surf = 1e5         # Heat capacity of the ground [J.kg^-1.K^-1]
     mix_coeff_atmos = 1e6 # mixing coefficient of the atmosphere [s]
