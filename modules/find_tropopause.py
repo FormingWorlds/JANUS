@@ -6,14 +6,25 @@ Created on Mon Jan 23 11:59:40 2023
 @authors: 
 Tim Lichtenberg (TL)    
 Ryan Boukrouche (RB)
+Harrison Nicholls (HN)
 """
 
 import numpy as np
 
-def find_tropopause(atm_moist):
+def find_tropopause(atm_moist, dynamic: bool):
+    """Computes tropopause location via two methods: dynamically based on heating rates, or by a set temperature value.
+
+    Parameters
+    ----------
+        atm_moist : atmos
+            Atmosphere (moist) object from atmosphere_column.py
+        dynamic : bool
+            Calculate dynamically with heating rates? If not, use fixed value of trppT.
+            
+    """
 
     # Heating criterion
-    if atm_moist.trppT == 0:
+    if dynamic:
 
         print("TROPOPAUSE SET BY HEATING")
 
@@ -82,14 +93,11 @@ def find_tropopause(atm_moist):
     # Temperature criterion
     else:
 
-        print("TROPOPAUSE SET TO", atm_moist.trppT, "K")
+        print("TROPOPAUSE SET BY CONTANT VALUE OF", atm_moist.trppT, "K")
         trpp_idx = (np.abs(atm_moist.tmp - atm_moist.trppT)).argmin()
 
         atm_moist.trppidx   = trpp_idx                  # index
         atm_moist.trppP     = atm_moist.pl[trpp_idx]    # pressure 
         atm_moist.trppT     = atm_moist.tmpl[trpp_idx]  # temperature
-
-
-    
 
     return atm_moist

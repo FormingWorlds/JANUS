@@ -16,7 +16,8 @@ import scipy.interpolate as spint
 import math
 import matplotlib.pyplot as plt
 import copy
-from matplotlib import cm
+import matplotlib as mpl
+import numpy as np
 
 from utils.cp_funcs import *
 from utils.ClimateUtilities import *
@@ -30,56 +31,32 @@ import utils.phys as phys
 # https://chrisalbon.com/python/data_visualization/seaborn_color_palettes/
 no_colors   = 7
 vol_colors = {
-    "H2O"            : cm.get_cmap('PuBu', no_colors)(range(no_colors)),
-    "CO2"            : cm.get_cmap("Reds", no_colors)(range(no_colors)),
-    "H2"             : cm.get_cmap("Greens", no_colors)(range(no_colors)),
-    "N2"             : cm.get_cmap("Purples", no_colors)(range(no_colors)),
-    "O2"             : cm.get_cmap("Wistia", no_colors+2)(range(no_colors+2)),
-    "CH4"            : cm.get_cmap("RdPu", no_colors)(range(no_colors)),
-    "CO"             : cm.get_cmap("pink_r", no_colors)(range(no_colors)),
-    "S"              : cm.get_cmap("YlOrBr", no_colors)(range(no_colors)),
-    "He"             : cm.get_cmap("Greys", no_colors)(range(no_colors)),
-    "NH3"            : cm.get_cmap("summer", no_colors)(range(no_colors)),
-    "mixtures"       : cm.get_cmap("Set3", 9)(range(no_colors)),
-    "H2O-CO2"        : cm.get_cmap("Set3", 9)(range(no_colors))[1],
-    "CO2-H2O"        : cm.get_cmap("Set3", 9)(range(no_colors))[1],
-    "H2O-H2"         : cm.get_cmap("Set3", 9)(range(no_colors))[2],
-    "H2-H2O"         : cm.get_cmap("Set3", 9)(range(no_colors))[2],
-    "H2-CO"          : cm.get_cmap("Set3", 9)(range(no_colors))[3],
-    "CO-H2"          : cm.get_cmap("Set3", 9)(range(no_colors))[3],
-    "H2-CO2"         : cm.get_cmap("Set3", 9)(range(no_colors))[4],
-    "CO2-H2"         : cm.get_cmap("Set3", 9)(range(no_colors))[4],
-    "H2-CH4"         : cm.get_cmap("Set3", 9)(range(no_colors))[5],
-    "CH4-H2"         : cm.get_cmap("Set3", 9)(range(no_colors))[5],
-    "H2-N2"          : cm.get_cmap("Set2", 9)(range(no_colors))[0],
-    "N2-H2"          : cm.get_cmap("Set2", 9)(range(no_colors))[0],
-    "CO2-N2"         : cm.get_cmap("Set2", 9)(range(no_colors))[1],
-    "N2-CO2"         : cm.get_cmap("Set2", 9)(range(no_colors))[1],
-    # "H2O"            : sns.color_palette("PuBu", no_colors),
-    # "CO2"            : sns.color_palette("Reds", no_colors),
-    # "H2"             : sns.color_palette("Greens", no_colors),
-    # "N2"             : sns.color_palette("Purples", no_colors), # sns.cubehelix_palette(7)
-    # "O2"             : sns.light_palette("darkturquoise", no_colors),
-    # "CH4"            : sns.color_palette("RdPu", no_colors),
-    # "CO"             : sns.light_palette("#731d1d", no_colors),
-    # "S"              : sns.light_palette("#EBB434", no_colors),
-    # "He"             : sns.color_palette("Greys", no_colors),
-    # "NH3"            : sns.light_palette("teal", no_colors),
-    # "mixtures"       : sns.color_palette("Set2", 11),
-    # "H2O-CO2"        : sns.color_palette("Set2", 11)[9],
-    # "CO2-H2O"        : sns.color_palette("Set2", 11)[9],
-    # "H2O-H2"         : sns.color_palette("Set2", 11)[3],
-    # "H2-H2O"         : sns.color_palette("Set2", 11)[3],
-    # "H2-CO"          : sns.color_palette("Set2", 11)[7],
-    # "CO-H2"          : sns.color_palette("Set2", 11)[7],
-    # "H2-CO2"         : sns.color_palette("Set2", 11)[8],
-    # "CO2-H2"         : sns.color_palette("Set2", 11)[8],
-    # "H2-CH4"         : sns.color_palette("Set2", 11)[2],
-    # "CH4-H2"         : sns.color_palette("Set2", 11)[2],
-    # "H2-N2"          : sns.color_palette("Set2", 11)[4],
-    # "N2-H2"          : sns.color_palette("Set2", 11)[4],
-    # "CO2-N2"         : sns.color_palette("Set2", 11)[5],
-    # "N2-CO2"         : sns.color_palette("Set2", 11)[5],
+    "H2O"            : [mpl.colormaps["PuBu"](i) for i in np.linspace(0,1.0,no_colors)],
+    "CO2"            : [mpl.colormaps["Reds"](i) for i in np.linspace(0,1.0,no_colors)],
+    "H2"             : [mpl.colormaps["Greens"](i) for i in np.linspace(0,1.0,no_colors)],
+    "N2"             : [mpl.colormaps["Purples"](i) for i in np.linspace(0,1.0,no_colors)],
+    "O2"             : [mpl.colormaps["Wistia"](i) for i in np.linspace(0,1.0,no_colors+2)],
+    "CH4"            : [mpl.colormaps["RdPu"](i) for i in np.linspace(0,1.0,no_colors)],
+    "CO"             : [mpl.colormaps["pink_r"](i) for i in np.linspace(0,1.0,no_colors)],
+    "S"              : [mpl.colormaps["YlOrBr"](i) for i in np.linspace(0,1.0,no_colors)],
+    "He"             : [mpl.colormaps["Greys"](i) for i in np.linspace(0,1.0,no_colors)],
+    "NH3"            : [mpl.colormaps["summer"](i) for i in np.linspace(0,1.0,no_colors)],
+    "mixtures"       : [mpl.colormaps["Set3"](i) for i in np.linspace(0,1.0,no_colors)],
+    "H2O-CO2"        : mpl.colormaps["Set3"](1.0/no_colors),
+    "CO2-H2O"        : mpl.colormaps["Set3"](1.0/no_colors),
+    "H2O-H2"         : mpl.colormaps["Set3"](2.0/no_colors),
+    "H2-H2O"         : mpl.colormaps["Set3"](2.0/no_colors),
+    "CO-H2"          : mpl.colormaps["Set3"](3.0/no_colors),
+    "H2-CO"          : mpl.colormaps["Set3"](3.0/no_colors),
+    "H2-CO2"         : mpl.colormaps["Set3"](4.0/no_colors),
+    "CO2-H2"         : mpl.colormaps["Set3"](4.0/no_colors),
+    "CH4-H2"         : mpl.colormaps["Set3"](5.0/no_colors),
+    "H2-CH4"         : mpl.colormaps["Set3"](5.0/no_colors),
+    "H2-CH4"         : mpl.colormaps["Set3"](5.0/no_colors),
+    "H2-N2"          : mpl.colormaps["Set2"](0.0/no_colors),
+    "N2-H2"          : mpl.colormaps["Set2"](0.0/no_colors),
+    "CO2-N2"         : mpl.colormaps["Set2"](1.0/no_colors),
+    "N2-CO2"         : mpl.colormaps["Set2"](1.0/no_colors),
     "black_1"        : "#000000",
     "black_2"        : "#323232",
     "black_3"        : "#7f7f7f",
@@ -217,6 +194,10 @@ def atm_z(atm, idx):
     # Next gravity
     atm.grav_z[idx+1] = atm.grav_s * ((atm.planet_radius)**2) / ((atm.planet_radius+atm.z[idx+1])**2)
 
+    # Calculate scale height in km
+    # H = 1e-3 * phys.R_gas * atm.tmp[idx] / (atm.mu[idx] * atm.grav_z[idx])
+    # print(H)
+
     # print(idx, T_mean_down, dz, atm.z[idx], atm.z[idx+1], atm.grav_z[idx], atm.grav_z[idx+1])
 
     return atm
@@ -225,27 +206,30 @@ def atm_z(atm, idx):
 ## Assuming the ideal gas law and a constant latent heat of vaporization. 
 ## Select the molecule of interest with the switch argument (a string).
 def p_sat(switch,T): 
-    
+
     # Define volatile
-    if switch == 'H2O':
-        e = phys.satvps_function(phys.water)
-    if switch == 'CH4':
-        e = phys.satvps_function(phys.methane)
-    if switch == 'CO2':
-        e = phys.satvps_function(phys.co2)
-    if switch == 'CO':
-        e = phys.satvps_function(phys.co)
-    if switch == 'N2':
-        e = phys.satvps_function(phys.n2)
-    if switch == 'O2':
-        e = phys.satvps_function(phys.o2)
-    if switch == 'H2':
-        e = phys.satvps_function(phys.h2)
-    if switch == 'He':
-        e = phys.satvps_function(phys.he)
-    if switch == 'NH3':
-        e = phys.satvps_function(phys.nh3)
-    
+    match switch:
+        case 'H2O':
+            e = phys.satvps_function(phys.water)
+        case 'CH4':
+            e = phys.satvps_function(phys.methane)
+        case 'CO2':
+            e = phys.satvps_function(phys.co2)
+        case 'CO':
+            e = phys.satvps_function(phys.co)
+        case 'N2':
+            e = phys.satvps_function(phys.n2)
+        case 'O2':
+            e = phys.satvps_function(phys.o2)
+        case 'H2':
+            e = phys.satvps_function(phys.h2)
+        case 'He':
+            e = phys.satvps_function(phys.he)
+        case 'NH3':
+            e = phys.satvps_function(phys.nh3)   
+        case _:
+            raise Exception("Invalid volatile '%s' in p_sat()" % switch)
+        
     # Return saturation vapor pressure
     return float(f'{e(T):.2f}')
 '''
@@ -372,68 +356,69 @@ def Tdew(switch, p):
 ## Select the molecule of interest with the switch argument (a string).
 def L_heat(switch, T):
 
-    if switch == 'H2O':
-        L_sublimation   = phys.H2O.L_sublimation
-        L_vaporization  = phys.H2O.L_vaporization
-        MolecularWeight = phys.H2O.MolecularWeight
-        T_triple        = phys.H2O.TriplePointT
-        T_crit          = phys.H2O.CriticalPointT
-    
-    if switch == 'CH4':
-        L_sublimation   = phys.CH4.L_sublimation
-        L_vaporization  = phys.CH4.L_vaporization
-        MolecularWeight = phys.CH4.MolecularWeight
-        T_triple        = phys.CH4.TriplePointT
-        T_crit          = phys.CH4.CriticalPointT
+    match switch:
+        case 'H2O':
+            L_sublimation   = phys.H2O.L_sublimation
+            L_vaporization  = phys.H2O.L_vaporization
+            MolecularWeight = phys.H2O.MolecularWeight
+            T_triple        = phys.H2O.TriplePointT
+            T_crit          = phys.H2O.CriticalPointT
         
-    if switch == 'CO2':
-        L_sublimation   = phys.CO2.L_sublimation
-        L_vaporization  = phys.CO2.L_vaporization
-        MolecularWeight = phys.CO2.MolecularWeight
-        T_triple        = phys.CO2.TriplePointT
-        T_crit          = phys.CO2.CriticalPointT
-        
-    if switch == 'CO':
-        L_sublimation   = phys.CO.L_sublimation
-        L_vaporization  = phys.CO.L_vaporization
-        MolecularWeight = phys.CO.MolecularWeight
-        T_triple        = phys.CO.TriplePointT
-        T_crit          = phys.CO.CriticalPointT
+        case 'CH4':
+            L_sublimation   = phys.CH4.L_sublimation
+            L_vaporization  = phys.CH4.L_vaporization
+            MolecularWeight = phys.CH4.MolecularWeight
+            T_triple        = phys.CH4.TriplePointT
+            T_crit          = phys.CH4.CriticalPointT
             
-    if switch == 'N2':
-        L_sublimation   = phys.N2.L_sublimation
-        L_vaporization  = phys.N2.L_vaporization
-        MolecularWeight = phys.N2.MolecularWeight
-        T_triple        = phys.N2.TriplePointT
-        T_crit          = phys.N2.CriticalPointT
+        case 'CO2':
+            L_sublimation   = phys.CO2.L_sublimation
+            L_vaporization  = phys.CO2.L_vaporization
+            MolecularWeight = phys.CO2.MolecularWeight
+            T_triple        = phys.CO2.TriplePointT
+            T_crit          = phys.CO2.CriticalPointT
+            
+        case 'CO':
+            L_sublimation   = phys.CO.L_sublimation
+            L_vaporization  = phys.CO.L_vaporization
+            MolecularWeight = phys.CO.MolecularWeight
+            T_triple        = phys.CO.TriplePointT
+            T_crit          = phys.CO.CriticalPointT
+                
+        case 'N2':
+            L_sublimation   = phys.N2.L_sublimation
+            L_vaporization  = phys.N2.L_vaporization
+            MolecularWeight = phys.N2.MolecularWeight
+            T_triple        = phys.N2.TriplePointT
+            T_crit          = phys.N2.CriticalPointT
+            
+        case 'O2':
+            L_sublimation   = phys.O2.L_sublimation
+            L_vaporization  = phys.O2.L_vaporization
+            MolecularWeight = phys.O2.MolecularWeight
+            T_triple        = phys.O2.TriplePointT
+            T_crit          = phys.O2.CriticalPointT
         
-    if switch == 'O2':
-        L_sublimation   = phys.O2.L_sublimation
-        L_vaporization  = phys.O2.L_vaporization
-        MolecularWeight = phys.O2.MolecularWeight
-        T_triple        = phys.O2.TriplePointT
-        T_crit          = phys.O2.CriticalPointT
-    
-    if switch == 'H2':
-        L_sublimation   = phys.H2.L_vaporization # No H2 sublimation
-        L_vaporization  = phys.H2.L_vaporization
-        MolecularWeight = phys.H2.MolecularWeight
-        T_triple        = phys.H2.TriplePointT
-        T_crit          = phys.H2.CriticalPointT
-        
-    if switch == 'He':
-        L_sublimation   = phys.He.L_vaporization  # No He sublimation
-        L_vaporization  = phys.He.L_vaporization
-        MolecularWeight = phys.He.MolecularWeight
-        T_triple        = phys.He.TriplePointT
-        T_crit          = phys.He.CriticalPointT
-        
-    if switch == 'NH3':
-        L_sublimation   = phys.NH3.L_sublimation
-        L_vaporization  = phys.NH3.L_vaporization
-        MolecularWeight = phys.NH3.MolecularWeight
-        T_triple        = phys.NH3.TriplePointT
-        T_crit          = phys.NH3.CriticalPointT
+        case 'H2':
+            L_sublimation   = phys.H2.L_vaporization # No H2 sublimation
+            L_vaporization  = phys.H2.L_vaporization
+            MolecularWeight = phys.H2.MolecularWeight
+            T_triple        = phys.H2.TriplePointT
+            T_crit          = phys.H2.CriticalPointT
+            
+        case 'He':
+            L_sublimation   = phys.He.L_vaporization  # No He sublimation
+            L_vaporization  = phys.He.L_vaporization
+            MolecularWeight = phys.He.MolecularWeight
+            T_triple        = phys.He.TriplePointT
+            T_crit          = phys.He.CriticalPointT
+            
+        case 'NH3':
+            L_sublimation   = phys.NH3.L_sublimation
+            L_vaporization  = phys.NH3.L_vaporization
+            MolecularWeight = phys.NH3.MolecularWeight
+            T_triple        = phys.NH3.TriplePointT
+            T_crit          = phys.NH3.CriticalPointT
 
     # Gas-solid transition
     if T <= T_triple:
@@ -908,7 +893,7 @@ def general_adiabat( atm ):
     if new_psurf != atm.ps:
         for vol in atm.vol_list.keys():
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
-        atm = atmos(Tsurf, new_psurf, atm.vol_list, trppT=atm.trppT)
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT)
         atm.alpha_cloud = alpha
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts):
@@ -1029,7 +1014,7 @@ def interpolate_atm(atm):
     return atm
 
 # Plotting
-def plot_adiabats(atm):
+def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
 
     # sns.set_style("ticks")
     # sns.despine()
@@ -1118,10 +1103,10 @@ def plot_adiabats(atm):
     ax1.text(0.02, 0.015, 'A', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax1.transAxes)
     ax2.text(0.02, 0.015, 'B', color="k", rotation=0, ha="left", va="bottom", fontsize=fs_l+3, transform=ax2.transAxes)
     #fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
-    fig.suptitle(r'T_$\rm{surf}$=%.0f K'%atm.ts)
+    fig.suptitle('$T_{surf}$=%.1f K, $T_{bot}$=%.1f K'% (atm.ts,atm.tmp[-1]))
     #plt.show()
 
-    plt.savefig('../output/general_adiabat.pdf', bbox_inches='tight')
+    plt.savefig(filename, bbox_inches='tight')
     #plt.close(fig)  
 
     return
@@ -1146,6 +1131,10 @@ if __name__ == "__main__":
 
     # Set fraction of condensate retained in column (0 = full rainout)
     alpha_cloud             = 0.0
+
+    pl_radius     = 6.371e6             # m, planet radius
+    pl_mass       = 5.972e24            # kg, planet mass
+    P_top         = 1.0                 # Pa
     
     # Volatile molar concentrations in the dictionary below are defined as fractions that must sum to one
     # The vanilla setting defines a water-saturated atmosphere with a 3 bar N2 background
@@ -1161,7 +1150,7 @@ if __name__ == "__main__":
                   "NH3" : pNH3 / P_surf,
                 }
     # Create atmosphere object
-    atm                     = atmos(T_surf, P_surf, vol_list)
+    atm                     = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_list)
 
     # Set fraction of condensate retained in column (0 = full rainout)
     atm.alpha_cloud         = alpha_cloud
@@ -1170,5 +1159,5 @@ if __name__ == "__main__":
     atm                     = general_adiabat(atm)
 
     # Plot adiabat
-    plot_adiabats(atm)
+    plot_adiabats(atm, filename="../output/general_adiabat.pdf")
     

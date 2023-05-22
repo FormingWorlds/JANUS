@@ -20,10 +20,23 @@ import utils.RayleighSpectrum as RayleighSpectrum
 from utils.atmosphere_column import atmos
 
 def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
+    """Runs SOCRATES to calculate fluxes and heating rates
 
-    # Enable or disable calculating contribution function
-    # ENABLE RIGHT ENVIRONMENT IN TERMINAL FIRST
-    # calc_cf = False
+    Parameters
+    ----------
+        atm : atmos
+            Atmosphere object from atmosphere_column.py
+        dirs : dict
+            Named directories
+        recalc : bool
+            Is this function call a 'recalculation' case accounting for a tropopause?
+        calc_cf : bool
+            Calculate contribution function?
+        rscatter : bool
+            Include Rayleigh scattering?
+            
+    """
+
     molar_mass      = {
               "H2O" : 0.01801528,           # kg mol−1
               "CO2" : 0.04401,              # kg mol−1
@@ -97,52 +110,29 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     latitude        = 0
     basis_function  = 1
 
+    basename = 'profile'
+
     # Write values to netcdf: SOCRATES Userguide p. 45
     blockPrint()
-    nctools.ncout_surf('profile.surf', longitude, latitude, basis_function, surface_albedo)
-    nctools.ncout2d('profile.tstar', 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
-    nctools.ncout2d('profile.pstar', 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
-    nctools.ncout2d('profile.szen', 0, 0, zenith_angle, 'szen', longname="Solar zenith angle", units='Degrees')
-    nctools.ncout2d('profile.stoa', 0, 0, atm.toa_heating, 'stoa', longname="Solar Irradiance at TOA", units='WM-2')
+    nctools.ncout_surf(basename+'.surf', longitude, latitude, basis_function, surface_albedo)
+    nctools.ncout2d(   basename+'.tstar', 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
+    nctools.ncout2d(   basename+'.pstar', 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
+    nctools.ncout2d(   basename+'.szen', 0, 0, zenith_angle, 'szen', longname="Solar zenith angle", units='Degrees')
+    nctools.ncout2d(   basename+'.stoa', 0, 0, atm.toa_heating, 'stoa', longname="Solar Irradiance at TOA", units='WM-2')
     # T, P + volatiles
-    nctools.ncout3d('profile.t', 0, 0,   atm.p,  atm.tmp, 't', longname="Temperature", units='K')
-    nctools.ncout3d('profile.tl', 0, 0,  atm.pl, atm.tmpl, 'tl', longname="Temperature", units='K')
-    nctools.ncout3d('profile.p', 0, 0,   atm.p,  atm.p, 'p', longname="Pressure", units='PA')
-    nctools.ncout3d('profile.q', 0, 0,   atm.p,  molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
-    if "CO2" in atm.vol_list.keys():
-        nctools.ncout3d('profile.co2', 0, 0, atm.p,  molar_mass['CO2'] / atm.mu * atm.x_gas["CO2"], 'co2', longname="CO2", units='kg/kg') 
-    if "O3" in atm.vol_list.keys():
-        nctools.ncout3d('profile.o3', 0, 0,  atm.p,  molar_mass['O3'] / atm.mu * atm.x_gas["O3"], 'o3', longname="O3", units='kg/kg') 
-    if "N2O" in atm.vol_list.keys():
-        nctools.ncout3d('profile.n2o', 0, 0,  atm.p,  molar_mass['N2O'] / atm.mu * atm.x_gas["N2O"], 'n2o', longname="N2O", units='kg/kg') 
-    if "CO" in atm.vol_list.keys():
-        nctools.ncout3d('profile.co', 0, 0,  atm.p,  molar_mass['CO'] / atm.mu * atm.x_gas["CO"], 'co', longname="CO", units='kg/kg') 
-    if "CH4" in atm.vol_list.keys():
-        nctools.ncout3d('profile.ch4', 0, 0, atm.p,  molar_mass['CH4'] / atm.mu * atm.x_gas["CH4"], 'ch4', longname="CH4", units='kg/kg') 
-    if "O2" in atm.vol_list.keys():
-        nctools.ncout3d('profile.o2', 0, 0,  atm.p,  molar_mass['O2'] / atm.mu * atm.x_gas["O2"], 'o2', longname="O2", units='kg/kg')
-    if "NO" in atm.vol_list.keys():
-        nctools.ncout3d('profile.no', 0, 0,  atm.p,  molar_mass['NO'] / atm.mu * atm.x_gas["NO"], 'no', longname="NO", units='kg/kg') 
-    if "SO2" in atm.vol_list.keys():
-        nctools.ncout3d('profile.so2', 0, 0,  atm.p,  molar_mass['SO2'] / atm.mu * atm.x_gas["SO2"], 'so2', longname="SO2", units='kg/kg') 
-    if "NO2" in atm.vol_list.keys():
-        nctools.ncout3d('profile.no2', 0, 0,  atm.p,  molar_mass['NO2'] / atm.mu * atm.x_gas["NO2"], 'no2', longname="NO2", units='kg/kg') 
-    if "NH3" in atm.vol_list.keys():
-        nctools.ncout3d('profile.nh3', 0, 0,  atm.p,  molar_mass['NH3'] / atm.mu * atm.x_gas["NH3"], 'nh3', longname="NH3", units='kg/kg') 
-    if "HNO3" in atm.vol_list.keys():
-        nctools.ncout3d('profile.hno3', 0, 0,  atm.p,  molar_mass['HNO3'] / atm.mu * atm.x_gas["HNO3"], 'hno3', longname="HNO3", units='kg/kg')
-    if "N2" in atm.vol_list.keys():
-        nctools.ncout3d('profile.n2', 0, 0,  atm.p,  molar_mass['N2'] / atm.mu * atm.x_gas["N2"], 'n2', longname="N2", units='kg/kg') 
-    if "H2" in atm.vol_list.keys():
-        nctools.ncout3d('profile.h2', 0, 0,  atm.p,  molar_mass['H2'] / atm.mu * atm.x_gas["H2"], 'h2', longname="H2", units='kg/kg')
-    if "He" in atm.vol_list.keys():
-        nctools.ncout3d('profile.he', 0, 0,  atm.p,  molar_mass['He'] / atm.mu * atm.x_gas["He"], 'he', longname="He", units='kg/kg')
-    if "OCS" in atm.vol_list.keys():
-        nctools.ncout3d('profile.ocs', 0, 0,  atm.p,  molar_mass['OCS'] / atm.mu * atm.x_gas["OCS"], 'ocs', longname="OCS", units='kg/kg')
-    
-    enablePrint()
+    nctools.ncout3d(basename+'.t', 0, 0,   atm.p,  atm.tmp, 't', longname="Temperature", units='K')
+    nctools.ncout3d(basename+'.tl', 0, 0,  atm.pl, atm.tmpl, 'tl', longname="Temperature", units='K')
+    nctools.ncout3d(basename+'.p', 0, 0,   atm.p,  atm.p, 'p', longname="Pressure", units='PA')
+    nctools.ncout3d(basename+'.q', 0, 0,   atm.p,  molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
 
-    basename = 'profile'
+    allowed_vols = {"CO2", "O3", "N2O", "CO", "CH4", "O2", "NO", "SO2", "NO2", "NH3", "HNO3", "N2", "H2", "He", "OCS"}
+    for vol in atm.vol_list.keys():
+        if vol in allowed_vols:
+            vol_lower = str(vol).lower()
+            nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  molar_mass[vol] / atm.mu * atm.x_gas[vol], vol_lower, longname=vol, units='kg/kg') 
+
+    enablePrint()
+   
     s = " "
 
     if rscatter == True:
@@ -150,28 +140,29 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     else:
         scatter_flag = ""
 
-    # Anchor spectral files and run SOCRATES
-    seq4 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag)
+    # Call sequences for: anchor spectral files and run SOCRATES
+    seq4 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag)
     seq5 = ("fmove", basename,"currentsw")
-    seq6 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag)
+    
+    seq6 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag)
     seq7 = ("fmove", basename,"currentlw")
 
     if calc_cf == True:
         seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", scatter_flag)
         seq9 = ("fmove", basename, "currentlw_cff")
 
-    comline1 = s.join(seq4)
-    comline2 = s.join(seq5)
-    comline3 = s.join(seq6)
-    comline4 = s.join(seq7)
     if calc_cf == True:
         comline5 = s.join(seq8)
         comline6 = s.join(seq9)
 
-    os.system(comline1)
-    os.system(comline2)
-    os.system(comline3)
-    os.system(comline4)
+    # SW calculation with SOCRATES
+    subprocess.run(list(seq4),check=True,stderr=subprocess.DEVNULL)
+    subprocess.run(list(seq5),check=True,stderr=subprocess.DEVNULL)
+
+    # LW calculation with SOCRATES
+    subprocess.run(list(seq6),check=True,stderr=subprocess.DEVNULL)
+    subprocess.run(list(seq7),check=True,stderr=subprocess.DEVNULL)
+
     if calc_cf == True:
         os.system(comline5)
         os.system(comline6)

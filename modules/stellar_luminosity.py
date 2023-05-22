@@ -6,6 +6,7 @@ Created on Mon Jan 23 11:51:59 2023
 @authors: 
 Tim Lichtenberg (TL)    
 Ryan Boukrouche (RB)
+Harrison Nicholls (HN)
 """
 
 import pandas as pd
@@ -24,6 +25,9 @@ def natural_sort(l):
     return sorted(l, key = alphanum_key)
 
 def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo, Sfrac):
+
+    L_sun           = 3.828e+26        # W, IAU definition
+    AU              = 1.495978707e+11  # m
 
     if star_mass >= 0.1 and star_mass <= 1.4:
             
@@ -87,20 +91,16 @@ def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo, Sfrac):
             print("z_lum = ", z_lum)
             #print("interpolated_luminosity =", interpolated_luminosity)
         
-        # Stellar constant, W m-2
-        S_0    = interpolated_luminosity * 3.828e+26 / ( 4. * np.pi * (mean_distance*1.495978707e+11)**2. )
-        
-        # Mean flux averaged over surface area, W m-2
-        toa_heating             = ( 1. - albedo ) * S_0 / 4.
+        # Stellar luminosity, W m-2
+        L_star  = interpolated_luminosity * L_sun
 
     else: # Works only for TRAPPIST-1 right now!
+        L_star          = 0.000553*L_sun     # Trappist-1 luminosity
 
-        L_sun           = 3.828e+26        # W, IAU definition
-        AU              = 1.495978707e+11  # m
-        L_star          = 0.000553*L_sun                                            # Trappist-1 luminosity
-        toa_heating     = ( 1. - 0. ) * (L_star/(4.*np.pi*(mean_distance*AU)**2.))      # Tidally-locked, zero albedo
 
-    # Scale instellation by fixed fraction
-    S_0    = S_0 * Sfrac
+    F               = L_star /  ( 4. * np.pi * (mean_distance*AU)**2. )     # Flux at orbital radius (W/m^2)
+    toa_heating     = ( 1. - albedo ) * F     # Heating at TOA (W/m^2)
+    S_0             = F * Sfrac # Scale instellation by fixed fraction
     
     return S_0, toa_heating
+
