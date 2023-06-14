@@ -882,6 +882,7 @@ def general_adiabat( atm ):
     dry_list = []
     Tsurf = atm.ts
     alpha = atm.alpha_cloud
+    toa_heating = atm.toa_heating
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps > p_sat(vol, atm.ts):
             new_psurf += p_sat(vol,atm.ts)
@@ -895,6 +896,7 @@ def general_adiabat( atm ):
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
         atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT)
         atm.alpha_cloud = alpha
+        atm.toa_heating = toa_heating
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts):
             wet_list.append(vol)
@@ -1014,6 +1016,33 @@ def interpolate_atm(atm):
     return atm
 
 # Plotting
+def plot_fluxes(atm,filename='output/fluxes.pdf'):
+
+    fig,ax = plt.subplots()
+
+    ax.axvline(0,color='black',lw=0.8)
+
+    ax.plot(atm.flux_up_total,atm.pl,color='red',label='UP',lw=1)
+    ax.plot(atm.SW_flux_up   ,atm.pl,color='red',label='UP SW',linestyle='dotted',lw=2)
+    ax.plot(atm.LW_flux_up   ,atm.pl,color='red',label='UP LW',linestyle='dashed',lw=1)
+
+    ax.plot(-1.0*atm.flux_down_total,atm.pl,color='green',label='DN',lw=2)
+    ax.plot(-1.0*atm.SW_flux_down   ,atm.pl,color='green',label='DN SW',linestyle='dotted',lw=3)
+    ax.plot(-1.0*atm.LW_flux_down   ,atm.pl,color='green',label='DN LW',linestyle='dashed',lw=2)
+
+    ax.plot(atm.net_flux ,atm.pl,color='black',label='NET')
+
+    ax.set_xlabel("Upward-directed flux [W m-2]")
+    ax.set_ylabel("Pressure [Pa]")
+    ax.set_yscale("log")
+    ax.set_ylim([atm.pl[-1],atm.pl[0]])
+
+    ax.legend(loc='upper left')
+
+    fig.savefig(filename)
+
+
+
 def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
 
     # sns.set_style("ticks")

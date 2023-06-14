@@ -37,8 +37,11 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
 
     atm_moist = copy.deepcopy(atm)
 
+
     # Build general adiabat structure
     atm_moist = ga.general_adiabat(atm_moist)
+
+
 
     # Run SOCRATES
     atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)

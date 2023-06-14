@@ -18,6 +18,7 @@ import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.radcoupler import RadConvEqm
+from modules.plot_flux_balance import plot_flux_balance
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import utils.SocRadModel as SocRadModel
@@ -47,11 +48,11 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 300.0                # K
-    P_top         = 10.0                  # Pa
+    T_surf        = 298.0                # K
+    P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    # P_surf       = 50 * 1e5
+    # P_surf       = 100 * 1e5
     # vol_mixing = { 
     #                 "CO2"  : 1.0 - 5e-2,
     #                 "H2O"  : 5e-2 - 1e-6,
@@ -77,16 +78,16 @@ if __name__ == "__main__":
     # Define volatiles by partial pressures
     P_surf = 0.0
     vol_mixing = {}
-    vol_partial    = { 
-                          "H2O" :  0.004e5,
-                          "NH3" :  0.,
-                          "CO2" :  0.035e5,
-                          "CH4" :  0.,
-                          "CO"  :  0.,
-                          "O2"  :  0.20e5,
-                          "N2"  :  0.78e5,
-                          "H2"  :  0.
-                        }
+    vol_partial = {
+        "H2O" : 0.003583e5,
+        "NH3" : 0.,
+        "CO2" : 0.035e5,
+        "CH4" : 0.,
+        "CO" : 0.,
+        "O2" : 0.20e5,
+        "N2" : 0.78e5,
+        "H2" : 0.
+        }
 
     # Stellar heating on/off
     stellar_heating = True
@@ -95,7 +96,7 @@ if __name__ == "__main__":
     custom_ISR = False
 
     # Rayleigh scattering on/off
-    rscatter = True
+    rscatter = False
 
     # Compute contribution function
     calc_cf = False
@@ -105,7 +106,7 @@ if __name__ == "__main__":
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 70.0     # Fixed tropopause value if not calculated dynamically
+    trppT = 30.0     # Fixed tropopause value if not calculated dynamically
     
     # Surface temperature time-stepping
     surf_dt = False
@@ -131,6 +132,7 @@ if __name__ == "__main__":
         atm.toa_heating = 0.
     else:
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
+
         
     # Compute heat flux
     dirs = {"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}
@@ -140,10 +142,14 @@ if __name__ == "__main__":
     if (cp_dry):
         ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
         atm_dry.write_PT(filename="output/dry_pt.tsv")
+        ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
+
 
     ga.plot_adiabats(atm_moist,filename="output/moist_ga.pdf")
     atm_moist.write_PT(filename="output/moist_pt.tsv")
+    ga.plot_fluxes(atm_moist,filename="output/moist_fluxes.pdf")
 
+    plot_flux_balance(atm_dry,atm_moist,cp_dry,time,dirs)
 
     end = t.time()
     print("Runtime:", round(end - start,2), "s")
