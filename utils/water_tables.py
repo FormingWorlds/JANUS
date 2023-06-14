@@ -94,8 +94,6 @@ def lookup(table, T_val):
     data = tables[table]
     i =np.floor((T_val - T[0])/(T[-1] - T[0]) * (N-1) ).astype(int)
 
-    print('hello', np.amax(i), np.any(i>N-1))
-    
     if np.any(i<0) or np.any(i>N-2):
         raise Exception('Error: T_val given that is out of range')
         
