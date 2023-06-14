@@ -113,17 +113,20 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     basename = 'profile'
 
     # Write values to netcdf: SOCRATES Userguide p. 45
-    blockPrint()
+    # blockPrint()
     nctools.ncout_surf(basename+'.surf', longitude, latitude, basis_function, surface_albedo)
     nctools.ncout2d(   basename+'.tstar', 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
     nctools.ncout2d(   basename+'.pstar', 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
     nctools.ncout2d(   basename+'.szen', 0, 0, zenith_angle, 'szen', longname="Solar zenith angle", units='Degrees')
     nctools.ncout2d(   basename+'.stoa', 0, 0, atm.toa_heating, 'stoa', longname="Solar Irradiance at TOA", units='WM-2')
+
+
     # T, P + volatiles
     nctools.ncout3d(basename+'.t', 0, 0,   atm.p,  atm.tmp, 't', longname="Temperature", units='K')
     nctools.ncout3d(basename+'.tl', 0, 0,  atm.pl, atm.tmpl, 'tl', longname="Temperature", units='K')
     nctools.ncout3d(basename+'.p', 0, 0,   atm.p,  atm.p, 'p', longname="Pressure", units='PA')
-    nctools.ncout3d(basename+'.q', 0, 0,   atm.p,  molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
+    h2o_mmr = molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"]
+    nctools.ncout3d(basename+'.q', 0, 0,   atm.p,  h2o_mmr, 'q', longname="q", units='kg/kg') 
 
     allowed_vols = {"CO2", "O3", "N2O", "CO", "CH4", "O2", "NO", "SO2", "NO2", "NH3", "HNO3", "N2", "H2", "He", "OCS"}
     for vol in atm.vol_list.keys():
@@ -131,7 +134,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
             vol_lower = str(vol).lower()
             nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  molar_mass[vol] / atm.mu * atm.x_gas[vol], vol_lower, longname=vol, units='kg/kg') 
 
-    enablePrint()
+    # enablePrint()
    
     s = " "
 
@@ -169,16 +172,17 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
 
 
     # Open netCDF files produced by SOCRATES
-    ncfile1  = net.Dataset('currentsw.vflx')
-    ncfile2  = net.Dataset('currentsw.sflx')
-    ncfile3  = net.Dataset('currentsw.dflx')
-    ncfile4  = net.Dataset('currentsw.uflx')
-    ncfile5  = net.Dataset('currentsw.nflx')
-    ncfile6  = net.Dataset('currentsw.hrts')
-    ncfile7  = net.Dataset('currentlw.dflx')
-    ncfile8  = net.Dataset('currentlw.nflx')
-    ncfile9  = net.Dataset('currentlw.uflx')
-    ncfile10 = net.Dataset('currentlw.hrts')
+    ncfile1  = net.Dataset('currentsw.vflx')  # direct + diffuse
+    ncfile2  = net.Dataset('currentsw.sflx')  # direct
+    ncfile3  = net.Dataset('currentsw.dflx')  # diffuse 
+    ncfile4  = net.Dataset('currentsw.uflx')  # upward
+    ncfile5  = net.Dataset('currentsw.nflx')  # net
+    ncfile6  = net.Dataset('currentsw.hrts')  # heating rate
+
+    ncfile7  = net.Dataset('currentlw.dflx')  # diffuse
+    ncfile8  = net.Dataset('currentlw.nflx')  # net
+    ncfile9  = net.Dataset('currentlw.uflx')  # upward
+    ncfile10 = net.Dataset('currentlw.hrts')  # heating rate
     if calc_cf == True:
         ncfile11 = net.Dataset('currentlw_cff.cff')
         ncfile12 = net.Dataset('currentlw.cff')
@@ -196,7 +200,6 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     if calc_cf == True:
         cff    = ncfile11.variables['cff'] # Contribution function (flux, sum)
         cff_i  = ncfile12.variables['cff'] # Contribution function (channel, plev, lat, lon)
-
 
     ##### Fluxes
 
