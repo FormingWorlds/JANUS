@@ -9,15 +9,14 @@ import netCDF4 as net
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
-import math
 import subprocess
-from subprocess import call
-from netCDF4 import Dataset
+import f90nml
 
 import utils.nctools as nctools
 import utils.RayleighSpectrum as RayleighSpectrum
 from utils.atmosphere_column import atmos
+import utils.phys as phys
+
 
 def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     """Runs SOCRATES to calculate fluxes and heating rates
@@ -113,7 +112,6 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     basename = 'profile'
 
     # Write values to netcdf: SOCRATES Userguide p. 45
-    # blockPrint()
     nctools.ncout_surf(basename+'.surf', longitude, latitude, basis_function, surface_albedo)
     nctools.ncout2d(   basename+'.tstar', 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
     nctools.ncout2d(   basename+'.pstar', 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
@@ -125,8 +123,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     nctools.ncout3d(basename+'.t', 0, 0,   atm.p,  atm.tmp, 't', longname="Temperature", units='K')
     nctools.ncout3d(basename+'.tl', 0, 0,  atm.pl, atm.tmpl, 'tl', longname="Temperature", units='K')
     nctools.ncout3d(basename+'.p', 0, 0,   atm.p,  atm.p, 'p', longname="Pressure", units='PA')
-    h2o_mmr = molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"]
-    nctools.ncout3d(basename+'.q', 0, 0,   atm.p,  h2o_mmr, 'q', longname="q", units='kg/kg') 
+    nctools.ncout3d(basename+'.q', 0, 0,   atm.p,  molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
 
     allowed_vols = {"CO2", "O3", "N2O", "CO", "CH4", "O2", "NO", "SO2", "NO2", "NH3", "HNO3", "N2", "H2", "He", "OCS"}
     for vol in atm.vol_list.keys():
@@ -134,20 +131,37 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
             vol_lower = str(vol).lower()
             nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  molar_mass[vol] / atm.mu * atm.x_gas[vol], vol_lower, longname=vol, units='kg/kg') 
 
-    # enablePrint()
-   
-    s = " "
+    # Write namelist file
+    mmw = 0.0
+    for vol in atm.vol_list.keys():
+        mmw += ( np.mean(atm.x_gas[vol]) *  molar_mass[vol])   # There's probably a more accurate way to handle this.
 
+    rgas = phys.R_gas/mmw
+    cp_avg = np.mean(atm.cp) / mmw
+
+    nml = {
+        'socrates_constants': {
+            'planet_radius':    atm.planet_radius,      # metres
+            'mol_weight_air':   mmw,                    # kg mol-1
+            'grav_acc':         atm.grav_s,             # m s-2
+            'r_gas_dry':        rgas,                   # J kg-1 K
+            'cp_air_dry':       cp_avg                  # J kg-1 K-1
+        }
+    }
+    f90nml.write(nml,basename+".nml")
+
+
+    # Rayleigh scattering?
     if rscatter == True:
         scatter_flag = " -r"
     else:
         scatter_flag = ""
 
     # Call sequences for: anchor spectral files and run SOCRATES
-    seq4 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag)
+    seq4 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-N", basename+".nml", "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag)
     seq5 = ("fmove", basename,"currentsw")
     
-    seq6 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag)
+    seq6 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-N", basename+".nml", "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag)
     seq7 = ("fmove", basename,"currentlw")
 
     if calc_cf == True:
