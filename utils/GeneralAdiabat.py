@@ -897,6 +897,7 @@ def general_adiabat( atm ):
         atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT)
         atm.alpha_cloud = alpha
         atm.toa_heating = toa_heating
+        
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts):
             wet_list.append(vol)
