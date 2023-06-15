@@ -168,10 +168,6 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
         seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", scatter_flag)
         seq9 = ("fmove", basename, "currentlw_cff")
 
-    if calc_cf == True:
-        comline5 = s.join(seq8)
-        comline6 = s.join(seq9)
-
     # SW calculation with SOCRATES
     subprocess.run(list(seq4),check=True,stderr=subprocess.DEVNULL)
     subprocess.run(list(seq5),check=True,stderr=subprocess.DEVNULL)
@@ -181,8 +177,8 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     subprocess.run(list(seq7),check=True,stderr=subprocess.DEVNULL)
 
     if calc_cf == True:
-        os.system(comline5)
-        os.system(comline6)
+        subprocess.run(list(seq8),check=True,stderr=subprocess.DEVNULL)
+        subprocess.run(list(seq9),check=True,stderr=subprocess.DEVNULL)
 
 
     # Open netCDF files produced by SOCRATES
