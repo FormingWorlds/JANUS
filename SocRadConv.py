@@ -12,8 +12,11 @@ Harrison Nicholls (HN)
 AEOLUS radiative-convective model, using SOCRATES for radiative-transfer.
 """
 
+import matplotlib as mpl
+mpl.use('Agg')
+
 import time as t
-import os
+import os, shutil
 import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
@@ -21,8 +24,8 @@ from modules.radcoupler import RadConvEqm
 from modules.plot_flux_balance import plot_flux_balance
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import utils.SocRadModel as SocRadModel
 from utils.atmosphere_column import atmos
+import utils.StellarSpectrum as StellarSpectrum
 
 ####################################
 ##### Stand-alone initial conditions
@@ -96,7 +99,7 @@ if __name__ == "__main__":
     custom_ISR = False
 
     # Rayleigh scattering on/off
-    rscatter = False
+    rscatter = True
 
     # Compute contribution function
     calc_cf = False
@@ -121,6 +124,17 @@ if __name__ == "__main__":
 
     ##### Function calls
 
+    # Set up dirs
+    dirs = {
+            "rad_conv": os.getenv('AEOLUS_DIR')+"/",
+            "output": os.getenv('AEOLUS_DIR')+"/output/"
+            }
+    
+    # Tidy directory
+    if os.path.exists(dirs["output"]):
+        shutil.rmtree(dirs["output"])
+    os.mkdir(dirs["output"])
+
     # Create atmosphere object
     atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT)
 
@@ -133,9 +147,16 @@ if __name__ == "__main__":
     else:
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
-        
-    # Compute heat flux
-    dirs = {"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}
+    # Move/prepare spectral file
+    print("Inserting stellar spectrum")
+    StellarSpectrum.InsertStellarSpectrum(
+        dirs["rad_conv"]+"/spectral_files/sp_b318_HITRAN_a16/sp_b318_HITRAN_a16_no_spectrum",
+        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["output"]+"runtime_spectral_file"
+    )
+
+    # Do rad trans
+    print("Calling RadConvEqm()")
     atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
     
     # Plot abundances w/ TP structure
