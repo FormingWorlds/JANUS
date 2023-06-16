@@ -41,7 +41,7 @@ def PrepareStellarSpectrum(wl, fl, star_file:str):
 
     # Store header
     content = ""
-    content += "Star spectrum at 1 AU. Created using write_stellar_spectrum(). \n"
+    content += "Star spectrum at 1 AU. Created using PrepareStellarSpectrum() \n"
     content += "      WAVELENGTH        IRRADIANCE\n"
     content += "          (m)               (W/m3)\n"
     content += "*BEGIN_DATA\n"
