@@ -29,3 +29,5 @@ spectral_files/sp_b318_HITRAN_a16_2203/temp
 spectral_files/sp_b318_HITRAN_a16_2203
 socrates_2002.tar.xz
 set_rad_env
+
+output/

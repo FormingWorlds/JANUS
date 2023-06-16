@@ -1,20 +1,19 @@
 #!/bin/bash
 # Usage: bash insert_star_spectrum.sh
 
-# Define path and stellar spectrum to use
-STAR_PATH=/Users/timlichtenberg/git/proteus/atm_rad_conv/spectral_files/stellar_spectra/
+# Set stellar spectrum to use
+# This is the main parameter to change 
+STAR_SPEC="$AEOLUS_DIR/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt"
 
-# File name ending
-STAR_FILE=.txt
-
-# Options: F2V_hd128167 M45_ADLeo Sun_t0_0Ga_claire_12 (t: 0.0 – 4.55)
-STAR_NAME=Sun_t4_4Ga_claire_12
+# Set spectral file to use as basis
+ORIG_FILE="$AEOLUS_DIR/spectral_files/sp_b318_HITRAN_a16/sp_b318_HITRAN_a16_no_spectrum"
 
 # New spectral file name
-NEW_FILE=sp_b318_HITRAN_a16_${STAR_NAME}
+NEW_FILE="$AEOLUS_DIR/output/runtime_spectral_file"
 
-cp sp_b318_HITRAN_a16_no_spectrum ${NEW_FILE}
-cp sp_b318_HITRAN_a16_no_spectrum_k ${NEW_FILE}_k
+# Insert stellar spectrum
+cp ${ORIG_FILE} ${NEW_FILE}
+cp ${ORIG_FILE}_k ${NEW_FILE}_k
 
 prep_spec <<EOF
 ${NEW_FILE}
@@ -26,7 +25,7 @@ T
 100
 2
 n
-${STAR_PATH}${STAR_NAME}${STAR_FILE}
+${STAR_SPEC}
 y
 -1
 EOF
