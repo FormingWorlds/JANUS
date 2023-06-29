@@ -14,11 +14,8 @@ import math
 #import json
 
 from modules.spectral_planck_surface import surf_Planck_nu
+import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 
-try:
-    import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-except:
-    import atm_rad_conv.GeneralAdiabat as ga
 
 def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
 
