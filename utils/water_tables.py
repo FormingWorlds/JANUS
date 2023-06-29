@@ -1,11 +1,17 @@
 import numpy as np
+from utils import phys
 
 # Triple point of water
 T_tp = 273.16
+p_tp = 6.11657070e+02
+
 # Critical temperature of water
 T_c = 647.096
 # Number of points in table
 N = 50
+# Define quantities below the triple point
+L_sub = phys.H2O.L_sublimation
+R_v = phys.H2O.R
 
 # Temperature array on which data is defined
 T = np.array([273.16   , 280.79134694, 288.42269388, 296.05404082,
@@ -75,7 +81,13 @@ tables = {'T':T,
           'phase_grad':phase_grad
           }
 
-def lookup(table, T_val):
+
+postcrit_value = {'L_vap':0.0,
+                  'psat':1.e40,
+                  'phase_grad':0.0,
+                }
+
+def lookup(table, T_val, iceFlag='switch'):
     """
     HII 6/23
     --------------------------------------------------------------------
@@ -92,11 +104,12 @@ def lookup(table, T_val):
     table 'table'
     """
     data = tables[table]
+    # Get correct index
     i =np.floor((T_val - T[0])/(T[-1] - T[0]) * (N-1) ).astype(int)
 
-    if np.any(i<0) or np.any(i>N-2):
-        raise Exception('Error: T_val given that is out of range')
-        
+    # Don't fail when beyond the data range (note above critical point
+    # most of these quantities are ill-defined, fix this elsewhere)
+    i = np.where(i>N-2, N-2, i)
     return data[i] + (T_val - T[i])/(T[i+1] - T[i]) * (data[i+1] - data[i])
 
     
