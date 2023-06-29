@@ -9,17 +9,16 @@ import netCDF4 as net
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
-import math
 import subprocess
-from subprocess import call
-from netCDF4 import Dataset
+import f90nml
 
 import utils.nctools as nctools
 import utils.RayleighSpectrum as RayleighSpectrum
 from utils.atmosphere_column import atmos
+import utils.phys as phys
 
-def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
+
+def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,insert_star=True):
     """Runs SOCRATES to calculate fluxes and heating rates
 
     Parameters
@@ -37,6 +36,10 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
             
     """
 
+    # Ask socrates to print to STDOUT at runtime
+    socrates_print = False
+
+    # Molar masses of each species (note the units)
     molar_mass      = {
               "H2O" : 0.01801528,           # kg mol−1
               "CO2" : 0.04401,              # kg mol−1
@@ -56,37 +59,49 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
               "NH3" : 0.017031,             # kg mol−1 
             }
 
-    # Define stellar spectrum to use, options:
-    # Sun_t456Myr_kurucz_95 F2V_hd128167 M45_ADLeo Sun_t0_0Ga_claire_12 (t: 0.0 – 4.55)
-    star_name           = "Sun_t0_0Ga_claire_12"
+    
+    # Define path to origin spectral file
+    spectral_file = dirs["output"]+"runtime_spectral_file"
+
     
     # Define path to spectral file
-    spectral_base_name  = "sp_b318_HITRAN_a16"
-    spectral_name       = "sp_b318_HITRAN_a16"+"_"+star_name
-    spectral_dir        = dirs["rad_conv"]+"/spectral_files/"+spectral_base_name+"/"
-    spectral_file       = spectral_dir+spectral_name
+    # spectral_name       = "sp_b318_HITRAN_a16_Sun_t0_0Ga_claire_12"
+    # spectral_dir        = dirs["rad_conv"]+"/spectral_files/sp_b318_HITRAN_a16/"
+    # spectral_file       = spectral_dir+spectral_name
 
     # Rayleigh scattering for CO2
     if rscatter == True:
 
         # Generate new temp directory for scattering spectral file
-        scatter_dir = dirs["output"]+"/"+"scatter_spectral_file/"
-        if not os.path.isdir(scatter_dir):
-            print(">>> Generate scatter spectral file dir:", scatter_dir)
-            os.makedirs(scatter_dir)
+        # scatter_dir = dirs["output"]+"/scatter_spectral_file/"
+        # if not os.path.isdir(scatter_dir):
+        #     os.makedirs(scatter_dir)
+
+        scatter_dir = dirs["output"]
 
         # New file
-        spectral_file = scatter_dir+spectral_name
+        spectral_file_old = spectral_file
+        spectral_file = scatter_dir+"runtime_spectral_file_rscat"
 
         # Copy if not there yet
-        if not os.path.isfile(spectral_file):
-            print(">>> Copy non-scatter spectral file to:", scatter_dir)
-            for file in natural_sort(glob.glob(spectral_dir+"*")):
-                shutil.copy(file, scatter_dir+os.path.basename(file))
-                print(os.path.basename(file), end =" ")
+        # if not os.path.isfile(spectral_file):
+        #     for file in natural_sort(glob.glob(spectral_dir+"*")):
+        #         shutil.copy(file, scatter_dir+os.path.basename(file))
+        #         print(os.path.basename(file), end =" ")
+
+        shutil.copyfile(spectral_file_old,spectral_file)
+        shutil.copyfile(spectral_file_old+"_k",spectral_file+"_k")
 
         # Insert Rayleigh scattering into spectral file
-        RayleighSpectrum.rayleigh_coeff_adder(species_list = ['co2', 'h2o', 'n2'], mixing_ratio_list = [atm.x_gas["CO2"][-1], atm.x_gas["H2O"][-1], atm.x_gas["N2"][-1]], spectral_file_path=spectral_file,wavelength_dummy_file_path=scatter_dir+'wavelength_band_file.txt')
+        RayleighSpectrum.rayleigh_coeff_adder(species_list = ['co2', 'h2o', 'n2'], 
+                                              mixing_ratio_list = [atm.x_gas["CO2"][-1], atm.x_gas["H2O"][-1], atm.x_gas["N2"][-1]], 
+                                              spectral_file_path=spectral_file,
+                                              wavelength_dummy_file_path=dirs["output"]+'wavelength_band_file.txt'
+                                              )
+
+        scatter_flag = " -r"
+    else:
+        scatter_flag = ""
 
 
     # # Enable cf SOCRATES environment
@@ -113,12 +128,13 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     basename = 'profile'
 
     # Write values to netcdf: SOCRATES Userguide p. 45
-    blockPrint()
     nctools.ncout_surf(basename+'.surf', longitude, latitude, basis_function, surface_albedo)
     nctools.ncout2d(   basename+'.tstar', 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
     nctools.ncout2d(   basename+'.pstar', 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
     nctools.ncout2d(   basename+'.szen', 0, 0, zenith_angle, 'szen', longname="Solar zenith angle", units='Degrees')
     nctools.ncout2d(   basename+'.stoa', 0, 0, atm.toa_heating, 'stoa', longname="Solar Irradiance at TOA", units='WM-2')
+
+
     # T, P + volatiles
     nctools.ncout3d(basename+'.t', 0, 0,   atm.p,  atm.tmp, 't', longname="Temperature", units='K')
     nctools.ncout3d(basename+'.tl', 0, 0,  atm.pl, atm.tmpl, 'tl', longname="Temperature", units='K')
@@ -131,54 +147,69 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
             vol_lower = str(vol).lower()
             nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  molar_mass[vol] / atm.mu * atm.x_gas[vol], vol_lower, longname=vol, units='kg/kg') 
 
-    enablePrint()
-   
-    s = " "
+    # Write namelist file
+    mmw = 0.0
+    for vol in atm.vol_list.keys():
+        mmw += ( np.mean(atm.x_gas[vol]) *  molar_mass[vol])   # There's probably a more accurate way to handle this.
 
-    if rscatter == True:
-        scatter_flag = " -r"
+    rgas = phys.R_gas/mmw
+    cp_avg = np.mean(atm.cp) / mmw
+
+    nml = {
+        'socrates_constants': {
+            'planet_radius':    atm.planet_radius,      # metres
+            'mol_weight_air':   mmw,                    # kg mol-1
+            'grav_acc':         atm.grav_s,             # m s-2
+            'r_gas_dry':        rgas,                   # J kg-1 K
+            'cp_air_dry':       cp_avg                  # J kg-1 K-1
+        }
+    }
+    f90nml.write(nml,basename+".nml")
+
+    # SOCRATES print to stdout
+    if socrates_print == True:
+        verbose_flag = " -o"
+        errhandle = None
     else:
-        scatter_flag = ""
+        verbose_flag = ""
+        errhandle = subprocess.DEVNULL
 
     # Call sequences for: anchor spectral files and run SOCRATES
-    seq4 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag)
+    seq4 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-N", basename+".nml", "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", verbose_flag, scatter_flag)
     seq5 = ("fmove", basename,"currentsw")
     
-    seq6 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag)
+    seq6 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-N", basename+".nml", "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", verbose_flag, scatter_flag)
     seq7 = ("fmove", basename,"currentlw")
 
     if calc_cf == True:
-        seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", scatter_flag)
+        seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", verbose_flag, scatter_flag)
         seq9 = ("fmove", basename, "currentlw_cff")
 
-    if calc_cf == True:
-        comline5 = s.join(seq8)
-        comline6 = s.join(seq9)
-
     # SW calculation with SOCRATES
-    subprocess.run(list(seq4),check=True,stderr=subprocess.DEVNULL)
-    subprocess.run(list(seq5),check=True,stderr=subprocess.DEVNULL)
+    subprocess.run(list(seq4),check=True,stderr=errhandle)
+    subprocess.run(list(seq5),check=True,stderr=errhandle)
 
     # LW calculation with SOCRATES
-    subprocess.run(list(seq6),check=True,stderr=subprocess.DEVNULL)
-    subprocess.run(list(seq7),check=True,stderr=subprocess.DEVNULL)
+    subprocess.run(list(seq6),check=True,stderr=errhandle)
+    subprocess.run(list(seq7),check=True,stderr=errhandle)
 
     if calc_cf == True:
-        os.system(comline5)
-        os.system(comline6)
+        subprocess.run(list(seq8),check=True,stderr=errhandle)
+        subprocess.run(list(seq9),check=True,stderr=errhandle)
 
 
     # Open netCDF files produced by SOCRATES
-    ncfile1  = net.Dataset('currentsw.vflx')
-    ncfile2  = net.Dataset('currentsw.sflx')
-    ncfile3  = net.Dataset('currentsw.dflx')
-    ncfile4  = net.Dataset('currentsw.uflx')
-    ncfile5  = net.Dataset('currentsw.nflx')
-    ncfile6  = net.Dataset('currentsw.hrts')
-    ncfile7  = net.Dataset('currentlw.dflx')
-    ncfile8  = net.Dataset('currentlw.nflx')
-    ncfile9  = net.Dataset('currentlw.uflx')
-    ncfile10 = net.Dataset('currentlw.hrts')
+    ncfile1  = net.Dataset('currentsw.vflx')  # direct + diffuse
+    ncfile2  = net.Dataset('currentsw.sflx')  # direct
+    ncfile3  = net.Dataset('currentsw.dflx')  # diffuse 
+    ncfile4  = net.Dataset('currentsw.uflx')  # upward
+    ncfile5  = net.Dataset('currentsw.nflx')  # net
+    ncfile6  = net.Dataset('currentsw.hrts')  # heating rate
+
+    ncfile7  = net.Dataset('currentlw.dflx')  # diffuse
+    ncfile8  = net.Dataset('currentlw.nflx')  # net
+    ncfile9  = net.Dataset('currentlw.uflx')  # upward
+    ncfile10 = net.Dataset('currentlw.hrts')  # heating rate
     if calc_cf == True:
         ncfile11 = net.Dataset('currentlw_cff.cff')
         ncfile12 = net.Dataset('currentlw.cff')
@@ -196,7 +227,6 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False):
     if calc_cf == True:
         cff    = ncfile11.variables['cff'] # Contribution function (flux, sum)
         cff_i  = ncfile12.variables['cff'] # Contribution function (channel, plev, lat, lon)
-
 
     ##### Fluxes
 
