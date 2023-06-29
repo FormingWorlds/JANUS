@@ -31,4 +31,4 @@ socrates_2002.tar.xz
 set_rad_env
 
 output/
-
+utils/*.ipynb*
