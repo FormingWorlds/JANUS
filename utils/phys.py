@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from utils.ClimateUtilities import * #To get the math methods routines
+import utils.water_tables as wt
 #
 #All units are mks units
 #
@@ -554,6 +555,17 @@ class satvps_function:
             self.e0 = e0_or_iceFlag
     def __call__(self,T):
         #Decide which latent heat to use
+        if self.gas == 'H2O':
+            # Water special case -- use IAPWS steam tables in water_tables.py
+            if T > wt.T_tp:
+                return wt.lookup('psat', T)
+            else:
+                if self.iceFlag=='switch':
+                    L = self.gas.L_sublimation
+                else:
+                    L = wt.L_vap[0]
+                return satvps(T, self.T0, self.e0, self.M, L)
+            
         if self.iceFlag == 'switch':
             if T<self.gas.TriplePointT:
                 L = self.gas.L_sublimation
