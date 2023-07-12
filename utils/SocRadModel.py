@@ -36,8 +36,12 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,insert_star=True
             
     """
 
-    # Ask socrates to print to STDOUT at runtime
+    # Ask SOCRATES to print info to stdout at runtime
     socrates_print = False
+
+    # Pass namelist information to SOCRATES
+    # Only supported from SOCRATES version 2306 onwards (revision 1403)
+    socrates_use_namelist = True
 
     # Molar masses of each species (note the units)
     molar_mass      = {
@@ -64,30 +68,14 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,insert_star=True
     spectral_file = dirs["output"]+"runtime_spectral_file"
 
     
-    # Define path to spectral file
-    # spectral_name       = "sp_b318_HITRAN_a16_Sun_t0_0Ga_claire_12"
-    # spectral_dir        = dirs["rad_conv"]+"/spectral_files/sp_b318_HITRAN_a16/"
-    # spectral_file       = spectral_dir+spectral_name
-
     # Rayleigh scattering for CO2
     if rscatter == True:
-
-        # Generate new temp directory for scattering spectral file
-        # scatter_dir = dirs["output"]+"/scatter_spectral_file/"
-        # if not os.path.isdir(scatter_dir):
-        #     os.makedirs(scatter_dir)
 
         scatter_dir = dirs["output"]
 
         # New file
         spectral_file_old = spectral_file
         spectral_file = scatter_dir+"runtime_spectral_file_rscat"
-
-        # Copy if not there yet
-        # if not os.path.isfile(spectral_file):
-        #     for file in natural_sort(glob.glob(spectral_dir+"*")):
-        #         shutil.copy(file, scatter_dir+os.path.basename(file))
-        #         print(os.path.basename(file), end =" ")
 
         shutil.copyfile(spectral_file_old,spectral_file)
         shutil.copyfile(spectral_file_old+"_k",spectral_file+"_k")
@@ -147,51 +135,56 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,insert_star=True
             vol_lower = str(vol).lower()
             nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  molar_mass[vol] / atm.mu * atm.x_gas[vol], vol_lower, longname=vol, units='kg/kg') 
 
-    # Write namelist file
-    mmw = 0.0
-    for vol in atm.vol_list.keys():
-        mmw += ( np.mean(atm.x_gas[vol]) *  molar_mass[vol])   # There's probably a more accurate way to handle this.
-
-    rgas = phys.R_gas/mmw
-    cp_avg = np.mean(atm.cp) / mmw
-
-    nml = {
-        'socrates_constants': {
-            'planet_radius':    atm.planet_radius,      # metres
-            'mol_weight_air':   mmw,                    # kg mol-1
-            'grav_acc':         atm.grav_s,             # m s-2
-            'r_gas_dry':        rgas,                   # J kg-1 K
-            'cp_air_dry':       cp_avg                  # J kg-1 K-1
-        }
-    }
-    f90nml.write(nml,basename+".nml")
-
-    # SOCRATES print to stdout
-    if socrates_print == True:
-        verbose_flag = " -o"
-        errhandle = None
-    else:
-        verbose_flag = ""
-        errhandle = subprocess.DEVNULL
-
-    # Call sequences for: anchor spectral files and run SOCRATES
-    seq4 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-N", basename+".nml", "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", verbose_flag, scatter_flag)
-    seq5 = ("fmove", basename,"currentsw")
+    # Call sequences for run SOCRATES + move data
+    seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag]
+    seq_sw_mv = ["fmove", basename,"currentsw"]
     
-    seq6 = ("Cl_run_cdf","-B", basename,"-s", spectral_file, "-N", basename+".nml", "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", verbose_flag, scatter_flag)
-    seq7 = ("fmove", basename,"currentlw")
+    seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag]
+    seq_lw_mv = ["fmove", basename,"currentlw"]
 
     if calc_cf == True:
-        seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", verbose_flag, scatter_flag)
+        seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", scatter_flag)
         seq9 = ("fmove", basename, "currentlw_cff")
 
+    # Write namelist file?
+    if socrates_use_namelist:
+        mmw = 0.0
+        for vol in atm.vol_list.keys():
+            mmw += ( np.mean(atm.x_gas[vol]) *  molar_mass[vol])   # There's probably a more accurate way to handle this.
+
+        rgas = phys.R_gas/mmw
+        cp_avg = np.mean(atm.cp) / mmw
+
+        nml = {
+            'socrates_constants': {
+                'planet_radius':    atm.planet_radius,      # metres
+                'mol_weight_air':   mmw,                    # kg mol-1
+                'grav_acc':         atm.grav_s,             # m s-2
+                'r_gas_dry':        rgas,                   # J kg-1 K
+                'cp_air_dry':       cp_avg                  # J kg-1 K-1
+            }
+        }
+
+        f90nml.write(nml,basename+".nml")
+        
+        seq_sw_ex.extend(["-N", basename+".nml"])
+        seq_lw_ex.extend(["-N", basename+".nml"])
+
+    # Socrates print to stdout at runtime?
+    if socrates_print == True:
+        errhandle = None
+        seq_sw_ex.extend(["-o"])
+        seq_lw_ex.extend(["-o"])
+    else:
+        errhandle = subprocess.DEVNULL
+
     # SW calculation with SOCRATES
-    subprocess.run(list(seq4),check=True,stderr=errhandle)
-    subprocess.run(list(seq5),check=True,stderr=errhandle)
+    subprocess.run(seq_sw_ex,check=True,stderr=errhandle)
+    subprocess.run(seq_sw_mv,check=True,stderr=errhandle)
 
     # LW calculation with SOCRATES
-    subprocess.run(list(seq6),check=True,stderr=errhandle)
-    subprocess.run(list(seq7),check=True,stderr=errhandle)
+    subprocess.run(seq_lw_ex,check=True,stderr=errhandle)
+    subprocess.run(seq_lw_mv,check=True,stderr=errhandle)
 
     if calc_cf == True:
         subprocess.run(list(seq8),check=True,stderr=errhandle)
