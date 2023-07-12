@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import copy
 import matplotlib as mpl
 import numpy as np
+import utils.water_tables as wt
 
 from utils.cp_funcs import *
 from utils.ClimateUtilities import *
@@ -354,14 +355,48 @@ def Tdew(switch, p):
         L_NH3=phys.NH3.L_vaporization*phys.nh3.MolecularWeight*1e-3
         return Tref/(1.-(Tref*phys.R_gas/L_NH3)*math.log(p/pref))
     
+
+
+def get_beta(switch, T):
+    if (switch == 'H2O' and T > phys.H2O.TriplePointT and
+        T< phys.H2O.CriticalPointT):
+        beta = wt.lookup('phase_grad', T)
+    else:
+        L = L_heat(switch, T)
+        beta = L/phys.R_gas/T
+
+    return beta
 ## Molar latent heat [J mol-1] for gas phase considered given a temperature T [K]. 
 ## Select the molecule of interest with the switch argument (a string).
+
+def get_T_crit(switch):
+    match switch:
+        case 'H2O':
+            return phys.H2O.CriticalPointT
+        case 'CH4':
+            return phys.CH4.CriticalPointT
+        case 'CO2':
+            return phys.CO2.CriticalPointT
+        case 'CO':
+            return phys.CO.CriticalPointT
+        case 'N2':
+            return phys.N2.CriticalPointT
+        case 'O2':
+            return phys.O2.CriticalPointT
+        case 'H2':
+            return phys.H2.CriticalPointT
+        case 'He':
+            return phys.He.CriticalPointT
+        case 'NH3':
+            return phys.NH3.CriticalPointT
+        
 def L_heat(switch, T):
 
     match switch:
         case 'H2O':
             L_sublimation   = phys.H2O.L_sublimation
-            L_vaporization  = phys.H2O.L_vaporization
+            # Special case here! Use lookup
+            L_vaporization  = wt.lookup('L_vap', T)
             MolecularWeight = phys.H2O.MolecularWeight
             T_triple        = phys.H2O.TriplePointT
             T_crit          = phys.H2O.CriticalPointT
@@ -661,13 +696,20 @@ def dlnT_dlnP_d(lnP, lnT, atm):
         eta_cond    = atm.x_cond[vol][idx] / atm.xd[idx]
         #print(eta_vol)
         # sums for saturated comps
-        if np.isclose(atm.p_vol[vol][idx] ,p_sat(vol,tmp)) or atm.p_vol[vol][idx]  > p_sat(vol,tmp):
+        # HII added, ensure below the critical point !
+        if ((np.isclose(atm.p_vol[vol][idx] ,p_sat(vol,tmp)) or
+             atm.p_vol[vol][idx]  > p_sat(vol,tmp)) and
+            tmp < get_T_crit(vol)):
+
+            beta = get_beta(vol, tmp)
             L = L_heat(vol,tmp)
+            L_RT = L/phys.R_gas/tmp
             #beta_vol    = L_heat(vol, tmp) / (R_gas * tmp) #RTP
             # Sum in numerator
-            num_sum     += eta_vol * L / tmp
+            num_sum     += eta_vol * L_RT*phys.R_gas
             # Sum in denominator
-            denom_sum  += eta_vol * (cpv(vol, tmp) - L/tmp + L**2/(phys.R_gas*tmp**2) + atm.alpha_cloud * eta_cond * cp_cond(vol,tmp))
+            denom_sum += eta_vol*(cpv(vol,tmp)  + phys.R_gas*beta*(L_RT - 1) +
+                                  atm.alpha_cloud * eta_cond * cp_cond(vol,tmp))
             
         # sums for subsaturated comps
         else: 
@@ -710,13 +752,18 @@ def moist_slope(lnP, lnT, atm):
         
         #print(eta_vol)
         # sums for saturated comps
-        if np.isclose(atm.p_vol[vol][idx] ,p_sat(vol,tmp)) or atm.p_vol[vol][idx]  > p_sat(vol,tmp):
-            L = L_heat(vol,tmp)
+        # Ensure below the critical point for volatile before we
+        # assume condensation occurs
+        if ((np.isclose(atm.p_vol[vol][idx] ,p_sat(vol,tmp)) or
+             atm.p_vol[vol][idx]  > p_sat(vol,tmp)) and
+            tmp < get_T_crit(vol)):
             
             # Sum in numerator
             num_sum     += eta_vol
+            
             # Sum in denominator
-            denom_sum  += L/phys.R_gas/tmp * eta_vol * dlnT_dlnP_d(lnP,lnT,atm)
+            beta = get_beta(vol, tmp)
+            denom_sum  += beta * eta_vol * dlnT_dlnP_d(lnP,lnT,atm)
             
         
         
