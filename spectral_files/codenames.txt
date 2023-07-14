@@ -1,0 +1,9 @@
+Spectral files are assigned codenames based on their configuration, 
+parameters, context, SOCRATES version, and content.
+
+These disambiguation of these codenames, alongside other spectral files, may be 
+found online at:
+https://drive.google.com/drive/folders/1mgML9f7AhdMXbFJRdasopgejie_ZBRyO
+
+This online source is subject to change.
+

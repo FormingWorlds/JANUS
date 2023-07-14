@@ -43,23 +43,21 @@ if __name__ == "__main__":
     
     # Planet 
     time = { "planet": 0., "star": 4567e+6 } # yr,
-    # time_current  = 0                 # yr, time after start of MO
-    # time_offset   = 4567e+6           # yr, time relative to star formation
     star_mass     = 1.0                 # M_sun, mass of star
     mean_distance = 1.0                 # au, orbital distance
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 298.0                # K
+    T_surf        = 300.0                # K
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
     # P_surf       = 100 * 1e5
     # vol_mixing = { 
-    #                 "CO2"  : 1.0 - 5e-2,
-    #                 "H2O"  : 5e-2 - 1e-6,
-    #                 "N2"   : 1e-6,  
+    #                 "CO2"  : 0.0,
+    #                 "H2O"  : 1.0,
+    #                 "N2"   : 0.0,
     #                 "H2"   : 0.0, 
     #                 "NH3"  : 0.0,
     #                 "CH4"  : 0.0, 
@@ -151,6 +149,7 @@ if __name__ == "__main__":
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         dirs["rad_conv"]+"/spectral_files/sp_b318_HITRAN_a16/sp_b318_HITRAN_a16_no_spectrum",
+        # dirs["rad_conv"]+"/spectral_files/Oak/sp_b318_HITRAN_a1",
         dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )

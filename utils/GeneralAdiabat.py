@@ -177,7 +177,7 @@ def atm_z(atm, idx):
 
     # print(atm.grav_z[idx], atm.mu[idx], atm.p[idx], atm.p[idx+1])
     dp = atm.p[idx+1]-atm.p[idx]
-    
+
     mu_c = 0.
     if atm.xc[idx] > 0:
         for vol in atm.vol_list.keys():
@@ -188,7 +188,9 @@ def atm_z(atm, idx):
     atm.rho[idx] =  atm.p[idx]/phys.R_gas/atm.tmp[idx] * ( atm.mu[idx] + mu_c*atm.alpha_cloud*atm.xc[idx]/(atm.xv[idx]+atm.xd[idx]) )
     dz =  -dp / atm.rho[idx]
     if dz<0:
-        print(dz)
+        print("WARNING: dz  = %g < 0 " % dz)
+        print("         (dp  = %g)" % dp)
+        print("         (rho = %g)" % atm.rho[idx])
     # Next height
     atm.z[idx+1] = atm.z[idx] + dz
 
