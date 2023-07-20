@@ -9,7 +9,7 @@ class atmos:
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
                  calc_cf: bool=False, 
-                 trppT: float = 290.0, minT: float = 250.0):
+                 trppT: float = 290.0, minT: float = 20.0):
         
         """Atmosphere class    
     
