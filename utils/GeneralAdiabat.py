@@ -786,7 +786,7 @@ def moist_slope(lnP, lnT, atm):
 def condensation( atm, idx, wet_list, dry_list, prs_reset):
 
     # Temperature floor
-    tmp = np.amax([atm.tmp[idx], 20.])
+    tmp = np.amax([atm.tmp[idx], atm.minT])
     
     
     if idx==0:

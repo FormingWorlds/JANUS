@@ -8,6 +8,7 @@ Tim Lichtenberg (TL)
 Ryan Boukrouche (RB)
 """
 
+import numpy as np
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
     
 def set_stratosphere(atm):
@@ -20,11 +21,13 @@ def set_stratosphere(atm):
     for prs_idx, prs in enumerate(atm.p):
         if prs < trpp_prs:
             atm.tmp[prs_idx] = trpp_tmp
+    atm.tmp = np.clip(atm.tmp,atm.minT,None)
 
     # Staggered nodes
     for prsl_idx, prls in enumerate(atm.pl):
         if prls < trpp_prs:
             atm.tmpl[prsl_idx] = trpp_tmp
+    atm.tmpl = np.clip(atm.tmpl,atm.minT,None)
 
     # Set mixing ratios to same as tropopause
     for idx in reversed(range(0, trpp_idx)):
