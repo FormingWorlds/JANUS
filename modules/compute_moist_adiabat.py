@@ -41,8 +41,6 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
     # Build general adiabat structure
     atm_moist = ga.general_adiabat(atm_moist)
 
-
-
     # Run SOCRATES
     atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
 
@@ -50,7 +48,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
         print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
     # Calculate tropopause dynamically
-    if (trppD == True) or ( (trppD == False) and (atm_moist.trppT > 0.0) ):
+    if (trppD == True) or (atm_moist.trppT > 0.0) or (atm_moist.minT > 0.0):
       
         # Find tropopause index
         atm_moist = find_tropopause(atm_moist,trppD)

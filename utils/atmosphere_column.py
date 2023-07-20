@@ -9,7 +9,7 @@ class atmos:
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
                  calc_cf: bool=False, 
-                 trppT: float = 290):
+                 trppT: float = 290.0, minT: float = 20.0):
         
         """Atmosphere class    
     
@@ -39,9 +39,10 @@ class atmos:
 
             calc_cf : bool
                 Calculate contribution function?
-
             trppT : float
                 Tropopause temperature
+            minT : float
+                Temperature floor
                 
         """
 
@@ -83,6 +84,7 @@ class atmos:
         self.trppT          = trppT                 # Fixed value [K]
         self.trppidx		= 0 				 	# Tropopause: idx
         self.trppP 			= 0 				 	# Tropopause: prs
+        self.minT           = minT                  # Minimum temperature allowed [K]
 
         self.dt 			= 0.5 							# days
 
