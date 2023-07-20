@@ -67,6 +67,16 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,insert_star=True
     # Define path to origin spectral file
     spectral_file = dirs["output"]+"runtime_spectral_file"
 
+    # Check that atmosphere is okay
+    if np.any(atm.cp <= 0):
+        print("ERROR: Negative heat capacity!")
+        exit(1)
+    vals = []
+    for arr in atm.x_gas.values():
+        vals.append(arr)
+    if np.any(np.array(vals).flatten() < 0):
+        print("ERROR: Negative mixing ratio(s)!")
+        exit(1)
     
     # Rayleigh scattering for CO2
     if rscatter == True:

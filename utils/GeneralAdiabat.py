@@ -786,7 +786,7 @@ def moist_slope(lnP, lnT, atm):
 def condensation( atm, idx, wet_list, dry_list, prs_reset):
 
     # Temperature floor
-    tmp = np.amax([atm.tmp[idx], 20.])
+    tmp = np.amax([atm.tmp[idx], atm.minT])
     
     
     if idx==0:
@@ -929,9 +929,6 @@ def general_adiabat( atm ):
     new_p_vol = {}
     wet_list = []
     dry_list = []
-    Tsurf = atm.ts
-    alpha = atm.alpha_cloud
-    toa_heating = atm.toa_heating
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps > p_sat(vol, atm.ts):
             new_psurf += p_sat(vol,atm.ts)
@@ -941,9 +938,16 @@ def general_adiabat( atm ):
             new_p_vol[vol] = atm.vol_list[vol] * atm.ps
             
     if new_psurf != atm.ps:
+        Tsurf = atm.ts
+        alpha = atm.alpha_cloud
+        toa_heating = atm.toa_heating
+        minT = atm.minT
+
         for vol in atm.vol_list.keys():
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
-        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT)
+
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT, minT=minT)
+        
         atm.alpha_cloud = alpha
         atm.toa_heating = toa_heating
         
