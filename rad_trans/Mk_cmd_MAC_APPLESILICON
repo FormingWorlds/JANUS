@@ -1,8 +1,13 @@
 #
 # Pathnames for MacOS on an ARM platform
 #
-FORTCOMP        = gfortran -c -fcheck=all,no-recursion -fbacktrace -g
-LINK            = gfortran -fcheck=all,no-recursion -fbacktrace -g
+
+# With debugging flags:
+#FORTCOMP        = gfortran -c -fcheck=all,no-recursion -fbacktrace -g
+#LINK            = gfortran -fcheck=all,no-recursion -fbacktrace -g
+
+FORTCOMP        = gfortran -c
+LINK            = gfortran
 LIBLINK         = ar rvu
 INCCDF_PATH     = /opt/homebrew/Cellar/netcdf-fortran/4.6.0/include
 LIBCDF_PATH     = /opt/homebrew/Cellar/netcdf-fortran/4.6.0/lib
