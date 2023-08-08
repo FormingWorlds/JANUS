@@ -11,7 +11,7 @@ import shutil , os
 import subprocess
 from scipy.stats import binned_statistic
 
-def PrepareStellarSpectrum(wl, fl, star_file, rebin=True):
+def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=90000):
     """Write a stellar spectrum.
 
     This function supplements InsertStellarSpectrum by writing a stellar 
@@ -26,8 +26,8 @@ def PrepareStellarSpectrum(wl, fl, star_file, rebin=True):
             Flux at 1 AU [erg s-1 cm-2 nm-1]
         star_file : str
             Path to output file, which will contain the stellar spectrum.
-        rebin : bool
-            Re-bin the stellar spectrum?
+        nbins_max : int
+            Number of spectral bins to down-sample to (-1 for no rebinning)
             
     """
 
@@ -35,47 +35,64 @@ def PrepareStellarSpectrum(wl, fl, star_file, rebin=True):
     if (len(wl) != len(fl)):
         raise Exception("Stellar wavelength and flux arrays have different lengths")
 
-    if (len(wl) < 1000):
+    if (len(wl) < 500):
         print("WARNING: Loaded stellar spectrum is very short!")
 
-    # Rebin if required
-    if rebin:
+    # Down-sample spectrum if required
+    if nbins_max > -1:
         print("Rebinning stellar spectrum")
 
-        downsample_factor   = 2     # Downsample spectrum by this much
-        new_bins            = wl    # New wavelength points, nm
-        max_bins            = 1e5   # Maximum number of bins
-
-        bins_retry          = True  # Attempt re-binning flag
+        # Parameters
         max_retry           = 10    # Number of times to down-sample before giving up
-        count_retry         = 0     # Number of down-samples
+        nbins_floor         = 250   # Minimum number of bins
+        nbins_ceil          = 1e5   # Maximum number of bins
 
+        # Store old wl,fl arrays
+        wl_orig = wl
+        fl_orig = fl
+
+        if (nbins_max < 500):
+            print("WARNING: Requested number of stellar spectrum bins is small (%d bins)" % nbins_max)
+
+        nbins_max = min( int(nbins_ceil), nbins_max) # Must be fewer than 100k
+
+        # Perform rounds of down-sampling until nbins < nbins_max
+        # Rarely performs more than 2 rounds
+        bins_retry = True
+        downsample_factor = len(wl)/nbins_max
+        count_retry = 0  
         while bins_retry:
 
             # Prevent loop from getting stuck
             if count_retry > max_retry:
-                raise Exception("Giving up downsampling stellar spectrum after %d down-samples" % count_retry)
+                raise Exception("Giving up downsampling stellar spectrum after %d rounds" % count_retry)
             
             # Ensure that the bins can be subdivided by truncating the array
-            crop_amount = len(new_bins) - int(len(new_bins) % downsample_factor)
-            new_bins = new_bins[:crop_amount]
+            downsample_factor = int(downsample_factor)
+            crop_amount = len(wl_orig) - int(len(wl_orig) % downsample_factor)
+            wl = wl_orig[:crop_amount]
 
             # Downsample
-            new_bins = new_bins.reshape(-1, downsample_factor).mean(axis=1)  # https://saturncloud.io/blog/the-optimal-approach-to-downsampling-a-numpy-array/
-            nbins = len(new_bins)
+            wl = wl.reshape(-1, downsample_factor).mean(axis=1)  # https://saturncloud.io/blog/the-optimal-approach-to-downsampling-a-numpy-array/
+            nbins = len(wl)
 
-            if (nbins < 200):
-                raise Exception("Too few bins for stellar spectrum (%d bins)" % nbins)
-            
+            if (nbins < nbins_floor):
+                raise Exception("Too few bins in stellar spectrum (%d bins)" % nbins)
             else:
-                values, edges, _ = binned_statistic(wl, fl, statistic='mean', bins=new_bins)
+                values, edges, _ = binned_statistic(wl_orig, fl_orig, statistic='mean', bins=wl)
                 wl = 0.5 * (edges[:-1] + edges[1:])
                 fl = values
 
             if np.isnan(fl).any() or np.any(fl <= 0):
+                # Try again with fewer bins
                 print("WARNING: New stellar spectrum contains empty bins or negative values")
+                downsample_factor *= 1.5
             else:
-                bins_retry = bool( nbins >= max_bins )
+                # Try again if still too many samples
+                bins_retry = bool( nbins > nbins_max )
+                downsample_factor *= 1.2
+
+            count_retry += 1
             
     # Convert units
     wl = np.array(wl) * 1.0e-9  # [nm] -> [m]
