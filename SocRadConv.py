@@ -22,6 +22,7 @@ import numpy as np
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.radcoupler import RadConvEqm
 from modules.plot_flux_balance import plot_flux_balance
+from modules.radiative_heating import find_radiative_eqm
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 from utils.atmosphere_column import atmos
@@ -106,7 +107,7 @@ if __name__ == "__main__":
     pure_steam_adj = False
 
     # Tropopause calculation
-    trppD = False   # Calculate dynamically?
+    trppD = True   # Calculate dynamically?
     trppT = 30.0     # Fixed tropopause value if not calculated dynamically
     
     # Surface temperature time-stepping
@@ -154,9 +155,14 @@ if __name__ == "__main__":
         dirs["output"]+"runtime_spectral_file"
     )
 
-    # Do rad trans
+    # Set up atmosphere with general adiabat
     print("Calling RadConvEqm()")
     atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
+
+    # Apply heating rates to atmosphere until eqm is reached
+    print("Solving for radiative eqm...")
+    atm_moist = find_radiative_eqm(atm_moist, dirs)
+
     
     # Plot abundances w/ TP structure
     if (cp_dry):
