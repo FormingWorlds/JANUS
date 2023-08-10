@@ -39,7 +39,7 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=90000):
         print("WARNING: Loaded stellar spectrum is very short!")
 
     # Down-sample spectrum if required
-    if nbins_max > -1:
+    if (nbins_max > -1) and (nbins_max < len(wl)):
         print("Rebinning stellar spectrum")
 
         # Parameters
