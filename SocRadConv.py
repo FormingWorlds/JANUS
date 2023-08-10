@@ -156,7 +156,6 @@ if __name__ == "__main__":
     )
 
     # Set up atmosphere with general adiabat
-    print("Calling RadConvEqm()")
     atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
 
     # Apply heating rates to atmosphere until eqm is reached
