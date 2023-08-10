@@ -172,6 +172,8 @@ class atmos:
             self.cff_i					= np.zeros([self.nbands,self.nlev]) # cf per band
             self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev])
 
+            
+
     def write_PT(self,filename: str="output/PT.tsv", punit:str = "Pa"):
         """Write PT profile to file, with descending pressure.
 
