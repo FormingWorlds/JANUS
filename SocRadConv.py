@@ -27,6 +27,7 @@ from modules.radiative_heating import find_radiative_eqm
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 from utils.atmosphere_column import atmos
 import utils.StellarSpectrum as StellarSpectrum
+from modules.init_well_mixed import ini_wm_iso
 
 ####################################
 ##### Stand-alone initial conditions
@@ -43,9 +44,9 @@ if __name__ == "__main__":
     AU                      = 1.495978707e+11  # m
     
     # Planet 
-    time = { "planet": 0., "star": 4567e+6 } # yr,
-    star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                 # au, orbital distance
+    time = { "planet": 0., "star": 30e+6 } # yr,
+    star_mass     = 0.1                 # M_sun, mass of star
+    mean_distance = 0.011                 # au, orbital distance
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
 
@@ -54,16 +55,16 @@ if __name__ == "__main__":
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    P_surf       = 20 * 1e5
+    P_surf       = 40 * 1e5
     vol_mixing = { 
-                    "CO2"  : 0.0,
-                    "H2O"  : 1.0,
-                    "N2"   : 0.0,
-                    "H2"   : 5.0, 
+                    "CO2"  : 0.05,
+                    "H2O"  : 0.05,
+                    "N2"   : 0.1,
+                    "H2"   : 0.0, 
                     "NH3"  : 0.0,
                     "CH4"  : 0.0, 
                     "O2"   : 0.0, 
-                    "CO"   : 0.0, 
+                    "CO"   : 0.8, 
                     # # No thermodynamic data, RT only
                     # "O3"   : 0.01, 
                     # "N2O"  : 0.01, 
@@ -150,30 +151,32 @@ if __name__ == "__main__":
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         dirs["rad_conv"]+"/spectral_files/Reach/Reach",
-        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_0Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
 
     # Set up atmosphere with general adiabat
-    atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
+    # atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
+
+    # Plot abundances w/ TP structure
+    # if (cp_dry):
+    #     ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
+    #     atm_dry.write_PT(filename="output/dry_pt.tsv")
+    #     ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
+
+
+    # ga.plot_adiabats(atm_moist,filename="output/moist_ga.pdf")
+    # atm_moist.write_PT(filename="output/moist_pt.tsv")
+    # ga.plot_fluxes(atm_moist,filename="output/moist_fluxes.pdf")
 
     # Apply heating rates to atmosphere until eqm is reached
+    print("Initialising well mixed...")
+    atm_rce = ini_wm_iso(atm)
+
     print("Solving for radiative eqm...")
-    atm_moist = find_radiative_eqm(atm_moist, dirs, surf_state=2, ini_state=3)
-
+    atm_rce = find_radiative_eqm(atm_rce, dirs, surf_state=2, ini_state=3)
     
-    # Plot abundances w/ TP structure
-    if (cp_dry):
-        ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
-        atm_dry.write_PT(filename="output/dry_pt.tsv")
-        ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
-
-
-    ga.plot_adiabats(atm_moist,filename="output/moist_ga.pdf")
-    atm_moist.write_PT(filename="output/moist_pt.tsv")
-    ga.plot_fluxes(atm_moist,filename="output/moist_fluxes.pdf")
-
-    plot_flux_balance(atm_dry,atm_moist,cp_dry,time,dirs)
+    plot_flux_balance(atm,atm_rce,False,time,dirs)
 
     end = t.time()
     print("Runtime:", round(end - start,2), "s")
