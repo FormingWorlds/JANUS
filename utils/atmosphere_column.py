@@ -129,7 +129,9 @@ class atmos:
 
         # Define T and P arrays from surface up
         self.tmp[0]         = self.ts         		# K
+        self.tmpl[0]         = self.ts         		# K
         self.p[0]           = self.ps         		# Pa
+        self.pl[0]           = self.ps         		# Pa
         self.z[0]           = 0         			# m
         self.grav_z[0]      = self.grav_s 			# m s-2
 
