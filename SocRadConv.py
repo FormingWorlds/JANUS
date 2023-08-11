@@ -22,7 +22,7 @@ import numpy as np
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.radcoupler import RadConvEqm
 from modules.plot_flux_balance import plot_flux_balance
-from modules.radiative_heating import find_radiative_eqm
+from modules.radiative_heating import find_rc_eqm
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 from utils.atmosphere_column import atmos
@@ -51,22 +51,22 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 2000.0                # K
+    T_surf        = 2500.0                # K
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
     P_surf       = 200 * 1e5
     vol_mixing = { 
-                    "CO2"  : 0.05,
-                    "H2O"  : 0.05,
-                    "N2"   : 0.1,
+                    "CO2"  : 0.1,
+                    "H2O"  : 0.15,
+                    "N2"   : 0.05,
                     "H2"   : 0.0, 
                     "NH3"  : 0.0,
                     "CH4"  : 0.0, 
                     "O2"   : 0.0, 
-                    "CO"   : 0.8, 
+                    "CO"   : 0.7, 
                     # # No thermodynamic data, RT only
-                    # "O3"   : 0.01, 
+                    # "O3"   : 0.05, 
                     # "N2O"  : 0.01, 
                     # "NO"   : 0.01, 
                     # "SO2"  : 0.01, 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     )
 
     # Set up atmosphere with general adiabat
-    # atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
+    atm_dry, atm = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
 
     # Plot abundances w/ TP structure
     # if (cp_dry):
@@ -168,16 +168,21 @@ if __name__ == "__main__":
     # ga.plot_adiabats(atm_moist,filename="output/moist_ga.pdf")
     # atm_moist.write_PT(filename="output/moist_pt.tsv")
     # ga.plot_fluxes(atm_moist,filename="output/moist_fluxes.pdf")
+    # plot_flux_balance(atm,atm_moist,False,time,dirs)
+
+    # print("Initialising well mixed...")
+    # atm = ini_wm_iso(atm)
 
     # Apply heating rates to atmosphere until eqm is reached
-    print("Initialising well mixed...")
-    atm_rce = ini_wm_iso(atm)
-
     print("Solving for radiative eqm...")
-    atm_rce = find_radiative_eqm(atm_rce, dirs, surf_state=2, ini_state=3)
-    atm_rce.write_PT(filename="output/rce_pt.tsv")
+    atm_rce = find_rc_eqm(atm, dirs, surf_state=2, ini_state=2)
+    ga.plot_fluxes(atm_rce,filename="output/rce_fluxes1.pdf")
+
+    # print("Trying again...")
+    # atm_rce.ts += 200.0
+    # atm_rce = find_rc_eqm(atm_rce, dirs, surf_state=2, ini_state=2, gofast=False)
+    # ga.plot_fluxes(atm_rce,filename="output/rce_fluxes2.pdf")
     
-    plot_flux_balance(atm,atm_rce,False,time,dirs)
 
     end = t.time()
     print("Runtime:", round(end - start,2), "s")
