@@ -55,7 +55,7 @@ if __name__ == "__main__":
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    P_surf       = 40 * 1e5
+    P_surf       = 200 * 1e5
     vol_mixing = { 
                     "CO2"  : 0.05,
                     "H2O"  : 0.05,
@@ -175,6 +175,7 @@ if __name__ == "__main__":
 
     print("Solving for radiative eqm...")
     atm_rce = find_radiative_eqm(atm_rce, dirs, surf_state=2, ini_state=3)
+    atm_rce.write_PT(filename="output/rce_pt.tsv")
     
     plot_flux_balance(atm,atm_rce,False,time,dirs)
 

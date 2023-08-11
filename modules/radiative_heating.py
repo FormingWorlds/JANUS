@@ -11,7 +11,7 @@ from utils.SocRadModel import radCompSoc
 from modules.dry_adjustment import DryAdj
 
 # Make live plot during time-stepping
-def plot_radiative_eqm(atm_hist, ref, dirs, title, save_frames=False):
+def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
 
     unit_bar = 1.0e-5
     hist_plot = 3
@@ -47,7 +47,7 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_frames=False):
     # Figure stuff
     fig.legend(loc="lower right")
 
-    if save_frames:
+    if save_as_frame:
         fname = dirs['output']+"/radeqm_monitor.%d.png" % int(len(atm_hist))
     else:
         fname = dirs['output']+"/radeqm_monitor.png"
@@ -132,23 +132,26 @@ def find_radiative_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, i
 
     """
 
-    # Parameters
+    # Run parameters
     steps_max    = 100   # Maximum number of steps
-    dtmp_conv    = 10.0  # Maximum change in temperature for convergence [K]
-    drel_dt_conv = 5.0   # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [days-1]
     adj_steps    = 40    # Convective adjustment steps (0 for no adjustment)
     dtmp_gofast  = 20.0  # Change in temperature below which to stop model acceleration
+
+    # Convergence criteria
+    dtmp_conv    = 10.0  # Maximum change in temperature for convergence [K]
+    drel_dt_conv = 10.0  # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [days-1]
+    F_loss_conv  = 0.5   # Relative change in F_loss for convergence [percentage]
 
     # Variables
     success = False 
     step = 1
     atm_hist = []  # Store previous iteration states
-    F_loss = np.inf
+    F_loss = 1e99
     dtmp_comp = np.inf
     drel_dt = np.inf
     drel_dt_prev  = np.inf
     step_frac = 0.01
-    dtmp_dt = np.inf
+    F_loss_prev = 1e99
     flag_previous = False
     atm_orig = copy.deepcopy(atm)
 
@@ -229,26 +232,31 @@ def find_radiative_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, i
 
         F_TOA_rad = atm.net_flux[0]
         F_BOA_rad = atm.net_flux[-1]
+
+        F_loss_prev = F_loss
         F_loss = abs(F_TOA_rad-F_BOA_rad)
+        F_loss_rel = abs(F_loss - F_loss_prev) / F_loss_prev * 100
 
         print("    dtmp_comp   = %.3f K      " % dtmp_comp)
-        print("    HR_max      = %.3f K day-1" % HR_max)
-        print("    dtmp/dt     = %.3f K day-1" % dtmp_dt)
+        # print("    HR_max      = %.3f K day-1" % HR_max)
+        # print("    dtmp/dt     = %.3f K day-1" % dtmp_dt)
         print("    dtmp/tmp/dt = %.3f day-1  " % drel_dt)
         print("    F_rad^TOA   = %.2e W m-2  " % F_TOA_rad)
         print("    F_rad^BOA   = %.2e W m-2  " % F_BOA_rad)
         print("    F_rad^loss  = %.2f W m-2  " % F_loss)
+        print("    F_rad^rloss = %.3f %%     " % F_loss_rel)
 
         # Store previous atmosphere for reference
         atm_hist.append(copy.deepcopy(atm))
 
         # Plot
         plt_title = "Step %d:     $|dT_{comp}|$ = %.1f K     $|F_{rad}^{loss}|$ = %.1f W m$^{-2}$" % (step, dtmp_comp, F_loss)
-        plot_radiative_eqm(atm_hist, atm_orig, plt_title)
-
-        # Convergence (minimal temperature change between iterations => energy balance)
-        success = flag_previous and (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv)
-        flag_previous = (dtmp_comp < dtmp_conv)
+        plot_radiative_eqm(atm_hist, atm_orig, dirs, plt_title, save_as_frame=True)
+       
+        # Convergence check
+        check_conv = lambda: (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv) and (F_loss_rel < F_loss_conv)
+        success = flag_previous and check_conv()
+        flag_previous = check_conv()
         if flag_previous:
             print("    almost converged")
 
