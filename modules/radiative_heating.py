@@ -25,7 +25,8 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
     ax2.axvline(x=0, color='tab:red', lw=0.5, alpha=0.8, zorder=0)
     ax2.plot( atm_hist[-1].net_heating, atm_hist[-1].p*unit_bar, color='tab:red', label='$H_{%d}$' % int(len(atm_hist)), alpha=0.8)
     
-    ax2_max = int(np.amax(np.abs(atm_hist[-1].net_heating)) * 1.5) + 1.0
+    ax2_max = np.amax(np.abs(atm_hist[-1].net_heating))
+    ax2_max = max(ax2_max * 1.5, 1e7)
     ax2.set_xlim(-ax2_max, ax2_max)
     ax2.set_xscale("symlog")
 
@@ -47,11 +48,17 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
     # Figure stuff
     fig.legend(loc="lower right")
 
+    # Save figure
     if save_as_frame:
-        fname = dirs['output']+"/radeqm_monitor.%d.png" % int(len(atm_hist))
+        # Save this file with a unique name so that a video can be made
+        # to inspect and debug model convergence. Combine frames with command:
+        # $ ffmpeg -framerate 5 -i radeqm_monitor_%04d.png out.mp4
+        fname = dirs['output']+"/radeqm_monitor_%04d.png" % int(len(atm_hist))
     else:
+        # Overwrite last image
         fname = dirs['output']+"/radeqm_monitor.png"
     fig.savefig(fname, bbox_inches='tight', dpi=140)  # PNG is faster than PDF
+
     plt.close()
 
 # Apply heating to atmosphere
@@ -99,11 +106,11 @@ def calc_stepsize(atm, dt_min=1e-5, dt_max=1e9, dtmp_step_frac=1.0):
     return np.array(dt)
 
 
-def find_radiative_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, ini_state=2, gofast=True):
-    """Find T(p) satisfying global radiative equilibrium.
+def find_rc_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, ini_state=2, gofast=True, dry_adjust=True):
+    """Find T(p) satisfying global energy equilibrium.
 
-    Finds global radiative equilibrium by applying heating rates and dry
-    convective adjustment until the difference in net upward flux between
+    Finds global radiative-convective equilibrium by applying heating rates and
+    dry convective adjustment until the difference in net upward flux between
     the BOA and TOA is small.
 
     Parameters
@@ -129,18 +136,20 @@ def find_radiative_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, i
             3: isothermal at surface temperature
         gofast : bool
             Speed up convergence by starting out fast with smoothing to stabilise
+        dry_adjust : bool
+            Include dry convective adjustment?
 
     """
 
     # Run parameters
     steps_max    = 100   # Maximum number of steps
-    adj_steps    = 40    # Convective adjustment steps (0 for no adjustment)
-    dtmp_gofast  = 20.0  # Change in temperature below which to stop model acceleration
+    dtmp_gofast  = 50.0  # Change in temperature below which to stop model acceleration
+    second_order = False # Use second order method
 
     # Convergence criteria
-    dtmp_conv    = 10.0  # Maximum change in temperature for convergence [K]
-    drel_dt_conv = 10.0  # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [days-1]
-    F_loss_conv  = 0.5   # Relative change in F_loss for convergence [percentage]
+    dtmp_conv    = 2.0   # Maximum rolling change in temperature for convergence (dtmp) [K]
+    drel_dt_conv = 1.0   # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [day-1]
+    F_rloss_conv = 5.0   # Maximum relative value of F_loss for convergence [%]
 
     # Variables
     success = False 
@@ -153,6 +162,7 @@ def find_radiative_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, i
     step_frac = 0.01
     F_loss_prev = 1e99
     flag_previous = False
+    stopfast = False
     atm_orig = copy.deepcopy(atm)
 
     # Handle initial state
@@ -179,49 +189,64 @@ def find_radiative_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, i
     while (not success) and (step <= steps_max):
         print("    step %d" % step)
 
-        # Get heating rates
-        atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
-        heat = atm.net_heating
-
-        # Step-size calculation
-        gofast = gofast and (dtmp_comp > dtmp_gofast)
+        # Fast initial period
+        if gofast:
+            if (dtmp_comp < dtmp_gofast):
+                gofast = False 
+                stopfast = True
+            else:
+                gofast = True
+        
+        # Step-size calculation and heating rates
         if gofast:
             print("    gofast      = True")
-            first_order = False
             dtmp_clip = 80.0
+            adj_steps = 30
             smooth_window = 12
-            dt = calc_stepsize(atm, dt_min=2.0, dtmp_step_frac=0.4)
+
+            atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
+            dt = calc_stepsize(atm, dt_min=0.1, dtmp_step_frac=0.3)
             
         else:
-            first_order = True
-            dtmp_clip   = 30.0
+            dtmp_clip = 30.0
+            adj_steps = 10
             smooth_window = 0
 
             if drel_dt_prev < np.inf:
-                step_frac *= min(max( (drel_dt_prev/drel_dt) , 0.6 ) , 1.2)
-            step_frac = min(step_frac, 4e-3)
+                step_frac *= min(max( (drel_dt_prev/drel_dt) , 0.6 ) , 1.1)
+            step_frac = min(step_frac, 3e-3)
             print("    step_frac   = %.2e" % step_frac)
+
+            # End of 'fast' period (take average of last two iters)
+            if stopfast:
+                print("    stopfast    = True")
+                stopfast = False
+                atm.tmp  = np.array([ atm_hist[-1].tmp,  atm_hist[-2].tmp  ]).mean(axis=0)
+                atm.tmpl = np.array([ atm_hist[-1].tmpl, atm_hist[-2].tmpl ]).mean(axis=0)
+                adj_steps = 0
+
+            atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
             dt = calc_stepsize(atm, dt_max=0.4, dtmp_step_frac=step_frac)
 
-        
         print("    dt_max,med  = %.3f, %.3f days" % (np.amax(dt), np.median(dt)))
 
-        # First order time-stepping method (calc HR at half-step)
-        if first_order:
+        heat = atm.net_heating
+
+        # Second order time-stepping method (calc HR at half-step)
+        if second_order:
             atm_hlf = copy.deepcopy(atm_hist[-1])
-            atm_hlf = temperature_step(atm_hlf, heat, dt * 0.5, dtmp_clip=dtmp_clip, fix_surface=fix_surface, adj_steps=adj_steps)
+            atm_hlf = temperature_step(atm_hlf, heat, dt * 0.5, dtmp_clip=dtmp_clip, fix_surface=fix_surface)
             atm_hlf = radCompSoc(atm_hlf, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
             heat = atm_hlf.net_heating
 
         # Apply heating rate for full step
         # optionally smooth temperature profile
         # optionally do dry convective adjustment
+        adj_steps = adj_steps if dry_adjust else 0
         atm = temperature_step(atm, heat, dt, dtmp_clip=dtmp_clip, fix_surface=fix_surface, smooth_width=smooth_window, adj_steps=adj_steps)
 
         # Calculate statistics
-        HR_max = np.amax(np.abs(heat))
         if step > 2:
-            dtmp_dt = np.amax(np.abs((atm.tmp - atm_hist[-1].tmp)/dt))
             drel_dt_prev = drel_dt
             drel_dt = np.amax(np.abs((atm.tmp - atm_hist[-1].tmp)/atm_hist[-1].tmp/dt))
 
@@ -235,16 +260,14 @@ def find_radiative_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, i
 
         F_loss_prev = F_loss
         F_loss = abs(F_TOA_rad-F_BOA_rad)
-        F_loss_rel = abs(F_loss - F_loss_prev) / F_loss_prev * 100
+        F_rloss = abs(F_loss - F_loss_prev) / F_loss_prev * 100.0
 
         print("    dtmp_comp   = %.3f K      " % dtmp_comp)
-        # print("    HR_max      = %.3f K day-1" % HR_max)
-        # print("    dtmp/dt     = %.3f K day-1" % dtmp_dt)
         print("    dtmp/tmp/dt = %.3f day-1  " % drel_dt)
         print("    F_rad^TOA   = %.2e W m-2  " % F_TOA_rad)
         print("    F_rad^BOA   = %.2e W m-2  " % F_BOA_rad)
         print("    F_rad^loss  = %.2f W m-2  " % F_loss)
-        print("    F_rad^rloss = %.3f %%     " % F_loss_rel)
+        print("    F_rad^rloss = %.3f %%     " % F_rloss)
 
         # Store previous atmosphere for reference
         atm_hist.append(copy.deepcopy(atm))
@@ -254,20 +277,17 @@ def find_radiative_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, i
         plot_radiative_eqm(atm_hist, atm_orig, dirs, plt_title, save_as_frame=True)
        
         # Convergence check
-        check_conv = lambda: (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv) and (F_loss_rel < F_loss_conv)
-        success = flag_previous and check_conv()
-        flag_previous = check_conv()
-        if flag_previous:
-            print("    almost converged")
+        success =       (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv) and flag_previous and (F_rloss < F_rloss_conv)
+        flag_previous = (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv)
 
         step += 1
         print(" ")
 
 
     if not success:
-        print("Stopping radiative equilibrium iterations without success")
+        print("Stopping energy balance iterations without success")
     else:
-        print("Found global radiative equilibrium")
+        print("Found global energy balance")
 
     return atm
 
