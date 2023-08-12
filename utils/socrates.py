@@ -104,8 +104,16 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
             shutil.copyfile(spectral_file_old+"_k",spectral_file+"_k")
 
             # Insert Rayleigh scattering into spectral file
-            RayleighSpectrum.rayleigh_coeff_adder(species_list = ['co2', 'h2o', 'n2'], 
-                                                mixing_ratio_list = [atm.x_gas["CO2"][-1], atm.x_gas["H2O"][-1], atm.x_gas["N2"][-1]], 
+            rscatter_allowed= {"CO2", "N2", "H2O"}
+            rscatter_snames = []
+            rscatter_sratio = []
+            for vol in atm.vol_list.keys():
+                if vol in rscatter_allowed:
+                    vol_lower = str(vol).lower()
+                    rscatter_snames.append(vol_lower)
+                    rscatter_sratio.append(atm.x_gas[vol][-1])
+            RayleighSpectrum.rayleigh_coeff_adder(species_list = rscatter_snames, 
+                                                mixing_ratio_list = rscatter_sratio, 
                                                 spectral_file_path=spectral_file,
                                                 wavelength_dummy_file_path=dirs["output"]+'wavelength_band_file.txt'
                                                 )

@@ -7,8 +7,22 @@ Created on Mon Jan 23 11:36:49 2023
 Ryan Boukrouche (RB)
 """
 
-# Dry convective adjustment
 def DryAdj(atm):
+    """Dry convective adjustment routine.
+
+    Performs a single iteration only. Originally written by RB. 
+
+    Parameters
+    ----------
+        atm : atmos
+            Atmosphere object
+
+    Returns
+    ----------
+        atm : atmos
+            Atmosphere object with adjusted temperature profile
+
+    """
 
     T   = atm.tmp
     p   = atm.p

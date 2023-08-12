@@ -14,9 +14,10 @@ import time
 import numpy as np
 import scipy.interpolate as spint
 import math
-import matplotlib.pyplot as plt
 import copy
-import matplotlib as mpl
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import numpy as np
 import utils.water_tables as wt
 
@@ -1069,33 +1070,6 @@ def interpolate_atm(atm):
 
     return atm
 
-# Plotting
-def plot_fluxes(atm,filename='output/fluxes.pdf'):
-
-    fig,ax = plt.subplots()
-
-    ax.axvline(0,color='black',lw=0.8)
-
-    ax.plot(atm.flux_up_total,atm.pl,color='red',label='UP',lw=1)
-    ax.plot(atm.SW_flux_up   ,atm.pl,color='red',label='UP SW',linestyle='dotted',lw=2)
-    ax.plot(atm.LW_flux_up   ,atm.pl,color='red',label='UP LW',linestyle='dashed',lw=1)
-
-    ax.plot(-1.0*atm.flux_down_total,atm.pl,color='green',label='DN',lw=2)
-    ax.plot(-1.0*atm.SW_flux_down   ,atm.pl,color='green',label='DN SW',linestyle='dotted',lw=3)
-    ax.plot(-1.0*atm.LW_flux_down   ,atm.pl,color='green',label='DN LW',linestyle='dashed',lw=2)
-
-    ax.plot(atm.net_flux ,atm.pl,color='black',label='NET')
-
-    ax.set_xlabel("Upward-directed flux [W m-2]")
-    ax.set_ylabel("Pressure [Pa]")
-    ax.set_yscale("log")
-    ax.set_ylim([atm.pl[-1],atm.pl[0]])
-
-    ax.legend(loc='upper left')
-
-    fig.savefig(filename)
-
-
 
 def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
 
@@ -1189,8 +1163,8 @@ def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
     fig.suptitle('$T_{surf}$=%.1f K, $T_{bot}$=%.1f K'% (atm.ts,atm.tmp[-1]))
     #plt.show()
 
-    plt.savefig(filename, bbox_inches='tight')
-    #plt.close(fig)  
+    fig.savefig(filename, bbox_inches='tight')
+    plt.close()
 
     return
 
