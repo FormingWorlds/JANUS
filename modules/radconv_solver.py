@@ -13,6 +13,14 @@ from utils.socrates import radCompSoc, CleanOutputDir
 from modules.dry_adjustment import DryAdj
 from modules.moist_adjustment_H2O import moist_adj
 
+# Interleave two arrays 
+def interleave(a,b):
+    # https://stackoverflow.com/questions/5347065/interleaving-two-numpy-arrays-efficiently
+    c = np.empty((a.size + b.size,), dtype=a.dtype)
+    c[0::2] = a
+    c[1::2] = b
+    return c
+
 def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
     """Plot temperature profile and heating rates.
 
@@ -67,15 +75,17 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
     ax.set_xlabel("Temperature [K]")
     ax.set_title(str(title))
 
-    ax.plot( ref.tmpl, ref.pl*unit_bar, color='tab:blue',  label='$T_{ref}$', ls='--')
-
+    ax.plot( ref.tmpl, ref.pl*unit_bar, color='tab:blue',  label='$T_{ref}$', ls='--') # Reference profile
+    
     plot_count = min(hist_plot, len(atm_hist))
     for i in range(plot_count):
         alpha = (i+1)/plot_count
         idx = len(atm_hist)-plot_count+i
-        ax.plot( atm_hist[idx].tmpl, atm_hist[idx].pl*unit_bar, color='black', label='$T_{%d}$' % (idx+1), alpha=alpha)
 
-    # Figure stuff
+        x = interleave(atm_hist[idx].tmpl,atm_hist[idx].tmp) # Include cell edge+centre values
+        y = interleave(atm_hist[idx].pl,atm_hist[idx].p) * unit_bar
+        ax.plot( x,y, color='black', label='$T_{%d}$' % (idx+1), alpha=alpha)
+
     fig.legend(loc="lower right")
 
     # Save figure
@@ -157,9 +167,14 @@ def temperature_step(atm, heat, dt, dtmp_clip=1e9, fix_surface=False, smooth_wid
     interp = PchipInterpolator(np.log10(atm.p), atm.tmp, extrapolate=True)
     atm.tmpl = interp(np.log10(atm.pl))
 
-    # Fixed surface temperature?
+    # Fixed surface temperature
     if fix_surface:
         atm.tmpl[-1] = atm.ts
+
+    # Second interpolation back to cell-centres, to prevent grid impriting
+    # at medium/low resolutions
+    interp = PchipInterpolator(np.log10(atm.pl), atm.tmpl, extrapolate=True)
+    atm.tmp = interp(np.log10(atm.p))
 
     return atm, adj_changed
 
@@ -185,8 +200,12 @@ def calc_stepsize(atm, dt_min=1e-5, dt_max=1e7, dtmp_step_frac=1.0):
             Time-step at each level of the model
     """
 
+    dt_min, dt_max = min(dt_min, dt_max), max(dt_min, dt_max)
+
     dt = dtmp_step_frac * atm.tmp / np.abs(atm.net_heating)
     dt = np.clip(dt, dt_min, dt_max)
+
+    dt = np.array(list(dt))
 
     return dt
 
@@ -235,7 +254,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
 
     # Run parameters
     steps_max    = 100   # Maximum number of steps
-    dtmp_gofast  = 30.0  # Change in temperature below which to stop model acceleration
+    dtmp_gofast  = 35.0  # Change in temperature below which to stop model acceleration
     second_order = False # Use second order method
     wait_adj     = 5     # Wait this many steps before introducing convective adjustment
 
@@ -254,7 +273,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
     drel_dt = np.inf        # Rate of relative temperature change
     drel_dt_prev  = np.inf  # Previous ^
     step_frac = 0.01        # Step size scaling relative to temperature
-    flag_prev = False   # Previous iteration is meeting convergence
+    flag_prev = False       # Previous iteration is meeting convergence
     stopfast = False        # Stopping the 'fast' phase?
     atm_orig = copy.deepcopy(atm)   # Initial atmosphere for plotting
 
