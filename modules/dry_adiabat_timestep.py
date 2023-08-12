@@ -82,7 +82,7 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
             
             # Pure steam convective adjustment
             if pure_steam_adj:
-                dT_moist = moist_adj(atm_dry.tmp,atm_dry.p,atm_dry.pl,1000.)
+                dT_moist = moist_adj(atm_dry,1000.)
                 atm_dry.tmp     += dT_moist
             
             # Dry convective adjustment

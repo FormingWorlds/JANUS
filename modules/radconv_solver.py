@@ -9,15 +9,39 @@ import numpy as np
 from scipy.interpolate import PchipInterpolator
 from scipy.signal import savgol_filter
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 from utils.socrates import radCompSoc, CleanOutputDir
 from modules.dry_adjustment import DryAdj
+from modules.moist_adjustment_H2O import moist_adj
 
-# Make live plot during time-stepping
 def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
+    """Plot temperature profile and heating rates.
+
+    This plot is used to debug the model as it solves for RC eqm. Can be
+    used to make an animation, which is helpful for following model convergence.
+    Frames can be combined using ffmpeg:
+    `ffmpeg -framerate 5 -i radeqm_monitor_%04d.png -y out.mp4`.
+
+    Parameters
+    ----------
+        atm_hist : list
+            List containing atmosphere objects throughout the model run.
+        ref : atmos
+            Reference atmosphere object (typically the initial state).
+        dirs : dict
+            Dictionary of directory paths.
+        title : str
+            String to be used as the title of the plot
+        
+
+        save_as_frame : bool
+            Save this image according to frame number, rather than overwriting
+            the previous plot. Used for making an animation.
+        
+    """
+
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
 
     unit_bar = 1.0e-5
     hist_plot = 3
@@ -29,7 +53,7 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
     ax2.set_xlabel("Radiative heating [K day-1]", color='tab:red')
 
     ax2.axvline(x=0, color='tab:red', lw=0.5, alpha=0.8, zorder=0)
-    ax2.plot( atm_hist[-1].net_heating, atm_hist[-1].pl*unit_bar, color='tab:red', label='$H_{%d}$' % int(len(atm_hist)), alpha=0.8)
+    ax2.plot( atm_hist[-1].net_heating, atm_hist[-1].p*unit_bar, color='tab:red', label='$H_{%d}$' % int(len(atm_hist)-1), alpha=0.8)
     
     ax2_max = np.amax(np.abs(atm_hist[-1].net_heating))
     ax2_max = max(ax2_max * 1.5, 1e6)
@@ -57,18 +81,46 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
     # Save figure
     if save_as_frame:
         # Save this file with a unique name so that a video can be made
-        # to inspect and debug model convergence. Combine frames with command:
-        # $ ffmpeg -framerate 5 -i radeqm_monitor_%04d.png -y out.mp4
+        # to inspect and debug model convergence. 
         fname = dirs['output']+"/radeqm_monitor_%04d.png" % int(len(atm_hist))
     else:
         # Overwrite last image
         fname = dirs['output']+"/radeqm_monitor.png"
     fig.savefig(fname, bbox_inches='tight', dpi=140)  # PNG is faster than PDF
-
     plt.close()
 
-# Apply heating to atmosphere
-def temperature_step(atm, heat, dt, dtmp_clip=1e9, fix_surface=False, smooth_width=0, adj_steps=0):
+def temperature_step(atm, heat, dt, dtmp_clip=1e9, fix_surface=False, smooth_width=0, dryadj_steps=0, h2oadj_steps=0):
+    """Iterates the atmosphere at each level.
+
+    Includes radiative heating, dry/moist convective adjustment, and smoothing.
+
+    Parameters
+    ----------
+        atm : atmos
+            Atmosphere object
+        heat : np.ndarray
+            Heating array at each level of the model [K day-1].
+        dt : np.ndarray
+            Time-step at each level of the model [days].
+
+        dtmp_clip : float
+            Maximum absolute change in temperature in this step at each level.
+        fix_surface : bool
+            Keep surface temperature constant?
+        smooth_width : int
+            Convolution window size when performing smoothing. 0 => disabled.
+        dryadj_steps : int
+            Number of dry convective adjustment steps.
+        h2oadj_steps : int
+            Number of moist steam convective adjustment steps.
+        
+    Returns
+    ---------- 
+        atm : atmos
+            Atmosphere object with updated temperature profile
+        adj_changed : int
+            Number of levels impacted by convective adjustment this iteration.
+    """
 
     # Calculate temperature change
     dtmp = heat * dt 
@@ -77,15 +129,22 @@ def temperature_step(atm, heat, dt, dtmp_clip=1e9, fix_surface=False, smooth_wid
     # Apply temperature change
     atm.tmp += dtmp
 
+    adj_changed = 0
+
     # Dry convective adjustment
-    if adj_steps > 0:
+    if dryadj_steps > 0:
         tmp_before_adj = copy.deepcopy(atm.tmp)
-        for _ in range(adj_steps):
+        for _ in range(dryadj_steps):
             atm = DryAdj(atm)
-        adj_changed = np.count_nonzero(tmp_before_adj - atm.tmp)
+        adj_changed += np.count_nonzero(tmp_before_adj - atm.tmp)
         del tmp_before_adj
-    else:
-        adj_changed = 0
+
+    # H2O moist convective adjustment
+    if h2oadj_steps > 0:
+        tmp_before_adj = copy.deepcopy(atm.tmp)
+        atm.tmp += moist_adj(atm, 1.0, nb_convsteps=h2oadj_steps)
+        adj_changed += np.count_nonzero(tmp_before_adj - atm.tmp)
+        del tmp_before_adj
 
     # Smooth temperature profile
     if smooth_width > 1:
@@ -104,18 +163,38 @@ def temperature_step(atm, heat, dt, dtmp_clip=1e9, fix_surface=False, smooth_wid
 
     return atm, adj_changed
 
-# Calculate dt array
 def calc_stepsize(atm, dt_min=1e-5, dt_max=1e7, dtmp_step_frac=1.0):
+    """Calculates the time-step at each level for a given accuracy.
+
+    Parameters
+    ----------
+        atm : atmos
+            Atmosphere object
+
+        dt_min : float
+            Minimum time-step
+        dt_max : float
+            Maximum time-step
+        dtmp_step_frac : float
+            Size of time-step at each level in order to produce the desired
+            temperature change, given the current heating rate and temperature.
+        
+    Returns
+    ---------- 
+        dt : np.ndarray
+            Time-step at each level of the model
+    """
 
     dt = dtmp_step_frac * atm.tmp / np.abs(atm.net_heating)
     dt = np.clip(dt, dt_min, dt_max)
 
-    return np.array(dt)
+    return dt
 
 
 def find_rc_eqm(atm, dirs, rscatter=True, 
                 surf_state=2, surf_value=350, ini_state=2, 
-                gofast=True, dry_adjust=True, verbose=True):
+                gofast=True, dry_adjust=True, h2o_adjust=False, 
+                verbose=True):
     """Find T(p) satisfying global energy equilibrium.
 
     Finds global radiative-convective equilibrium by applying heating rates and
@@ -144,9 +223,11 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             2: atm object
             3: isothermal at surface temperature
         gofast : bool
-            Speed up convergence by starting out fast with smoothing to stabilise
+            Speed up convergence by starting out fast, stabilised with smoothing.
         dry_adjust : bool
             Include dry convective adjustment?
+        h2o_adjust : bool
+            Include pure steam convective adjustment? (Default: False)
         verbose : bool
             Print debug info?
 
@@ -156,12 +237,12 @@ def find_rc_eqm(atm, dirs, rscatter=True,
     steps_max    = 100   # Maximum number of steps
     dtmp_gofast  = 30.0  # Change in temperature below which to stop model acceleration
     second_order = False # Use second order method
-    wait_adj     = 5     # Wait this many steps before applying adjustment
+    wait_adj     = 5     # Wait this many steps before introducing convective adjustment
 
     # Convergence criteria
     dtmp_conv    = 10.0   # Maximum rolling change in temperature for convergence (dtmp) [K]
-    drel_dt_conv = 5.0   # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [day-1]
-    F_rloss_conv = 8.0   # Maximum relative value of F_loss for convergence [%]
+    drel_dt_conv = 3.0   # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [day-1]
+    F_rloss_conv = 3.0   # Maximum relative value of F_loss for convergence [%]
 
     # Variables
     success = False         # Convergence criteria met
@@ -196,6 +277,9 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         case 3:
             fix_surface = True
             atm.tmpl[-1] = max(surf_value,atm.minT)
+            atm.ts = atm.tmpl[-1]
+        case _:
+            raise ValueError("Invalid surface state for radiative-convective solver")
 
     # Clean SOCRATES files
     CleanOutputDir(dirs['output'])
@@ -214,7 +298,8 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             # Fast phase
             if verbose: print("    step %d (fast)" % step)
             dtmp_clip = 80.0
-            adj_steps = 40
+            dryadj_steps = 40
+            h2oadj_steps = 40
             smooth_window = 10
 
             atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter, rewrite_gas=False, rewrite_cfg=False)
@@ -224,7 +309,8 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             # Slow phase
             if verbose: print("    step %d" % step)
             dtmp_clip = 10.0
-            adj_steps = 20
+            dryadj_steps = 20
+            h2oadj_steps = 20
             smooth_window = 0
 
             if drel_dt_prev < np.inf:  # Adapt the time-stepping accuracy
@@ -236,14 +322,17 @@ def find_rc_eqm(atm, dirs, rscatter=True,
                 stopfast = False
                 atm.tmp  = np.array([ atm_hist[-1].tmp,  atm_hist[-2].tmp ]).mean(axis=0)
                 atm.tmpl = np.array([ atm_hist[-1].tmpl, atm_hist[-2].tmpl]).mean(axis=0)
-                adj_steps = 0
+                dryadj_steps = 0
+                h2oadj_steps = 0
                 smooth_window = 10
 
             atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter, rewrite_gas=False, rewrite_cfg=False)
             dt = calc_stepsize(atm, dt_max=50, dtmp_step_frac=step_frac)
 
         if ( dry_adjust and (step < wait_adj)) or not dry_adjust:
-            adj_steps = 0
+            dryadj_steps = 0
+        if ( h2o_adjust and (step < wait_adj)) or not h2o_adjust:
+            h2oadj_steps = 0
 
         if verbose: print("    dt_max,med  = %.3f, %.3f days" % (np.amax(dt), np.median(dt)))
         heat = atm.net_heating
@@ -252,15 +341,19 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         if second_order:
             atm_hlf = copy.deepcopy(atm_hist[-1])
             atm_hlf = temperature_step(atm_hlf, heat, dt * 0.5, dtmp_clip=dtmp_clip, fix_surface=fix_surface)
+            if surf_state == 0:
+                atm_hlf.ts = atm_hlf.tmpl[-1]
             atm_hlf = radCompSoc(atm_hlf, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
             heat = atm_hlf.net_heating
 
         # Apply heating rate for full step
         # optionally smooth temperature profile
         # optionally do dry convective adjustment
-
         atm, adj_changed = temperature_step(atm, heat, dt, dtmp_clip=dtmp_clip, 
-                                            fix_surface=fix_surface, smooth_width=smooth_window, adj_steps=adj_steps)
+                                            fix_surface=fix_surface, smooth_width=smooth_window, 
+                                            dryadj_steps=dryadj_steps, h2oadj_steps=h2oadj_steps)
+        if surf_state == 0:
+            atm.ts = atm.tmpl[-1]
 
         # Calculate relative rate of change in temperature
         if step > 2:
@@ -268,7 +361,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             drel_dt = np.amax(np.abs((atm.tmp - atm_hist[-1].tmp)/atm_hist[-1].tmp/dt))
 
         # Calculate average change in temperature (insensitive to oscillations)
-        if (step > 3):
+        if step > 3:
             tmp_comp_1 = np.array([ atm.tmp,          atm_hist[-1].tmp ]).mean(axis=0)
             tmp_comp_2 = np.array([ atm_hist[-2].tmp, atm_hist[-3].tmp ]).mean(axis=0)
             dtmp_comp = np.amax(np.abs(tmp_comp_1 - tmp_comp_2))
@@ -276,6 +369,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         # Calculate (the change in) flux balance
         F_TOA_rad = atm.net_flux[0]
         F_BOA_rad = atm.net_flux[-1]
+        F_OLR_rad = atm.LW_flux_up[0]
         F_loss_prev = F_loss
         F_loss = abs(F_TOA_rad-F_BOA_rad)
         F_rloss = abs(F_loss - F_loss_prev) / F_loss_prev * 100.0
@@ -286,6 +380,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             print("    dtmp/tmp/dt = %.3f day-1  " % drel_dt)
             print("    F_rad^TOA   = %.2e W m-2  " % F_TOA_rad)
             print("    F_rad^BOA   = %.2e W m-2  " % F_BOA_rad)
+            print("    F_rad^OLR   = %.2e W m-2  " % F_OLR_rad)
             print("    F_rad^loss  = %.2f W m-2  " % F_loss)
             print("    F_rad^rloss = %.3f %%     " % F_rloss)
 
