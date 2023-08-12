@@ -22,7 +22,7 @@ import numpy as np
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.radcoupler import RadConvEqm
 from modules.plot_flux_balance import plot_flux_balance
-from modules.radiative_heating import find_rc_eqm
+from modules.radconv_solver import find_rc_eqm
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 from utils.atmosphere_column import atmos
@@ -51,20 +51,20 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 2500.0                # K
+    T_surf        = 1900.0                # K
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    P_surf       = 200 * 1e5
+    P_surf       = 500 * 1e5
     vol_mixing = { 
                     "CO2"  : 0.1,
-                    "H2O"  : 0.15,
-                    "N2"   : 0.05,
+                    "H2O"  : 0.35,
+                    "N2"   : 0.35,
                     "H2"   : 0.0, 
-                    "NH3"  : 0.0,
-                    "CH4"  : 0.0, 
-                    "O2"   : 0.0, 
-                    "CO"   : 0.7, 
+                    # "NH3"  : 0.0,
+                    # "CH4"  : 0.0, 
+                    # "O2"   : 0.0, 
+                    "CO"   : 0.2, 
                     # # No thermodynamic data, RT only
                     # "O3"   : 0.05, 
                     # "N2O"  : 0.01, 
@@ -175,13 +175,8 @@ if __name__ == "__main__":
 
     # Apply heating rates to atmosphere until eqm is reached
     print("Solving for radiative eqm...")
-    atm_rce = find_rc_eqm(atm, dirs, surf_state=2, ini_state=2)
-    ga.plot_fluxes(atm_rce,filename="output/rce_fluxes1.pdf")
-
-    # print("Trying again...")
-    # atm_rce.ts += 200.0
-    # atm_rce = find_rc_eqm(atm_rce, dirs, surf_state=2, ini_state=2, gofast=False)
-    # ga.plot_fluxes(atm_rce,filename="output/rce_fluxes2.pdf")
+    atm_rce = find_rc_eqm(atm, dirs, ini_state=2)
+    ga.plot_fluxes(atm_rce,filename="output/rce_fluxes.pdf")
     
 
     end = t.time()

@@ -1,4 +1,4 @@
-import copy
+import copy, os
 import numpy as np
 from scipy.interpolate import PchipInterpolator
 from scipy.signal import savgol_filter
@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from utils.SocRadModel import radCompSoc
+from utils.SocRadModel import radCompSoc, CleanOutputDir
 from modules.dry_adjustment import DryAdj
 
 # Make live plot during time-stepping
@@ -20,13 +20,13 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
 
     # Top axis
     ax2=ax.twiny()
-    ax2.set_xlabel("Radiative heating rate [K/day]", color='tab:red')
+    ax2.set_xlabel("Net upward radiative flux [W m-2]", color='tab:red')
 
     ax2.axvline(x=0, color='tab:red', lw=0.5, alpha=0.8, zorder=0)
-    ax2.plot( atm_hist[-1].net_heating, atm_hist[-1].p*unit_bar, color='tab:red', label='$H_{%d}$' % int(len(atm_hist)), alpha=0.8)
+    ax2.plot( atm_hist[-1].net_flux, atm_hist[-1].pl*unit_bar, color='tab:red', label='$F_{%d}$' % int(len(atm_hist)), alpha=0.8)
     
-    ax2_max = np.amax(np.abs(atm_hist[-1].net_heating))
-    ax2_max = max(ax2_max * 1.5, 1e7)
+    ax2_max = np.amax(np.abs(atm_hist[-1].net_flux))
+    ax2_max = max(ax2_max * 1.5, 1e6)
     ax2.set_xlim(-ax2_max, ax2_max)
     ax2.set_xscale("symlog")
 
@@ -77,8 +77,9 @@ def temperature_step(atm, heat, dt, dtmp_clip=1e9, fix_surface=False, smooth_wid
         for _ in range(adj_steps):
             atm = DryAdj(atm)
         adj_changed = np.count_nonzero(tmp_before_adj - atm.tmp)
-        print("    count_adj   = %d layers" % adj_changed)
         del tmp_before_adj
+    else:
+        adj_changed = 0
 
     # Smooth temperature profile
     if smooth_width > 1:
@@ -95,10 +96,10 @@ def temperature_step(atm, heat, dt, dtmp_clip=1e9, fix_surface=False, smooth_wid
     if fix_surface:
         atm.tmpl[-1] = atm.ts
 
-    return atm
+    return atm, adj_changed
 
 # Calculate dt array
-def calc_stepsize(atm, dt_min=1e-5, dt_max=1e9, dtmp_step_frac=1.0):
+def calc_stepsize(atm, dt_min=1e-5, dt_max=1e7, dtmp_step_frac=1.0):
 
     dt = dtmp_step_frac * atm.tmp / np.abs(atm.net_heating)
     dt = np.clip(dt, dt_min, dt_max)
@@ -106,7 +107,9 @@ def calc_stepsize(atm, dt_min=1e-5, dt_max=1e9, dtmp_step_frac=1.0):
     return np.array(dt)
 
 
-def find_rc_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, ini_state=2, gofast=True, dry_adjust=True):
+def find_rc_eqm(atm, dirs, rscatter=True, 
+                surf_state=2, surf_value=350, ini_state=2, 
+                gofast=True, dry_adjust=True, verbose=True):
     """Find T(p) satisfying global energy equilibrium.
 
     Finds global radiative-convective equilibrium by applying heating rates and
@@ -138,32 +141,34 @@ def find_rc_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, ini_stat
             Speed up convergence by starting out fast with smoothing to stabilise
         dry_adjust : bool
             Include dry convective adjustment?
+        verbose : bool
+            Print debug info?
 
     """
 
     # Run parameters
     steps_max    = 100   # Maximum number of steps
-    dtmp_gofast  = 50.0  # Change in temperature below which to stop model acceleration
+    dtmp_gofast  = 30.0  # Change in temperature below which to stop model acceleration
     second_order = False # Use second order method
 
     # Convergence criteria
-    dtmp_conv    = 2.0   # Maximum rolling change in temperature for convergence (dtmp) [K]
-    drel_dt_conv = 1.0   # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [day-1]
-    F_rloss_conv = 5.0   # Maximum relative value of F_loss for convergence [%]
+    dtmp_conv    = 10.0   # Maximum rolling change in temperature for convergence (dtmp) [K]
+    drel_dt_conv = 5.0   # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [day-1]
+    F_rloss_conv = 8.0   # Maximum relative value of F_loss for convergence [%]
 
     # Variables
-    success = False 
-    step = 1
-    atm_hist = []  # Store previous iteration states
-    F_loss = 1e99
-    dtmp_comp = np.inf
-    drel_dt = np.inf
-    drel_dt_prev  = np.inf
-    step_frac = 0.01
-    F_loss_prev = 1e99
-    flag_previous = False
-    stopfast = False
-    atm_orig = copy.deepcopy(atm)
+    success = False         # Convergence criteria met
+    step = 1                # Current step number
+    atm_hist = []           # Store previous atmosphere states
+    F_loss = 1e99           # Flux loss (TOA vs BOA)
+    F_loss_prev = 1e99      # Previous ^
+    dtmp_comp = np.inf      # Temperature change comparison
+    drel_dt = np.inf        # Rate of relative temperature change
+    drel_dt_prev  = np.inf  # Previous ^
+    step_frac = 0.01        # Step size scaling relative to temperature
+    flag_previous = False   # Previous iteration is meeting convergence
+    stopfast = False        # Stopping the 'fast' phase?
+    atm_orig = copy.deepcopy(atm)   # Initial atmosphere for plotting
 
     # Handle initial state
     if ini_state == 3:
@@ -184,52 +189,53 @@ def find_rc_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, ini_stat
         case 3:
             fix_surface = True
             atm.tmpl[-1] = max(surf_value,atm.minT)
+
+    # Clean SOCRATES files
+    CleanOutputDir(dirs['output'])
+    CleanOutputDir( os.getcwd())
    
     # Start loop
     while (not success) and (step <= steps_max):
-        print("    step %d" % step)
 
         # Fast initial period
-        if gofast:
-            if (dtmp_comp < dtmp_gofast):
-                gofast = False 
-                stopfast = True
-            else:
-                gofast = True
-        
+        if gofast and ( (dtmp_comp < dtmp_gofast) or ( step/steps_max > 0.4) ):
+            gofast = False 
+            stopfast = True
+ 
         # Step-size calculation and heating rates
         if gofast:
-            print("    gofast      = True")
+            # Fast phase
+            if verbose: print("    step %d (fast)" % step)
             dtmp_clip = 80.0
-            adj_steps = 30
-            smooth_window = 12
+            adj_steps = 40
+            smooth_window = 10
 
-            atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
-            dt = calc_stepsize(atm, dt_min=0.1, dtmp_step_frac=0.3)
+            atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter, rewrite_gas=False, rewrite_cfg=False)
+            dt = calc_stepsize(atm, dt_min=1e-2, dtmp_step_frac=0.1)
             
         else:
-            dtmp_clip = 30.0
-            adj_steps = 10
+            # Slow phase
+            if verbose: print("    step %d" % step)
+            dtmp_clip = 10.0
+            adj_steps = 20
             smooth_window = 0
 
-            if drel_dt_prev < np.inf:
-                step_frac *= min(max( (drel_dt_prev/drel_dt) , 0.6 ) , 1.1)
-            step_frac = min(step_frac, 3e-3)
-            print("    step_frac   = %.2e" % step_frac)
-
-            # End of 'fast' period (take average of last two iters)
-            if stopfast:
-                print("    stopfast    = True")
+            if drel_dt_prev < np.inf:  # Adapt the time-stepping accuracy
+                step_frac *= min(max( (drel_dt_prev/drel_dt) , 0.6 ) , 1.2)
+            step_frac = min(step_frac, 5e-3)
+            if verbose: print("    step_frac   = %.2e" % step_frac)
+            
+            if stopfast: # End of 'fast' period (take average of last two iters)
                 stopfast = False
-                atm.tmp  = np.array([ atm_hist[-1].tmp,  atm_hist[-2].tmp  ]).mean(axis=0)
-                atm.tmpl = np.array([ atm_hist[-1].tmpl, atm_hist[-2].tmpl ]).mean(axis=0)
+                atm.tmp  = np.array([ atm_hist[-1].tmp,  atm_hist[-2].tmp ]).mean(axis=0)
+                atm.tmpl = np.array([ atm_hist[-1].tmpl, atm_hist[-2].tmpl]).mean(axis=0)
                 adj_steps = 0
+                smooth_window = 10
 
-            atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
-            dt = calc_stepsize(atm, dt_max=0.4, dtmp_step_frac=step_frac)
+            atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter, rewrite_gas=False, rewrite_cfg=False)
+            dt = calc_stepsize(atm, dt_max=4, dtmp_step_frac=step_frac)
 
-        print("    dt_max,med  = %.3f, %.3f days" % (np.amax(dt), np.median(dt)))
-
+        if verbose: print("    dt_max,med  = %.3f, %.3f days" % (np.amax(dt), np.median(dt)))
         heat = atm.net_heating
 
         # Second order time-stepping method (calc HR at half-step)
@@ -243,42 +249,50 @@ def find_rc_eqm(atm, dirs, rscatter=True, surf_state=2, surf_value=350, ini_stat
         # optionally smooth temperature profile
         # optionally do dry convective adjustment
         adj_steps = adj_steps if dry_adjust else 0
-        atm = temperature_step(atm, heat, dt, dtmp_clip=dtmp_clip, fix_surface=fix_surface, smooth_width=smooth_window, adj_steps=adj_steps)
+        atm, adj_changed = temperature_step(atm, heat, dt, dtmp_clip=dtmp_clip, 
+                                            fix_surface=fix_surface, smooth_width=smooth_window, adj_steps=adj_steps)
 
-        # Calculate statistics
+        # Calculate relative rate of change in temperature
         if step > 2:
             drel_dt_prev = drel_dt
             drel_dt = np.amax(np.abs((atm.tmp - atm_hist[-1].tmp)/atm_hist[-1].tmp/dt))
 
-        if (step > 5):
+        # Calculate average change in temperature (insensitive to oscillations)
+        if (step > 3):
             tmp_comp_1 = np.array([ atm.tmp,          atm_hist[-1].tmp ]).mean(axis=0)
             tmp_comp_2 = np.array([ atm_hist[-2].tmp, atm_hist[-3].tmp ]).mean(axis=0)
             dtmp_comp = np.amax(np.abs(tmp_comp_1 - tmp_comp_2))
 
+        # Calculate (the change in) flux balance
         F_TOA_rad = atm.net_flux[0]
         F_BOA_rad = atm.net_flux[-1]
-
         F_loss_prev = F_loss
         F_loss = abs(F_TOA_rad-F_BOA_rad)
         F_rloss = abs(F_loss - F_loss_prev) / F_loss_prev * 100.0
 
-        print("    dtmp_comp   = %.3f K      " % dtmp_comp)
-        print("    dtmp/tmp/dt = %.3f day-1  " % drel_dt)
-        print("    F_rad^TOA   = %.2e W m-2  " % F_TOA_rad)
-        print("    F_rad^BOA   = %.2e W m-2  " % F_BOA_rad)
-        print("    F_rad^loss  = %.2f W m-2  " % F_loss)
-        print("    F_rad^rloss = %.3f %%     " % F_rloss)
+        if verbose:
+            print("    count_adj   = %d layers   " % adj_changed)
+            print("    dtmp_comp   = %.3f K      " % dtmp_comp)
+            print("    dtmp/tmp/dt = %.3f day-1  " % drel_dt)
+            print("    F_rad^TOA   = %.2e W m-2  " % F_TOA_rad)
+            print("    F_rad^BOA   = %.2e W m-2  " % F_BOA_rad)
+            print("    F_rad^loss  = %.2f W m-2  " % F_loss)
+            print("    F_rad^rloss = %.3f %%     " % F_rloss)
 
-        # Store previous atmosphere for reference
+        # Store atmosphere for reference
         atm_hist.append(copy.deepcopy(atm))
 
         # Plot
         plt_title = "Step %d:     $|dT_{comp}|$ = %.1f K     $|F_{rad}^{loss}|$ = %.1f W m$^{-2}$" % (step, dtmp_comp, F_loss)
         plot_radiative_eqm(atm_hist, atm_orig, dirs, plt_title, save_as_frame=True)
        
-        # Convergence check
+        # Convergence check requires that:
+        # - minimal temperature change for two iters
+        # - minimal rate of temperature change for two iters
+        # - minimal change to radiative flux loss
+        # - solver is not in 'fast' mode, as it is unphysical
         success =       (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv) and flag_previous and (F_rloss < F_rloss_conv)
-        flag_previous = (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv)
+        flag_previous = (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv) and (not gofast)
 
         step += 1
         print(" ")

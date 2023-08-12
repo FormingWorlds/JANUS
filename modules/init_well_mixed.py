@@ -87,7 +87,7 @@ def no_condensation( atm, idx, wet_list, dry_list, prs_reset):
     
     return atm, wet_list, dry_list
 
-
+# Initialise the atmosphere into a well-mixed isothermal state
 def ini_wm_iso(atm):
 
     new_psurf = 0
