@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+@authors: 
+Harrison Nicholls (HN)
+"""
+
 import copy, os
 import numpy as np
 from scipy.interpolate import PchipInterpolator
@@ -7,7 +13,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from utils.SocRadModel import radCompSoc, CleanOutputDir
+from utils.socrates import radCompSoc, CleanOutputDir
 from modules.dry_adjustment import DryAdj
 
 # Make live plot during time-stepping
@@ -20,12 +26,12 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
 
     # Top axis
     ax2=ax.twiny()
-    ax2.set_xlabel("Net upward radiative flux [W m-2]", color='tab:red')
+    ax2.set_xlabel("Radiative heating [K day-1]", color='tab:red')
 
     ax2.axvline(x=0, color='tab:red', lw=0.5, alpha=0.8, zorder=0)
-    ax2.plot( atm_hist[-1].net_flux, atm_hist[-1].pl*unit_bar, color='tab:red', label='$F_{%d}$' % int(len(atm_hist)), alpha=0.8)
+    ax2.plot( atm_hist[-1].net_heating, atm_hist[-1].pl*unit_bar, color='tab:red', label='$H_{%d}$' % int(len(atm_hist)), alpha=0.8)
     
-    ax2_max = np.amax(np.abs(atm_hist[-1].net_flux))
+    ax2_max = np.amax(np.abs(atm_hist[-1].net_heating))
     ax2_max = max(ax2_max * 1.5, 1e6)
     ax2.set_xlim(-ax2_max, ax2_max)
     ax2.set_xscale("symlog")
@@ -52,7 +58,7 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
     if save_as_frame:
         # Save this file with a unique name so that a video can be made
         # to inspect and debug model convergence. Combine frames with command:
-        # $ ffmpeg -framerate 5 -i radeqm_monitor_%04d.png out.mp4
+        # $ ffmpeg -framerate 5 -i radeqm_monitor_%04d.png -y out.mp4
         fname = dirs['output']+"/radeqm_monitor_%04d.png" % int(len(atm_hist))
     else:
         # Overwrite last image
@@ -150,6 +156,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
     steps_max    = 100   # Maximum number of steps
     dtmp_gofast  = 30.0  # Change in temperature below which to stop model acceleration
     second_order = False # Use second order method
+    wait_adj     = 5     # Wait this many steps before applying adjustment
 
     # Convergence criteria
     dtmp_conv    = 10.0   # Maximum rolling change in temperature for convergence (dtmp) [K]
@@ -166,7 +173,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
     drel_dt = np.inf        # Rate of relative temperature change
     drel_dt_prev  = np.inf  # Previous ^
     step_frac = 0.01        # Step size scaling relative to temperature
-    flag_previous = False   # Previous iteration is meeting convergence
+    flag_prev = False   # Previous iteration is meeting convergence
     stopfast = False        # Stopping the 'fast' phase?
     atm_orig = copy.deepcopy(atm)   # Initial atmosphere for plotting
 
@@ -233,7 +240,10 @@ def find_rc_eqm(atm, dirs, rscatter=True,
                 smooth_window = 10
 
             atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter, rewrite_gas=False, rewrite_cfg=False)
-            dt = calc_stepsize(atm, dt_max=4, dtmp_step_frac=step_frac)
+            dt = calc_stepsize(atm, dt_max=50, dtmp_step_frac=step_frac)
+
+        if ( dry_adjust and (step < wait_adj)) or not dry_adjust:
+            adj_steps = 0
 
         if verbose: print("    dt_max,med  = %.3f, %.3f days" % (np.amax(dt), np.median(dt)))
         heat = atm.net_heating
@@ -248,7 +258,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         # Apply heating rate for full step
         # optionally smooth temperature profile
         # optionally do dry convective adjustment
-        adj_steps = adj_steps if dry_adjust else 0
+
         atm, adj_changed = temperature_step(atm, heat, dt, dtmp_clip=dtmp_clip, 
                                             fix_surface=fix_surface, smooth_width=smooth_window, adj_steps=adj_steps)
 
@@ -289,10 +299,11 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         # Convergence check requires that:
         # - minimal temperature change for two iters
         # - minimal rate of temperature change for two iters
-        # - minimal change to radiative flux loss
+        # - minimal change to radiative flux loss for two iters
         # - solver is not in 'fast' mode, as it is unphysical
-        success =       (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv) and flag_previous and (F_rloss < F_rloss_conv)
-        flag_previous = (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv) and (not gofast)
+        flag_this = (dtmp_comp < dtmp_conv) and (drel_dt < drel_dt_conv) and (F_rloss < F_rloss_conv)
+        success   = flag_this and flag_prev
+        flag_prev = flag_this and not gofast
 
         step += 1
         print(" ")

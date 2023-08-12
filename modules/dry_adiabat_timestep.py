@@ -17,7 +17,7 @@ from modules.dry_adjustment import DryAdj
 from modules.simple_boundary import simple_boundary_tend
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import utils.SocRadModel as SocRadModel
+import utils.socrates as socrates
 import utils.phys as phys
 
 # Time integration for n steps
@@ -52,7 +52,7 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
 
         # Compute radiation, midpoint method time stepping
         try:
-            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
+            atm_dry         = socrates.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
             # print("atm_dry.net_heating in compute_dry_adiabat = ", atm_dry.net_heating)
             # print("atm_dry.SW_flux_down in compute_dry_adiabat = ", atm_dry.SW_flux_down)
             

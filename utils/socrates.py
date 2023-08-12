@@ -71,6 +71,10 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
               "NH3" : 0.017031,             # kg mol−1 
             }
 
+    # Start fresh?
+    if (rewrite_cfg and rewrite_tmp and rewrite_gas):
+        CleanOutputDir(os.getcwd())
+        CleanOutputDir(dirs["output"])
     
     # Define path to origin spectral file
     spectral_file = dirs["output"]+"runtime_spectral_file"
