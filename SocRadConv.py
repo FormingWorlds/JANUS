@@ -51,20 +51,20 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 1900.0                # K
+    T_surf        = 3000.0                # K
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    P_surf       = 500 * 1e5
+    P_surf       = 90 * 1e5
     vol_mixing = { 
-                    "CO2"  : 0.1,
-                    "H2O"  : 0.35,
-                    "N2"   : 0.35,
-                    "H2"   : 0.0, 
+                    "CO2"  : 0.05,
+                    "H2O"  : 0.0,
+                    "N2"   : 0.01,
+                    "H2"   : 0.04, 
                     # "NH3"  : 0.0,
                     # "CH4"  : 0.0, 
                     # "O2"   : 0.0, 
-                    "CO"   : 0.2, 
+                    "CO"   : 0.9, 
                     # # No thermodynamic data, RT only
                     # "O3"   : 0.05, 
                     # "N2O"  : 0.01, 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         dirs["rad_conv"]+"/spectral_files/Reach/Reach",
-        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_0Ga_claire_12.txt",
+        dirs["rad_conv"]+"/spectral_files/stellar_spectra/M45_ADLeo.txt",
         dirs["output"]+"runtime_spectral_file"
     )
 
@@ -159,16 +159,15 @@ if __name__ == "__main__":
     atm_dry, atm = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
 
     # Plot abundances w/ TP structure
-    # if (cp_dry):
-    #     ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
-    #     atm_dry.write_PT(filename="output/dry_pt.tsv")
-    #     ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
+    if (cp_dry):
+        ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
+        atm_dry.write_PT(filename="output/dry_pt.tsv")
+        ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
 
 
-    # ga.plot_adiabats(atm_moist,filename="output/moist_ga.pdf")
-    # atm_moist.write_PT(filename="output/moist_pt.tsv")
-    # ga.plot_fluxes(atm_moist,filename="output/moist_fluxes.pdf")
-    # plot_flux_balance(atm,atm_moist,False,time,dirs)
+    ga.plot_adiabats(atm,filename="output/moist_ga.pdf")
+    atm.write_PT(filename="output/moist_pt.tsv")
+    ga.plot_fluxes(atm,filename="output/moist_fluxes.pdf")
 
     # print("Initialising well mixed...")
     # atm = ini_wm_iso(atm)
@@ -177,6 +176,7 @@ if __name__ == "__main__":
     print("Solving for radiative eqm...")
     atm_rce = find_rc_eqm(atm, dirs, ini_state=2)
     ga.plot_fluxes(atm_rce,filename="output/rce_fluxes.pdf")
+    plot_flux_balance(atm,atm,False,time,dirs)
     
 
     end = t.time()
