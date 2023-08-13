@@ -252,6 +252,11 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         plot : bool
             Make plots in output folder?
 
+    Returns
+    ----------
+        atm : atmos
+            Atmosphere object with latest T(p) solution
+
     """
 
     # Run parameters
@@ -291,8 +296,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             fix_surface = False 
         case 1:
             fix_surface = False
-            print("ERROR: Surface boundary condition %d not implemented")
-            exit(1)
+            raise Exception("Atmosphere surface boundary condition %d not implemented")
         case 2:
             fix_surface = True 
             atm.tmpl[-1] = atm.ts
@@ -351,6 +355,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter, rewrite_gas=False, rewrite_cfg=False)
             dt = calc_stepsize(atm, dt_max=50, dtmp_step_frac=step_frac)
 
+        # Cancel convective adjustment if disabled
         if ( dry_adjust and (step < wait_adj)) or not dry_adjust:
             dryadj_steps = 0
         if ( h2o_adjust and (step < wait_adj)) or not h2o_adjust:
@@ -359,7 +364,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         if verbose: print("    dt_max,med  = %.3f, %.3f days" % (np.amax(dt), np.median(dt)))
         heat = atm.net_heating
 
-        # Second order time-stepping method (calc HR at half-step)
+        # Optional second order time-stepping method (calculate HR at half-step)
         if second_order:
             atm_hlf = copy.deepcopy(atm_hist[-1])
             atm_hlf = temperature_step(atm_hlf, heat, dt * 0.5, dtmp_clip=dtmp_clip, fix_surface=fix_surface)
@@ -424,9 +429,9 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         flag_prev = flag_this and not gofast
 
         step += 1
-        print(" ")
+        if verbose: print(" ")
 
-
+    # Print information about the final state
     if not success:
         print("WARNING: Stopping atmosphere iterations without success")
     else:

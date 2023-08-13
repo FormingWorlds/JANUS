@@ -125,14 +125,16 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     # Write values to netcdf: SOCRATES Userguide p. 45
     basename = 'profile'
 
-    # Write configuration stuff
     check_cfg = lambda fpath: rewrite_cfg or (not os.path.exists(fpath))
+    check_tmp = lambda fpath: rewrite_tmp or (not os.path.exists(fpath))
+    check_gas = lambda fpath: rewrite_gas or (not os.path.exists(fpath))
 
+    # Write configuration stuff
     fthis = basename+'.surf'
     if check_cfg(fthis): nctools.ncout_surf(fthis, 0, 0, 1, float(atm.albedo_s))
 
     fthis = basename+'.tstar'
-    if check_cfg(fthis): nctools.ncout2d(   fthis, 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
+    if check_cfg(fthis) or check_tmp(fthis): nctools.ncout2d(   fthis, 0, 0, atm.ts, 'tstar', longname="Surface Temperature", units='K')
 
     fthis = basename+'.pstar'
     if check_cfg(fthis): nctools.ncout2d(   fthis, 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
@@ -144,8 +146,6 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     if check_cfg(fthis): nctools.ncout2d(   fthis, 0, 0, atm.toa_heating, 'stoa', longname="Solar Irradiance at TOA", units='WM-2')
 
     # T, P + volatiles
-    check_tmp = lambda fpath: rewrite_tmp or (not os.path.exists(fpath))
-
     fthis = basename+'.t'
     if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.tmp, 't', longname="Temperature", units='K')
 
@@ -157,8 +157,6 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
 
 
     # Gases
-    check_gas = lambda fpath: rewrite_gas or (not os.path.exists(fpath))
-
     fthis = basename+'.q'
     if check_gas(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
 
