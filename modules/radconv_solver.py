@@ -213,7 +213,7 @@ def calc_stepsize(atm, dt_min=1e-5, dt_max=1e7, dtmp_step_frac=1.0):
 def find_rc_eqm(atm, dirs, rscatter=True, 
                 surf_state=2, surf_value=350, ini_state=2, 
                 gofast=True, dry_adjust=True, h2o_adjust=False, 
-                verbose=True):
+                verbose=True, plot=False):
     """Find T(p) satisfying global energy equilibrium.
 
     Finds global radiative-convective equilibrium by applying heating rates and
@@ -248,7 +248,9 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         h2o_adjust : bool
             Include pure steam convective adjustment? (Default: False)
         verbose : bool
-            Print debug info?
+            Print debug info to stdout?
+        plot : bool
+            Make plots in output folder?
 
     """
 
@@ -257,6 +259,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
     dtmp_gofast  = 35.0  # Change in temperature below which to stop model acceleration
     second_order = False # Use second order method
     wait_adj     = 5     # Wait this many steps before introducing convective adjustment
+    modprint     = 10    # Frequency to print when verbose==False
 
     # Convergence criteria
     dtmp_conv    = 10.0   # Maximum rolling change in temperature for convergence (dtmp) [K]
@@ -315,7 +318,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         # Step-size calculation and heating rates
         if gofast:
             # Fast phase
-            if verbose: print("    step %d (fast)" % step)
+            if verbose or (step % modprint == 0): print("    step %d (fast)" % step)
             dtmp_clip = 80.0
             dryadj_steps = 40
             h2oadj_steps = 40
@@ -326,7 +329,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             
         else:
             # Slow phase
-            if verbose: print("    step %d" % step)
+            if verbose or (step % modprint == 0): print("    step %d" % step)
             dtmp_clip = 10.0
             dryadj_steps = 20
             h2oadj_steps = 20
@@ -377,7 +380,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         # Calculate relative rate of change in temperature
         if step > 2:
             drel_dt_prev = drel_dt
-            drel_dt = np.amax(np.abs((atm.tmp - atm_hist[-1].tmp)/atm_hist[-1].tmp/dt))
+            drel_dt = np.amax(np.abs(  ((atm.tmp - atm_hist[-1].tmp)/atm_hist[-1].tmp)/dt  ))
 
         # Calculate average change in temperature (insensitive to oscillations)
         if step > 3:
@@ -407,8 +410,9 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         atm_hist.append(copy.deepcopy(atm))
 
         # Plot
-        plt_title = "Step %d:     $|dT_{comp}|$ = %.1f K     $|F_{rad}^{loss}|$ = %.1f W m$^{-2}$" % (step, dtmp_comp, F_loss)
-        plot_radiative_eqm(atm_hist, atm_orig, dirs, plt_title, save_as_frame=True)
+        if plot:
+            plt_title = "Step %d:     $|dT_{comp}|$ = %.1f K     $|F_{rad}^{loss}|$ = %.1f W m$^{-2}$" % (step, dtmp_comp, F_loss)
+            plot_radiative_eqm(atm_hist, atm_orig, dirs, plt_title, save_as_frame=True)
        
         # Convergence check requires that:
         # - minimal temperature change for two iters
@@ -424,9 +428,15 @@ def find_rc_eqm(atm, dirs, rscatter=True,
 
 
     if not success:
-        print("Stopping energy balance iterations without success")
+        print("WARNING: Stopping atmosphere iterations without success")
     else:
-        print("Found global energy balance")
+        print("Convergence criteria met (%d iterations)"%step)
+
+    print("Final radiative fluxes [W m-2]")
+    print("    OLR   = %.2e W m-2  " % F_OLR_rad)
+    print("    TOA   = %.2e W m-2  " % F_TOA_rad)
+    print("    BOA   = %.2e W m-2  " % F_BOA_rad)
+    print("    loss  = %.2f W m-2  " % F_loss)
 
     return atm
 

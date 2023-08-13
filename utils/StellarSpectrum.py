@@ -11,7 +11,7 @@ import shutil , os
 import subprocess
 from scipy.stats import binned_statistic
 
-def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=90000):
+def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
     """Write a stellar spectrum.
 
     This function supplements InsertStellarSpectrum by writing a stellar 
@@ -31,30 +31,34 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=90000):
             
     """
 
+    socrates_nbins_max = int(1e5 - 1)
+
     # Validate
     if (len(wl) != len(fl)):
         raise Exception("Stellar wavelength and flux arrays have different lengths")
-
     if (len(wl) < 500):
         print("WARNING: Loaded stellar spectrum is very short!")
+    if (nbins_max >= len(wl)):
+        raise Exception("Cannot bin spectrum to a higher resolution than the data provided")
+    if (nbins_max > socrates_nbins_max):
+        raise Exception("Too many bins requested for stellar spectrum (maximum is %d)" % socrates_nbins_max)
 
-    # Down-sample spectrum if required
-    if (nbins_max > -1) and (nbins_max < len(wl)):
+    # Down-sample spectrum when necessary or requested
+    if (nbins_max > -1) or (len(wl) > socrates_nbins_max):
         print("Rebinning stellar spectrum")
 
         # Parameters
         max_retry           = 10    # Number of times to down-sample before giving up
         nbins_floor         = 250   # Minimum number of bins
-        nbins_ceil          = 1e5   # Maximum number of bins
 
         # Store old wl,fl arrays
         wl_orig = wl
         fl_orig = fl
 
         if (nbins_max < 500):
-            print("WARNING: Requested number of stellar spectrum bins is small (%d bins)" % nbins_max)
+            print("WARNING: Requested number of bins is small (%d bins)" % nbins_max)
 
-        nbins_max = min( int(nbins_ceil), nbins_max) # Must be fewer than 100k
+        nbins_max = min( int(socrates_nbins_max), nbins_max) # Must be fewer than 100k
 
         # Perform rounds of down-sampling until nbins < nbins_max
         # Rarely performs more than 2 rounds
@@ -65,7 +69,7 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=90000):
 
             # Prevent loop from getting stuck
             if count_retry > max_retry:
-                raise Exception("Giving up downsampling stellar spectrum after %d rounds" % count_retry)
+                raise Exception("Giving up downsampling spectrum after %d rounds" % count_retry)
             
             # Ensure that the bins can be subdivided by truncating the array
             downsample_factor = int(downsample_factor)
@@ -85,7 +89,6 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=90000):
 
             if np.isnan(fl).any() or np.any(fl <= 0):
                 # Try again with fewer bins
-                print("WARNING: New stellar spectrum contains empty bins or negative values")
                 downsample_factor *= 1.5
             else:
                 # Try again if still too many samples
@@ -156,7 +159,4 @@ def InsertStellarSpectrum(orig_file:str, star_file:str, outp_file:str):
     if (p.returncode != 0):
         print("WARNING: prep_spec returned with code %d" % p.returncode)
     
-    # lines = p.stdout.splitlines()
-    # for l in lines:
-    #     print(l)
 
