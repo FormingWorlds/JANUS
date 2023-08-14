@@ -23,6 +23,7 @@ from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.radcoupler import RadConvEqm
 from modules.plot_flux_balance import plot_flux_balance, plot_fluxes
 from modules.radconv_solver import find_rc_eqm
+from utils.socrates import CleanOutputDir
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 from utils.atmosphere_column import atmos
@@ -163,19 +164,13 @@ if __name__ == "__main__":
         atm_dry.write_PT(filename="output/dry_pt.tsv")
         ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
 
-
     ga.plot_adiabats(atm,filename="output/moist_ga.pdf")
     atm.write_PT(filename="output/moist_pt.tsv")
     plot_fluxes(atm,filename="output/moist_fluxes.pdf")
 
-    # print("Initialising well mixed...")
-    # atm = ini_wm_iso(atm)
-
-    # Apply heating rates to atmosphere until eqm is reached
-    print("Solving for radiative eqm...")
-    atm_rce = find_rc_eqm(atm, dirs, ini_state=2)
-    
-    plot_fluxes(atm_rce,filename="output/rce_fluxes.pdf")    
+    # Tidy
+    CleanOutputDir(os.getcwd())
+    CleanOutputDir(dirs['output'])
 
     end = t.time()
     print("Runtime:", round(end - start,2), "s")
