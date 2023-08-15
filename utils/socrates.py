@@ -296,6 +296,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
 
             # Total heating (K/day)
             atm.net_heating       = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
+            atm.net_heating       = np.array(list(atm.net_heating))
     
     ### Contribution function
     if calc_cf == True:

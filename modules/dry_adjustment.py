@@ -47,7 +47,7 @@ def DryAdj(atm):
             atm.tmp[i+1] = T2
     
     # Upward pass
-    for i in range(len(T)-2,-1,-1):
+    for i in range(-2,1,-1):
 
         T1,p1 = T[i],p[i]
         T2,p2 = T[i+1],p[i+1]
