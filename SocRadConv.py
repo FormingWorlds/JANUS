@@ -44,15 +44,15 @@ if __name__ == "__main__":
     AU                      = 1.495978707e+11  # m
     
     # Planet 
-    time = { "planet": 0., "star": 4e+9 } # yr,
-    star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                 # au, orbital distance
+    time = { "planet": 0., "star": 30e+6 } # yr,
+    star_mass     = 0.1                 # M_sun, mass of star
+    mean_distance = 0.011                 # au, orbital distance
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 300.0                # K
-    P_top         = 1.0                  # Pa
+    T_surf        = 2884.8                # K
+    P_top         = 0.01                  # Pa
 
     # Define volatiles by mole fractions
     # P_surf       = 300 * 1e5
@@ -82,21 +82,18 @@ if __name__ == "__main__":
     P_surf = 0.0
     vol_mixing = {}
     vol_partial = {
-        "H2O" : 0.003583e5,
+        "H2O" : 1.54642e5,
         "NH3" : 0.,
-        "CO2" : 0.035e5,
+        "CO2" : 6.70820e5,
         "CH4" : 0.,
-        "CO" : 0.,
+        "CO" : 129.85989e5,
         "O2" : 0.20e5,
-        "N2" : 0.78e5,
-        "H2" : 0.
+        "N2" : 1.53779e5,
+        "H2" : 13.01485e5
         }
 
     # Stellar heating on/off
     stellar_heating = True
-    
-    # False: interpolate luminosity from age and mass tables. True: define a custom instellation.
-    custom_ISR = False
 
     # Rayleigh scattering on/off
     rscatter = True
@@ -108,8 +105,8 @@ if __name__ == "__main__":
     pure_steam_adj = False
 
     # Tropopause calculation
-    trppD = True   # Calculate dynamically?
-    trppT = 30.0     # Fixed tropopause value if not calculated dynamically
+    trppD = False   # Calculate dynamically?
+    trppT = 500.0     # Fixed tropopause value if not calculated dynamically
     
     # Surface temperature time-stepping
     surf_dt = False
@@ -136,22 +133,22 @@ if __name__ == "__main__":
     os.mkdir(dirs["output"])
 
     # Create atmosphere object
-    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT)
-
-    # Compute stellar heating
-    S_0, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
+    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, 
+                vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT, req_levels=100)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
         atm.toa_heating = 0.
     else:
+        # _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
+        atm.toa_heating  = 4.853e+04
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         dirs["rad_conv"]+"/spectral_files/Reach/Reach",
-        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_0Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
 
@@ -167,6 +164,9 @@ if __name__ == "__main__":
     ga.plot_adiabats(atm,filename="output/moist_ga.pdf")
     atm.write_PT(filename="output/moist_pt.tsv")
     plot_fluxes(atm,filename="output/moist_fluxes.pdf")
+
+    # Test radconv
+    atm = find_rc_eqm(atm, dirs, rscatter=rscatter, verbose=True, plot=True)
 
     # Tidy
     CleanOutputDir(os.getcwd())

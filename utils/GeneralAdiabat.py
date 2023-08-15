@@ -943,11 +943,12 @@ def general_adiabat( atm ):
         alpha = atm.alpha_cloud
         toa_heating = atm.toa_heating
         minT = atm.minT
+        nlev_save = atm.nlev_save
 
         for vol in atm.vol_list.keys():
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
 
-        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT, minT=minT)
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT, minT=minT, req_levels=nlev_save)
         
         atm.alpha_cloud = alpha
         atm.toa_heating = toa_heating

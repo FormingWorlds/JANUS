@@ -8,7 +8,7 @@ class atmos:
     
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
-                 calc_cf: bool=False, 
+                 calc_cf: bool=False, req_levels: int = 100,
                  trppT: float = 290.0, minT: float = 20.0):
         
         """Atmosphere class    
@@ -39,6 +39,8 @@ class atmos:
 
             calc_cf : bool
                 Calculate contribution function?
+            req_levels : int
+                Requested number of vertical levels
             trppT : float
                 Tropopause temperature
             minT : float
@@ -77,7 +79,7 @@ class atmos:
         self.ptop 			= P_top 			# Top pressure in Pa
         self.nlev 			= 10000  	   	# Number of vertical levels for adiabat integration
         self.step    		= 0.01  		# Adjust to match self.nlev
-        self.nlev_save		= 100   		# Number of levels to save object
+        self.nlev_save		= int(max(req_levels, 10))  		# Number of levels to save object
         self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
         self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
 
