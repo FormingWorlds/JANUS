@@ -78,7 +78,7 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
                 atm_dry.tmp[-1] += dT_dry[-1] * k_turb * (atm_dry.tmp[-1] - atm_dry.ts) 
                 
             # Apply heating
-            atm_dry.tmp     += dT_dry
+            atm_dry.tmp     += dT_dry 
             
             # Pure steam convective adjustment
             if pure_steam_adj:

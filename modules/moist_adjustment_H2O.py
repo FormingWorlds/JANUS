@@ -12,10 +12,9 @@ import numpy as np
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 
 def moist_adj(atm, conv_timescale, nb_convsteps = 10):
-    """Moist adjustment routine.
+    """Moist adjustment routine, as formulated by RB.
 
-    Assumes constant latent heat and does not conserve moist enthalpy. Routine
-    originally written by RB.
+    Assumes constant latent heat and does not conserve moist enthalpy. 
 
     Parameters
     ----------

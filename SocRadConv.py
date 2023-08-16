@@ -166,7 +166,7 @@ if __name__ == "__main__":
     plot_fluxes(atm,filename="output/moist_fluxes.pdf")
 
     # Test radconv
-    atm = find_rc_eqm(atm, dirs, rscatter=rscatter, verbose=True, plot=True)
+    atm = find_rc_eqm(atm, dirs, rscatter=rscatter, verbose=True, plot=True, surf_state=1)
 
     # Tidy
     CleanOutputDir(os.getcwd())
