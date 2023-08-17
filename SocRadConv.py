@@ -21,7 +21,7 @@ import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.radcoupler import RadConvEqm
-from modules.plot_flux_balance import plot_flux_balance, plot_fluxes
+from modules.plot_flux_balance import plot_fluxes
 from modules.radconv_solver import find_rc_eqm
 from utils.socrates import CleanOutputDir
 
@@ -44,36 +44,27 @@ if __name__ == "__main__":
     AU                      = 1.495978707e+11  # m
     
     # Planet 
-    time = { "planet": 0., "star": 30e+6 } # yr,
-    star_mass     = 0.1                 # M_sun, mass of star
-    mean_distance = 0.011                 # au, orbital distance
+    time = { "planet": 0., "star": 4e+9 } # yr,
+    star_mass     = 1.0                 # M_sun, mass of star
+    mean_distance = 1.0                 # au, orbital distance
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 2884.8                # K
-    P_top         = 0.01                  # Pa
+    T_surf        = 2000.8                # K
+    P_top         = 0.1                  # Pa
 
     # Define volatiles by mole fractions
-    # P_surf       = 300 * 1e5
+    # P_surf       = 1.01 * 1e5
     # vol_mixing = { 
-    #                 # "CO2"  : 0.05,
-    #                 "H2O"  : 0.45,
-    #                 "N2"   : 0.45,
+    #                 "CO2"  : 0.00417,
+    #                 "H2O"  : 0.03,
+    #                 "N2"   : 0.78084,
     #                 "H2"   : 0.03, 
-    #                 # "NH3"  : 0.0,
-    #                 # "CH4"  : 0.0, 
-    #                 # "O2"   : 0.0, 
-    #                 "CO"   : 0.02, 
-    #                 # # No thermodynamic data, RT only
-    #                 # "O3"   : 0.05, 
-    #                 # "N2O"  : 0.01, 
-    #                 # "NO"   : 0.01, 
-    #                 # "SO2"  : 0.01, 
-    #                 # "NO2"  : 0.01, 
-    #                 # "HNO3" : 0.01, 
-    #                 # "He"   : 0.01, 
-    #                 # "OCS"  : 0.01,
+    #                 "CH4"  : 0.000187, 
+    #                 "O2"   : 0.20946, 
+    #                 "O3"   : 0.0000006, 
+    #                 "He"   : 0.00000524 , 
     #             }
     # vol_partial = {}
 
@@ -106,7 +97,7 @@ if __name__ == "__main__":
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 500.0     # Fixed tropopause value if not calculated dynamically
+    trppT = 100.0     # Fixed tropopause value if not calculated dynamically
     
     # Surface temperature time-stepping
     surf_dt = False
@@ -140,15 +131,14 @@ if __name__ == "__main__":
     if stellar_heating == False: 
         atm.toa_heating = 0.
     else:
-        # _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
-        atm.toa_heating  = 4.853e+04
+        _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         dirs["rad_conv"]+"/spectral_files/Reach/Reach",
-        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_0Ga_claire_12.txt",
+        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
 
@@ -156,17 +146,17 @@ if __name__ == "__main__":
     atm_dry, atm = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
 
     # Plot abundances w/ TP structure
-    if (cp_dry):
-        ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
-        atm_dry.write_PT(filename="output/dry_pt.tsv")
-        ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
+    # if (cp_dry):
+    #     ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
+    #     atm_dry.write_PT(filename="output/dry_pt.tsv")
+    #     ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
 
     ga.plot_adiabats(atm,filename="output/moist_ga.pdf")
     atm.write_PT(filename="output/moist_pt.tsv")
     plot_fluxes(atm,filename="output/moist_fluxes.pdf")
 
     # Test radconv
-    atm = find_rc_eqm(atm, dirs, rscatter=rscatter, verbose=True, plot=True, surf_state=1)
+    atm = find_rc_eqm(atm, dirs, rscatter=rscatter, verbose=True, plot=True, surf_state=0)
 
     # Tidy
     CleanOutputDir(os.getcwd())

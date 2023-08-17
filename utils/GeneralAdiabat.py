@@ -163,6 +163,7 @@ molar_mass      = {
           "S"   : 0.03206,              # kg mol−1 
           "He"  : 0.0040026,            # kg mol−1 
           "NH3" : 0.017031,             # kg mol−1 
+          "O3"  : 0.0479982,            # kg mol-1
         }
 
 def atm_z(atm, idx):
@@ -232,10 +233,11 @@ def p_sat(switch,T):
         case 'NH3':
             e = phys.satvps_function(phys.nh3)   
         case _:
-            raise Exception("Invalid volatile '%s' in p_sat()" % switch)
+            e = lambda T: 0.0
         
-    # Return saturation vapor pressure
-    return float(f'{e(T):.2f}')
+
+    p = e(T)
+    return float(p)
 '''
 def p_sat(switch,T): 
     
@@ -390,6 +392,8 @@ def get_T_crit(switch):
             return phys.He.CriticalPointT
         case 'NH3':
             return phys.NH3.CriticalPointT
+        case _:
+            return 0.0
         
 def L_heat(switch, T):
 

@@ -69,6 +69,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
               "S"   : 0.03206,              # kg mol−1 
               "He"  : 0.0040026,            # kg mol−1 
               "NH3" : 0.017031,             # kg mol−1 
+              "O3"  : 0.0479982,            # kg mol-1
             }
 
     # Start fresh?
@@ -125,9 +126,9 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     # Write values to netcdf: SOCRATES Userguide p. 45
     basename = 'profile'
 
-    check_cfg = lambda fpath: rewrite_cfg or (not os.path.exists(fpath))
-    check_tmp = lambda fpath: rewrite_tmp or (not os.path.exists(fpath))
-    check_gas = lambda fpath: rewrite_gas or (not os.path.exists(fpath))
+    check_cfg = lambda fpath: bool(rewrite_cfg or (not os.path.exists(fpath)))
+    check_tmp = lambda fpath: bool(rewrite_tmp or (not os.path.exists(fpath)))
+    check_gas = lambda fpath: bool(rewrite_gas or (not os.path.exists(fpath)))
 
     # Write configuration stuff
     fthis = basename+'.surf'
@@ -209,23 +210,23 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
 
     # Socrates print to stdout at runtime?
     if socrates_print == True:
-        errhandle = None
+        outhandle = None
         seq_sw_ex.extend(["-o"])
         seq_lw_ex.extend(["-o"])
     else:
-        errhandle = subprocess.DEVNULL
+        outhandle = subprocess.DEVNULL
 
     # SW calculation with SOCRATES
-    subprocess.run(seq_sw_ex,check=True,stderr=errhandle)
-    subprocess.run(seq_sw_mv,check=True,stderr=errhandle)
+    subprocess.run(seq_sw_ex,check=True,stderr=outhandle,stdout=outhandle)
+    subprocess.run(seq_sw_mv,check=True,stderr=outhandle,stdout=outhandle)
 
     # LW calculation with SOCRATES
-    subprocess.run(seq_lw_ex,check=True,stderr=errhandle)
-    subprocess.run(seq_lw_mv,check=True,stderr=errhandle)
+    subprocess.run(seq_lw_ex,check=True,stderr=outhandle,stdout=outhandle)
+    subprocess.run(seq_lw_mv,check=True,stderr=outhandle,stdout=outhandle)
 
     if calc_cf == True:
-        subprocess.run(list(seq8),check=True,stderr=errhandle)
-        subprocess.run(list(seq9),check=True,stderr=errhandle)
+        subprocess.run(list(seq8),check=True,stderr=outhandle,stdout=outhandle)
+        subprocess.run(list(seq9),check=True,stderr=outhandle,stdout=outhandle)
 
 
     # Open netCDF files produced by SOCRATES

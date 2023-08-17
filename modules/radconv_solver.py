@@ -69,9 +69,9 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
     ax2.set_xlabel("log(Rad heating [K day-1])", color='tab:red')
 
     ax2.axvline(x=0, color='tab:red', lw=0.5, alpha=0.8, zorder=0)
-    ax2.plot( atm_hist[-1].net_heating, atm_hist[-1].p*unit_bar, color='tab:red', label='$H_{%d}$' % int(len(atm_hist)-1), alpha=0.8)
+    ax2.plot( atm_hist[-1].heat, atm_hist[-1].p*unit_bar, color='tab:red', label='$H_{%d}$' % int(len(atm_hist)-1), alpha=0.8)
     
-    ax2_max = np.amax(np.abs(atm_hist[-1].net_heating))
+    ax2_max = np.amax(np.abs(atm_hist[-1].heat))
     ax2_max = max(ax2_max * 1.5, 1e6)
     ax2.set_xlim(-ax2_max, ax2_max)
     ax2.set_xscale("symlog")
@@ -120,7 +120,7 @@ def plot_radiative_eqm(atm_hist, ref, dirs, title, save_as_frame=False):
     plt.close()
 
 def temperature_step(atm, heat, dt, dtmp_clip=1e9, fixed_bottom=True, smooth_width=0, 
-                     dryadj_steps=0, h2oadj_steps=0, incl_sens=True):
+                     dryadj_steps=0, h2oadj_steps=0):
     """Iterates the atmosphere at each level.
 
     Includes radiative heating, dry/moist convective adjustment, sensible 
@@ -145,8 +145,6 @@ def temperature_step(atm, heat, dt, dtmp_clip=1e9, fixed_bottom=True, smooth_wid
             Number of dry convective adjustment steps.
         h2oadj_steps : int
             Number of moist steam convective adjustment steps.
-        incl_sens : bool
-            Include sensible heat flux
         
     Returns
     ---------- 
@@ -162,24 +160,6 @@ def temperature_step(atm, heat, dt, dtmp_clip=1e9, fixed_bottom=True, smooth_wid
     dtmp = heat * dt 
     dtmp = np.clip(dtmp, -1.0 * dtmp_clip, dtmp_clip)
     atm.tmp += dtmp
-
-    # Apply sensible heating to bottom layer
-    if incl_sens and not fixed_bottom:
-        C_d = 0.001  # Turbulent exchange coefficient [dimensionless]
-        U = 10.0     # Wind speed [m s-1]
-
-        gas_const = phys.R_gas / atm.mu[-1]  # J k-1 kg-1
-        dens = atm.p[-1] / (gas_const * atm.tmp[-1]) # kg m-3
-
-        sens = atm.grav_s * dens * C_d * U * (atm.tmpl[-1] - atm.ts) / (atm.pl[-2] - atm.pl[-1])
-        sens *= 86400.0 # Convert K/s -> K/day
-
-        dtmp_sens = sens * dt[-1] # K
-        atm.tmp[-1] += dtmp_sens
-
-        dtmp_sens_warn = 500.0
-        if (dtmp_sens > dtmp_sens_warn):
-            print("WARNING: Finding large values for sensible heat contribution (dT > %d K)" % dtmp_sens_warn)
 
     adj_changed = 0
 
@@ -224,14 +204,58 @@ def temperature_step(atm, heat, dt, dtmp_clip=1e9, fixed_bottom=True, smooth_wid
 
     return atm, adj_changed
 
+def calc_heat(atm, soc_hr=False, add_sens=True):
+    """Calculates the current heating rate at each cell centre. Does not 
+    calculate new fluxes.
 
-def calc_stepsize(atm, dt_min, dt_max, dtmp_step_frac):
+    Parameters
+    ----------
+        atm : atmos
+            Atmosphere object
+        
+        soc_hr : bool
+            Use SOCRATES' own HR calculation
+        add_sens : bool
+            Add sensible heat flux to bottom layer
+        
+    Returns
+    ---------- 
+        heat : np.ndarray
+            Heating rate for current atmosphere
+    """
+
+
+    # Use SOCRATES calculation
+    if soc_hr:
+        heat = np.array(atm.net_heating)
+    
+    # Finite difference case
+    else:
+        dF = atm.net_flux[1:] - atm.net_flux[:-1]
+        dp = atm.pl[1:] - atm.pl[:-1]
+
+        if add_sens:
+            C_d = 0.001  # Turbulent exchange coefficient [dimensionless]
+            U = 10.0     # Wind speed [m s-1]
+
+            sens = atm.cp[-1]*atm.p[-1]/phys.R_gas/atm.tmp[-1] * C_d * U * (atm.ts - atm.tmpl[-1])
+            dF[-1] += sens
+
+        heat = (atm.grav_z / atm.cp * atm.mu) * dF/dp # K/s
+        heat *= 86400.0 # K/day
+    
+    return heat
+    
+
+def calc_stepsize(atm, heat, dt_min, dt_max, dtmp_step_frac):
     """Calculates the time-step at each level for a given accuracy.
 
     Parameters
     ----------
         atm : atmos
             Atmosphere object
+        heat : np.ndarray
+            Heating rates
         dt_min : float
             Minimum time-step
         dt_max : float
@@ -246,12 +270,14 @@ def calc_stepsize(atm, dt_min, dt_max, dtmp_step_frac):
             Time-step at each cell-centre position of the model
     """
 
-    T_c = atm.tmp[-5]
+    T_c = atm.tmp[-8] # Switch to sub-linear timestep scaling above this temperature
 
     dt_min, dt_max = min(dt_min, dt_max), max(dt_min, dt_max)
 
-    expect_heat = np.clip(np.abs(atm.net_heating), 1e-30, None) # Prevent division by zero
+    expect_heat = np.clip(np.abs(heat), 1e-30, None) # Prevent division by zero
     dt = dtmp_step_frac * atm.tmp / expect_heat * np.sqrt(T_c / atm.tmp)
+
+    dt[-1] *= 0.5
 
     dt = np.array(list(dt))
     dt = np.clip(dt, dt_min, dt_max)
@@ -313,15 +339,16 @@ def find_rc_eqm(atm, dirs, rscatter=True,
     print("Iteratively solving for the temperature structure...")
 
     # Run parameters
-    steps_max    = 150   # Maximum number of steps
-    dtmp_gofast  = 35.0  # Change in temperature below which to stop model acceleration
-    wait_adj     = 5     # Wait this many steps before introducing convective adjustment
+    steps_max    = 100   # Maximum number of steps
+    dtmp_gofast  = 40.0  # Change in temperature below which to stop model acceleration
+    wait_adj     = 3     # Wait this many steps before introducing convective adjustment
     modprint     = 10    # Frequency to print when verbose==False
+    soc_hr       = False # Use SOCRATES heating rate values?
 
     # Convergence criteria
     dtmp_conv    = 5.0    # Maximum rolling change in temperature for convergence (dtmp) [K]
-    drel_dt_conv = 5.0    # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [day-1]
-    F_rchng_conv = 0.05   # Maximum relative value of F_loss for convergence [%]
+    drel_dt_conv = 30.0   # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [day-1]
+    F_rchng_conv = 0.01   # Maximum relative value of F_loss for convergence [%]
     
     if verbose:
         print("    convergence criteria")
@@ -387,9 +414,9 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             dtmp_clip = 80.0
             dryadj_steps = 40
             h2oadj_steps = 40
-            dt_min = 1e-2
-            dt_max = 1e7
-            step_frac = 1e-1
+            dt_min = 1e-3
+            dt_max = 1e6
+            step_frac = 5e-2
             smooth_window = int( max(0.1*len(atm.tmp),2 )) # 10% of levels
             
         else:
@@ -399,8 +426,8 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             dryadj_steps = 20
             h2oadj_steps = 20
             dt_min = 1e-5
-            dt_max = 1.0
-            step_frac_max = 5e-3
+            dt_max = 10.0
+            step_frac_max = 4e-3
             smooth_window = 0
 
             # End of 'fast' period (take average of last two iters)
@@ -426,9 +453,12 @@ def find_rc_eqm(atm, dirs, rscatter=True,
 
         # Get heating rates and step size
         atm = radCompSoc(atm, dirs, recalc=False, calc_cf=False, rscatter=rscatter, rewrite_gas=False, rewrite_cfg=False)
-        dt = calc_stepsize(atm, dt_min, dt_max, step_frac)
-        heat = atm.net_heating
+        heat = calc_heat(atm, soc_hr=soc_hr, add_sens=(sens_heat and not fixed_bottom))
+        dt = calc_stepsize(atm, heat, dt_min, dt_max, step_frac)
         if verbose: print("    dt_max,med  = %.3f, %.3f days" % (np.amax(dt), np.median(dt)))
+
+        atm.heat = heat
+        
         
         # Cancel convective adjustment if disabled
         if ( dry_adjust and (step < wait_adj)) or not dry_adjust:
@@ -438,10 +468,10 @@ def find_rc_eqm(atm, dirs, rscatter=True,
 
         # Apply radiative heating rate for full step
         # optionally smooth temperature profile
-        # optionally do convective adjustment and sensible heat exchange
+        # optionally do convective adjustment
         atm, adj_changed = temperature_step(atm, heat, dt, 
                                             dtmp_clip=dtmp_clip, fixed_bottom=fixed_bottom,
-                                            smooth_width=smooth_window, incl_sens=sens_heat,
+                                            smooth_width=smooth_window,
                                             dryadj_steps=dryadj_steps, h2oadj_steps=h2oadj_steps)
 
         # Calculate relative rate of change in temperature
@@ -490,7 +520,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
 
         # Plot
         if plot:
-            plt_title = "Step %d:     $|dT_{comp}|$ = %.1f K     $|F_{rad}^{TOA}|$ = %.1f W m$^{-2}$" % (step, dtmp_comp, F_TOA_rad)
+            plt_title = "Step %d:     $|dT_{comp}|$ = %.1f K     $F_{rad}^{TOA}$ = %.1f W m$^{-2}$" % (step, dtmp_comp, F_TOA_rad)
             plot_radiative_eqm(atm_hist, atm_orig, dirs, plt_title, save_as_frame=True)
        
         # Convergence check requires that:
