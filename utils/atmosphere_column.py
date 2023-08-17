@@ -169,7 +169,8 @@ class atmos:
         self.flux_down_total		= np.zeros(self.nlev)				# W/m^2
         self.net_flux				= np.zeros(self.nlev)				# W/m^2
         self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
-        self.net_heating 			= np.zeros(self.nlev) 				# K/day
+        self.net_heating 			= np.zeros(self.nlev) 				# K/day from socrates
+        self.heat                   = np.zeros(self.nlev)               # K/day from *
         # Contribution function arrays
         if calc_cf == True:
             self.cff 					= np.zeros(self.nlev) 				# normalised

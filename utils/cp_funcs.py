@@ -19,6 +19,8 @@ def cpv( vol, tmp, cp_mode = "constant" ):
 
     if cp_mode == "T-dependent":
 
+        cp = 0.0
+
         # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/H2O/h1H2
         if vol == "H2O":
             # Temperature (K) 500. - 1700.    1700. - 6000.
@@ -181,24 +183,28 @@ def cpv( vol, tmp, cp_mode = "constant" ):
         return cp # J mol-1 K-1
     
     if cp_mode == "constant":
-        if vol == 'H2O':
-            cp = phys.water.cp*phys.water.MolecularWeight*1e-3
-        if vol == 'CH4':
-            cp = phys.methane.cp*phys.methane.MolecularWeight*1e-3
-        if vol == 'CO2':
-            cp = phys.co2.cp*phys.co2.MolecularWeight*1e-3
-        if vol == 'CO':
-            cp = phys.co.cp*phys.co.MolecularWeight*1e-3
-        if vol == 'N2':
-            cp = phys.n2.cp*phys.n2.MolecularWeight*1e-3
-        if vol == 'O2':
-            cp = phys.o2.cp*phys.o2.MolecularWeight*1e-3
-        if vol == 'H2':
-            cp = phys.h2.cp*phys.h2.MolecularWeight*1e-3
-        if vol == 'He':
-            cp = phys.he.cp*phys.he.MolecularWeight*1e-3
-        if vol == 'NH3':
-            cp = phys.nh3.cp*phys.nh3.MolecularWeight*1e-3   
+        match vol:
+
+            case 'H2O':
+                cp = phys.water.cp*phys.water.MolecularWeight*1e-3
+            case 'CH4':
+                cp = phys.methane.cp*phys.methane.MolecularWeight*1e-3
+            case 'CO2':
+                cp = phys.co2.cp*phys.co2.MolecularWeight*1e-3
+            case 'CO':
+                cp = phys.co.cp*phys.co.MolecularWeight*1e-3
+            case 'N2':
+                cp = phys.n2.cp*phys.n2.MolecularWeight*1e-3
+            case 'O2':
+                cp = phys.o2.cp*phys.o2.MolecularWeight*1e-3
+            case 'H2':
+                cp = phys.h2.cp*phys.h2.MolecularWeight*1e-3
+            case 'He':
+                cp = phys.he.cp*phys.he.MolecularWeight*1e-3
+            case 'NH3':
+                cp = phys.nh3.cp*phys.nh3.MolecularWeight*1e-3   
+            case _:
+                cp = 0.0
 
         return cp # J mol-1 K-1 
 
@@ -309,9 +315,6 @@ def cp_cond( vol, tmp, cp_mode='T-dependent'):
     if vol == "O2":
         return 4.184 * 10 #J/K/mol; approximate value, at the higher end of the liquid temperature range
 
-    # No data yet
-    if vol == "He":
-        return 0. 
 
 
     # https://webbook.nist.gov/cgi/fluid.cgi?TLow=196&THigh=405&TInc=1&Applet=on&Digits=5&ID=C7664417&Action=Load&Type=SatP&TUnit=K&PUnit=bar&DUnit=mol%2Fl&HUnit=kJ%2Fmol&WUnit=m%2Fs&VisUnit=uPa*s&STUnit=N%2Fm&RefState=DEF
@@ -330,4 +333,6 @@ def cp_cond( vol, tmp, cp_mode='T-dependent'):
             cp = cp_interp_func(tmp)
         return cp
         #return 81.465 # J/K/mol at 298 K
+
+    return 0.0
       
