@@ -145,25 +145,6 @@ vol_latex = {
     "O2-O2"  : r"O$_2$–O$_2$",
 }
 
-molar_mass      = {
-          "H2O" : 0.01801528,           # kg mol−1
-          "CO2" : 0.04401,              # kg mol−1
-          "H2"  : 0.00201588,           # kg mol−1
-          "CH4" : 0.01604,              # kg mol−1
-          "CO"  : 0.02801,              # kg mol−1
-          "N2"  : 0.028014,             # kg mol−1
-          "O2"  : 0.031999,             # kg mol−1
-          "SO2" : 0.064066,             # kg mol−1
-          "H2S" : 0.0341,               # kg mol−1 
-          "H"   : 0.001008,             # kg mol−1 
-          "C"   : 0.012011,             # kg mol−1 
-          "O"   : 0.015999,             # kg mol−1 
-          "N"   : 0.014007,             # kg mol−1 
-          "S"   : 0.03206,              # kg mol−1 
-          "He"  : 0.0040026,            # kg mol−1 
-          "NH3" : 0.017031,             # kg mol−1 
-        }
-
 def atm_z(atm, idx):
 
     # Mean temperature below
@@ -181,7 +162,7 @@ def atm_z(atm, idx):
     mu_c = 0.
     if atm.xc[idx] > 0:
         for vol in atm.vol_list.keys():
-            mu_c += atm.x_cond[vol][idx]*molar_mass[vol] / atm.xc[idx]
+            mu_c += atm.x_cond[vol][idx]*phys.molar_mass[vol] / atm.xc[idx]
     
     # Integration
     #dz = - phys.R_gas * T_mean_down * np.log(atm.p[idx+1]/atm.p[idx]) / ( atm.mu[idx] * atm.grav_z[idx] )
@@ -231,7 +212,7 @@ def p_sat(switch,T, water_lookup=False):
         case 'NH3':
             e = phys.satvps_function(phys.nh3)   
         case _:
-            raise Exception("Invalid volatile '%s' in p_sat()" % switch)
+            e = lambda T,water_lookup: 0.0
         
     # Return saturation vapor pressure
     svp = e(T,water_lookup=water_lookup)
@@ -303,6 +284,7 @@ def Tdew(switch, p):
         L_NH3=phys.NH3.L_vaporization*phys.nh3.MolecularWeight*1e-3
         return Tref/(1.-(Tref*phys.R_gas/L_NH3)*math.log(p/pref))
     
+    return 0.0
 
 
 def get_beta(switch, T, water_lookup=False):
@@ -338,6 +320,8 @@ def get_T_crit(switch):
             return phys.He.CriticalPointT
         case 'NH3':
             return phys.NH3.CriticalPointT
+        case _:
+            return 0.0
         
 def L_heat(switch, T, water_lookup=False):
 
@@ -409,6 +393,12 @@ def L_heat(switch, T, water_lookup=False):
             MolecularWeight = phys.NH3.MolecularWeight
             T_triple        = phys.NH3.TriplePointT
             T_crit          = phys.NH3.CriticalPointT
+        case _:
+            L_sublimation   = 0.0
+            L_vaporization  = 0.0
+            MolecularWeight = 0.0
+            T_triple        = 0.0
+            T_crit          = 0.0
 
     # Gas-solid transition
     if T <= T_triple:
@@ -610,7 +600,7 @@ def condensation( atm, idx, wet_list, dry_list, prs_reset):
             atm.p_vol[vol][idx] = atm.vol_list[vol] * atm.p[idx]
             #atm.p_vol[vol][idx] = atm.vol_list[vol] * p_tot_pre_condensation
             # Mean gas phase molar mass
-            atm.mu[idx]       += atm.vol_list[vol] * molar_mass[vol]
+            atm.mu[idx]       += atm.vol_list[vol] * phys.molar_mass[vol]
     
     else:  
         
@@ -639,7 +629,7 @@ def condensation( atm, idx, wet_list, dry_list, prs_reset):
     atm.mu[idx]   = 0.
     
     for vol in atm.vol_list.keys():
-        atm.mu[idx]   += molar_mass[vol] * atm.p_vol[vol][idx]
+        atm.mu[idx]   += phys.molar_mass[vol] * atm.p_vol[vol][idx]
     atm.mu[idx] /= atm.p[idx]
         
     

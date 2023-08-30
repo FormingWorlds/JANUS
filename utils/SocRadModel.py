@@ -43,26 +43,6 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,insert_star=True
     # Only supported from SOCRATES version 2306 onwards (revision 1403)
     socrates_use_namelist = True
 
-    # Molar masses of each species (note the units)
-    molar_mass      = {
-              "H2O" : 0.01801528,           # kg mol−1
-              "CO2" : 0.04401,              # kg mol−1
-              "H2"  : 0.00201588,           # kg mol−1
-              "CH4" : 0.01604,              # kg mol−1
-              "CO"  : 0.02801,              # kg mol−1
-              "N2"  : 0.028014,             # kg mol−1
-              "O2"  : 0.031999,             # kg mol−1
-              "SO2" : 0.064066,             # kg mol−1
-              "H2S" : 0.0341,               # kg mol−1 
-              "H"   : 0.001008,             # kg mol−1 
-              "C"   : 0.012011,             # kg mol−1 
-              "O"   : 0.015999,             # kg mol−1 
-              "N"   : 0.014007,             # kg mol−1 
-              "S"   : 0.03206,              # kg mol−1 
-              "He"  : 0.0040026,            # kg mol−1 
-              "NH3" : 0.017031,             # kg mol−1 
-            }
-
     
     # Define path to origin spectral file
     spectral_file = dirs["output"]+"runtime_spectral_file"
@@ -76,6 +56,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,insert_star=True
         vals.append(arr)
     if np.any(np.array(vals).flatten() < 0):
         print("ERROR: Negative mixing ratio(s)!")
+        print(atm.x_gas)
         exit(1)
     
     # Rayleigh scattering for CO2
@@ -137,13 +118,13 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,insert_star=True
     nctools.ncout3d(basename+'.t', 0, 0,   atm.p,  atm.tmp, 't', longname="Temperature", units='K')
     nctools.ncout3d(basename+'.tl', 0, 0,  atm.pl, atm.tmpl, 'tl', longname="Temperature", units='K')
     nctools.ncout3d(basename+'.p', 0, 0,   atm.p,  atm.p, 'p', longname="Pressure", units='PA')
-    nctools.ncout3d(basename+'.q', 0, 0,   atm.p,  molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
+    nctools.ncout3d(basename+'.q', 0, 0,   atm.p,  phys.molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
 
     allowed_vols = {"CO2", "O3", "N2O", "CO", "CH4", "O2", "NO", "SO2", "NO2", "NH3", "HNO3", "N2", "H2", "He", "OCS"}
     for vol in atm.vol_list.keys():
         if vol in allowed_vols:
             vol_lower = str(vol).lower()
-            nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  molar_mass[vol] / atm.mu * atm.x_gas[vol], vol_lower, longname=vol, units='kg/kg') 
+            nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  phys.molar_mass[vol] / atm.mu * atm.x_gas[vol], vol_lower, longname=vol, units='kg/kg') 
 
     # Call sequences for run SOCRATES + move data
     seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag]
@@ -160,7 +141,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,insert_star=True
     if socrates_use_namelist:
         mmw = 0.0
         for vol in atm.vol_list.keys():
-            mmw += ( np.mean(atm.x_gas[vol]) *  molar_mass[vol])   # There's probably a more accurate way to handle this.
+            mmw += ( np.mean(atm.x_gas[vol]) *  phys.molar_mass[vol])   # There's probably a more accurate way to handle this.
 
         rgas = phys.R_gas/mmw
         cp_avg = np.mean(atm.cp) / mmw

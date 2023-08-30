@@ -69,6 +69,14 @@ class atmos:
             for key in vol_partial.keys():
                 self.vol_list[key] = vol_partial[key]/self.ps
 
+        # Required volatiles
+        required_vols = {"H2O","CO2","N2"}
+        if len(required_vols.intersection(self.vol_list.keys())) < len(required_vols):
+            raise Exception("Missing required volatiles!\nRequired vols = %s" % str(required_vols))
+
+        # H2O floor to prevent NaNs
+        self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-30 ] )
+
         # Initialise other variables
         self.alpha_cloud 	= 0.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
         
@@ -135,9 +143,6 @@ class atmos:
         self.z[0]           = 0         			# m
         self.grav_z[0]      = self.grav_s 			# m s-2
 
-
-        # H2O floor to prevent NaNs
-        self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-30 ] )
 
         # Instantiate object dicts and arrays
         for vol in self.vol_list.keys():

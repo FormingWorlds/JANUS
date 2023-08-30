@@ -37,10 +37,6 @@ if __name__ == "__main__":
     start = t.time()
     ##### Settings
 
-    # Constants
-    L_sun                   = 3.828e+26        # W, IAU definition
-    AU                      = 1.495978707e+11  # m
-    
     # Planet 
     time = { "planet": 0., "star": 4567e+6 } # yr,
     star_mass     = 1.0                 # M_sun, mass of star
@@ -54,6 +50,7 @@ if __name__ == "__main__":
 
     # Define volatiles by mole fractions
     # P_surf       = 100 * 1e5
+    # vol_partial = {}
     # vol_mixing = { 
     #                 "CO2"  : 0.0,
     #                 "H2O"  : 1.0,
@@ -73,21 +70,19 @@ if __name__ == "__main__":
     #                 # "He"   : 0.01, 
     #                 # "OCS"  : 0.01,
     #             }
-    # vol_partial = {}
+    
 
     # OR:
     # Define volatiles by partial pressures
     P_surf = 0.0
     vol_mixing = {}
     vol_partial = {
-        "H2O" : 0.003583e5,
-        "NH3" : 0.,
-        "CO2" : 0.035e5,
-        "CH4" : 0.,
-        "CO" : 0.,
-        "O2" : 0.20e5,
-        "N2" : 0.78e5,
-        "H2" : 0.
+        "H2O" : 0.0036e5,
+        "CO2" : 0.0350e5,
+        "O2"  : 0.2000e5,
+        "N2"  : 0.7800e5,
+        "He"  : 0.0100e5,
+        "O3"  : 0.0010e5
         }
 
     # Stellar heating on/off
@@ -149,7 +144,6 @@ if __name__ == "__main__":
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        # dirs["rad_conv"]+"/spectral_files/sp_b318_HITRAN_a16/sp_b318_HITRAN_a16_no_spectrum",
         dirs["rad_conv"]+"/spectral_files/Reach/Reach",
         dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
