@@ -30,15 +30,10 @@ def run_once(T_surf, dirs):
 
     # Define volatiles by mole fractions
     P_surf       = 300 * 1e5
-    vol_mixing = { 
-                    "CO2"  : 0.0,
-                    "H2O"  : 1.0,
-                    "N2"   : 0.0,
-                    "H2"   : 0.0, 
-                    "NH3"  : 0.0,
-                    "CH4"  : 0.0, 
-                    "O2"   : 0.0, 
-                    "CO"   : 0.0
+    vol_mixing = {
+                    "H2O" : 1.0,
+                    "CO2" : 0.0,
+                    "N2"  : 0.0
                 }
     
     # Rayleigh scattering on/off
@@ -99,7 +94,7 @@ if __name__=='__main__':
     print("Running AEOLUS...")
     Ts_arr = []
     OLR_arr = []
-    for Ts in np.linspace(200, 2200, 40):
+    for Ts in np.linspace(200, 2200, 30):
         print("T_surf = %d" % Ts)
         out = run_once(Ts, dirs)
         Ts_arr.append(out[0])
@@ -107,24 +102,26 @@ if __name__=='__main__':
         print(" ")
     
     # Get literature data
-    k2013 = np.loadtxt(dirs["rad_conv"]+"tools/kopparapu+2013_runaway_curve.csv",
-                          dtype=float, skiprows=4, delimiter=',').T 
-    g2013 = np.loadtxt(dirs["rad_conv"]+"tools/goldblatt+2013_runaway_curve.csv",
-                          dtype=float, skiprows=4, delimiter=',').T 
+    g2013 = np.loadtxt(dirs["rad_conv"]+"plotting_tools/comparison_data/Goldblatt13_data.txt",
+                          dtype=float, skiprows=2, delimiter=',').T 
+    k2013 = np.loadtxt(dirs["rad_conv"]+"plotting_tools/comparison_data/Kopparapu13_data.txt",
+                          dtype=float, skiprows=2, delimiter=',').T 
+    h2015 = np.loadtxt(dirs["rad_conv"]+"plotting_tools/comparison_data/Hamano15_data.txt",
+                          dtype=float, skiprows=2, delimiter=',').T 
 
     # Setup plot
     print("Making plot")
     fig,ax = plt.subplots(1,1)
 
-    # Plot literature data
-    ax.plot(k2013[0], k2013[1], color='tab:red',   label='Kopparapu+2013')
-    ax.plot(g2013[0], g2013[1], color='tab:green', label='Goldblatt+2013')
-
-    # Plot our data
-    ax.plot(Ts_arr, OLR_arr, color='black', label='AEOLUS')
+    # Plot data
+    lw = 2
+    ax.plot(k2013[0], k2013[1], color='tab:red',   lw=lw, label='Kopparapu+2013')
+    ax.plot(g2013[0], g2013[1], color='tab:green', lw=lw, label='Goldblatt+2013')
+    ax.plot(h2015[0], h2015[1], color='tab:blue',  lw=lw, label='Hamano+2015')
+    ax.plot(Ts_arr, OLR_arr,    color='black',     lw=lw, label='AEOLUS')
 
     # Setup figure and save
-    fig.legend()
+    fig.legend(loc='upper center')
     ax.set_xlabel("Surface temperature [K]")
     ax.set_ylabel("OLR [W m-2]")
     fig.savefig(dirs["output"]+"runaway_demo.pdf")
