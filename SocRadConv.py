@@ -92,9 +92,7 @@ if __name__ == "__main__":
 
     # Stellar heating on/off
     stellar_heating = True
-    
-    # False: interpolate luminosity from age and mass tables. True: define a custom instellation.
-    custom_ISR = False
+
 
     # Rayleigh scattering on/off
     rscatter = True
@@ -108,6 +106,9 @@ if __name__ == "__main__":
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
     trppT = 30.0     # Fixed tropopause value if not calculated dynamically
+
+    # Water lookup tables enabled (e.g. for L vs T dependence)
+    water_lookup = False
     
     # Surface temperature time-stepping
     surf_dt = False
@@ -134,7 +135,7 @@ if __name__ == "__main__":
     os.mkdir(dirs["output"])
 
     # Create atmosphere object
-    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT)
+    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT, water_lookup=water_lookup)
 
     # Compute stellar heating
     S_0, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)

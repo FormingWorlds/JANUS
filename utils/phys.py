@@ -553,9 +553,10 @@ class satvps_function:
             self.M = MolecularWeight
             self.T0 = Gas_or_T0
             self.e0 = e0_or_iceFlag
-    def __call__(self,T):
+
+    def __call__(self,T, water_lookup=False):
         #Decide which latent heat to use
-        if self.gas == 'H2O':
+        if self.gas == 'H2O' and water_lookup:
             # Water special case -- use IAPWS steam tables in water_tables.py
             if T > wt.T_tp:
                 return wt.lookup('psat', T)

@@ -8,7 +8,7 @@ class atmos:
     
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
-                 calc_cf: bool=False, 
+                 calc_cf: bool=False, water_lookup: bool=False,
                  trppT: float = 290.0, minT: float = 20.0):
         
         """Atmosphere class    
@@ -104,6 +104,8 @@ class atmos:
         self.Rcp    		= 2./7. 						# standard earth air
         self.n_species 		= 7
         self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
+
+        self.water_lookup   = water_lookup
         
         # self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500))) # cm
         self.bands 			= np.concatenate((np.arange(0,3000,25),np.arange(3000,11000,50),np.arange(11000,30500,500))) # cm, 318 bands: HITEMP-compatible spacing
@@ -144,9 +146,7 @@ class atmos:
             self.pl_vol[vol]     = np.zeros(self.nlev+1)
             self.x_gas[vol]      = np.zeros(self.nlev)
             self.x_cond[vol]     = np.zeros(self.nlev)
-            
-            #self.x_ocean[vol]    = 0.
-
+        
             # Surface partial pressures
             self.p_vol[vol][0]   = self.ps * self.vol_list[vol]
 
@@ -171,6 +171,8 @@ class atmos:
             self.cff 					= np.zeros(self.nlev) 				# normalised
             self.cff_i					= np.zeros([self.nbands,self.nlev]) # cf per band
             self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev])
+
+
 
     def write_PT(self,filename: str="output/PT.tsv", punit:str = "Pa"):
         """Write PT profile to file, with descending pressure.
