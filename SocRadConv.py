@@ -71,7 +71,6 @@ if __name__ == "__main__":
     #                 # "OCS"  : 0.01,
     #             }
     
-
     # OR:
     # Define volatiles by partial pressures
     P_surf = 0.0
@@ -87,7 +86,6 @@ if __name__ == "__main__":
 
     # Stellar heating on/off
     stellar_heating = True
-
 
     # Rayleigh scattering on/off
     rscatter = True
@@ -143,6 +141,7 @@ if __name__ == "__main__":
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
+
     StellarSpectrum.InsertStellarSpectrum(
         dirs["rad_conv"]+"/spectral_files/Reach/Reach",
         dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
