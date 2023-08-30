@@ -38,7 +38,7 @@ def set_stratosphere(atm):
         for vol in atm.vol_list.keys():
         
             # Saturation vapor pressure
-            p_vol_sat     = ga.p_sat(vol, atm.tmp[idx])
+            p_vol_sat     = ga.p_sat(vol, atm.tmp[idx], water_lookup=atm.water_lookup)
 
             # If still condensible
             if atm.p[idx] > p_vol_sat:
