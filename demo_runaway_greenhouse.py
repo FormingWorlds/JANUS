@@ -46,7 +46,6 @@ def run_once(T_surf, dirs):
     trppD = False   # Calculate dynamically?
     trppT = 0.0     # Fixed tropopause value if not calculated dynamically
     
-
     # Instellation scaling | 1.0 == no scaling
     Sfrac = 1.0
 
