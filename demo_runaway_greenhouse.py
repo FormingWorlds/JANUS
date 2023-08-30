@@ -18,8 +18,6 @@ import utils.StellarSpectrum as StellarSpectrum
 
 def run_once(T_surf, dirs):
 
- 
-    
     # Planet 
     time = { "planet": 0., "star": 4567e+6 } # yr,
     star_mass     = 1.0                 # M_sun, mass of star
@@ -42,8 +40,6 @@ def run_once(T_surf, dirs):
                     "O2"   : 0.0, 
                     "CO"   : 0.0
                 }
-
-
     
     # Rayleigh scattering on/off
     rscatter = False
@@ -51,27 +47,16 @@ def run_once(T_surf, dirs):
     # Compute contribution function
     calc_cf = False
 
-    # Pure steam convective adjustment
-    pure_steam_adj = False
-
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
     trppT = 0.0     # Fixed tropopause value if not calculated dynamically
     
-    # Surface temperature time-stepping
-    surf_dt = False
-    cp_dry = False
-    # Options activated by surf_dt
-    cp_surf = 1e5         # Heat capacity of the ground [J.kg^-1.K^-1]
-    mix_coeff_atmos = 1e6 # mixing coefficient of the atmosphere [s]
-    mix_coeff_surf  = 1e6 # mixing coefficient at the surface [s]
 
     # Instellation scaling | 1.0 == no scaling
     Sfrac = 1.0
 
     ##### Function calls
 
-    
     # Create atmosphere object
     atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, trppT=trppT)
 
@@ -79,8 +64,7 @@ def run_once(T_surf, dirs):
     _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
 
     # Do rad trans
-    _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
-
+    _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter) 
 
     return [T_surf, atm_moist.LW_flux_up[0]]
 
@@ -141,7 +125,7 @@ if __name__=='__main__':
 
     # Setup figure and save
     fig.legend()
-    ax.set_xlabel("Temperature [K]")
+    ax.set_xlabel("Surface temperature [K]")
     ax.set_ylabel("OLR [W m-2]")
     fig.savefig(dirs["output"]+"runaway_demo.pdf")
     print(" ")
