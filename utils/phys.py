@@ -52,6 +52,33 @@ Rstar = 1000.*k*N_avogadro   #Universal gas constant
 #for rough calculations.
 #
 
+
+# Molar masses of each species (note the units)
+molar_mass = {
+        "H2O" : 0.01801528,     # kg mol−1
+        "CO2" : 0.04401,        # kg mol−1
+        "H2"  : 0.00201588,     # kg mol−1
+        "CH4" : 0.01604,        # kg mol−1
+        "CO"  : 0.02801,        # kg mol−1
+        "N2"  : 0.028014,       # kg mol−1
+        "O2"  : 0.031999,       # kg mol−1
+        "SO2" : 0.064066,       # kg mol−1
+        "H2S" : 0.0341,         # kg mol−1 
+        "H"   : 0.001008,       # kg mol−1 
+        "C"   : 0.012011,       # kg mol−1 
+        "O"   : 0.015999,       # kg mol−1 
+        "N"   : 0.014007,       # kg mol−1 
+        "S"   : 0.03206,        # kg mol−1 
+        "He"  : 0.0040026,      # kg mol−1 
+        "NH3" : 0.017031,       # kg mol−1 
+        "O3"  : 0.0479982,      # kg mol-1
+        "N2O" : 0.0440128, 
+        "NO"  : 0.0300061, 
+        "NO2" : 0.0460055, 
+        "HNO3": 0.06301284, 
+        "OCS" : 0.060075       
+    }
+
 #This class allows convenient access
 #to the basic thermodynamic properties of
 #a gas, and selected properties of its
@@ -553,9 +580,10 @@ class satvps_function:
             self.M = MolecularWeight
             self.T0 = Gas_or_T0
             self.e0 = e0_or_iceFlag
-    def __call__(self,T):
+
+    def __call__(self,T, water_lookup=False):
         #Decide which latent heat to use
-        if self.gas == 'H2O':
+        if self.gas == 'H2O' and water_lookup:
             # Water special case -- use IAPWS steam tables in water_tables.py
             if T > wt.T_tp:
                 return wt.lookup('psat', T)
