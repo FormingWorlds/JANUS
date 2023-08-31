@@ -39,10 +39,6 @@ if __name__ == "__main__":
     start = t.time()
     ##### Settings
 
-    # Constants
-    L_sun                   = 3.828e+26        # W, IAU definition
-    AU                      = 1.495978707e+11  # m
-    
     # Planet 
     time = { "planet": 0., "star": 4e+9 } # yr,
     star_mass     = 1.0                 # M_sun, mass of star
@@ -55,7 +51,8 @@ if __name__ == "__main__":
     P_top         = 0.1                  # Pa
 
     # Define volatiles by mole fractions
-    # P_surf       = 1.01 * 1e5
+    # P_surf       = 100 * 1e5
+    # vol_partial = {}
     # vol_mixing = { 
     #                 "CO2"  : 0.00417,
     #                 "H2O"  : 0.03,
@@ -66,8 +63,7 @@ if __name__ == "__main__":
     #                 "O3"   : 0.0000006, 
     #                 "He"   : 0.00000524 , 
     #             }
-    # vol_partial = {}
-
+    
     # OR:
     # Define volatiles by partial pressures
     P_surf = 0.0
@@ -97,7 +93,10 @@ if __name__ == "__main__":
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 100.0     # Fixed tropopause value if not calculated dynamically
+    trppT = 30.0     # Fixed tropopause value if not calculated dynamically
+
+    # Water lookup tables enabled (e.g. for L vs T dependence)
+    water_lookup = False
     
     # Surface temperature time-stepping
     surf_dt = False
@@ -125,7 +124,10 @@ if __name__ == "__main__":
 
     # Create atmosphere object
     atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, 
-                vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT, req_levels=100)
+                vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT, req_levels=100, water_lookup=water_lookup)
+
+    # Compute stellar heating
+    S_0, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
@@ -136,6 +138,7 @@ if __name__ == "__main__":
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
+
     StellarSpectrum.InsertStellarSpectrum(
         dirs["rad_conv"]+"/spectral_files/Reach/Reach",
         dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",

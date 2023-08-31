@@ -16,7 +16,7 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
 
     This function supplements InsertStellarSpectrum by writing a stellar 
     spectrum to a file in the format that SOCRATES expects. The flux needs to 
-    be provided at 1 AU.
+    be provided at 1 AU. Bins the spectrum down to at most nbins_max bins.
 
     Parameters
     ----------
@@ -88,10 +88,17 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
                 fl = values
 
             if np.isnan(fl).any() or np.any(fl <= 0):
+<<<<<<< HEAD
                 # Try again with fewer bins
                 downsample_factor *= 1.5
             else:
                 # Try again if still too many samples
+=======
+                # Try again with fewer bins (occurs when there are empty bins)
+                downsample_factor *= 1.5
+            else:
+                # Try again if still too many samples (unlikely case, but does happen sometimes)
+>>>>>>> origin/recent_fixes
                 bins_retry = bool( nbins > nbins_max )
                 downsample_factor *= 1.2
 
