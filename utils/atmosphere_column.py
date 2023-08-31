@@ -8,7 +8,11 @@ class atmos:
     
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
+<<<<<<< HEAD
                  calc_cf: bool=False, req_levels: int = 100,
+=======
+                 calc_cf: bool=False, water_lookup: bool=False,
+>>>>>>> origin/recent_fixes
                  trppT: float = 290.0, minT: float = 20.0):
         
         """Atmosphere class    
@@ -71,6 +75,14 @@ class atmos:
             for key in vol_partial.keys():
                 self.vol_list[key] = vol_partial[key]/self.ps
 
+        # Required volatiles
+        required_vols = {"H2O","CO2","N2"}
+        if len(required_vols.intersection(self.vol_list.keys())) < len(required_vols):
+            raise Exception("Missing required volatiles!\nRequired vols = %s" % str(required_vols))
+
+        # H2O floor to prevent NaNs
+        self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-30 ] )
+
         # Initialise other variables
         self.alpha_cloud 	= 0.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
         
@@ -106,6 +118,8 @@ class atmos:
         self.Rcp    		= 2./7. 						# standard earth air
         self.n_species 		= 7
         self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
+
+        self.water_lookup   = water_lookup
         
         # self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500))) # cm
         self.bands 			= np.concatenate((np.arange(0,3000,25),np.arange(3000,11000,50),np.arange(11000,30500,500))) # cm, 318 bands: HITEMP-compatible spacing
@@ -138,9 +152,6 @@ class atmos:
         self.grav_z[0]      = self.grav_s 			# m s-2
 
 
-        # H2O floor to prevent NaNs
-        self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-30 ] )
-
         # Instantiate object dicts and arrays
         for vol in self.vol_list.keys():
             # Instantiate as zero
@@ -148,9 +159,7 @@ class atmos:
             self.pl_vol[vol]     = np.zeros(self.nlev+1)
             self.x_gas[vol]      = np.zeros(self.nlev)
             self.x_cond[vol]     = np.zeros(self.nlev)
-            
-            #self.x_ocean[vol]    = 0.
-
+        
             # Surface partial pressures
             self.p_vol[vol][0]   = self.ps * self.vol_list[vol]
 
@@ -177,7 +186,11 @@ class atmos:
             self.cff_i					= np.zeros([self.nbands,self.nlev]) # cf per band
             self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev])
 
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> origin/recent_fixes
 
     def write_PT(self,filename: str="output/PT.tsv", punit:str = "Pa"):
         """Write PT profile to file, with descending pressure.

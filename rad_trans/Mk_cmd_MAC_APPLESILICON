@@ -1,6 +1,7 @@
 #
 # Pathnames for MacOS on an ARM platform
 #
+<<<<<<< HEAD
 
 # With debugging flags:
 #FORTCOMP        = gfortran -c -fcheck=all,no-recursion -fbacktrace -g
@@ -8,6 +9,10 @@
 
 FORTCOMP        = gfortran -O -c
 LINK            = gfortran -O
+=======
+FORTCOMP        = gfortran -O -c
+LINK            = gfortran -O 
+>>>>>>> origin/recent_fixes
 LIBLINK         = ar rvu
 INCCDF_PATH     = /opt/homebrew/Cellar/netcdf-fortran/4.6.1/include
 LIBCDF_PATH     = /opt/homebrew/Cellar/netcdf-fortran/4.6.1/lib

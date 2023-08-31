@@ -1,4 +1,4 @@
-## AEOLUS (radiative-convective solver)
+## AEOLUS (temperature structure generator)
 
 Runs until the OLR changes by less than a threshold value in W/m<sup>2</sup>, or stops after a fixed number of iterations.
 
@@ -11,6 +11,7 @@ https://proteus-code.readthedocs.io
 * RB – Ryan Boukrouche (ryan.boukrouche@astro.su.se)
 * RJG – RJ Graham (arejaygraham@uchicago.edu)
 * HN - Harrison Nicholls (harrison.nicholls@physics.ox.ac.uk)
+* HII - Hamish Innes (hamish.innes@physics.ox.ac.uk)
 
 ### Repository structure
 
@@ -23,14 +24,13 @@ https://proteus-code.readthedocs.io
 * `modules/`                    - Utility python scripts
 * `output/`                     - Output folder
 * `luminosity_tracks/`          - Stellar evolution data
-* `plotting_tools/`             -  Plotting scripts
+* `plotting_tools/`             - Plotting scripts
 * `rad_trans/`                  - Subfolder with adiative transfer code/s
-
-
-* `spectral_files`         - Spectral files for SOCRATES
+* `spectral_files/`             - Spectral files for SOCRATES
+* `tools/`                      - Useful tools
 
 ### Installation instructions
-See `INSTALL.md` for steps. If you encounter issues check `INSTALL.md` and `TROUBLESHOOTING.md` in [PROTEUS](https://github.com/FormingWorlds/PROTEUS) repository. `INSTALL.md` will soon be superseded by https://proteus-code.readthedocs.io.
+Follow environment- and AEOLUS-related steps in https://proteus-code.readthedocs.io.
 
 ### Run instructions
 Only attempt to run AEOLUS after you have followed all of the instructions in INSTALL.md    

@@ -339,7 +339,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
     print("Iteratively solving for the temperature structure...")
 
     # Run parameters
-    steps_max    = 100   # Maximum number of steps
+    steps_max    = 140   # Maximum number of steps
     dtmp_gofast  = 40.0  # Change in temperature below which to stop model acceleration
     wait_adj     = 3     # Wait this many steps before introducing convective adjustment
     modprint     = 10    # Frequency to print when verbose==False
@@ -494,16 +494,16 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         F_OLR_rad = atm.LW_flux_up[0]
         F_loss = abs(F_TOA_rad-F_BOA_rad)
 
+        # Calculate which level (both centres and edges) changed most in this step
+        if step > 1:
+            inter_tmp_this = interleave(atm.tmpl,           atm.tmp)
+            inter_tmp_prev = interleave(atm_hist[-1].tmpl,  atm_hist[-1].tmp)
+            big_dT_lvl = np.argmax(np.abs(inter_tmp_this - inter_tmp_prev)) / 2.0
+        else:
+            big_dT_lvl = -1
+
         # Print debug info to stdout
         if verbose:
-            # Calculate which level (both centres and edges) changed most in this step
-            if step > 1:
-                inter_tmp_this = interleave(atm.tmpl,           atm.tmp)
-                inter_tmp_prev = interleave(atm_hist[-1].tmpl,  atm_hist[-1].tmp)
-                big_dT_lvl = np.argmax(np.abs(inter_tmp_this - inter_tmp_prev)) / 2.0
-            else:
-                big_dT_lvl = -1
-
             print("    count_adj   = %d layers   " % adj_changed)
             print("    max_change  = %.1f'th lvl " % big_dT_lvl)
             print("    dtmp_comp   = %.3f K      " % dtmp_comp)
