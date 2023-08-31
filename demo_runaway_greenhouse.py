@@ -11,9 +11,11 @@ import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.radcoupler import RadConvEqm
+from utils.socrates import CleanOutputDir
 
 from utils.atmosphere_column import atmos
 import utils.StellarSpectrum as StellarSpectrum
+
 
 
 def run_once(T_surf, dirs):
@@ -125,6 +127,10 @@ if __name__=='__main__':
     ax.set_ylabel("OLR [W m-2]")
     fig.savefig(dirs["output"]+"runaway_demo.pdf")
     print(" ")
+
+    # Tidy
+    CleanOutputDir(os.getcwd())
+    CleanOutputDir(dirs['output'])
 
     # Done
     print("Done!")

@@ -8,11 +8,7 @@ class atmos:
     
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
-<<<<<<< HEAD
-                 calc_cf: bool=False, req_levels: int = 100,
-=======
-                 calc_cf: bool=False, water_lookup: bool=False,
->>>>>>> origin/recent_fixes
+                 calc_cf: bool=False, req_levels: int = 100, water_lookup: bool=False,
                  trppT: float = 290.0, minT: float = 20.0):
         
         """Atmosphere class    
@@ -186,11 +182,7 @@ class atmos:
             self.cff_i					= np.zeros([self.nbands,self.nlev]) # cf per band
             self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev])
 
-<<<<<<< HEAD
-            
-=======
 
->>>>>>> origin/recent_fixes
 
     def write_PT(self,filename: str="output/PT.tsv", punit:str = "Pa"):
         """Write PT profile to file, with descending pressure.
