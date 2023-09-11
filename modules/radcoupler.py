@@ -15,7 +15,7 @@ from modules.compute_moist_adiabat import compute_moist_adiabat
 from modules.dry_adiabat_timestep import compute_dry_adiabat
 
 def RadConvEqm(dirs, time, atm, standalone, cp_dry, trppD, calc_cf, rscatter, pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
-    """Solves system for radiative-convective eqm
+    """Sets the atmosphere to a temperature profile using the general adiabat
 
     Parameters
     ----------
@@ -54,7 +54,6 @@ def RadConvEqm(dirs, time, atm, standalone, cp_dry, trppD, calc_cf, rscatter, pu
     if cp_dry == True:
 
         # Compute dry adiabat  w/ timestepping
-        print("atm.toa_heating in RadConvEqm = ", atm.toa_heating)
         atm_dry   = compute_dry_adiabat(atm, dirs, standalone, calc_cf, rscatter, pure_steam_adj, surf_dt, cp_surf, mix_coeff_atmos, mix_coeff_surf)
 
         if standalone == True:

@@ -2,7 +2,10 @@
 # class for atmospheric column data
 
 import numpy as np
+import netCDF4 as nc
 from utils import phys
+import os
+
 
 class atmos:
     
@@ -220,5 +223,100 @@ class atmos:
         header = '# (%s)\t(K)\nPressure\tTemp' % punit
 
         np.savetxt(filename,X,fmt='%1.5e',header=header,comments='',delimiter='\t')
+
+
+    def write_NC(self, fpath):
+        """Write atmosphere arrays to a netCDF file
+
+        Parameters
+        ----------
+            fpath : string
+                Output filename
+        """
+
+        if os.path.exists(fpath):
+            os.remove(fpath)
+
+        ds = nc.Dataset(fpath, 'w', format='NETCDF4')
+        ds.description = 'AEOLUS atmosphere data'
+
+        nlev_c = len(self.p)
+        nlev_l = nlev_c + 1
+
+        gas_list = [str(gas) for gas in self.vol_list.keys()]
+        ngases = len(gas_list)
+
+        nchars = 16
+
+        # ----------------------
+        # Create dimensions
+        ds.createDimension('nlev_c', nlev_c)    # Cell centres
+        ds.createDimension('nlev_l', nlev_l)    # Cell edges
+        ds.createDimension('ngases', ngases)    # Gases
+        ds.createDimension('nchars', nchars)    # Length of string containing gas names
+
+        # ----------------------
+        # Scalar quantities  
+        #    Create variables
+        var_tstar =     ds.createVariable('tstar',      'f4');  var_tstar.units = "K"       # BOA LW BC
+        var_toah =      ds.createVariable('toa_heating','f4');  var_toah.units = "W m-2"    # TOA SW BC
+        var_grav =      ds.createVariable('gravity','f4');      var_grav.units = "m s-2"    # Surface gravity
+
+        #     Store data
+        var_tstar.assignValue(self.ts)
+        var_toah.assignValue(self.toa_heating)
+        var_grav.assignValue(self.grav_s)
+
+
+        # ----------------------
+        # Layer quantities  
+        #    Create variables
+        var_p =         ds.createVariable('p',      'f4', dimensions=('nlev_c'));           var_p.units = "Pa"
+        var_pl =        ds.createVariable('pl',     'f4', dimensions=('nlev_l'));           var_pl.units = "Pa"
+        var_tmp =       ds.createVariable('tmp',    'f4', dimensions=('nlev_c'));           var_tmp.units = "K"
+        var_tmpl =      ds.createVariable('tmpl',   'f4', dimensions=('nlev_l'));           var_tmpl.units = "K"
+        var_z =         ds.createVariable('z',      'f4', dimensions=('nlev_c'));           var_z.units = "m"
+        var_mmw =       ds.createVariable('mmw',    'f4', dimensions=('nlev_c'));           var_mmw.units = "kg mol-1"
+        var_gases =     ds.createVariable('gases',  'S1', dimensions=('ngases', 'nchars'))  # Names of gases
+        var_mr =        ds.createVariable('x_gas',  'f4', dimensions=('nlev_c', 'ngases'))  # Mixing ratios per level
+        var_fdl =       ds.createVariable('fl_D_LW','f4', dimensions=('nlev_l'));           var_fdl.units = "W m-2"
+        var_ful =       ds.createVariable('fl_U_LW','f4', dimensions=('nlev_l'));           var_ful.units = "W m-2"
+        var_fnl =       ds.createVariable('fl_N_LW','f4', dimensions=('nlev_l'));           var_fnl.units = "W m-2"
+        var_fds =       ds.createVariable('fl_D_SW','f4', dimensions=('nlev_l'));           var_fds.units = "W m-2"
+        var_fus =       ds.createVariable('fl_U_SW','f4', dimensions=('nlev_l'));           var_fus.units = "W m-2"
+        var_fns =       ds.createVariable('fl_N_SW','f4', dimensions=('nlev_l'));           var_fns.units = "W m-2"
+        var_fd =        ds.createVariable('fl_D',   'f4', dimensions=('nlev_l'));           var_fd.units = "W m-2"
+        var_fu =        ds.createVariable('fl_U',   'f4', dimensions=('nlev_l'));           var_fu.units = "W m-2"
+        var_fn =        ds.createVariable('fl_N',   'f4', dimensions=('nlev_l'));           var_fn.units = "W m-2"
+        var_hr =        ds.createVariable('rad_hr', 'f4', dimensions=('nlev_c'));           var_hr.units = "K day-1"
+
+        #     Store data
+        var_p[:] =      self.p[:]
+        var_pl[:] =     self.pl[:]
+        var_tmp[:] =    self.tmp[:]
+        var_tmpl[:] =   self.tmpl[:]
+        var_z[:]    =   self.z[:]
+        var_mmw[:]  =   self.mu[:]
+
+        var_gases[:] =  np.array([ [c for c in gas.ljust(nchars)[:nchars]] for gas in gas_list ] , dtype='S1')
+        var_mr[:] =     np.array([ [ self.x_gas[gas][i] for i in range(0,nlev_c,1) ] for gas in gas_list  ]).T
+
+        var_fdl[:] =    self.LW_flux_down[:]
+        var_ful[:] =    self.LW_flux_up[:]
+        var_fnl[:] =    self.LW_flux_net[:]
+
+        var_fds[:] =    self.SW_flux_down[:]
+        var_fus[:] =    self.SW_flux_up[:]
+        var_fns[:] =    self.SW_flux_net[:]
+
+        var_fd[:] =     self.flux_down_total[:]
+        var_fu[:] =     self.flux_up_total[:]
+        var_fn[:] =     self.net_flux[:]
+
+        var_hr[:] =     self.net_heating[:]
+
+        # ----------------------
+        # Close
+        ds.close()
 
 
