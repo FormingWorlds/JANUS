@@ -29,14 +29,11 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
     dT_max      = 20.  # K, Maximum temperature change per radiation step
     T_floor     = 10.  # K, Temperature floor to prevent SOCRATES crash
 
-    print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
     # Build general adiabat structure
     atm                 = ga.general_adiabat(copy.deepcopy(atm))
-    print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
 
     # Copy moist pressure arrays for dry adiabat
     atm_dry             = dry_adiabat_atm(atm)
-    print("atm_dry.toa_heating in compute_dry_adiabat = ", atm_dry.toa_heating)
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry         = 0.
@@ -53,9 +50,6 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
         # Compute radiation, midpoint method time stepping
         try:
             atm_dry         = socrates.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
-            # print("atm_dry.net_heating in compute_dry_adiabat = ", atm_dry.net_heating)
-            # print("atm_dry.SW_flux_down in compute_dry_adiabat = ", atm_dry.SW_flux_down)
-            
             dT_dry          = atm_dry.net_heating * atm_dry.dt
     
             # Limit the temperature change per step

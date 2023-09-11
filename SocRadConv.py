@@ -83,7 +83,7 @@ if __name__ == "__main__":
     stellar_heating = True
 
     # Rayleigh scattering on/off
-    rscatter = True
+    rscatter = False
 
     # Compute contribution function
     calc_cf = False
@@ -126,9 +126,6 @@ if __name__ == "__main__":
     atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, 
                 vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT, req_levels=100, water_lookup=water_lookup)
 
-    # Compute stellar heating
-    S_0, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
-
     # Set stellar heating on or off
     if stellar_heating == False: 
         atm.toa_heating = 0.
@@ -149,17 +146,18 @@ if __name__ == "__main__":
     atm_dry, atm = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
 
     # Plot abundances w/ TP structure
-    # if (cp_dry):
-    #     ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
-    #     atm_dry.write_PT(filename="output/dry_pt.tsv")
-    #     ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
+    if (cp_dry):
+        ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
+        atm_dry.write_PT(filename="output/dry_pt.tsv")
+        plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
 
     ga.plot_adiabats(atm,filename="output/moist_ga.pdf")
     atm.write_PT(filename="output/moist_pt.tsv")
+    atm.write_NC("output/moist_atm.nc")
     plot_fluxes(atm,filename="output/moist_fluxes.pdf")
 
     # Test radconv
-    atm = find_rc_eqm(atm, dirs, rscatter=rscatter, verbose=True, plot=True, surf_state=0)
+    # atm = find_rc_eqm(atm, dirs, rscatter=rscatter, verbose=True, plot=True, surf_state=0)
 
     # Tidy
     CleanOutputDir(os.getcwd())

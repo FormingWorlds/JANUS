@@ -339,7 +339,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
     print("Iteratively solving for the temperature structure...")
 
     # Run parameters
-    steps_max    = 140   # Maximum number of steps
+    steps_max    = 150   # Maximum number of steps
     dtmp_gofast  = 40.0  # Change in temperature below which to stop model acceleration
     wait_adj     = 3     # Wait this many steps before introducing convective adjustment
     modprint     = 10    # Frequency to print when verbose==False
@@ -347,7 +347,7 @@ def find_rc_eqm(atm, dirs, rscatter=True,
 
     # Convergence criteria
     dtmp_conv    = 5.0    # Maximum rolling change in temperature for convergence (dtmp) [K]
-    drel_dt_conv = 30.0   # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [day-1]
+    drel_dt_conv = 5.0    # Maximum rate of relative change in temperature for convergence (dtmp/tmp/dt) [day-1]
     F_rchng_conv = 0.01   # Maximum relative value of F_loss for convergence [%]
     
     if verbose:
@@ -411,12 +411,12 @@ def find_rc_eqm(atm, dirs, rscatter=True,
         if gofast:
             # Fast phase
             if verbose or (step % modprint == 0): print("    step %d (fast)" % step)
-            dtmp_clip = 80.0
+            dtmp_clip = 100.0
             dryadj_steps = 40
             h2oadj_steps = 40
             dt_min = 1e-3
             dt_max = 1e6
-            step_frac = 5e-2
+            step_frac = 0.1
             smooth_window = int( max(0.1*len(atm.tmp),2 )) # 10% of levels
             
         else:
@@ -426,8 +426,8 @@ def find_rc_eqm(atm, dirs, rscatter=True,
             dryadj_steps = 20
             h2oadj_steps = 20
             dt_min = 1e-5
-            dt_max = 10.0
-            step_frac_max = 4e-3
+            dt_max = 20.0
+            step_frac_max = 5e-3
             smooth_window = 0
 
             # End of 'fast' period (take average of last two iters)
