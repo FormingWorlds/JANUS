@@ -4,8 +4,8 @@
 import numpy as np
 import netCDF4 as nc
 from utils import phys
+from utils.height import AtmosphericHeight
 import os
-
 
 class atmos:
     
@@ -133,7 +133,8 @@ class atmos:
         self.x_gas 			= {} # Gas phase molar concentration
         self.x_cond         = {} # Condensed phase molar concentration
         self.grav_z			= np.zeros(self.nlev) # Local gravity
-        self.z 				= np.zeros(self.nlev) # Atmospheric height
+        self.z 				= np.zeros(self.nlev)   # Atmospheric height (centres)
+        self.zl 	    	= np.zeros(self.nlev+1) # Atmospheric height (edges)
         self.mu 			= np.zeros(self.nlev) # Mean molar mass in level
         self.xd 			= np.zeros(self.nlev) # Molar concentration of dry gas
         self.xv 			= np.zeros(self.nlev) # Molar concentration of moist gas
@@ -145,9 +146,10 @@ class atmos:
         # Define T and P arrays from surface up
         self.tmp[0]         = self.ts         		# K
         self.tmpl[0]         = self.ts         		# K
-        self.p[0]           = self.ps         		# Pa
+        self.p[0]            = self.ps         		# Pa
         self.pl[0]           = self.ps         		# Pa
         self.z[0]           = 0         			# m
+        self.zl[0]
         self.grav_z[0]      = self.grav_s 			# m s-2
 
 
@@ -225,15 +227,26 @@ class atmos:
         np.savetxt(filename,X,fmt='%1.5e',header=header,comments='',delimiter='\t')
 
 
-    def write_NC(self, fpath):
+    def write_ncdf(self, fpath):
         """Write atmosphere arrays to a netCDF file
 
         Parameters
         ----------
             fpath : string
                 Output filename
-        """
+        """ 
 
+        # ----------------------
+        # Calculate gravity and height (in case it hasn't been done already)
+        self.z = AtmosphericHeight(self, self.planet_mass, self.planet_radius)
+
+        self.zl = np.zeros(len(self.z)+1)
+        for i in range(1,len(self.z)):
+            self.zl[i] = 0.5 * (self.z[i-1] + self.z[i])
+        self.zl[0] = 2*self.z[0] - self.zl[1] # estimate TOA height
+
+        # ----------------------
+        # Prepare NetCDF
         if os.path.exists(fpath):
             os.remove(fpath)
 
@@ -260,12 +273,10 @@ class atmos:
         #    Create variables
         var_tstar =     ds.createVariable('tstar',      'f4');  var_tstar.units = "K"       # BOA LW BC
         var_toah =      ds.createVariable('toa_heating','f4');  var_toah.units = "W m-2"    # TOA SW BC
-        var_grav =      ds.createVariable('gravity','f4');      var_grav.units = "m s-2"    # Surface gravity
 
         #     Store data
         var_tstar.assignValue(self.ts)
         var_toah.assignValue(self.toa_heating)
-        var_grav.assignValue(self.grav_s)
 
 
         # ----------------------
@@ -276,6 +287,8 @@ class atmos:
         var_tmp =       ds.createVariable('tmp',    'f4', dimensions=('nlev_c'));           var_tmp.units = "K"
         var_tmpl =      ds.createVariable('tmpl',   'f4', dimensions=('nlev_l'));           var_tmpl.units = "K"
         var_z =         ds.createVariable('z',      'f4', dimensions=('nlev_c'));           var_z.units = "m"
+        var_zl =        ds.createVariable('zl',     'f4', dimensions=('nlev_l'));           var_zl.units = "m"
+        var_grav =      ds.createVariable('gravity','f4', dimensions=('nlev_c'));           var_grav.units = "m s-2"
         var_mmw =       ds.createVariable('mmw',    'f4', dimensions=('nlev_c'));           var_mmw.units = "kg mol-1"
         var_gases =     ds.createVariable('gases',  'S1', dimensions=('ngases', 'nchars'))  # Names of gases
         var_mr =        ds.createVariable('x_gas',  'f4', dimensions=('nlev_c', 'ngases'))  # Mixing ratios per level
@@ -296,10 +309,12 @@ class atmos:
         var_tmp[:] =    self.tmp[:]
         var_tmpl[:] =   self.tmpl[:]
         var_z[:]    =   self.z[:]
+        var_zl[:]    =  self.zl[:]
         var_mmw[:]  =   self.mu[:]
+        var_grav[:]  =  self.grav_z[:]
 
         var_gases[:] =  np.array([ [c for c in gas.ljust(nchars)[:nchars]] for gas in gas_list ] , dtype='S1')
-        var_mr[:] =     np.array([ [ self.x_gas[gas][i] for i in range(0,nlev_c,1) ] for gas in gas_list  ]).T
+        var_mr[:] =     np.array([ [ self.x_gas[gas][i] for i in range(nlev_c-1,-1,-1) ] for gas in gas_list  ]).T
 
         var_fdl[:] =    self.LW_flux_down[:]
         var_ful[:] =    self.LW_flux_up[:]
