@@ -20,7 +20,7 @@ import os, shutil
 import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
-from modules.radcoupler import RadConvEqm
+from AEOLUS.modules.solve_pt import RadConvEqm
 from modules.plot_flux_balance import plot_fluxes
 from modules.radconv_solver import find_rc_eqm
 from utils.socrates import CleanOutputDir
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     # Set up dirs
     dirs = {
-            "rad_conv": os.getenv('AEOLUS_DIR')+"/",
+            "aeolus": os.getenv('AEOLUS_DIR')+"/",
             "output": os.getenv('AEOLUS_DIR')+"/output/"
             }
     
@@ -137,8 +137,8 @@ if __name__ == "__main__":
     print("Inserting stellar spectrum")
 
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["rad_conv"]+"/spectral_files/Reach/Reach",
-        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["aeolus"]+"/spectral_files/Reach/Reach",
+        dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
 
@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
     ga.plot_adiabats(atm,filename="output/moist_ga.pdf")
     atm.write_PT(filename="output/moist_pt.tsv")
-    atm.write_NC("output/moist_atm.nc")
+    atm.write_ncdf("output/moist_atm.nc")
     plot_fluxes(atm,filename="output/moist_fluxes.pdf")
 
     # Test radconv

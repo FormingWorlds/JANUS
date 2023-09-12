@@ -158,7 +158,7 @@ def atm_z(atm, idx):
     # atm.mu[idx] = atm.mu[idx]
 
     # print(atm.grav_z[idx], atm.mu[idx], atm.p[idx], atm.p[idx+1])
-    dp = atm.p[idx+1]-atm.p[idx]
+    
 
     mu_c = 0.
     if atm.xc[idx] > 0:
@@ -166,16 +166,20 @@ def atm_z(atm, idx):
             mu_c += atm.x_cond[vol][idx]*phys.molar_mass[vol] / atm.xc[idx]
     
     # Integration
-    #dz = - phys.R_gas * T_mean_down * np.log(atm.p[idx+1]/atm.p[idx]) / ( atm.mu[idx] * atm.grav_z[idx] )
     atm.rho[idx] =  atm.p[idx]/phys.R_gas/atm.tmp[idx] * ( atm.mu[idx] + mu_c*atm.alpha_cloud*atm.xc[idx]/(atm.xv[idx]+atm.xd[idx]) )
+    #     cell centres
+    dp = atm.p[idx+1]-atm.p[idx]
     dz =  -dp / atm.rho[idx]
+    atm.z[idx+1] = atm.z[idx] + dz
+    #     cell edges 
+    dp = atm.pl[idx+1]-atm.pl[idx]
+    dz =  -dp / atm.rho[idx]
+    atm.zl[idx+1] = atm.zl[idx] + dz
     if dz<0:
         print("WARNING: dz  = %g < 0 " % dz)
         print("         (dp  = %g)" % dp)
         print("         (rho = %g)" % atm.rho[idx])
-    # Next height
-    atm.z[idx+1] = atm.z[idx] + dz
-
+    
     # Next gravity
     atm.grav_z[idx+1] = atm.grav_s * ((atm.planet_radius)**2) / ((atm.planet_radius+atm.z[idx+1])**2)
 

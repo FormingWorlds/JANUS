@@ -10,7 +10,7 @@ import os, shutil
 import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
-from modules.radcoupler import RadConvEqm
+from AEOLUS.modules.solve_pt import RadConvEqm
 from utils.socrates import CleanOutputDir
 
 from utils.atmosphere_column import atmos
@@ -72,7 +72,7 @@ if __name__=='__main__':
 
     # Set up dirs
     dirs = {
-            "rad_conv": os.getenv('AEOLUS_DIR')+"/",
+            "aeolus": os.getenv('AEOLUS_DIR')+"/",
             "output": os.getenv('AEOLUS_DIR')+"/output/"
             }
     
@@ -84,8 +84,8 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["rad_conv"]+"/spectral_files/Oak/Oak",
-        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["aeolus"]+"/spectral_files/Oak/Oak",
+        dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
     print(" ")
@@ -103,11 +103,11 @@ if __name__=='__main__':
         print(" ")
     
     # Get literature data
-    g2013 = np.loadtxt(dirs["rad_conv"]+"plotting_tools/comparison_data/Goldblatt13_data.txt",
+    g2013 = np.loadtxt(dirs["aeolus"]+"plotting_tools/comparison_data/Goldblatt13_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    k2013 = np.loadtxt(dirs["rad_conv"]+"plotting_tools/comparison_data/Kopparapu13_data.txt",
+    k2013 = np.loadtxt(dirs["aeolus"]+"plotting_tools/comparison_data/Kopparapu13_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    h2015 = np.loadtxt(dirs["rad_conv"]+"plotting_tools/comparison_data/Hamano15_data.txt",
+    h2015 = np.loadtxt(dirs["aeolus"]+"plotting_tools/comparison_data/Hamano15_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
 
     # Setup plot
