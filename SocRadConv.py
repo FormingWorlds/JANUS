@@ -22,7 +22,6 @@ import numpy as np
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from AEOLUS.modules.solve_pt import RadConvEqm
 from modules.plot_flux_balance import plot_fluxes
-from modules.radconv_solver import find_rc_eqm
 from utils.socrates import CleanOutputDir
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
@@ -155,9 +154,6 @@ if __name__ == "__main__":
     atm.write_PT(filename="output/moist_pt.tsv")
     atm.write_ncdf("output/moist_atm.nc")
     plot_fluxes(atm,filename="output/moist_fluxes.pdf")
-
-    # Test radconv
-    # atm = find_rc_eqm(atm, dirs, rscatter=rscatter, verbose=True, plot=True, surf_state=0)
 
     # Tidy
     CleanOutputDir(os.getcwd())
