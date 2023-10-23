@@ -143,10 +143,10 @@ if __name__ == "__main__":
     
     atm = MCPA_CL(dirs, atm, True, trppD, rscatter)
 
-    ga.plot_adiabats(atm,filename="output/moist_ga.pdf")
-    atm.write_PT(filename="output/moist_pt.tsv")
-    atm.write_ncdf("output/moist_atm.nc")
-    plot_fluxes(atm,filename="output/moist_fluxes.pdf")
+    ga.plot_adiabats(atm,filename="output/skin_ga.pdf")
+    atm.write_PT(filename="output/skin_pt.tsv")
+    atm.write_ncdf("output/skin_atm.nc")
+    plot_fluxes(atm,filename="output/skin_fluxes.pdf")
 
     # Tidy
     CleanOutputDir(os.getcwd())
