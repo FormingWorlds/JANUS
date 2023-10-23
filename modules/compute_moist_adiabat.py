@@ -50,7 +50,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
     if (trppD == True) or (atm_moist.trppT > 0.0) or (atm_moist.minT > 0.0):
       
         # Find tropopause index
-        atm_moist = find_tropopause(atm_moist,trppD)
+        atm_moist = find_tropopause(atm_moist,trppD, verbose=standalone)
 
         # Reset stratosphere temperature and abundance levels
         atm_moist = set_stratosphere(atm_moist)
