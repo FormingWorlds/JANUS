@@ -1,5 +1,4 @@
 import numpy as np
-from utils import phys
 
 # Triple point of water
 T_tp = 273.16
@@ -10,8 +9,7 @@ T_c = 647.096
 # Number of points in table
 N = 50
 # Define quantities below the triple point
-L_sub = phys.H2O.L_sublimation
-R_v = phys.H2O.R
+L_sub = 2.840000e+06
 
 # Temperature array on which data is defined
 T = np.array([273.16   , 280.79134694, 288.42269388, 296.05404082,
