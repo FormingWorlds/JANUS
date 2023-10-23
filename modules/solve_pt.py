@@ -11,6 +11,7 @@ Harrison Nicholls (HN)
 
 import pickle as pkl
 from copy import deepcopy
+import scipy.optimize as optimise
 
 from modules.compute_moist_adiabat import compute_moist_adiabat
 from modules.dry_adiabat_timestep import compute_dry_adiabat
@@ -122,50 +123,56 @@ def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:
             Where to measure boundary condition flux (0: TOA, 1: Surface).
     """
 
-    # Iterate surface temperature
-    niter = 10
-    conv = False
-    for i in range(niter):
-        print("Iter surface %02d/%02d" % (i+1,niter))
+    def skin(a):
+        return a.skin_k / a.skin_d * (a.tmp_magma - a.ts)
 
-        # Copy atm object 
-        if 'atm' in globals():
-            del atm
+    # We want to optimise this function (returns residual of F_atm and F_skn, given T_surf)
+    def func(x):
+
+        x = max(x, atm_input.minT)
+
         atm = deepcopy(atm_input)
-
-        # Handle conduction
-        if i > 0:
-            T_surf_old = atm.ts
-            T_surf_new = atm.tmp_magma - F_atm_new * atm.skin_d / atm.skin_k
-            T_surf_new = max(atm.minT, T_surf_new)
-            
-            if abs(T_surf_new-T_surf_old) < 5.0:
-                weights = [0.0, 1.0]  
-                conv = True
-            else:
-                weights = [1.0, 0.0]  
-            atm.ts = T_surf_new * weights[0] + T_surf_old * weights[1]
-
-        print("   T_surf = %g K"        % atm.ts)
-
-        # Run computation
+        atm.ts = x
         atm.tmpl[-1] = atm.ts
+
+        print("Try T_surf = %g K" % x)
         atm = compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
 
-        # Parse result
         if atm_bc == 0:
-            F_atm_new = atm.net_flux[0]  
+            F_atm = atm.net_flux[0]  
         else:
-            F_atm_new = atm.net_flux[-1]  
+            F_atm = atm.net_flux[-1]  
 
-        print("   F_atm  = %1.2e W m-2" % F_atm_new)
+        return float(skin(atm) - F_atm)
+    
+    # Find root (T_surf) satisfying energy balance
+    x0 = atm_input.ts
+    x1 = atm_input.tmp_magma * 0.85
+    sol,r = optimise.newton(func, x0, x1=x1, tol=100.0, maxiter=10, full_output = True)
 
-        # Save new surface temperature
-        print(" ")
+    # Extract solution
+    T_surf = float(sol)
+    succ  = r.converged
 
-        if conv:
-            print("Exiting surface loop early")
-            break
+    if not succ:
+        print("WARNING: Did not find solution for surface skin balance")
+    else:
+        print("Found surface solution")
+        
+    # Get atmosphere state from solution value
+    atm = deepcopy(atm_input)
+    atm.ts = T_surf
+    atm.tmpl[-1] = atm.ts
+    atm = compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
+
+    if atm_bc == 0:
+        F_atm = atm.net_flux[0]  
+    else:
+        F_atm = atm.net_flux[-1]  
+
+    print("    T_surf = %g K"       % T_surf)
+    print("    F_atm  = %.2e W m-2" % F_atm)
+    print("    F_skn  = %.2e W m-2" % skin(atm))
 
     return atm
 
