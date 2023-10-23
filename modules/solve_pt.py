@@ -15,6 +15,7 @@ import scipy.optimize as optimise
 
 from modules.compute_moist_adiabat import compute_moist_adiabat
 from modules.dry_adiabat_timestep import compute_dry_adiabat
+from utils.atmosphere_column import atmos
 
 def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, calc_cf:bool, rscatter:bool, 
                pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
@@ -123,20 +124,19 @@ def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:
             Where to measure boundary condition flux (0: TOA, 1: Surface).
     """
 
+    # Calulate conductive flux for a given atmos object 'a'
     def skin(a):
         return a.skin_k / a.skin_d * (a.tmp_magma - a.ts)
+    
+    # Initialise a new atmos object
+    def ini_atm(Ts):
+        return atmos(Ts, atm_input.ps, atm_input.ptop, atm_input.planet_radius, atm_input.planet_mass, vol_mixing=atm_input.vol_list, trppT=atm_input.trppT, minT=atm_input.minT, req_levels=atm_input.nlev_save)
 
     # We want to optimise this function (returns residual of F_atm and F_skn, given T_surf)
     def func(x):
 
-        x = max(x, atm_input.minT)
-
-        atm = deepcopy(atm_input)
-        atm.ts = x
-        atm.tmpl[-1] = atm.ts
-
         print("Try T_surf = %g K" % x)
-        atm = compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
+        atm = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, False, rscatter)
 
         if atm_bc == 0:
             F_atm = atm.net_flux[0]  
@@ -148,7 +148,7 @@ def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:
     # Find root (T_surf) satisfying energy balance
     x0 = atm_input.ts
     x1 = atm_input.tmp_magma * 0.85
-    sol,r = optimise.newton(func, x0, x1=x1, tol=100.0, maxiter=10, full_output = True)
+    sol,r = optimise.newton(func, x0, x1=x1, tol=1.0, maxiter=20, full_output = True)
 
     # Extract solution
     T_surf = float(sol)
@@ -160,10 +160,7 @@ def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:
         print("Found surface solution")
         
     # Get atmosphere state from solution value
-    atm = deepcopy(atm_input)
-    atm.ts = T_surf
-    atm.tmpl[-1] = atm.ts
-    atm = compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
+    atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, False, rscatter)
 
     if atm_bc == 0:
         F_atm = atm.net_flux[0]  
@@ -171,8 +168,8 @@ def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:
         F_atm = atm.net_flux[-1]  
 
     print("    T_surf = %g K"       % T_surf)
-    print("    F_atm  = %.2e W m-2" % F_atm)
-    print("    F_skn  = %.2e W m-2" % skin(atm))
+    print("    F_atm  = %.4e W m-2" % F_atm)
+    print("    F_skn  = %.4e W m-2" % skin(atm))
 
     return atm
 
