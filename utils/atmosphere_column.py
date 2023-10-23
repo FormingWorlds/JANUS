@@ -127,6 +127,10 @@ class atmos:
         self.band_widths 	= np.diff(self.bands)
         self.nbands 	    = np.size(self.bands)-1
 
+        self.tmp_magma      = 3000.0
+        self.skin_d         = 0.02
+        self.skin_k         = 2.0
+
         # Level-dependent quantities
         self.p_vol 			= {} # Gas phase partial pressures
         self.pl_vol 		= {} # Gas phase partial pressures
