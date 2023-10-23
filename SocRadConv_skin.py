@@ -46,7 +46,7 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 3000.8                # K
+    T_surf        = 2800.0                # K
     P_top         = 0.1                  # Pa
 
     # Define volatiles by mole fractions
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     pure_steam_adj = False
 
     # Tropopause calculation
-    trppD = False   # Calculate dynamically?
+    trppD = True   # Calculate dynamically?
     trppT = 30.0     # Fixed tropopause value if not calculated dynamically
 
     # Water lookup tables enabled (e.g. for L vs T dependence)
