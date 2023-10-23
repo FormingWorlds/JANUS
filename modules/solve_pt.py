@@ -102,7 +102,7 @@ def MCPA(dirs, atm, standalone:bool, trppD:bool, rscatter:bool):
     ### Moist/general adiabat
     return compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
 
-def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:int=0):
+def MCPA_CL(dirs, atm_input, trppD:bool, rscatter:bool, atm_bc:int=0):
     """Calculates the temperature profile using the multiple-condensible pseudoadiabat and steps T_surf to conserve energy.
 
     Prescribes a stratosphere, and also calculates fluxes. Only works when used with PROTEUS
@@ -113,8 +113,6 @@ def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:
             Named directories
         atm : atmos
             Atmosphere object from atmosphere_column.py
-        standalone : bool
-            Running AEOLUS as standalone code?
         trppD : bool 
             Calculate tropopause dynamically?
         rscatter : bool
@@ -123,19 +121,40 @@ def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:
         atm_bc : int
             Where to measure boundary condition flux (0: TOA, 1: Surface).
     """
+    
+    # Store constants
+    alpha =         atm_input.alpha_cloud
+    toa_heating =   atm_input.toa_heating
+    minT =          atm_input.minT
+    nlev_save =     atm_input.nlev_save
+    vol_list =      atm_input.vol_list
+    pl_m =          atm_input.planet_mass
+    pl_r =          atm_input.planet_radius
+    ptop =          atm_input.ptop
+    psurf =         atm_input.ps
+    trppT =         atm_input.trppT
+    skin_k =        atm_input.skin_k
+    skin_d =        atm_input.skin_d
+    tmp_magma =     atm_input.tmp_magma
 
-    # Calulate conductive flux for a given atmos object 'a'
+    # Calculate conductive flux for a given atmos object 'a'
     def skin(a):
         return a.skin_k / a.skin_d * (a.tmp_magma - a.ts)
     
     # Initialise a new atmos object
     def ini_atm(Ts):
-        return atmos(Ts, atm_input.ps, atm_input.ptop, atm_input.planet_radius, atm_input.planet_mass, vol_mixing=atm_input.vol_list, trppT=atm_input.trppT, minT=atm_input.minT, req_levels=atm_input.nlev_save)
-
+        atm = atmos(Ts, psurf, ptop, pl_r, pl_m , vol_mixing=vol_list, trppT=trppT, minT=minT, req_levels=nlev_save)
+        atm.toa_heating = toa_heating
+        atm.alpha_cloud = alpha
+        atm.skin_k = skin_k
+        atm.skin_d = skin_d 
+        atm.tmp_magma = tmp_magma
+        return atm
+    
     # We want to optimise this function (returns residual of F_atm and F_skn, given T_surf)
     def func(x):
 
-        print("Try T_surf = %g K" % x)
+        print("Evaluated at T_surf = %.1f K" % x)
         atm = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, False, rscatter)
 
         if atm_bc == 0:
@@ -146,6 +165,7 @@ def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:
         return float(skin(atm) - F_atm)
     
     # Find root (T_surf) satisfying energy balance
+    print("Solving for global energy balance with conductive lid")
     x0 = atm_input.ts
     x1 = atm_input.tmp_magma * 0.85
     sol,r = optimise.newton(func, x0, x1=x1, tol=1.0, maxiter=20, full_output = True)
@@ -167,9 +187,12 @@ def MCPA_CL(dirs, atm_input, standalone:bool, trppD:bool, rscatter:bool, atm_bc:
     else:
         F_atm = atm.net_flux[-1]  
 
+    F_olr = atm.LW_flux_up[0]
+
     print("    T_surf = %g K"       % T_surf)
     print("    F_atm  = %.4e W m-2" % F_atm)
     print("    F_skn  = %.4e W m-2" % skin(atm))
+    print("    F_olr  = %.4e W m-2" % F_olr)
 
     return atm
 

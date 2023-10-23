@@ -11,7 +11,7 @@ Harrison Nicholls (HN)
 
 import numpy as np
 
-def find_tropopause(atm_moist, dynamic: bool):
+def find_tropopause(atm_moist, dynamic: bool, verbose=True):
     """Computes tropopause location via two methods: dynamically based on heating rates, or by a set temperature value.
 
     Parameters
@@ -26,7 +26,8 @@ def find_tropopause(atm_moist, dynamic: bool):
     # Heating criterion
     if dynamic:
 
-        print("TROPOPAUSE SET BY HEATING")
+        if verbose:
+            print("TROPOPAUSE SET BY HEATING")
 
         # Find tropopause index
         trpp_idx   = 0 
@@ -93,7 +94,8 @@ def find_tropopause(atm_moist, dynamic: bool):
     # Temperature criterion
     else:
 
-        print("TROPOPAUSE SET BY CONTANT VALUE OF", atm_moist.trppT, "K")
+        if verbose:
+            print("TROPOPAUSE SET BY CONTANT VALUE OF", atm_moist.trppT, "K")
         trpp_idx = (np.abs(atm_moist.tmp - atm_moist.trppT)).argmin()
 
         atm_moist.trppidx   = trpp_idx                  # index
