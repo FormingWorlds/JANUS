@@ -102,7 +102,7 @@ def MCPA(dirs, atm, standalone:bool, trppD:bool, rscatter:bool):
     ### Moist/general adiabat
     return compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
 
-def MCPA_CL(dirs, atm_input, trppD:bool, rscatter:bool, atm_bc:int=0):
+def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess:float=-1):
     """Calculates the temperature profile using the multiple-condensible pseudoadiabat and steps T_surf to conserve energy.
 
     Prescribes a stratosphere, and also calculates fluxes. Only works when used with PROTEUS
@@ -111,7 +111,7 @@ def MCPA_CL(dirs, atm_input, trppD:bool, rscatter:bool, atm_bc:int=0):
     ----------
         dirs : dict
             Named directories
-        atm : atmos
+        atm_inp : atmos
             Atmosphere object from atmosphere_column.py
         trppD : bool 
             Calculate tropopause dynamically?
@@ -120,22 +120,24 @@ def MCPA_CL(dirs, atm_input, trppD:bool, rscatter:bool, atm_bc:int=0):
         
         atm_bc : int
             Where to measure boundary condition flux (0: TOA, 1: Surface).
+        T_surf_guess : float
+            Surface temperature guess (-1 to disable)
     """
-    
+
     # Store constants
-    alpha =         atm_input.alpha_cloud
-    toa_heating =   atm_input.toa_heating
-    minT =          atm_input.minT
-    nlev_save =     atm_input.nlev_save
-    vol_list =      atm_input.vol_list
-    pl_m =          atm_input.planet_mass
-    pl_r =          atm_input.planet_radius
-    ptop =          atm_input.ptop
-    psurf =         atm_input.ps
-    trppT =         atm_input.trppT
-    skin_k =        atm_input.skin_k
-    skin_d =        atm_input.skin_d
-    tmp_magma =     atm_input.tmp_magma
+    alpha =         atm_inp.alpha_cloud
+    toa_heating =   atm_inp.toa_heating
+    minT =          atm_inp.minT
+    nlev_save =     atm_inp.nlev_save
+    vol_list =      atm_inp.vol_list
+    pl_m =          atm_inp.planet_mass
+    pl_r =          atm_inp.planet_radius
+    ptop =          atm_inp.ptop
+    psurf =         atm_inp.ps
+    trppT =         atm_inp.trppT
+    skin_k =        atm_inp.skin_k
+    skin_d =        atm_inp.skin_d
+    tmp_magma =     atm_inp.tmp_magma
 
     # Calculate conductive flux for a given atmos object 'a'
     def skin(a):
@@ -143,41 +145,44 @@ def MCPA_CL(dirs, atm_input, trppD:bool, rscatter:bool, atm_bc:int=0):
     
     # Initialise a new atmos object
     def ini_atm(Ts):
-        atm = atmos(Ts, psurf, ptop, pl_r, pl_m , vol_mixing=vol_list, trppT=trppT, minT=minT, req_levels=nlev_save)
-        atm.toa_heating = toa_heating
-        atm.alpha_cloud = alpha
-        atm.skin_k = skin_k
-        atm.skin_d = skin_d 
-        atm.tmp_magma = tmp_magma
-        return atm
+        _a = atmos(Ts, psurf, ptop, pl_r, pl_m , vol_mixing=vol_list, trppT=trppT, minT=minT, req_levels=nlev_save)
+        _a.toa_heating = toa_heating
+        _a.alpha_cloud = alpha
+        _a.skin_k = skin_k
+        _a.skin_d = skin_d 
+        _a.tmp_magma = tmp_magma
+        return _a
     
     # We want to optimise this function (returns residual of F_atm and F_skn, given T_surf)
     def func(x):
 
         print("Evaluated at T_surf = %.1f K" % x)
-        atm = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, False, rscatter)
+        atm_tmp = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, False, rscatter)
 
         if atm_bc == 0:
-            F_atm = atm.net_flux[0]  
+            F_atm = atm_tmp.net_flux[0]  
         else:
-            F_atm = atm.net_flux[-1]  
+            F_atm = atm_tmp.net_flux[-1]  
 
-        return float(skin(atm) - F_atm)
+        return float(skin(atm_tmp) - F_atm)
     
     # Find root (T_surf) satisfying energy balance
     print("Solving for global energy balance with conductive lid")
-    x0 = atm_input.ts
-    x1 = atm_input.tmp_magma * 0.85
-    sol,r = optimise.newton(func, x0, x1=x1, tol=1.0, maxiter=20, full_output = True)
+    x0 = atm_inp.ts
+    if T_surf_guess < atm_inp.minT:
+        x1 = atm_inp.tmp_magma * 0.7
+    else:
+        x1 = T_surf_guess
+    r = optimise.root_scalar(func, method='secant', x0=x0, x1=x1, xtol=5.0, maxiter=20)
 
     # Extract solution
-    T_surf = float(sol)
-    succ  = r.converged
+    T_surf = float(r.root)
+    succ  = bool(r.converged)
 
     if not succ:
         print("WARNING: Did not find solution for surface skin balance")
     else:
-        print("Found surface solution")
+        print("Found surface solution at T_surf = %g K" % T_surf)
         
     # Get atmosphere state from solution value
     atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, False, rscatter)
