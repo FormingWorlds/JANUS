@@ -141,7 +141,7 @@ if __name__ == "__main__":
         dirs["output"]+"runtime_spectral_file"
     )
     
-    atm = MCPA_CL(dirs, atm, True, trppD, rscatter)
+    atm = MCPA_CL(dirs, atm, trppD, rscatter)
 
     ga.plot_adiabats(atm,filename="output/skin_ga.pdf")
     atm.write_PT(filename="output/skin_pt.tsv")
