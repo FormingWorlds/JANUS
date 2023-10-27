@@ -102,7 +102,7 @@ def MCPA(dirs, atm, standalone:bool, trppD:bool, rscatter:bool):
     ### Moist/general adiabat
     return compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
 
-def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess:float=-1):
+def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess:float=-1, T_surf_max:float=-1, method:int=0):
     """Calculates the temperature profile using the multiple-condensible pseudoadiabat and steps T_surf to conserve energy.
 
     Prescribes a stratosphere, and also calculates fluxes. Only works when used with PROTEUS
@@ -122,12 +122,17 @@ def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess
             Where to measure boundary condition flux (0: TOA, 1: Surface).
         T_surf_guess : float
             Surface temperature guess (-1 to disable)
+        T_surf_max : float
+            Surface temperature ceiling (-1 to disable)
+        method : int
+            Root finding method (0: secant, 1: brentq)
     """
 
     # Store constants
     alpha =         atm_inp.alpha_cloud
     toa_heating =   atm_inp.toa_heating
     minT =          atm_inp.minT
+    maxT =          atm_inp.maxT
     nlev_save =     atm_inp.nlev_save
     vol_list =      atm_inp.vol_list
     pl_m =          atm_inp.planet_mass
@@ -145,7 +150,7 @@ def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess
     
     # Initialise a new atmos object
     def ini_atm(Ts):
-        _a = atmos(Ts, psurf, ptop, pl_r, pl_m , vol_mixing=vol_list, trppT=trppT, minT=minT, req_levels=nlev_save)
+        _a = atmos(Ts, psurf, ptop, pl_r, pl_m , vol_mixing=vol_list, trppT=trppT, minT=minT, maxT=maxT, req_levels=nlev_save)
         _a.toa_heating = toa_heating
         _a.alpha_cloud = alpha
         _a.skin_k = skin_k
@@ -156,7 +161,7 @@ def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess
     # We want to optimise this function (returns residual of F_atm and F_skn, given T_surf)
     def func(x):
 
-        print("Evaluated at T_surf = %.1f K" % x)
+        print("Evaluating at T_surf = %.1f K" % x)
         atm_tmp = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, False, rscatter)
 
         if atm_bc == 0:
@@ -164,28 +169,50 @@ def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess
         else:
             F_atm = atm_tmp.net_flux[-1]  
 
-        return float(skin(atm_tmp) - F_atm)
+        F_skn = skin(atm_tmp)
+        print("    F_atm = %+.2e W m-2      F_skn = %+.2e W m-2" % (F_atm,F_skn))
+
+        return float(F_skn - F_atm)
     
-    # Find root (T_surf) satisfying energy balance
-    print("Solving for global energy balance with conductive lid")
-    x0 = atm_inp.ts
-    if T_surf_guess < atm_inp.minT:
-        x1 = atm_inp.tmp_magma * 0.7
+    print("Solving for global energy balance with conductive lid (T_magma = %.1f K)" % tmp_magma)
+
+    # Use an 'initial guess' method
+    if method == 0:
+        x0 = atm_inp.ts          # guess 1
+        if T_surf_guess < minT:  # guess 2 (if not disabled)
+            x1 = tmp_magma * 0.8
+        else:
+            x1 = T_surf_guess
+        r = optimise.root_scalar(func, method='secant', x0=x0, x1=x1, xtol=1e-3, maxiter=20)
+
+    # Use a 'bracketing' method
+    elif method == 1:
+        bracket = [800.0, maxT]
+        if T_surf_max > minT:
+            bracket = [bracket[0], min(T_surf_max, maxT)]
+        r = optimise.root_scalar(func, method='brentq', bracket=bracket, xtol=1e-2, maxiter=20)
+
     else:
-        x1 = T_surf_guess
-    r = optimise.root_scalar(func, method='secant', x0=x0, x1=x1, xtol=5.0, maxiter=20)
+        raise Exception("Invalid solution method chosen (%d)" % method)
 
     # Extract solution
     T_surf = float(r.root)
     succ  = bool(r.converged)
 
+    # Check bounds on T_surf
+    T_surf = max(T_surf, minT)
+    T_surf = min(T_surf, maxT)
+    if T_surf_max > minT:
+        T_surf = min(T_surf, T_surf_max)
+
     if not succ:
         print("WARNING: Did not find solution for surface skin balance")
     else:
-        print("Found surface solution at T_surf = %g K" % T_surf)
+        print("Found surface solution")
         
     # Get atmosphere state from solution value
     atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, False, rscatter)
+    atm.ts = T_surf
 
     if atm_bc == 0:
         F_atm = atm.net_flux[0]  

@@ -12,7 +12,7 @@ class atmos:
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
                  calc_cf: bool=False, req_levels: int = 100, water_lookup: bool=False,
-                 trppT: float = 290.0, minT: float = 20.0):
+                 trppT: float = 290.0, minT: float = 10.0, maxT: float = 9000.0):
         
         """Atmosphere class    
     
@@ -44,10 +44,14 @@ class atmos:
                 Calculate contribution function?
             req_levels : int
                 Requested number of vertical levels
+            water_lookup : bool
+                Use lookup table for water thermodynamic values (e.g. L, c_p)
             trppT : float
                 Tropopause temperature
             minT : float
                 Temperature floor
+            maxT : float
+                Temperature ceiling
                 
         """
 
@@ -98,6 +102,10 @@ class atmos:
         self.trppidx		= 0 				 	# Tropopause: idx
         self.trppP 			= 0 				 	# Tropopause: prs
         self.minT           = minT                  # Minimum temperature allowed [K]
+        self.maxT           = maxT                  # Maximum ^
+
+        if trppT < minT:
+            raise Exception("Tropopause is temperature is below T_min")
 
         self.dt 			= 0.5 							# days
 
