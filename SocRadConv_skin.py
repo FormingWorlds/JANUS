@@ -42,44 +42,26 @@ if __name__ == "__main__":
     time = { "planet": 0., "star": 4e+9 } # yr,
     star_mass     = 1.0                 # M_sun, mass of star
     mean_distance = 1.0                 # au, orbital distance
-    pl_radius     = 6.371e6             # m, planet radius
-    pl_mass       = 5.972e24            # kg, planet mass
+    pl_radius     = 7.12e6             # m, planet radius
+    pl_mass       = 8.21e24           # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 2800.0                # K
+    T_magma       = 2579.6                # K
     P_top         = 0.1                  # Pa
 
-    # Define volatiles by mole fractions
-    # P_surf       = 100 * 1e5
-    # vol_partial = {}
-    # vol_mixing = { 
-    #                 "CO2"  : 0.00417,
-    #                 "H2O"  : 0.03,
-    #                 "N2"   : 0.78084,
-    #                 "H2"   : 0.03, 
-    #                 "CH4"  : 0.000187, 
-    #                 "O2"   : 0.20946, 
-    #                 "O3"   : 0.0000006, 
-    #                 "He"   : 0.00000524 , 
-    #             }
-    
-    # OR:
     # Define volatiles by partial pressures
     P_surf = 0.0
     vol_mixing = {}
     vol_partial = {
-        "H2O" : 1.54642e5,
-        "NH3" : 0.,
-        "CO2" : 6.70820e5,
-        "CH4" : 0.,
-        "CO" : 129.85989e5,
-        "O2" : 0.20e5,
-        "N2" : 1.53779e5,
-        "H2" : 13.01485e5
+        "H2O" : 0.92529e5,
+        "NH3" : 0.0,
+        "CO2" : 5.98731e5,
+        "CH4" : 0.0,
+        "CO" : 115.89698e5,
+        "O2" : 0.0,
+        "N2" : 1.77751e5,
+        "H2" : 2.38831e5
         }
-
-    # Stellar heating on/off
-    stellar_heating = True
 
     # Rayleigh scattering on/off
     rscatter = False
@@ -91,8 +73,8 @@ if __name__ == "__main__":
     pure_steam_adj = False
 
     # Tropopause calculation
-    trppD = True   # Calculate dynamically?
-    trppT = 30.0     # Fixed tropopause value if not calculated dynamically
+    trppD = False   # Calculate dynamically?
+    trppT = 50.0     # Fixed tropopause value if not calculated dynamically
 
     # Water lookup tables enabled (e.g. for L vs T dependence)
     water_lookup = False
@@ -122,15 +104,12 @@ if __name__ == "__main__":
     os.mkdir(dirs["output"])
 
     # Create atmosphere object
-    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, 
-                vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT, req_levels=100, water_lookup=water_lookup)
+    atm = atmos(T_magma, P_surf, P_top, pl_radius, pl_mass, 
+                vol_partial=vol_partial, trppT=trppT)
+    atm.tmp_magma = T_magma
 
     # Set stellar heating on or off
-    if stellar_heating == False: 
-        atm.toa_heating = 0.
-    else:
-        _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
-        print("TOA heating:", round(atm.toa_heating), "W/m^2")
+    atm.toa_heating = 4.349e+04
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
@@ -141,7 +120,7 @@ if __name__ == "__main__":
         dirs["output"]+"runtime_spectral_file"
     )
     
-    atm = MCPA_CL(dirs, atm, trppD, rscatter)
+    atm = MCPA_CL(dirs, atm, trppD, rscatter, T_surf_max=T_magma)
 
     ga.plot_adiabats(atm,filename="output/skin_ga.pdf")
     atm.write_PT(filename="output/skin_pt.tsv")
