@@ -21,7 +21,7 @@ import utils.StellarSpectrum as StellarSpectrum
 def run_once(T_surf, dirs):
 
     # Planet 
-    time = { "planet": 0., "star": 4567e+6 } # yr,
+    time = { "planet": 0., "star": 456e+6 } # yr,
     star_mass     = 1.0                 # M_sun, mass of star
     mean_distance = 1.0                 # au, orbital distance
     pl_radius     = 6.371e6             # m, planet radius
@@ -31,12 +31,17 @@ def run_once(T_surf, dirs):
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    P_surf       = 300 * 1e5
+    P_surf       = 127.0 * 1e5
     vol_mixing = {
-                    "H2O" : 1.0,
-                    "CO2" : 0.0,
-                    "N2"  : 0.0
+                    "H2O" : 0.91805,
+                    "CO2" : 5.98710,
+                    "H2"  : 2.37994,
+                    "CO"  : 115.89,
+                    "N2"  : 1.77739
                 }
+    tot = np.sum(list(vol_mixing.values()))
+    for key in vol_mixing.keys():
+        vol_mixing[key] /= tot
     
     # Rayleigh scattering on/off
     rscatter = False
@@ -46,7 +51,7 @@ def run_once(T_surf, dirs):
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 0.0     # Fixed tropopause value if not calculated dynamically
+    trppT = 12.0     # Fixed tropopause value if not calculated dynamically
     
     # Instellation scaling | 1.0 == no scaling
     Sfrac = 1.0
@@ -62,13 +67,12 @@ def run_once(T_surf, dirs):
     # Do rad trans
     _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter) 
 
-    return [T_surf, atm_moist.LW_flux_up[0]]
+    return [T_surf, atm_moist.net_flux[0], atm_moist.net_flux[-1]]
 
 
 if __name__=='__main__':
 
     print("Start")
-    print(" ")
 
     # Set up dirs
     dirs = {
@@ -84,49 +88,50 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["aeolus"]+"/spectral_files/Oak/Oak",
+        dirs["aeolus"]+"/spectral_files/Mallard/Mallard",
         dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
     print(" ")
 
+    skin_k = 2.0
+    skin_d = 0.02
+    tmp_magma = 2800.0
+
+    samples = 24
     
     # Run AEOLUS in a loop to generate runaway curve
     print("Running AEOLUS...")
     Ts_arr = []
-    OLR_arr = []
-    for Ts in np.linspace(200, 2200, 30):
+    toa_arr = []
+    boa_arr = []
+    skn_arr = []
+    for Ts in np.linspace(600, 3000, samples):
         print("T_surf = %d K" % Ts)
         out = run_once(Ts, dirs)
         Ts_arr.append(out[0])
-        OLR_arr.append(out[1])
+        toa_arr.append(out[1])
+        boa_arr.append(out[2])
+        skn_arr.append(skin_k / skin_d * (tmp_magma - Ts))
         print(" ")
     
-    # Get literature data
-    g2013 = np.loadtxt(dirs["aeolus"]+"plotting_tools/comparison_data/Goldblatt13_data.txt",
-                          dtype=float, skiprows=2, delimiter=',').T 
-    k2013 = np.loadtxt(dirs["aeolus"]+"plotting_tools/comparison_data/Kopparapu13_data.txt",
-                          dtype=float, skiprows=2, delimiter=',').T 
-    h2015 = np.loadtxt(dirs["aeolus"]+"plotting_tools/comparison_data/Hamano15_data.txt",
-                          dtype=float, skiprows=2, delimiter=',').T 
-
     # Setup plot
     print("Making plot")
     fig,ax = plt.subplots(1,1)
 
     # Plot data
     lw = 2
-    ax.plot(k2013[0], k2013[1], color='tab:red',   lw=lw, label='Kopparapu+2013')
-    ax.plot(g2013[0], g2013[1], color='tab:green', lw=lw, label='Goldblatt+2013')
-    ax.plot(h2015[0], h2015[1], color='tab:blue',  lw=lw, label='Hamano+2015')
-    ax.plot(Ts_arr, OLR_arr,    color='black',     lw=lw, label='AEOLUS')
+    ax.axvline(x=tmp_magma,  color='firebrick', lw=lw,  label="Magma")
+    ax.plot(Ts_arr, toa_arr, color='gold',      lw=lw,  label='TOA')
+    ax.plot(Ts_arr, boa_arr, color='orchid',    lw=lw,  label='BOA')
+    ax.plot(Ts_arr, skn_arr, color='teal',      lw=lw,  label='Skin')
 
     # Setup figure and save
-    fig.legend(loc='upper center')
+    fig.legend(loc='upper left')
     ax.set_xlabel("Surface temperature [K]")
-    ax.set_ylabel("OLR [W m-2]")
-    fig.savefig(dirs["output"]+"runaway_demo.pdf")
-    print(" ")
+    ax.set_ylabel("Upward-directed flux [W m-2]")
+    ax.set_yscale("symlog")
+    fig.savefig(dirs["output"]+"complex_runaway_demo.pdf", bbox_inches='tight')
 
     # Tidy
     CleanOutputDir(os.getcwd())
