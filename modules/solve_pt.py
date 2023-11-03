@@ -196,20 +196,25 @@ def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess
         raise Exception("Invalid solution method chosen (%d)" % method)
 
     # Extract solution
-    T_surf = float(r.root)
+    T_surf_sol = float(r.root)
     succ  = bool(r.converged)
-
-    # Check bounds on T_surf
-    T_surf = max(T_surf, minT)
-    T_surf = min(T_surf, maxT)
-    if T_surf_max > minT:
-        T_surf = min(T_surf, T_surf_max)
 
     if not succ:
         print("WARNING: Did not find solution for surface skin balance")
     else:
         print("Found surface solution")
         
+    # Check bounds on T_surf
+    T_surf = max(T_surf_sol, minT)
+    T_surf = min(T_surf,     maxT)
+    if T_surf_max > minT:
+        T_surf = min(T_surf, T_surf_max)
+
+    if T_surf != T_surf_sol:
+        print("T_surf limits activated")
+        print("    Found T_surf = %g K" % T_surf_sol)
+        print("    Using T_surf = %g K" % T_surf)
+
     # Get atmosphere state from solution value
     atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, False, rscatter)
     atm.ts = T_surf

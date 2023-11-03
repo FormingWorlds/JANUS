@@ -105,7 +105,7 @@ class atmos:
         self.maxT           = maxT                  # Maximum ^
 
         if trppT < minT:
-            raise Exception("Tropopause is temperature is below T_min")
+            raise Exception("Tropopause temperature is too low (minT = %g)" % self.minT)
 
         self.dt 			= 0.5 							# days
 
