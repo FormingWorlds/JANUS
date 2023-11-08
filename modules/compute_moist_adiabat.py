@@ -46,8 +46,8 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
     if standalone == True:
         print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
 
-    # Calculate tropopause dynamically
-    if (trppD == True) or (atm_moist.trppT > 0.0) or (atm_moist.minT > 0.0):
+    # Calculate tropopause
+    if (trppD == True) or (atm_moist.trppT > atm_moist.minT):
       
         # Find tropopause index
         atm_moist = find_tropopause(atm_moist,trppD, verbose=standalone)
