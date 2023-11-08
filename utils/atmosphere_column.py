@@ -12,7 +12,7 @@ class atmos:
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
                  calc_cf: bool=False, req_levels: int = 100, water_lookup: bool=False,
-                 trppT: float = 290.0, minT: float = 10.0, maxT: float = 9000.0):
+                 trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0):
         
         """Atmosphere class    
     
@@ -104,9 +104,6 @@ class atmos:
         self.minT           = minT                  # Minimum temperature allowed [K]
         self.maxT           = maxT                  # Maximum ^
 
-        if trppT < minT:
-            raise Exception("Tropopause temperature is too low (minT = %g)" % self.minT)
-
         self.dt 			= 0.5 							# days
 
         self.toa_heating    = 0. 							# W/m^2
@@ -114,7 +111,7 @@ class atmos:
 
         self.albedo_s   	= 0.0 							# surface albedo
         self.albedo_pl   	= 0.175 						# Bond albedo (scattering)
-        self.zenith_angle  	= 54.74							# solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+ 10: 48.19 (arccos(2/3)), see Cronin 14 (mu = 0.58 -> theta = arccos(0.58) = 54.55) for definitions
+        self.zenith_angle  	= 54.74							# solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+10: 48.19 (arccos(2/3)), see Cronin+14 for definitions
 
         self.planet_mass    = pl_mass
         self.planet_radius  = pl_radius
@@ -136,7 +133,7 @@ class atmos:
         self.nbands 	    = np.size(self.bands)-1
 
         self.tmp_magma      = 3000.0
-        self.skin_d         = 0.02
+        self.skin_d         = 0.01
         self.skin_k         = 2.0
 
         # Level-dependent quantities
