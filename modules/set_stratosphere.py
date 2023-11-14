@@ -17,15 +17,18 @@ def set_stratosphere(atm):
     trpp_prs = atm.trppP
     trpp_tmp = atm.trppT
 
+    if trpp_idx < 0:
+        return
+
     # Standard nodes
     for prs_idx, prs in enumerate(atm.p):
-        if prs < trpp_prs:
+        if prs <= trpp_prs:
             atm.tmp[prs_idx] = trpp_tmp
     atm.tmp = np.clip(atm.tmp,atm.minT,None)
 
     # Staggered nodes
     for prsl_idx, prls in enumerate(atm.pl):
-        if prls < trpp_prs:
+        if prls <= trpp_prs:
             atm.tmpl[prsl_idx] = trpp_tmp
     atm.tmpl = np.clip(atm.tmpl,atm.minT,None)
 

@@ -98,9 +98,8 @@ def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo, Sfrac):
         L_star          = 0.000553*L_sun     # Trappist-1 luminosity
 
 
-    F               = L_star /  ( 4. * np.pi * (mean_distance*AU)**2. )     # Flux at orbital radius (W/m^2)
-    toa_heating     = ( 1. - albedo ) * F     # Heating at TOA (W/m^2)
-    S_0             = F * Sfrac # Scale instellation by fixed fraction
+    inst            = L_star /  ( 4. * np.pi * (mean_distance*AU)**2. )      # Flux at orbital radius (W/m^2)
+    toa_heating     = ( 1. - albedo ) * inst * Sfrac    # Heating at TOA (W/m^2)
     
-    return S_0, toa_heating
+    return inst, toa_heating
 

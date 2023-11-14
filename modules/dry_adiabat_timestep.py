@@ -17,7 +17,7 @@ from modules.dry_adjustment import DryAdj
 from modules.simple_boundary import simple_boundary_tend
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import utils.SocRadModel as SocRadModel
+import utils.socrates as socrates
 import utils.phys as phys
 
 # Time integration for n steps
@@ -29,14 +29,11 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
     dT_max      = 20.  # K, Maximum temperature change per radiation step
     T_floor     = 10.  # K, Temperature floor to prevent SOCRATES crash
 
-    print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
     # Build general adiabat structure
     atm                 = ga.general_adiabat(copy.deepcopy(atm))
-    print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
 
     # Copy moist pressure arrays for dry adiabat
     atm_dry             = dry_adiabat_atm(atm)
-    print("atm_dry.toa_heating in compute_dry_adiabat = ", atm_dry.toa_heating)
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry         = 0.
@@ -52,10 +49,7 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
 
         # Compute radiation, midpoint method time stepping
         try:
-            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
-            # print("atm_dry.net_heating in compute_dry_adiabat = ", atm_dry.net_heating)
-            # print("atm_dry.SW_flux_down in compute_dry_adiabat = ", atm_dry.SW_flux_down)
-            
+            atm_dry         = socrates.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
             dT_dry          = atm_dry.net_heating * atm_dry.dt
     
             # Limit the temperature change per step
@@ -78,11 +72,11 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
                 atm_dry.tmp[-1] += dT_dry[-1] * k_turb * (atm_dry.tmp[-1] - atm_dry.ts) 
                 
             # Apply heating
-            atm_dry.tmp     += dT_dry
+            atm_dry.tmp     += dT_dry 
             
             # Pure steam convective adjustment
             if pure_steam_adj:
-                dT_moist = moist_adj(atm_dry.tmp,atm_dry.p,atm_dry.pl,1000.)
+                dT_moist = moist_adj(atm_dry,1000.)
                 atm_dry.tmp     += dT_moist
             
             # Dry convective adjustment

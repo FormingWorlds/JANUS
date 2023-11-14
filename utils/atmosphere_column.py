@@ -2,14 +2,17 @@
 # class for atmospheric column data
 
 import numpy as np
+import netCDF4 as nc
 from utils import phys
+from utils.height import AtmosphericHeight
+import os
 
 class atmos:
     
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  vol_mixing: dict = {}, vol_partial: dict = {}, 
-                 calc_cf: bool=False, water_lookup: bool=False,
-                 trppT: float = 290.0, minT: float = 20.0):
+                 calc_cf: bool=False, req_levels: int = 100, water_lookup: bool=False,
+                 trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0):
         
         """Atmosphere class    
     
@@ -39,10 +42,16 @@ class atmos:
 
             calc_cf : bool
                 Calculate contribution function?
+            req_levels : int
+                Requested number of vertical levels
+            water_lookup : bool
+                Use lookup table for water thermodynamic values (e.g. L, c_p)
             trppT : float
                 Tropopause temperature
             minT : float
                 Temperature floor
+            maxT : float
+                Temperature ceiling
                 
         """
 
@@ -85,7 +94,7 @@ class atmos:
         self.ptop 			= P_top 			# Top pressure in Pa
         self.nlev 			= 10000  	   	# Number of vertical levels for adiabat integration
         self.step    		= 0.01  		# Adjust to match self.nlev
-        self.nlev_save		= 100   		# Number of levels to save object
+        self.nlev_save		= int(max(req_levels, 10))  		# Number of levels to save object
         self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
         self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
 
@@ -93,6 +102,7 @@ class atmos:
         self.trppidx		= 0 				 	# Tropopause: idx
         self.trppP 			= 0 				 	# Tropopause: prs
         self.minT           = minT                  # Minimum temperature allowed [K]
+        self.maxT           = maxT                  # Maximum ^
 
         self.dt 			= 0.5 							# days
 
@@ -101,7 +111,7 @@ class atmos:
 
         self.albedo_s   	= 0.0 							# surface albedo
         self.albedo_pl   	= 0.175 						# Bond albedo (scattering)
-        self.zenith_angle  	= 54.74							# solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+ 10: 48.19 (arccos(2/3)), see Cronin 14 (mu = 0.58 -> theta = arccos(0.58) = 54.55) for definitions
+        self.zenith_angle  	= 54.74							# solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+10: 48.19 (arccos(2/3)), see Cronin+14 for definitions
 
         self.planet_mass    = pl_mass
         self.planet_radius  = pl_radius
@@ -122,13 +132,18 @@ class atmos:
         self.band_widths 	= np.diff(self.bands)
         self.nbands 	    = np.size(self.bands)-1
 
+        self.tmp_magma      = 3000.0
+        self.skin_d         = 0.01 # m
+        self.skin_k         = 2.0  # W m-1 K-1
+
         # Level-dependent quantities
         self.p_vol 			= {} # Gas phase partial pressures
         self.pl_vol 		= {} # Gas phase partial pressures
         self.x_gas 			= {} # Gas phase molar concentration
         self.x_cond         = {} # Condensed phase molar concentration
         self.grav_z			= np.zeros(self.nlev) # Local gravity
-        self.z 				= np.zeros(self.nlev) # Atmospheric height
+        self.z 				= np.zeros(self.nlev)   # Atmospheric height (centres)
+        self.zl 	    	= np.zeros(self.nlev+1) # Atmospheric height (edges)
         self.mu 			= np.zeros(self.nlev) # Mean molar mass in level
         self.xd 			= np.zeros(self.nlev) # Molar concentration of dry gas
         self.xv 			= np.zeros(self.nlev) # Molar concentration of moist gas
@@ -139,8 +154,11 @@ class atmos:
 
         # Define T and P arrays from surface up
         self.tmp[0]         = self.ts         		# K
-        self.p[0]           = self.ps         		# Pa
+        self.tmpl[0]         = self.ts         		# K
+        self.p[0]            = self.ps         		# Pa
+        self.pl[0]           = self.ps         		# Pa
         self.z[0]           = 0         			# m
+        self.zl[0]
         self.grav_z[0]      = self.grav_s 			# m s-2
 
 
@@ -170,7 +188,9 @@ class atmos:
         self.flux_down_total		= np.zeros(self.nlev)				# W/m^2
         self.net_flux				= np.zeros(self.nlev)				# W/m^2
         self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
-        self.net_heating 			= np.zeros(self.nlev) 				# K/day
+        self.net_heating 			= np.zeros(self.nlev) 				# K/day from socrates
+        self.heat                   = np.zeros(self.nlev)               # K/day from *
+
         # Contribution function arrays
         if calc_cf == True:
             self.cff 					= np.zeros(self.nlev) 				# normalised
@@ -215,5 +235,113 @@ class atmos:
         header = '# (%s)\t(K)\nPressure\tTemp' % punit
 
         np.savetxt(filename,X,fmt='%1.5e',header=header,comments='',delimiter='\t')
+
+
+    def write_ncdf(self, fpath):
+        """Write atmosphere arrays to a netCDF file
+
+        Parameters
+        ----------
+            fpath : string
+                Output filename
+        """ 
+
+        # ----------------------
+        # Calculate gravity and height (in case it hasn't been done already)
+        self.z = AtmosphericHeight(self, self.planet_mass, self.planet_radius)
+
+        self.zl = np.zeros(len(self.z)+1)
+        for i in range(1,len(self.z)):
+            self.zl[i] = 0.5 * (self.z[i-1] + self.z[i])
+        self.zl[0] = 2*self.z[0] - self.zl[1] # estimate TOA height
+
+        # ----------------------
+        # Prepare NetCDF
+        if os.path.exists(fpath):
+            os.remove(fpath)
+
+        ds = nc.Dataset(fpath, 'w', format='NETCDF4')
+        ds.description = 'AEOLUS atmosphere data'
+
+        nlev_c = len(self.p)
+        nlev_l = nlev_c + 1
+
+        gas_list = [str(gas) for gas in self.vol_list.keys()]
+        ngases = len(gas_list)
+
+        nchars = 16
+
+        # ----------------------
+        # Create dimensions
+        ds.createDimension('nlev_c', nlev_c)    # Cell centres
+        ds.createDimension('nlev_l', nlev_l)    # Cell edges
+        ds.createDimension('ngases', ngases)    # Gases
+        ds.createDimension('nchars', nchars)    # Length of string containing gas names
+
+        # ----------------------
+        # Scalar quantities  
+        #    Create variables
+        var_tstar =     ds.createVariable('tstar',      'f4');  var_tstar.units = "K"       # BOA LW BC
+        var_toah =      ds.createVariable('toa_heating','f4');  var_toah.units = "W m-2"    # TOA SW BC
+
+        #     Store data
+        var_tstar.assignValue(self.ts)
+        var_toah.assignValue(self.toa_heating)
+
+
+        # ----------------------
+        # Layer quantities  
+        #    Create variables
+        var_p =         ds.createVariable('p',      'f4', dimensions=('nlev_c'));           var_p.units = "Pa"
+        var_pl =        ds.createVariable('pl',     'f4', dimensions=('nlev_l'));           var_pl.units = "Pa"
+        var_tmp =       ds.createVariable('tmp',    'f4', dimensions=('nlev_c'));           var_tmp.units = "K"
+        var_tmpl =      ds.createVariable('tmpl',   'f4', dimensions=('nlev_l'));           var_tmpl.units = "K"
+        var_z =         ds.createVariable('z',      'f4', dimensions=('nlev_c'));           var_z.units = "m"
+        var_zl =        ds.createVariable('zl',     'f4', dimensions=('nlev_l'));           var_zl.units = "m"
+        var_grav =      ds.createVariable('gravity','f4', dimensions=('nlev_c'));           var_grav.units = "m s-2"
+        var_mmw =       ds.createVariable('mmw',    'f4', dimensions=('nlev_c'));           var_mmw.units = "kg mol-1"
+        var_gases =     ds.createVariable('gases',  'S1', dimensions=('ngases', 'nchars'))  # Names of gases
+        var_mr =        ds.createVariable('x_gas',  'f4', dimensions=('nlev_c', 'ngases'))  # Mixing ratios per level
+        var_fdl =       ds.createVariable('fl_D_LW','f4', dimensions=('nlev_l'));           var_fdl.units = "W m-2"
+        var_ful =       ds.createVariable('fl_U_LW','f4', dimensions=('nlev_l'));           var_ful.units = "W m-2"
+        var_fnl =       ds.createVariable('fl_N_LW','f4', dimensions=('nlev_l'));           var_fnl.units = "W m-2"
+        var_fds =       ds.createVariable('fl_D_SW','f4', dimensions=('nlev_l'));           var_fds.units = "W m-2"
+        var_fus =       ds.createVariable('fl_U_SW','f4', dimensions=('nlev_l'));           var_fus.units = "W m-2"
+        var_fns =       ds.createVariable('fl_N_SW','f4', dimensions=('nlev_l'));           var_fns.units = "W m-2"
+        var_fd =        ds.createVariable('fl_D',   'f4', dimensions=('nlev_l'));           var_fd.units = "W m-2"
+        var_fu =        ds.createVariable('fl_U',   'f4', dimensions=('nlev_l'));           var_fu.units = "W m-2"
+        var_fn =        ds.createVariable('fl_N',   'f4', dimensions=('nlev_l'));           var_fn.units = "W m-2"
+        var_hr =        ds.createVariable('rad_hr', 'f4', dimensions=('nlev_c'));           var_hr.units = "K day-1"
+
+        #     Store data
+        var_p[:] =      self.p[:]
+        var_pl[:] =     self.pl[:]
+        var_tmp[:] =    self.tmp[:]
+        var_tmpl[:] =   self.tmpl[:]
+        var_z[:]    =   self.z[:]
+        var_zl[:]    =  self.zl[:]
+        var_mmw[:]  =   self.mu[:]
+        var_grav[:]  =  self.grav_z[:]
+
+        var_gases[:] =  np.array([ [c for c in gas.ljust(nchars)[:nchars]] for gas in gas_list ] , dtype='S1')
+        var_mr[:] =     np.array([ [ self.x_gas[gas][i] for i in range(nlev_c-1,-1,-1) ] for gas in gas_list  ]).T
+
+        var_fdl[:] =    self.LW_flux_down[:]
+        var_ful[:] =    self.LW_flux_up[:]
+        var_fnl[:] =    self.LW_flux_net[:]
+
+        var_fds[:] =    self.SW_flux_down[:]
+        var_fus[:] =    self.SW_flux_up[:]
+        var_fns[:] =    self.SW_flux_net[:]
+
+        var_fd[:] =     self.flux_down_total[:]
+        var_fu[:] =     self.flux_up_total[:]
+        var_fn[:] =     self.net_flux[:]
+
+        var_hr[:] =     self.net_heating[:]
+
+        # ----------------------
+        # Close
+        ds.close()
 
 

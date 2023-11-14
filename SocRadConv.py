@@ -20,8 +20,9 @@ import os, shutil
 import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
-from modules.radcoupler import RadConvEqm
-from modules.plot_flux_balance import plot_flux_balance
+from modules.solve_pt import RadConvEqm
+from modules.plot_flux_balance import plot_fluxes
+from utils.socrates import CleanOutputDir
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 from utils.atmosphere_column import atmos
@@ -38,37 +39,28 @@ if __name__ == "__main__":
     ##### Settings
 
     # Planet 
-    time = { "planet": 0., "star": 4567e+6 } # yr,
+    time = { "planet": 0., "star": 4e+9 } # yr,
     star_mass     = 1.0                 # M_sun, mass of star
     mean_distance = 1.0                 # au, orbital distance
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 300.0                # K
-    P_top         = 1.0                  # Pa
+    T_surf        = 2000.8                # K
+    P_top         = 0.1                  # Pa
 
     # Define volatiles by mole fractions
     # P_surf       = 100 * 1e5
     # vol_partial = {}
     # vol_mixing = { 
-    #                 "CO2"  : 0.0,
-    #                 "H2O"  : 1.0,
-    #                 "N2"   : 0.0,
-    #                 "H2"   : 0.0, 
-    #                 "NH3"  : 0.0,
-    #                 "CH4"  : 0.0, 
-    #                 "O2"   : 0.0, 
-    #                 "CO"   : 0.0, 
-    #                 # # No thermodynamic data, RT only
-    #                 # "O3"   : 0.01, 
-    #                 # "N2O"  : 0.01, 
-    #                 # "NO"   : 0.01, 
-    #                 # "SO2"  : 0.01, 
-    #                 # "NO2"  : 0.01, 
-    #                 # "HNO3" : 0.01, 
-    #                 # "He"   : 0.01, 
-    #                 # "OCS"  : 0.01,
+    #                 "CO2"  : 0.00417,
+    #                 "H2O"  : 0.03,
+    #                 "N2"   : 0.78084,
+    #                 "H2"   : 0.03, 
+    #                 "CH4"  : 0.000187, 
+    #                 "O2"   : 0.20946, 
+    #                 "O3"   : 0.0000006, 
+    #                 "He"   : 0.00000524 , 
     #             }
     
     # OR:
@@ -76,19 +68,21 @@ if __name__ == "__main__":
     P_surf = 0.0
     vol_mixing = {}
     vol_partial = {
-        "H2O" : 0.0036e5,
-        "CO2" : 0.0350e5,
-        "O2"  : 0.2000e5,
-        "N2"  : 0.7800e5,
-        "He"  : 0.0100e5,
-        "O3"  : 0.0010e5
+        "H2O" : 1.54642e5,
+        "NH3" : 0.,
+        "CO2" : 6.70820e5,
+        "CH4" : 0.,
+        "CO" : 129.85989e5,
+        "O2" : 0.20e5,
+        "N2" : 1.53779e5,
+        "H2" : 13.01485e5
         }
 
     # Stellar heating on/off
     stellar_heating = True
 
     # Rayleigh scattering on/off
-    rscatter = True
+    rscatter = False
 
     # Compute contribution function
     calc_cf = False
@@ -118,7 +112,7 @@ if __name__ == "__main__":
 
     # Set up dirs
     dirs = {
-            "rad_conv": os.getenv('AEOLUS_DIR')+"/",
+            "aeolus": os.getenv('AEOLUS_DIR')+"/",
             "output": os.getenv('AEOLUS_DIR')+"/output/"
             }
     
@@ -128,42 +122,42 @@ if __name__ == "__main__":
     os.mkdir(dirs["output"])
 
     # Create atmosphere object
-    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT, water_lookup=water_lookup)
-
-    # Compute stellar heating
-    S_0, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
+    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, 
+                vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT, req_levels=100, water_lookup=water_lookup)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
         atm.toa_heating = 0.
     else:
+        _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
         print("TOA heating:", round(atm.toa_heating), "W/m^2")
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
 
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["rad_conv"]+"/spectral_files/Reach/Reach",
-        dirs["rad_conv"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["aeolus"]+"/spectral_files/Reach/Reach",
+        dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
 
-    # Do rad trans
-    print("Calling RadConvEqm()")
-    atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
-    
+    # Set up atmosphere with general adiabat
+    atm_dry, atm = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
+
     # Plot abundances w/ TP structure
     if (cp_dry):
         ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
         atm_dry.write_PT(filename="output/dry_pt.tsv")
-        ga.plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
+        plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
 
+    ga.plot_adiabats(atm,filename="output/moist_ga.pdf")
+    atm.write_PT(filename="output/moist_pt.tsv")
+    atm.write_ncdf("output/moist_atm.nc")
+    plot_fluxes(atm,filename="output/moist_fluxes.pdf")
 
-    ga.plot_adiabats(atm_moist,filename="output/moist_ga.pdf")
-    atm_moist.write_PT(filename="output/moist_pt.tsv")
-    ga.plot_fluxes(atm_moist,filename="output/moist_fluxes.pdf")
-
-    plot_flux_balance(atm_dry,atm_moist,cp_dry,time,dirs)
+    # Tidy
+    CleanOutputDir(os.getcwd())
+    CleanOutputDir(dirs['output'])
 
     end = t.time()
     print("Runtime:", round(end - start,2), "s")

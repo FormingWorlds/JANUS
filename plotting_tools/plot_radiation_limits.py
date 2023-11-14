@@ -46,7 +46,7 @@ def literature_comparison():
 
     Goldblatt13_Ts  = []
     Goldblatt13_OLR = []
-    with open(dirs["rad_conv"]+"/plotting_tools/comparison_data/Goldblatt13_data.txt", 'r') as data_file:
+    with open(dirs["aeolus"]+"/plotting_tools/comparison_data/Goldblatt13_data.txt", 'r') as data_file:
         for line in data_file:
             if not line.startswith('#'):
                 line = line.rstrip('\n')
@@ -55,7 +55,7 @@ def literature_comparison():
                 Goldblatt13_OLR.append(float(line[1]))
     Kopparapu13_Ts  = []
     Kopparapu13_OLR = []
-    with open(dirs["rad_conv"]+"/plotting_tools/comparison_data/Kopparapu13_data.txt", 'r') as data_file:
+    with open(dirs["aeolus"]+"/plotting_tools/comparison_data/Kopparapu13_data.txt", 'r') as data_file:
         for line in data_file:
             if not line.startswith('#'):
                 line = line.rstrip('\n')
@@ -64,7 +64,7 @@ def literature_comparison():
                 Kopparapu13_OLR.append(float(line[1]))
     Hamano15_Ts  = []
     Hamano15_OLR = []
-    with open(dirs["rad_conv"]+"/plotting_tools/comparison_data/Hamano15_data.txt", 'r') as data_file:
+    with open(dirs["aeolus"]+"/plotting_tools/comparison_data/Hamano15_data.txt", 'r') as data_file:
         for line in data_file:
             if not line.startswith('#'):
                 line = line.rstrip('\n')
@@ -135,7 +135,7 @@ def define_mixing_ratios(vol, vol_list):
 
 ### Initial conditions
 
-dirs = {"output": os.getcwd()+"/../output", "data_dir": os.getcwd()+"/../output/radiation_limits_data", "rad_conv": os.getcwd()+"/.."}
+dirs = {"output": os.getcwd()+"/../output", "data_dir": os.getcwd()+"/../output/radiation_limits_data", "aeolus": os.getcwd()+"/.."}
 
 # Check if data dirs exists, otherwise create
 if not os.path.exists(dirs["data_dir"]):
@@ -340,7 +340,7 @@ for setting in [ "trpp", "moist" ]: # "trpp", "moist", "tstep"
                             b_ymax = np.max([ b_ymax, np.max(NET_array) ])
 
                         ##### Clean SOCRATES dir after each run
-                        CleanOutputDir( dirs["rad_conv"] )
+                        CleanOutputDir( dirs["aeolus"] )
 
     ########## GENERAL PLOT SETTINGS
 

@@ -11,7 +11,7 @@ Harrison Nicholls (HN)
 
 import numpy as np
 
-def find_tropopause(atm_moist, dynamic: bool):
+def find_tropopause(atm_moist, dynamic: bool, verbose=True):
     """Computes tropopause location via two methods: dynamically based on heating rates, or by a set temperature value.
 
     Parameters
@@ -26,7 +26,8 @@ def find_tropopause(atm_moist, dynamic: bool):
     # Heating criterion
     if dynamic:
 
-        print("TROPOPAUSE SET BY HEATING")
+        if verbose:
+            print("TROPOPAUSE SET BY HEATING")
 
         # Find tropopause index
         trpp_idx   = 0 
@@ -93,11 +94,17 @@ def find_tropopause(atm_moist, dynamic: bool):
     # Temperature criterion
     else:
 
-        print("TROPOPAUSE SET BY CONTANT VALUE OF", atm_moist.trppT, "K")
-        trpp_idx = (np.abs(atm_moist.tmp - atm_moist.trppT)).argmin()
+        if verbose:
+            print("TROPOPAUSE SET BY CONTANT VALUE OF", atm_moist.trppT, "K")
 
-        atm_moist.trppidx   = trpp_idx                  # index
-        atm_moist.trppP     = atm_moist.pl[trpp_idx]    # pressure 
-        atm_moist.trppT     = atm_moist.tmpl[trpp_idx]  # temperature
+        if np.amin(atm_moist.tmpl) > atm_moist.trppT:
+            trpp_idx = (np.abs(atm_moist.tmpl - atm_moist.trppT)).argmin()
+            atm_moist.trppidx   = trpp_idx                  # index
+            atm_moist.trppP     = atm_moist.pl[trpp_idx]    # pressure 
+
+        else:
+            # tropopause isn't triggered
+            atm_moist.trppidx   = -1
+            atm_moist.trppP     = 1.0e-10
 
     return atm_moist

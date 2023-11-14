@@ -1,6 +1,6 @@
 ## AEOLUS (temperature structure generator)
 
-Runs until the OLR changes by less than a threshold value in W/m<sup>2</sup>, or stops after a fixed number of iterations.
+Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.
 
 ### Documentation
 https://proteus-code.readthedocs.io
@@ -16,16 +16,17 @@ https://proteus-code.readthedocs.io
 ### Repository structure
 
 * `SocRadConv.py`               - Main AEOLUS Python script
+* `demo_runaway_greenhouse.py`  - Demonstrate pure-steam runaway greenhouse OLR curve
+* `demo_instellation.py`        - Calculate fluxes (and temperatures) for different instellations
 * `README.md`                   - This file
 * `INSTALL.md`                  - Installation instructions
 * `AEOLUS.env`                  - Sets environment flags to run the code
-* `MoistAdiabat_RayCode.py`     - Legacy file
 * `utils/`                      - Utility python scripts
 * `modules/`                    - Utility python scripts
 * `output/`                     - Output folder
 * `luminosity_tracks/`          - Stellar evolution data
 * `plotting_tools/`             - Plotting scripts
-* `rad_trans/`                  - Subfolder with adiative transfer code/s
+* `rad_trans/`                  - Subfolder for radiative transfer code/s
 * `spectral_files/`             - Spectral files for SOCRATES
 * `tools/`                      - Useful tools
 
@@ -35,6 +36,6 @@ Follow environment- and AEOLUS-related steps in https://proteus-code.readthedocs
 ### Run instructions
 Only attempt to run AEOLUS after you have followed all of the instructions in INSTALL.md    
 If using a fresh shell, it is necessary to perform the following steps:     
-1. `source AEOLUS.env`
-2. `conda activate aeolus`
+1. `source AEOLUS.env`    
+2. `conda activate aeolus`    
 Then you can run the code by running: `python SocRadConv.py`      

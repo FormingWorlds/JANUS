@@ -19,6 +19,8 @@ def cpv( vol, tmp, cp_mode = "constant" ):
 
     if cp_mode == "T-dependent":
 
+        cp = 0.0
+
         match vol:
             # https://webbook.nist.gov/cgi/inchi/InChI%3D1S/H2O/h1H2
             case "H2O":

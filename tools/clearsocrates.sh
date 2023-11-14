@@ -5,4 +5,3 @@ rm profile.*
 rm radiation_code.lock
 rm currentsw.*
 rm currentlw.*
-
