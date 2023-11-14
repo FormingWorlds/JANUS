@@ -38,8 +38,9 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
         raise Exception("Stellar wavelength and flux arrays have different lengths")
     if (len(wl) < 500):
         print("WARNING: Loaded stellar spectrum is very short!")
-    if (nbins_max >= len(wl)):
-        raise Exception("Cannot bin spectrum to a higher resolution than the data provided")
+
+    nbins_max = min(len(wl), nbins_max)
+    
     if (nbins_max > socrates_nbins_max):
         raise Exception("Too many bins requested for stellar spectrum (maximum is %d)" % socrates_nbins_max)
 

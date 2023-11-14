@@ -14,9 +14,10 @@ import time
 import numpy as np
 import scipy.interpolate as spint
 import math
-import matplotlib.pyplot as plt
 import copy
-import matplotlib as mpl
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import numpy as np
 import utils.water_tables as wt
 
@@ -157,7 +158,7 @@ def atm_z(atm, idx):
     # atm.mu[idx] = atm.mu[idx]
 
     # print(atm.grav_z[idx], atm.mu[idx], atm.p[idx], atm.p[idx+1])
-    dp = atm.p[idx+1]-atm.p[idx]
+    
 
     mu_c = 0.
     if atm.xc[idx] > 0:
@@ -165,16 +166,20 @@ def atm_z(atm, idx):
             mu_c += atm.x_cond[vol][idx]*phys.molar_mass[vol] / atm.xc[idx]
     
     # Integration
-    #dz = - phys.R_gas * T_mean_down * np.log(atm.p[idx+1]/atm.p[idx]) / ( atm.mu[idx] * atm.grav_z[idx] )
     atm.rho[idx] =  atm.p[idx]/phys.R_gas/atm.tmp[idx] * ( atm.mu[idx] + mu_c*atm.alpha_cloud*atm.xc[idx]/(atm.xv[idx]+atm.xd[idx]) )
+    #     cell centres
+    dp = atm.p[idx+1]-atm.p[idx]
     dz =  -dp / atm.rho[idx]
+    atm.z[idx+1] = atm.z[idx] + dz
+    #     cell edges 
+    dp = atm.pl[idx+1]-atm.pl[idx]
+    dz =  -dp / atm.rho[idx]
+    atm.zl[idx+1] = atm.zl[idx] + dz
     if dz<0:
         print("WARNING: dz  = %g < 0 " % dz)
         print("         (dp  = %g)" % dp)
         print("         (rho = %g)" % atm.rho[idx])
-    # Next height
-    atm.z[idx+1] = atm.z[idx] + dz
-
+    
     # Next gravity
     atm.grav_z[idx+1] = atm.grav_s * ((atm.planet_radius)**2) / ((atm.planet_radius+atm.z[idx+1])**2)
 
@@ -738,15 +743,22 @@ def general_adiabat( atm ):
         Tsurf = atm.ts
         alpha = atm.alpha_cloud
         toa_heating = atm.toa_heating
+        tmp_magma = atm.tmp_magma
         minT = atm.minT
+        nlev_save = atm.nlev_save
+        skin_d = atm.skin_d
+        skin_k = atm.skin_k
 
         for vol in atm.vol_list.keys():
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
 
-        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT, minT=minT)
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT, minT=minT, req_levels=nlev_save)
         
         atm.alpha_cloud = alpha
         atm.toa_heating = toa_heating
+        atm.tmp_magma = tmp_magma
+        atm.skin_d = skin_d
+        atm.skin_k = skin_k
         
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts,water_lookup=atm.water_lookup):
@@ -866,33 +878,6 @@ def interpolate_atm(atm):
 
     return atm
 
-# Plotting
-def plot_fluxes(atm,filename='output/fluxes.pdf'):
-
-    fig,ax = plt.subplots()
-
-    ax.axvline(0,color='black',lw=0.8)
-
-    ax.plot(atm.flux_up_total,atm.pl,color='red',label='UP',lw=1)
-    ax.plot(atm.SW_flux_up   ,atm.pl,color='red',label='UP SW',linestyle='dotted',lw=2)
-    ax.plot(atm.LW_flux_up   ,atm.pl,color='red',label='UP LW',linestyle='dashed',lw=1)
-
-    ax.plot(-1.0*atm.flux_down_total,atm.pl,color='green',label='DN',lw=2)
-    ax.plot(-1.0*atm.SW_flux_down   ,atm.pl,color='green',label='DN SW',linestyle='dotted',lw=3)
-    ax.plot(-1.0*atm.LW_flux_down   ,atm.pl,color='green',label='DN LW',linestyle='dashed',lw=2)
-
-    ax.plot(atm.net_flux ,atm.pl,color='black',label='NET')
-
-    ax.set_xlabel("Upward-directed flux [W m-2]")
-    ax.set_ylabel("Pressure [Pa]")
-    ax.set_yscale("log")
-    ax.set_ylim([atm.pl[-1],atm.pl[0]])
-
-    ax.legend(loc='upper left')
-
-    fig.savefig(filename)
-
-
 
 def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
 
@@ -986,8 +971,8 @@ def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
     fig.suptitle('$T_{surf}$=%.1f K, $T_{bot}$=%.1f K'% (atm.ts,atm.tmp[-1]))
     #plt.show()
 
-    plt.savefig(filename, bbox_inches='tight')
-    #plt.close(fig)  
+    fig.savefig(filename, bbox_inches='tight')
+    plt.close()
 
     return
 
