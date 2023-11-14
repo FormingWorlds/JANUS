@@ -172,6 +172,7 @@ def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess
         F_skn = skin(atm_tmp)
         print("    F_atm = %+.2e W m-2      F_skn = %+.2e W m-2" % (F_atm,F_skn))
 
+        del atm_tmp
         return float(F_skn - F_atm)
     
     print("Solving for global energy balance with conductive lid (T_magma = %.1f K)" % tmp_magma)

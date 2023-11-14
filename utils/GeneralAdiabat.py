@@ -743,8 +743,11 @@ def general_adiabat( atm ):
         Tsurf = atm.ts
         alpha = atm.alpha_cloud
         toa_heating = atm.toa_heating
+        tmp_magma = atm.tmp_magma
         minT = atm.minT
         nlev_save = atm.nlev_save
+        skin_d = atm.skin_d
+        skin_k = atm.skin_k
 
         for vol in atm.vol_list.keys():
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
@@ -753,6 +756,9 @@ def general_adiabat( atm ):
         
         atm.alpha_cloud = alpha
         atm.toa_heating = toa_heating
+        atm.tmp_magma = tmp_magma
+        atm.skin_d = skin_d
+        atm.skin_k = skin_k
         
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts,water_lookup=atm.water_lookup):
