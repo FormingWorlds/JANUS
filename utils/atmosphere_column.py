@@ -133,8 +133,8 @@ class atmos:
         self.nbands 	    = np.size(self.bands)-1
 
         self.tmp_magma      = 3000.0
-        self.skin_d         = 0.01
-        self.skin_k         = 2.0
+        self.skin_d         = 0.01 # m
+        self.skin_k         = 2.0  # W m-1 K-1
 
         # Level-dependent quantities
         self.p_vol 			= {} # Gas phase partial pressures

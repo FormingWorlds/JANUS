@@ -95,7 +95,7 @@ if __name__=='__main__':
     print("Running AEOLUS...")
     Ts_arr = []
     OLR_arr = []
-    for Ts in np.linspace(200, 2200, 30):
+    for Ts in np.linspace(200, 2200, 20):
         print("T_surf = %d K" % Ts)
         out = run_once(Ts, dirs)
         Ts_arr.append(out[0])
