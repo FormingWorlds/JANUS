@@ -10,7 +10,7 @@ import os, shutil
 import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
-from AEOLUS.modules.solve_pt import RadConvEqm
+from modules.solve_pt import RadConvEqm
 from utils.socrates import CleanOutputDir
 
 from utils.atmosphere_column import atmos

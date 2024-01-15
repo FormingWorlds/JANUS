@@ -21,6 +21,7 @@ import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.solve_pt import RadConvEqm
+from modules.solve_pt import *
 from modules.plot_flux_balance import plot_fluxes
 from utils.socrates import CleanOutputDir
 
@@ -136,7 +137,7 @@ if __name__ == "__main__":
     print("Inserting stellar spectrum")
 
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["aeolus"]+"/spectral_files/Reach/Reach",
+        dirs["aeolus"]+"/spectral_files/Mallard/Mallard",
         dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
