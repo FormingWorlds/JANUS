@@ -745,9 +745,11 @@ def general_adiabat( atm ):
             new_p_vol[vol] = atm.vol_list[vol] * atm.ps
             
     if new_psurf != atm.ps:
+        # Backup variables before they are lost
         Tsurf = atm.ts
         alpha = atm.alpha_cloud
         toa_heating = atm.toa_heating
+        inst_sf = atm.inst_sf
         tmp_magma = atm.tmp_magma
         minT = atm.minT
         nlev_save = atm.nlev_save
@@ -757,10 +759,13 @@ def general_adiabat( atm ):
         for vol in atm.vol_list.keys():
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
 
+        # New atmos object
         atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT, minT=minT, req_levels=nlev_save)
-        
+
+        # Restore backed-up variables
         atm.alpha_cloud = alpha
         atm.toa_heating = toa_heating
+        atm.inst_sf = inst_sf
         atm.tmp_magma = tmp_magma
         atm.skin_d = skin_d
         atm.skin_k = skin_k

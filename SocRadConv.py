@@ -130,8 +130,8 @@ if __name__ == "__main__":
     if stellar_heating == False: 
         atm.toa_heating = 0.
     else:
-        _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
-        print("TOA heating:", round(atm.toa_heating), "W/m^2")
+        atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance)
+        print("Instellation:", round(atm.toa_heating), "W/m^2")
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
