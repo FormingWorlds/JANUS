@@ -32,13 +32,14 @@ def AtmosphericHeight(atm, m_planet, r_planet):
             mean_molar_mass += phys.molar_mass[vol]*atm.x_gas[vol][n]
 
         # Temperature below present height
-        T_mean_below    = np.mean(atm.tmp[n:])
+        # T_mean_below    = np.mean(atm.tmp[n:])
 
         # # Direction calculation
         # z_profile[n] = - R_gas * T_mean_below * np.log(atm.p[n]/P_s) / ( mean_molar_mass * grav_s )
 
         # Integration
-        dz = - phys.R_gas * T_mean_below * np.log(atm.p[n+1]/atm.p[n]) / (mean_molar_mass*grav_z)
+        # dz = - phys.R_gas * T_mean_below * np.log(atm.p[n+1]/atm.p[n]) / (mean_molar_mass*grav_z)
+        dz = phys.R_gas * atm.tmp[n] / (mean_molar_mass * grav_z * atm.p[n]) * (atm.p[n] - atm.p[n+1]) 
         
         # Next height
         z_profile[n+1] = z_profile[n] + dz
