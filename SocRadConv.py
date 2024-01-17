@@ -21,6 +21,7 @@ import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.solve_pt import RadConvEqm
+from modules.solve_pt import *
 from modules.plot_flux_balance import plot_fluxes
 from utils.socrates import CleanOutputDir
 
@@ -129,14 +130,14 @@ if __name__ == "__main__":
     if stellar_heating == False: 
         atm.toa_heating = 0.
     else:
-        _, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
-        print("TOA heating:", round(atm.toa_heating), "W/m^2")
+        atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance)
+        print("Instellation:", round(atm.toa_heating), "W/m^2")
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
 
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["aeolus"]+"/spectral_files/Reach/Reach",
+        dirs["aeolus"]+"/spectral_files/Mallard/Mallard",
         dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )

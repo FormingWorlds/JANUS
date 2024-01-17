@@ -196,6 +196,11 @@ def atm_z(atm, idx):
 ## Select the molecule of interest with the switch argument (a string).
 def p_sat(switch,T, water_lookup=False): 
 
+    # Force these volatiles to be dry by setting their saturation vapour pressure to be very large
+    force_dry = ["H2"]
+    if switch in force_dry:
+        return 1.0e30
+
     # Define volatile
     match switch:
         case 'H2O':
@@ -740,9 +745,11 @@ def general_adiabat( atm ):
             new_p_vol[vol] = atm.vol_list[vol] * atm.ps
             
     if new_psurf != atm.ps:
+        # Backup variables before they are lost
         Tsurf = atm.ts
         alpha = atm.alpha_cloud
         toa_heating = atm.toa_heating
+        inst_sf = atm.inst_sf
         tmp_magma = atm.tmp_magma
         minT = atm.minT
         nlev_save = atm.nlev_save
@@ -752,18 +759,21 @@ def general_adiabat( atm ):
         for vol in atm.vol_list.keys():
             atm.vol_list[vol] = new_p_vol[vol] / new_psurf
 
+        # New atmos object
         atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT, minT=minT, req_levels=nlev_save)
-        
+
+        # Restore backed-up variables
         atm.alpha_cloud = alpha
         atm.toa_heating = toa_heating
+        atm.inst_sf = inst_sf
         atm.tmp_magma = tmp_magma
         atm.skin_d = skin_d
         atm.skin_k = skin_k
         
     for vol in atm.vol_list.keys():
-        if atm.vol_list[vol] * atm.ps == p_sat(vol,atm.ts,water_lookup=atm.water_lookup):
+        if np.isclose(atm.vol_list[vol] * atm.ps, p_sat(vol,atm.ts,water_lookup=atm.water_lookup)):
             wet_list.append(vol)
-        elif atm.vol_list[vol] * atm.ps != p_sat(vol,atm.ts,water_lookup=atm.water_lookup) and atm.vol_list[vol] > 0:
+        elif atm.vol_list[vol] > 0:
             dry_list.append(vol)
     
     ### Initialization
