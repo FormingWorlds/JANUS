@@ -47,7 +47,7 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 2000.8                # K
+    T_surf        = 300.0                # K
     P_top         = 0.1                  # Pa
 
     # Define volatiles by mole fractions
@@ -69,21 +69,16 @@ if __name__ == "__main__":
     P_surf = 0.0
     vol_mixing = {}
     vol_partial = {
-        "H2O" : 1.54642e5,
-        "NH3" : 0.,
-        "CO2" : 6.70820e5,
-        "CH4" : 0.,
-        "CO" : 129.85989e5,
-        "O2" : 0.20e5,
-        "N2" : 1.53779e5,
-        "H2" : 13.01485e5
+        "H2O" : 0.0354 * 1.0e5,
+        "N2" : 1.0 * 1e5,
+        "CO2" : 0.0
         }
 
     # Stellar heating on/off
     stellar_heating = True
 
     # Rayleigh scattering on/off
-    rscatter = False
+    rscatter = True
 
     # Compute contribution function
     calc_cf = False
@@ -112,6 +107,8 @@ if __name__ == "__main__":
     ##### Function calls
 
     # Set up dirs
+    if os.environ.get('AEOLUS_DIR') == None:
+        raise Exception("Environment variables not set! Have you sourced AEOLUS.env?")
     dirs = {
             "aeolus": os.getenv('AEOLUS_DIR')+"/",
             "output": os.getenv('AEOLUS_DIR')+"/output/"
@@ -137,7 +134,7 @@ if __name__ == "__main__":
     print("Inserting stellar spectrum")
 
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["aeolus"]+"/spectral_files/Mallard/Mallard",
+        dirs["aeolus"]+"/spectral_files/Reach/Reach",
         dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )

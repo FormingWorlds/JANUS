@@ -71,6 +71,8 @@ if __name__=='__main__':
     print(" ")
 
     # Set up dirs
+    if os.environ.get('AEOLUS_DIR') == None:
+        raise Exception("Environment variables not set! Have you sourced AEOLUS.env?")
     dirs = {
             "aeolus": os.getenv('AEOLUS_DIR')+"/",
             "output": os.getenv('AEOLUS_DIR')+"/output/"
