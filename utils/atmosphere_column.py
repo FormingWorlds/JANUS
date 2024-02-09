@@ -5,7 +5,7 @@ import numpy as np
 import netCDF4 as nc
 from utils import phys
 from utils.height import AtmosphericHeight
-import os
+import os, copy, platform
 
 class atmos:
     
@@ -82,9 +82,17 @@ class atmos:
         required_vols = {"H2O","CO2","N2"}
         if len(required_vols.intersection(self.vol_list.keys())) < len(required_vols):
             raise Exception("Missing required volatiles!\nRequired vols = %s" % str(required_vols))
-
+        
         # H2O floor to prevent NaNs
-        self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-30 ] )
+        self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-20 ] )
+        
+        # Remove volatiles with mixing ratio of zero
+        vol_list_old = copy.deepcopy(self.vol_list)
+        self.vol_list = {}
+        for key in vol_list_old.keys():
+            if (vol_list_old[key] > 1.0e-30) or (key in required_vols):
+                self.vol_list[key] = vol_list_old[key]
+
 
         # Initialise other variables
         self.alpha_cloud 	= 0.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
@@ -106,7 +114,8 @@ class atmos:
 
         self.dt 			= 0.5 							# days
 
-        self.toa_heating    = 0. 							# Instellation at planet's orbital separation, W/m^2
+        self.instellation   = 0. 							# Instellation at planet's orbital separation, W/m^2
+        self.toa_heating    = 0.                            # ASF
         self.star_lum       = 0.0							# L_sun
 
         self.inst_sf        = 3.0/8.0                       # Scale factor applied to instellation (see Cronin+14 for definitions)
@@ -121,7 +130,7 @@ class atmos:
         self.tmp 			= np.zeros(self.nlev)      		# self.ts*np.ones(self.nlev)
         self.tmpl 			= np.zeros(self.nlev+1)
         self.Rcp    		= 2./7. 						# standard earth air
-        self.n_species 		= 7
+        self.n_species 		= 16
         self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
 
         self.water_lookup   = water_lookup
@@ -238,7 +247,7 @@ class atmos:
         np.savetxt(filename,X,fmt='%1.5e',header=header,comments='',delimiter='\t')
 
 
-    def write_ncdf(self, fpath):
+    def write_ncdf(self, fpath:str):
         """Write atmosphere arrays to a netCDF file
 
         Parameters
@@ -262,7 +271,12 @@ class atmos:
             os.remove(fpath)
 
         ds = nc.Dataset(fpath, 'w', format='NETCDF4')
-        ds.description = 'AEOLUS atmosphere data'
+        ds.description        = 'AEOLUS atmosphere data'
+        ds.hostname           = str(platform.node())
+        ds.username           = str(os.getlogin())
+        ds.AEOLUS_version     = "0.1"
+        ds.SOCRATES_version   = "2306"
+        ds.platform           = str(platform.system())
 
         nlev_c = len(self.p)
         nlev_l = nlev_c + 1
@@ -282,12 +296,36 @@ class atmos:
         # ----------------------
         # Scalar quantities  
         #    Create variables
-        var_tstar =     ds.createVariable('tstar',      'f4');  var_tstar.units = "K"       # BOA LW BC
-        var_toah =      ds.createVariable('toa_heating','f4');  var_toah.units = "W m-2"    # Instellation
+        var_tstar =     ds.createVariable('tstar',         'f4');  var_tstar.units = "K"     # BOA LW BC
+        var_inst =      ds.createVariable("instellation",  'f4');  var_inst.units = "W m-2"  # Solar flux at TOA
+        var_s0fact =    ds.createVariable("inst_factor",   'f4');                            # Scale factor applied to instellation
+        var_znth =      ds.createVariable("zenith_angle",  'f4');  var_znth.units = "deg"    # Scale factor applied to instellation
+        var_albbond =   ds.createVariable("bond_albedo",   'f4');                            # Bond albedo used to scale-down instellation
+        var_toah =      ds.createVariable("toa_heating",   'f4');  var_toah.units = "W m-2"  # TOA SW BC
+        var_tmagma =    ds.createVariable("tmagma",        'f4');  var_tmagma.units = "K"    # Magma temperature
+        var_tmin =      ds.createVariable("tfloor",        'f4');  var_tmin.units = "K"      # Minimum temperature
+        var_tmax =      ds.createVariable("tceiling",      'f4');  var_tmax.units = "K"      # Maximum temperature
+        var_plrad =     ds.createVariable("planet_radius", 'f4');  var_plrad.units = "m"     # Value taken for planet radius
+        var_gsurf =     ds.createVariable("surf_gravity",  'f4');  var_gsurf.units = "m s-2" # Surface gravity
+        var_albsurf =   ds.createVariable("surf_albedo",   'f4');                            # Surface albedo
+        var_sknd =      ds.createVariable("cond_skin_d"   ,'f4');  var_sknd.units = "m"      # Conductive skin thickness
+        var_sknk =      ds.createVariable("cond_skin_k"   ,'f4');  var_sknk.units = "W m-1 K-1"    # Conductive skin thermal conductivity
 
         #     Store data
         var_tstar.assignValue(self.ts)
+        var_inst.assignValue(self.instellation)  
         var_toah.assignValue(self.toa_heating)
+        var_znth.assignValue(self.zenith_angle)
+        var_s0fact.assignValue(self.inst_sf)
+        var_albbond.assignValue(self.albedo_pl)
+        var_tmagma.assignValue(self.tmp_magma)
+        var_tmin.assignValue(self.minT)
+        var_tmax.assignValue(self.maxT)
+        var_plrad.assignValue(self.planet_radius)
+        var_gsurf.assignValue(self.grav_s)
+        var_albsurf.assignValue(self.albedo_s)
+        var_sknd.assignValue(self.skin_d)
+        var_sknk.assignValue(self.skin_k)
 
 
         # ----------------------
