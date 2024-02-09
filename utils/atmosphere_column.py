@@ -87,11 +87,11 @@ class atmos:
         self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-20 ] )
         
         # Remove volatiles with mixing ratio of zero
-        vol_list_old = copy.deepcopy(self.vol_list)
-        self.vol_list = {}
-        for key in vol_list_old.keys():
-            if (vol_list_old[key] > 1.0e-30) or (key in required_vols):
-                self.vol_list[key] = vol_list_old[key]
+        # vol_list_old = copy.deepcopy(self.vol_list)
+        # self.vol_list = {}
+        # for key in vol_list_old.keys():
+        #     if (vol_list_old[key] > 1.0e-30) or (key in required_vols):
+        #         self.vol_list[key] = vol_list_old[key]
 
 
         # Initialise other variables
