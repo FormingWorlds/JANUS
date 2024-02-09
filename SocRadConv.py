@@ -47,34 +47,22 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 1727.963                # K
-    P_top         = 1.0                  # Pa
+    T_surf        = 2000.0                # K
+    P_top         = 0.1                  # Pa
 
     # Define volatiles by mole fractions
-    P_surf       =  7.057832e+07 #* 1e5
+    P_surf       =  100 * 1e5
     vol_partial = {}
-    # vol_mixing = { 
-    #                 "CO2"  : 0.00417,
-    #                 "H2O"  : 0.03,
-    #                 "N2"   : 0.78084,
-    #                 "H2"   : 0.03, 
-    #                 "CH4"  : 0.000187, 
-    #                 "O2"   : 0.20946, 
-    #                 "O3"   : 0.0000006, 
-    #                 "He"   : 0.00000524 , 
-    #             }
-
-    vol_mixing = {
-            "H2O" :  0.1579614,
-            "CO2" :  2.619116e-06,
-            "H2" :  0.8400553,
-            "N2" :  0.0003613452,
-            "CH4" :  8.399458e-06,
-            "O2" :  0,
-            "CO" :  0.001611008,
-            "He" :  0,
-            "NH3" :  0
-    }
+    vol_mixing = { 
+                    "CO2"  : 0.00417,
+                    "H2O"  : 0.03,
+                    "N2"   : 0.78084,
+                    "H2"   : 0.03, 
+                    "CH4"  : 0.000187, 
+                    "O2"   : 0.20946, 
+                    "O3"   : 0.0000006, 
+                    "He"   : 0.00000524 , 
+                }
     
     # OR:
     # Define volatiles by partial pressures
@@ -105,7 +93,7 @@ if __name__ == "__main__":
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 441.1938     # Fixed tropopause value if not calculated dynamically
+    trppT = 300.0     # Fixed tropopause value if not calculated dynamically
 
     # Water lookup tables enabled (e.g. for L vs T dependence)
     water_lookup = False
@@ -142,11 +130,10 @@ if __name__ == "__main__":
 
     # Set stellar heating on or off
     if stellar_heating == False: 
-        atm.toa_heating = 0.
+        atm.instellation = 0.
     else:
-        # atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance)
-        atm.toa_heating = 11458.78
-        print("Instellation:", round(atm.toa_heating), "W/m^2")
+        atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
+        print("Instellation:", round(atm.instellation), "W/m^2")
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")

@@ -129,36 +129,27 @@ def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess
     """
 
     # Store constants
-    alpha =         atm_inp.alpha_cloud
-    toa_heating =   atm_inp.toa_heating
-    minT =          atm_inp.minT
-    inst_sf =       atm_inp.inst_sf
-    maxT =          atm_inp.maxT
-    nlev_save =     atm_inp.nlev_save
-    vol_list =      atm_inp.vol_list
-    pl_m =          atm_inp.planet_mass
-    pl_r =          atm_inp.planet_radius
-    ptop =          atm_inp.ptop
-    psurf =         atm_inp.ps
-    trppT =         atm_inp.trppT
-    skin_k =        atm_inp.skin_k
-    skin_d =        atm_inp.skin_d
-    tmp_magma =     atm_inp.tmp_magma
-
+    attrs = {}
+    for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
+                 "minT", "inst_sf", "maxT", "nlev_save", "vol_list", 
+                 "planet_mass", "planet_radius", "ptop", "ps", "trppT", 
+                 "skin_k", "skin_d", "tmp_magma"]:
+        attrs[a] = getattr(atm_inp,a)
+        
     # Calculate conductive flux for a given atmos object 'a'
     def skin(a):
         return a.skin_k / a.skin_d * (a.tmp_magma - a.ts)
     
     # Initialise a new atmos object
     def ini_atm(Ts):
-        _a = atmos(Ts, psurf, ptop, pl_r, pl_m , vol_mixing=vol_list, trppT=trppT, minT=minT, maxT=maxT, req_levels=nlev_save)
-        _a.toa_heating = toa_heating
-        _a.inst_sf = inst_sf
-        _a.alpha_cloud = alpha
-        _a.skin_k = skin_k
-        _a.skin_d = skin_d 
-        _a.tmp_magma = tmp_magma
-        return _a
+        _atm = atmos(Ts, attrs["ps"], attrs["ptop"], 
+                   attrs["planet_radius"], attrs["planet_mass"] , 
+                   vol_mixing=attrs["vol_list"], trppT=attrs["trppT"], 
+                   minT=attrs["minT"], maxT=attrs["maxT"], 
+                   req_levels=attrs["nlev_save"])
+        for a in attrs.keys():
+            setattr(_atm,a,attrs[a])
+        return _atm
     
     # We want to optimise this function (returns residual of F_atm and F_skn, given T_surf)
     def func(x):
@@ -177,22 +168,22 @@ def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess
         del atm_tmp
         return float(F_skn - F_atm)
     
-    print("Solving for global energy balance with conductive lid (T_magma = %.1f K)" % tmp_magma)
+    print("Solving for global energy balance with conductive lid (T_magma = %.1f K)" % attrs["tmp_magma"])
 
     # Use an 'initial guess' method
     if method == 0:
         x0 = atm_inp.ts          # guess 1
-        if T_surf_guess < minT:  # guess 2 (if not disabled)
-            x1 = tmp_magma * 0.8
+        if T_surf_guess < attrs["minT"]:  # guess 2 (if not disabled)
+            x1 = attrs["tmp_magma"] * 0.8
         else:
             x1 = T_surf_guess
         r = optimise.root_scalar(func, method='secant', x0=x0, x1=x1, xtol=1e-3, maxiter=20)
 
     # Use a 'bracketing' method
     elif method == 1:
-        bracket = [800.0, maxT]
-        if T_surf_max > minT:
-            bracket = [bracket[0], min(T_surf_max, maxT)]
+        bracket = [800.0, attrs["maxT"]]
+        if T_surf_max > attrs["minT"]:
+            bracket = [bracket[0], min(T_surf_max, attrs["maxT"])]
         r = optimise.root_scalar(func, method='brentq', bracket=bracket, xtol=1e-2, maxiter=20)
 
     else:
@@ -208,9 +199,9 @@ def MCPA_CL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess
         print("Found surface solution")
         
     # Check bounds on T_surf
-    T_surf = max(T_surf_sol, minT)
-    T_surf = min(T_surf,     maxT)
-    if T_surf_max > minT:
+    T_surf = max(T_surf_sol, attrs["minT"])
+    T_surf = min(T_surf,     attrs["maxT"])
+    if T_surf_max > attrs["minT"]:
         T_surf = min(T_surf, T_surf_max)
 
     if T_surf != T_surf_sol:

@@ -46,11 +46,11 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
     
     ##### Function calls
 
-    toa_heating = InterpolateStellarLuminosity(star_mass, time, sep) 
+    S_0 = InterpolateStellarLuminosity(star_mass, time, sep) 
 
     zenith_angle = 48.19 # cronin+14 (also for scaling by a factor of 3/8 ^^)
 
-    T_eqm = (toa_heating * inst_sf * (1.0 - A_B) /phys.sigma)**(1.0/4.0)
+    T_eqm = (S_0 * inst_sf * (1.0 - A_B) /phys.sigma)**(1.0/4.0)
     T_trpp = T_eqm * (0.5**0.25)  # radiative skin temperature
     # T_trpp = 0.01
     
@@ -61,7 +61,7 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
     atm.albedo_pl = A_B
     atm.inst_sf = inst_sf
     atm.zenith_angle = zenith_angle
-    atm.toa_heating = toa_heating
+    atm.instellation = S_0
     atm.skin_d = skin_d
     atm.tmp_magma = T_magma
 
@@ -79,6 +79,9 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
     ax.set_title("a = %g AU" % sep)
     fig.savefig(dirs["output"]+"/recent.jpg",bbox_inches='tight', dpi=100)
     plt.close()
+
+    # Save netcdf
+    atm.write_ncdf(dirs["output"]+"/recent.nc")
 
     return [atm.SW_flux_down[0], atm.LW_flux_up[0], atm.net_flux[0], atm.ts, T_trpp]
 
@@ -122,13 +125,13 @@ if __name__=='__main__':
 
     # PARAMETERS
     P_surf  = 280.0   # surface pressure [bar]
-    T_magma = 1370.0  # magma temperature [K]
+    T_magma = 3000.0  # magma temperature [K]
     skin_d  = 1e-2  # conductive skin thickness [m]
     r_inner = 0.3     # inner orbital distane [AU]
     r_outer = 1.4     # outer orbital distance [AU]
-    samples = 40       # number of samples
+    samples = 50       # number of samples
     logx    = False   # log x-axis?
-    legend  = False    # make legend?
+    legend  = True    # make legend?
     dx_tick = 0.1     # x-tick spacing (set to 0 for automatic)
     # /PARAMETERS
     

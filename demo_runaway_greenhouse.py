@@ -48,16 +48,13 @@ def run_once(T_surf, dirs):
     trppD = False   # Calculate dynamically?
     trppT = 0.0     # Fixed tropopause value if not calculated dynamically
     
-    # Instellation scaling | 1.0 == no scaling
-    Sfrac = 1.0
-
     ##### Function calls
 
     # Create atmosphere object
     atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, trppT=trppT)
 
     # Compute stellar heating
-    atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance)
+    atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
 
     # Do rad trans
     _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter) 
@@ -97,7 +94,7 @@ if __name__=='__main__':
     print("Running AEOLUS...")
     Ts_arr = []
     OLR_arr = []
-    for Ts in np.linspace(200, 2200, 20):
+    for Ts in np.linspace(200, 2200, 10):
         print("T_surf = %d K" % Ts)
         out = run_once(Ts, dirs)
         Ts_arr.append(out[0])
