@@ -96,7 +96,7 @@ class atmos:
         self.step    		= 0.01  		# Adjust to match self.nlev
         self.nlev_save		= int(max(req_levels, 10))  		# Number of levels to save object
         self.p 				= np.zeros(self.nlev) 	   		# np.ones(self.nlev)
-        self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)
+        self.pl 			= np.zeros(self.nlev+1)    		# np.ones(self.nlev+1)484854
 
         self.trppT          = trppT                 # Fixed value [K]
         self.trppidx		= 0 				 	# Tropopause: idx
