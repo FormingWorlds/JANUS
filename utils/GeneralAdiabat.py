@@ -746,27 +746,29 @@ def general_adiabat( atm ):
             
     if new_psurf != atm.ps:
         # Backup variables before they are lost
+        Tsurf = atm.ts
+        minT = atm.minT
+        maxT = atm.maxT
+        nlev_save = atm.nlev_save
+
         attrs = {}
         for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
-                    "minT", "inst_sf", "maxT", "nlev_save", "vol_list", 
-                    "planet_mass", "planet_radius", "ptop", "ps", "trppT", 
-                    "skin_k", "skin_d", "tmp_magma", "ts"]:
+                    "inst_sf", "skin_k", "skin_d", "tmp_magma"]:
             attrs[a] = getattr(atm,a)
 
+        # Calc new mixing ratios
+        new_vol_list = {}
         for vol in atm.vol_list.keys():
-            atm.vol_list[vol] = new_p_vol[vol] / new_psurf
+           new_vol_list[vol] = new_p_vol[vol] / new_psurf
 
         # New atmos object
-        atm = atmos(attrs["ts"], attrs["ps"], attrs["ptop"], 
-                   attrs["planet_radius"], attrs["planet_mass"] , 
-                   vol_mixing=attrs["vol_list"], trppT=attrs["trppT"], 
-                   minT=attrs["minT"], maxT=attrs["maxT"], 
-                   req_levels=attrs["nlev_save"])
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, 
+                    vol_mixing=new_vol_list, trppT=atm.trppT, minT=minT, maxT=maxT, req_levels=nlev_save)
 
         # Restore backed-up variables
         for a in attrs.keys():
             setattr(atm,a,attrs[a])
-        
+
     for vol in atm.vol_list.keys():
         if np.isclose(atm.vol_list[vol] * atm.ps, p_sat(vol,atm.ts,water_lookup=atm.water_lookup)):
             wet_list.append(vol)
