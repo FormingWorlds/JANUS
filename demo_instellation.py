@@ -66,7 +66,7 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
     atm.tmp_magma = T_magma
 
     # Do rad trans
-    atm = MCPA_CL(dirs, atm, trppD, rscatter, T_surf_max=9.0e99, T_surf_guess = T_trpp+100)
+    atm = MCPA_CBL(dirs, atm, trppD, rscatter, T_surf_max=9.0e99, T_surf_guess = T_trpp+100)
     # atm = MCPA(dirs, atm, False, trppD, rscatter)
 
     # Plot case 
