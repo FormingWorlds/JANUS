@@ -140,7 +140,7 @@ if __name__=='__main__':
         r_arr = np.logspace( np.log10(r_inner), np.log10(r_outer), samples)
     else:
         r_arr = np.linspace(r_inner, r_outer, samples)
-    S0_arr  = []
+    asf_arr  = []
     OLR_arr = []
     net_arr = []
     ts_arr  = []
@@ -148,14 +148,14 @@ if __name__=='__main__':
     for r in r_arr:
         print("Orbital separation = %.2f AU" % r)
         out = run_once(r, dirs, T_magma, P_surf, skin_d)
-        S0_arr.append(out[0] * -1.0)  # directed downwards => minus sign
+        asf_arr.append(out[0] * -1.0)  # directed downwards => minus sign
         OLR_arr.append(out[1])
         net_arr.append(out[2])
         ts_arr.append(out[3])
         tr_arr.append(out[4])
         print(" ")
 
-    save_arr = [r_arr, S0_arr, OLR_arr, net_arr, ts_arr, tr_arr]
+    save_arr = [r_arr, asf_arr, OLR_arr, net_arr, ts_arr, tr_arr]
     np.savetxt(dirs["output"]+"/data_%dK.csv"%T_magma, 
                np.array(save_arr).T, fmt="%.5e", delimiter=",",
                header="r [AU],  S_0 [W m-2], OLR [W m-2], net [W m-2], ts [K], tr[K] ")
@@ -173,7 +173,7 @@ if __name__=='__main__':
     ax1.text(r_arr[0], -1.0, "Warming", verticalalignment='center', color='seagreen', weight='bold', zorder=8).set_bbox(dict(facecolor='white', alpha=0.7, linewidth=0))
     ax1.axhline(y=0, color='black', lw=0.7, zorder=0)  # zero flux
 
-    ax1.plot(r_arr, S0_arr,  color='royalblue', lw=lw, label='ASF')    # absorbed stellar flux (sw down)
+    ax1.plot(r_arr, asf_arr, color='royalblue', lw=lw, label='ASF')    # absorbed stellar flux (sw down)
     ax1.plot(r_arr, OLR_arr, color='crimson',   lw=lw, label='OLR')    # outgoing longwave radiation (lw up)
     ax1.plot(r_arr, net_arr, color='seagreen' , lw=lw, label='Net')    # net upward-directed flux
 
