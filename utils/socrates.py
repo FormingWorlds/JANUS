@@ -121,7 +121,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     
     fthis = basename+'.stoa'
     toah = atm.instellation * (1.0 - atm.albedo_pl) * atm.inst_sf  # Values passed to socrates should not include cos(theta), since it's applied during the RT
-    atm.toa_heating = toah * np.cos(atm.zenith_angle * 180.0 / np.pi)
+    atm.toa_heating = toah * np.cos(atm.zenith_angle * np.pi / 180.0)
     if check_cfg(fthis): nctools.ncout2d(   fthis, 0, 0, toah, 'stoa', longname="Solar Irradiance at TOA", units='WM-2')
 
     # T, P + volatiles
