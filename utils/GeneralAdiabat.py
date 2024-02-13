@@ -747,29 +747,28 @@ def general_adiabat( atm ):
     if new_psurf != atm.ps:
         # Backup variables before they are lost
         Tsurf = atm.ts
-        alpha = atm.alpha_cloud
-        toa_heating = atm.toa_heating
-        inst_sf = atm.inst_sf
-        tmp_magma = atm.tmp_magma
         minT = atm.minT
+        maxT = atm.maxT
         nlev_save = atm.nlev_save
-        skin_d = atm.skin_d
-        skin_k = atm.skin_k
 
+        attrs = {}
+        for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
+                    "inst_sf", "skin_k", "skin_d", "tmp_magma"]:
+            attrs[a] = getattr(atm,a)
+
+        # Calc new mixing ratios
+        new_vol_list = {}
         for vol in atm.vol_list.keys():
-            atm.vol_list[vol] = new_p_vol[vol] / new_psurf
+           new_vol_list[vol] = new_p_vol[vol] / new_psurf
 
         # New atmos object
-        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, vol_mixing=atm.vol_list, trppT=atm.trppT, minT=minT, req_levels=nlev_save)
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, 
+                    vol_mixing=new_vol_list, trppT=atm.trppT, minT=minT, maxT=maxT, req_levels=nlev_save)
 
         # Restore backed-up variables
-        atm.alpha_cloud = alpha
-        atm.toa_heating = toa_heating
-        atm.inst_sf = inst_sf
-        atm.tmp_magma = tmp_magma
-        atm.skin_d = skin_d
-        atm.skin_k = skin_k
-        
+        for a in attrs.keys():
+            setattr(atm,a,attrs[a])
+
     for vol in atm.vol_list.keys():
         if np.isclose(atm.vol_list[vol] * atm.ps, p_sat(vol,atm.ts,water_lookup=atm.water_lookup)):
             wet_list.append(vol)
