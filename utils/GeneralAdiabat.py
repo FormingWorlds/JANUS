@@ -753,7 +753,8 @@ def general_adiabat( atm ):
 
         attrs = {}
         for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
-                    "inst_sf", "skin_k", "skin_d", "tmp_magma"]:
+                    "inst_sf", "skin_k", "skin_d", "tmp_magma", "albedo_s",
+                    "planet_mass", "planet_radius"]:
             attrs[a] = getattr(atm,a)
 
         # Calc new mixing ratios
