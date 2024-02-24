@@ -143,7 +143,8 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     #    Passed later ...
     attrs = {}
     for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
-                "inst_sf", "skin_k", "skin_d", "tmp_magma"]:
+                "inst_sf", "skin_k", "skin_d", "tmp_magma", "albedo_s",
+                "planet_mass", "planet_radius"]:
         attrs[a] = getattr(atm_inp,a)
 
     # Calculate conductive flux for a given atmos object 'a'
