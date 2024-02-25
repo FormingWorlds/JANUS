@@ -96,11 +96,11 @@ if __name__=='__main__':
     }
 
     # Set up dirs
-    if os.environ.get('AEOLUS_DIR') == None:
-        raise Exception("Environment variables not set! Have you sourced AEOLUS.env?")
+    if os.environ.get('JANUS_DIR') == None:
+        raise Exception("Environment variables not set! Have you sourced JANUS.env?")
     dirs = {
-            "aeolus": os.getenv('AEOLUS_DIR')+"/",
-            "output": os.getenv('AEOLUS_DIR')+"/output/"
+            "janus": os.getenv('JANUS_DIR')+"/",
+            "output": os.getenv('JANUS_DIR')+"/output/"
             }
     
     # Tidy directory
@@ -111,8 +111,8 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["aeolus"]+"/spectral_files/Oak/Oak",
-        dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["janus"]+"/spectral_files/Oak/Oak",
+        dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
 
@@ -128,7 +128,7 @@ if __name__=='__main__':
     dx_tick = 0.1     # x-tick spacing (set to 0 for automatic)
     # /PARAMETERS
     
-    # Run AEOLUS in a loop to generate data
+    # Run JANUS in a loop to generate data
     if logx:
         r_arr = np.logspace( np.log10(r_inner), np.log10(r_outer), samples)
     else:

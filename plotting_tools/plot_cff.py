@@ -64,7 +64,7 @@ legendA2_handles = []
 # legendB1_handles = []
 # legendB2_handles = []
 
-dirs = {"output": os.getcwd()+"/../output", "aeolus": os.getcwd()+"/.."}
+dirs = {"output": os.getcwd()+"/../output", "janus": os.getcwd()+"/.."}
 
 # Define pkl file
 
