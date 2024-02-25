@@ -76,8 +76,8 @@ if __name__=='__main__':
 
     # Set up dirs
     dirs = {
-            "aeolus": os.getenv('AEOLUS_DIR')+"/",
-            "output": os.getenv('AEOLUS_DIR')+"/output/"
+            "janus": os.getenv('JANUS_DIR')+"/",
+            "output": os.getenv('JANUS_DIR')+"/output/"
             }
     
     # Tidy directory
@@ -88,8 +88,8 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["aeolus"]+"/spectral_files/Mallard/Mallard",
-        dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["janus"]+"/spectral_files/Mallard/Mallard",
+        dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
     print(" ")
@@ -100,8 +100,8 @@ if __name__=='__main__':
 
     samples = 24
     
-    # Run AEOLUS in a loop to generate runaway curve
-    print("Running AEOLUS...")
+    # Run JANUS in a loop to generate runaway curve
+    print("Running JANUS...")
     Ts_arr = []
     toa_arr = []
     boa_arr = []

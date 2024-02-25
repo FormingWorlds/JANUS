@@ -270,10 +270,10 @@ class atmos:
             os.remove(fpath)
 
         ds = nc.Dataset(fpath, 'w', format='NETCDF4')
-        ds.description        = 'AEOLUS atmosphere data'
+        ds.description        = 'JANUS atmosphere data'
         ds.hostname           = str(platform.node())
         ds.username           = str(os.getlogin())
-        ds.AEOLUS_version     = "0.1"
+        ds.JANUS_version     = "0.1"
         ds.SOCRATES_version   = "2306"
         ds.platform           = str(platform.system())
 

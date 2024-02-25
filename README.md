@@ -1,4 +1,4 @@
-## AEOLUS (temperature structure generator)
+## JANUS (temperature structure generator)
 
 Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.
 
@@ -15,12 +15,12 @@ https://proteus-code.readthedocs.io
 
 ### Repository structure
 
-* `SocRadConv.py`               - Main AEOLUS Python script
+* `SocRadConv.py`               - Main JANUS Python script
 * `demo_runaway_greenhouse.py`  - Demonstrate pure-steam runaway greenhouse OLR curve
 * `demo_instellation.py`        - Calculate fluxes (and temperatures) for different instellations
 * `README.md`                   - This file
 * `INSTALL.md`                  - Installation instructions
-* `AEOLUS.env`                  - Sets environment flags to run the code
+* `JANUS.env`                   - Sets environment flags to run the code
 * `utils/`                      - Utility python scripts
 * `modules/`                    - Utility python scripts
 * `output/`                     - Output folder
@@ -31,11 +31,11 @@ https://proteus-code.readthedocs.io
 * `tools/`                      - Useful tools
 
 ### Installation instructions
-Follow environment- and AEOLUS-related steps in https://proteus-code.readthedocs.io.
+Follow environment- and JANUS-related steps in https://proteus-code.readthedocs.io.
 
 ### Run instructions
-Only attempt to run AEOLUS after you have followed all of the instructions in INSTALL.md    
+Only attempt to run JANUS after you have followed all of the instructions in INSTALL.md    
 If using a fresh shell, it is necessary to perform the following steps:     
-1. `source AEOLUS.env`    
-2. `conda activate aeolus`    
+1. `source JANUS.env`    
+2. `conda activate janus`    
 Then you can run the code by running: `python SocRadConv.py`      
