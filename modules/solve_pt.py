@@ -203,7 +203,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
             x1 = attrs["tmp_magma"] * 0.8
         else:
             x1 = T_surf_guess
-        r = optimise.root_scalar(func, method='secant', x0=x0, x1=x1, xtol=1e-5, maxiter=20)
+        r = optimise.root_scalar(func, method='secant', x0=x0, x1=x1, xtol=1e-3, maxiter=20)
 
     # Use a 'bracketing' method
     elif method == 1:
