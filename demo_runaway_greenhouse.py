@@ -64,11 +64,11 @@ if __name__=='__main__':
     print(" ")
 
     # Set up dirs
-    if os.environ.get('AEOLUS_DIR') == None:
-        raise Exception("Environment variables not set! Have you sourced AEOLUS.env?")
+    if os.environ.get('JANUS_DIR') == None:
+        raise Exception("Environment variables not set! Have you sourced JANUS.env?")
     dirs = {
-            "aeolus": os.getenv('AEOLUS_DIR')+"/",
-            "output": os.getenv('AEOLUS_DIR')+"/output/"
+            "janus": os.getenv('JANUS_DIR')+"/",
+            "output": os.getenv('JANUS_DIR')+"/output/"
             }
     
     # Tidy directory
@@ -79,15 +79,15 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["aeolus"]+"/spectral_files/Oak/Oak",
-        dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["janus"]+"/spectral_files/Oak/Oak",
+        dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
     print(" ")
 
     
-    # Run AEOLUS in a loop to generate runaway curve
-    print("Running AEOLUS...")
+    # Run JANUS in a loop to generate runaway curve
+    print("Running JANUS...")
     Ts_arr = []
     OLR_arr = []
     for Ts in np.linspace(200, 2200, 25):
@@ -98,11 +98,11 @@ if __name__=='__main__':
         print(" ")
     
     # Get literature data
-    g2013 = np.loadtxt(dirs["aeolus"]+"plotting_tools/comparison_data/Goldblatt13_data.txt",
+    g2013 = np.loadtxt(dirs["janus"]+"plotting_tools/comparison_data/Goldblatt13_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    k2013 = np.loadtxt(dirs["aeolus"]+"plotting_tools/comparison_data/Kopparapu13_data.txt",
+    k2013 = np.loadtxt(dirs["janus"]+"plotting_tools/comparison_data/Kopparapu13_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    h2015 = np.loadtxt(dirs["aeolus"]+"plotting_tools/comparison_data/Hamano15_data.txt",
+    h2015 = np.loadtxt(dirs["janus"]+"plotting_tools/comparison_data/Hamano15_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
 
     # Setup plot
@@ -114,7 +114,7 @@ if __name__=='__main__':
     ax.plot(k2013[0], k2013[1], color='tab:red',   lw=lw, label='Kopparapu+2013')
     ax.plot(g2013[0], g2013[1], color='tab:green', lw=lw, label='Goldblatt+2013')
     ax.plot(h2015[0], h2015[1], color='tab:blue',  lw=lw, label='Hamano+2015')
-    ax.plot(Ts_arr, OLR_arr,    color='black',     lw=lw, label='AEOLUS')
+    ax.plot(Ts_arr, OLR_arr,    color='black',     lw=lw, label='JANUS')
 
     # Setup figure and save
     fig.legend(loc='upper center')

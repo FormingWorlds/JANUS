@@ -20,13 +20,13 @@ import utils.phys as phys
 def run_once(sep, dirs, T_magma, P_surf, skin_d):
 
     # Planet 
-    time = { "planet": 0., "star": 150e+6 } # yr,
+    time = { "planet": 0., "star": 100e+6 } # yr,
     star_mass     = 1.0                 # M_sun, mass of star
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    P_top         = 0.1                  # Pa
+    P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
     vol_mixing = {
@@ -35,13 +35,9 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
                     "N2"  : 0.0
                 }
     
-    # Rayleigh scattering on/off
     rscatter = True
-
-    # Tropopause calculation
-    trppD = False   # Calculate dynamically?
-
-    A_B = 0.2  # bond albedo
+    A_B = 0.1  # bond albedo
+    A_S = 0.1
     inst_sf = 3.0/8.0
     
     ##### Function calls
@@ -52,13 +48,11 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
 
     T_eqm = (S_0 * inst_sf * (1.0 - A_B) /phys.sigma)**(1.0/4.0)
     T_trpp = T_eqm * (0.5**0.25)  # radiative skin temperature
-    # T_trpp = 0.01
-    
-    # print("T_trpp = %g K" % T_trpp)
 
     # Create atmosphere object
     atm = atmos(T_magma,  P_surf * 1e5, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, trppT=T_trpp, req_levels=150)
     atm.albedo_pl = A_B
+    atm.albedo_s  = A_S
     atm.inst_sf = inst_sf
     atm.zenith_angle = zenith_angle
     atm.instellation = S_0
@@ -66,8 +60,7 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
     atm.tmp_magma = T_magma
 
     # Do rad trans
-    atm = MCPA_CBL(dirs, atm, trppD, rscatter, T_surf_max=9.0e99, T_surf_guess = T_trpp+100)
-    # atm = MCPA(dirs, atm, False, trppD, rscatter)
+    atm = MCPA_CBL(dirs, atm, False, rscatter, T_surf_max=9.0e99, T_surf_guess = T_trpp+100)
 
     # Plot case 
     plt.ioff()
@@ -75,7 +68,7 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
     ax.plot(atm.tmpl, atm.pl, color='black', lw=2)
     ax.set_yscale("log"); ax.invert_yaxis()
     ax.set_ylabel("Pressure [Pa]")
-    ax.set_xlabel("Temperature")
+    ax.set_xlabel("Temperature [K]")
     ax.set_title("a = %g AU" % sep)
     fig.savefig(dirs["output"]+"/recent.jpg",bbox_inches='tight', dpi=100)
     plt.close()
@@ -103,11 +96,11 @@ if __name__=='__main__':
     }
 
     # Set up dirs
-    if os.environ.get('AEOLUS_DIR') == None:
-        raise Exception("Environment variables not set! Have you sourced AEOLUS.env?")
+    if os.environ.get('JANUS_DIR') == None:
+        raise Exception("Environment variables not set! Have you sourced JANUS.env?")
     dirs = {
-            "aeolus": os.getenv('AEOLUS_DIR')+"/",
-            "output": os.getenv('AEOLUS_DIR')+"/output/"
+            "janus": os.getenv('JANUS_DIR')+"/",
+            "output": os.getenv('JANUS_DIR')+"/output/"
             }
     
     # Tidy directory
@@ -118,8 +111,8 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["aeolus"]+"/spectral_files/Oak/Oak",
-        dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["janus"]+"/spectral_files/Oak/Oak",
+        dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
 
@@ -129,22 +122,22 @@ if __name__=='__main__':
     skin_d  = 1e-2  # conductive skin thickness [m]
     r_inner = 0.3     # inner orbital distane [AU]
     r_outer = 1.4     # outer orbital distance [AU]
-    samples = 10       # number of samples
+    samples = 40       # number of samples
     logx    = False   # log x-axis?
     legend  = True    # make legend?
     dx_tick = 0.1     # x-tick spacing (set to 0 for automatic)
     # /PARAMETERS
     
-    # Run AEOLUS in a loop to generate data
+    # Run JANUS in a loop to generate data
     if logx:
         r_arr = np.logspace( np.log10(r_inner), np.log10(r_outer), samples)
     else:
         r_arr = np.linspace(r_inner, r_outer, samples)
-    asf_arr  = []
-    OLR_arr = []
-    net_arr = []
-    ts_arr  = []
-    tr_arr  = []
+    asf_arr  = []   # ASF
+    OLR_arr = []    # OLR
+    net_arr = []    # net flux at TOA
+    ts_arr  = []    # surface temperature
+    tr_arr  = []    # tropopause temperature
     for r in r_arr:
         print("Orbital separation = %.2f AU" % r)
         out = run_once(r, dirs, T_magma, P_surf, skin_d)
@@ -180,7 +173,7 @@ if __name__=='__main__':
     if legend:
         ax1.legend(loc='center right', framealpha=1.0)
     ax1.set_yscale("symlog")
-    ax1.set_ylabel(r"$F$ [W m$^{-2}$]")
+    ax1.set_ylabel("Upward flux [W m$^{-2}$]")
     if logx:
         ax1.set_xscale("log")
     ax1.set_xticklabels([])
@@ -201,7 +194,7 @@ if __name__=='__main__':
 
     if legend:
         ax2.legend(loc='center right', framealpha=1.0)
-    ax2.set_ylabel(r"$T$ - $\tilde{T_s}$ [K]")
+    ax2.set_ylabel(r"$T - \tilde{T_s}$ [K]")
     if logx:
         ax2.set_xscale("log")
     if dx_tick > 1.0e-10:

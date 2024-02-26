@@ -9,7 +9,7 @@ Tim Lichtenberg (TL)
 Ryan Boukrouche (RB)
 Harrison Nicholls (HN)
 
-AEOLUS radiative-convective model, using SOCRATES for radiative-transfer.
+JANUS radiative-convective model, using SOCRATES for radiative-transfer.
 """
 
 import matplotlib as mpl
@@ -34,7 +34,7 @@ import utils.StellarSpectrum as StellarSpectrum
 ####################################
 if __name__ == "__main__":
 
-    print("Start AEOLUS")
+    print("Start JANUS")
 
     start = t.time()
     ##### Settings
@@ -112,11 +112,11 @@ if __name__ == "__main__":
     ##### Function calls
 
     # Set up dirs
-    if os.environ.get('AEOLUS_DIR') == None:
-        raise Exception("Environment variables not set! Have you sourced AEOLUS.env?")
+    if os.environ.get('JANUS_DIR') == None:
+        raise Exception("Environment variables not set! Have you sourced JANUS.env?")
     dirs = {
-            "aeolus": os.getenv('AEOLUS_DIR')+"/",
-            "output": os.getenv('AEOLUS_DIR')+"/output/"
+            "janus": os.getenv('JANUS_DIR')+"/",
+            "output": os.getenv('JANUS_DIR')+"/output/"
             }
     
     # Tidy directory
@@ -139,8 +139,8 @@ if __name__ == "__main__":
     print("Inserting stellar spectrum")
 
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["aeolus"]+"/spectral_files/Reach/Reach",
-        dirs["aeolus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["janus"]+"/spectral_files/Reach/Reach",
+        dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
 

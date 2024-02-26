@@ -35,7 +35,7 @@ def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, calc_c
         atm : atmos
             Atmosphere object from atmosphere_column.py
         standalone : bool
-            Running AEOLUS as standalone code?
+            Running JANUS as standalone code?
         cp_dry : bool
             Compute dry adiabat case
         trppD : bool 
@@ -94,7 +94,7 @@ def MCPA(dirs, atm, standalone:bool, trppD:bool, rscatter:bool):
         atm : atmos
             Atmosphere object from atmosphere_column.py
         standalone : bool
-            Running AEOLUS as standalone code?
+            Running JANUS as standalone code?
         trppD : bool 
             Calculate tropopause dynamically?
         rscatter : bool
@@ -105,7 +105,7 @@ def MCPA(dirs, atm, standalone:bool, trppD:bool, rscatter:bool):
     ### Moist/general adiabat
     return compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
 
-def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess:float=-1, T_surf_max:float=-1, method:int=0):
+def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess:float=-1, T_surf_max:float=-1, method:int=0, atol:float=1.0e-3):
     """Calculates the temperature profile using the multiple-condensible pseudoadiabat and steps T_surf to conserve energy.
 
     Prescribes a stratosphere, and also calculates fluxes. Finds T_surf and fluxes such that the conductive BL conduction
@@ -130,6 +130,8 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
             Surface temperature ceiling (-1 to disable)
         method : int
             Root finding method (0: secant, 1: brentq)
+        atol : float
+            Tolerance for flux conservation [W m-2]
     """
 
     # Store constants
@@ -143,7 +145,8 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     #    Passed later ...
     attrs = {}
     for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
-                "inst_sf", "skin_k", "skin_d", "tmp_magma"]:
+                "inst_sf", "skin_k", "skin_d", "tmp_magma", "albedo_s",
+                "planet_mass", "planet_radius"]:
         attrs[a] = getattr(atm_inp,a)
 
     # Calculate conductive flux for a given atmos object 'a'
@@ -202,14 +205,14 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
             x1 = attrs["tmp_magma"] * 0.8
         else:
             x1 = T_surf_guess
-        r = optimise.root_scalar(func, method='secant', x0=x0, x1=x1, xtol=1e-5, maxiter=20)
+        r = optimise.root_scalar(func, method='secant', x0=x0, x1=x1, xtol=atol, maxiter=20)
 
     # Use a 'bracketing' method
     elif method == 1:
         bracket = [800.0, maxT]
         if T_surf_max > minT:
             bracket = [bracket[0], min(T_surf_max, maxT)]
-        r = optimise.root_scalar(func, method='brentq', bracket=bracket, xtol=1e-2, maxiter=20)
+        r = optimise.root_scalar(func, method='brentq', bracket=bracket, xtol=atol, maxiter=20)
 
     else:
         raise Exception("Invalid solution method chosen (%d)" % method)

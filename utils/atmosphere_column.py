@@ -116,7 +116,6 @@ class atmos:
 
         self.instellation   = 0. 							# Instellation at planet's orbital separation, W/m^2
         self.toa_heating    = 0.                            # ASF
-        self.star_lum       = 0.0							# L_sun
 
         self.inst_sf        = 3.0/8.0                       # Scale factor applied to instellation (see Cronin+14 for definitions)
         self.albedo_s   	= 0.0 							# surface albedo
@@ -271,10 +270,10 @@ class atmos:
             os.remove(fpath)
 
         ds = nc.Dataset(fpath, 'w', format='NETCDF4')
-        ds.description        = 'AEOLUS atmosphere data'
+        ds.description        = 'JANUS atmosphere data'
         ds.hostname           = str(platform.node())
         ds.username           = str(os.getlogin())
-        ds.AEOLUS_version     = "0.1"
+        ds.JANUS_version     = "0.1"
         ds.SOCRATES_version   = "2306"
         ds.platform           = str(platform.system())
 
