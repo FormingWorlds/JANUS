@@ -20,13 +20,13 @@ import utils.phys as phys
 def run_once(sep, dirs, T_magma, P_surf, skin_d):
 
     # Planet 
-    time = { "planet": 0., "star": 150e+6 } # yr,
+    time = { "planet": 0., "star": 100e+6 } # yr,
     star_mass     = 1.0                 # M_sun, mass of star
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    P_top         = 0.1                  # Pa
+    P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
     vol_mixing = {
@@ -37,7 +37,7 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
     
     rscatter = True
     A_B = 0.1  # bond albedo
-    A_S = 0.2
+    A_S = 0.1
     inst_sf = 3.0/8.0
     
     ##### Function calls
@@ -118,13 +118,13 @@ if __name__=='__main__':
 
     # PARAMETERS
     P_surf  = 280.0   # surface pressure [bar]
-    T_magma = 1370.0  # magma temperature [K]
+    T_magma = 3000.0  # magma temperature [K]
     skin_d  = 1e-2  # conductive skin thickness [m]
     r_inner = 0.3     # inner orbital distane [AU]
     r_outer = 1.4     # outer orbital distance [AU]
-    samples = 30       # number of samples
+    samples = 40       # number of samples
     logx    = False   # log x-axis?
-    legend  = False    # make legend?
+    legend  = True    # make legend?
     dx_tick = 0.1     # x-tick spacing (set to 0 for automatic)
     # /PARAMETERS
     
