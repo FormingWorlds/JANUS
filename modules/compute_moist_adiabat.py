@@ -25,7 +25,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
         dirs : dict
             Named directories
         standalone : bool
-            Running AEOLUS as standalone code?
+            Running JANUS as standalone code?
         trppD : bool 
             Calculate tropopause dynamically?
         calc_cf : bool
