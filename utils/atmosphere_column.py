@@ -183,7 +183,7 @@ class atmos:
         if self.bands_set:
             self.nbands 	    = np.size(self.band_edges)-1
             self.band_centres 	= (self.band_edges[1:] + self.band_edges[:-1]) / 2
-            self.band_widths 	= np.diff(self.band_edges)
+            self.band_widths 	= np.abs(np.diff(self.band_edges))
 
             # Radiation heating and fluxes
             self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2
