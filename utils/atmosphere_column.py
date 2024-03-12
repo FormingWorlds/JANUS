@@ -5,12 +5,13 @@ import numpy as np
 import netCDF4 as nc
 from utils import phys
 from utils.height import AtmosphericHeight
-import os, copy, platform
+import os, copy, platform, shutil
 
 class atmos:
     
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
-                 vol_mixing: dict = {}, vol_partial: dict = {}, 
+                 band_edges:list,
+                 vol_mixing: dict = {}, vol_partial: dict = {},
                  calc_cf: bool=False, req_levels: int = 100, water_lookup: bool=False,
                  trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0):
         
@@ -134,17 +135,10 @@ class atmos:
 
         self.water_lookup   = water_lookup
         
-        # self.bands 			= np.concatenate((np.arange(0,3000,20),np.arange(3000,9000,50),np.arange(9000,24500,500))) # cm
-        self.bands 			= np.concatenate((np.arange(0,3000,25),np.arange(3000,11000,50),np.arange(11000,30500,500))) # cm, 318 bands: HITEMP-compatible spacing
-        
-        self.band_centres 	= (self.bands[1:] + self.bands[:-1]) / 2
-        self.band_widths 	= np.diff(self.bands)
-        self.nbands 	    = np.size(self.bands)-1
-
         self.tmp_magma      = 3000.0
         self.skin_d         = 0.01 # m
         self.skin_k         = 2.0  # W m-1 K-1
-
+        
         # Level-dependent quantities
         self.p_vol 			= {} # Gas phase partial pressures
         self.pl_vol 		= {} # Gas phase partial pressures
@@ -182,30 +176,38 @@ class atmos:
             # Surface partial pressures
             self.p_vol[vol][0]   = self.ps * self.vol_list[vol]
 
-        # Radiation heating and fluxes
-        self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2
-        self.LW_flux_down 			= np.zeros(self.nlev)				# W/m^2
-        self.LW_flux_net			= np.zeros(self.nlev)				# W/m^2
-        self.LW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
-        self.LW_heating				= np.zeros(self.nlev)				# K/day
-        self.SW_flux_up 			= np.zeros(self.nlev)				# W/m^2
-        self.SW_flux_down 			= np.zeros(self.nlev)				# W/m^2
-        self.SW_flux_net			= np.zeros(self.nlev)				# W/m^2
-        self.SW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
-        self.SW_heating				= np.zeros(self.nlev)				# K/day
-        self.flux_up_total			= np.zeros(self.nlev)				# W/m^2
-        self.flux_down_total		= np.zeros(self.nlev)				# W/m^2
-        self.net_flux				= np.zeros(self.nlev)				# W/m^2
-        self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
-        self.net_heating 			= np.zeros(self.nlev) 				# K/day from socrates
-        self.heat                   = np.zeros(self.nlev)               # K/day from *
 
-        # Contribution function arrays
-        if calc_cf == True:
-            self.cff 					= np.zeros(self.nlev) 				# normalised
-            self.cff_i					= np.zeros([self.nbands,self.nlev]) # cf per band
-            self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev])
+        # Spectral file
+        self.band_edges = np.array(band_edges)  # units of [nm]
+        self.bands_set = bool(len(band_edges) > 1)
+        if self.bands_set:
+            self.nbands 	    = np.size(self.band_edges)-1
+            self.band_centres 	= (self.band_edges[1:] + self.band_edges[:-1]) / 2
+            self.band_widths 	= np.diff(self.band_edges)
 
+            # Radiation heating and fluxes
+            self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2
+            self.LW_flux_down 			= np.zeros(self.nlev)				# W/m^2
+            self.LW_flux_net			= np.zeros(self.nlev)				# W/m^2
+            self.LW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
+            self.LW_heating				= np.zeros(self.nlev)				# K/day
+            self.SW_flux_up 			= np.zeros(self.nlev)				# W/m^2
+            self.SW_flux_down 			= np.zeros(self.nlev)				# W/m^2
+            self.SW_flux_net			= np.zeros(self.nlev)				# W/m^2
+            self.SW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
+            self.SW_heating				= np.zeros(self.nlev)				# K/day
+            self.flux_up_total			= np.zeros(self.nlev)				# W/m^2
+            self.flux_down_total		= np.zeros(self.nlev)				# W/m^2
+            self.net_flux				= np.zeros(self.nlev)				# W/m^2
+            self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
+            self.net_heating 			= np.zeros(self.nlev) 				# K/day from socrates
+            self.heat                   = np.zeros(self.nlev)               # K/day from *
+
+            # Contribution function arrays
+            if calc_cf == True:
+                self.cff 					= np.zeros(self.nlev) 				# normalised
+                self.cff_i					= np.zeros([self.nbands,self.nlev]) # cf per band
+                self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev])
 
 
     def write_PT(self,filename: str="output/PT.tsv", punit:str = "Pa"):

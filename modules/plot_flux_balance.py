@@ -172,6 +172,9 @@ def plot_fluxes(atm,filename='output/fluxes.pdf'):
 
     ax.axvline(0,color='black',lw=0.8)
 
+    # for p in np.logspace(-6, 3, 80)*1.0e5:
+    #     ax.axhline(y=p, color='purple', lw=1, alpha=0.3)
+
     ax.plot(atm.flux_up_total,atm.pl,color='red',label='UP',lw=1)
     ax.plot(atm.SW_flux_up   ,atm.pl,color='red',label='UP SW',linestyle='dotted',lw=2)
     ax.plot(atm.LW_flux_up   ,atm.pl,color='red',label='UP LW',linestyle='dashed',lw=1)

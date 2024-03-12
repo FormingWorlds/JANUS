@@ -15,10 +15,10 @@ from utils.socrates import CleanOutputDir
 
 from utils.atmosphere_column import atmos
 import utils.StellarSpectrum as StellarSpectrum
+from utils.ReadSpectralFile import ReadBandEdges
 
 
-
-def run_once(T_surf, dirs):
+def run_once(T_surf, dirs, band_edges):
 
     # Planet 
     time = { "planet": 0., "star": 4.5e9 } # yr,
@@ -47,7 +47,7 @@ def run_once(T_surf, dirs):
     ##### Function calls
 
     # Create atmosphere object
-    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, trppT=trppT)
+    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges, vol_mixing=vol_mixing, trppT=trppT)
 
     # Compute stellar heating
     atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
@@ -79,12 +79,13 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/Oak/Oak",
+        dirs["janus"]+"/spectral_files/shared/Falkreath300/Falkreath.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]+"runtime_spectral_file"
     )
     print(" ")
 
+    band_edges = ReadBandEdges(dirs["output"]+"runtime_spectral_file")
     
     # Run JANUS in a loop to generate runaway curve
     print("Running JANUS...")
@@ -92,7 +93,7 @@ if __name__=='__main__':
     OLR_arr = []
     for Ts in np.linspace(200, 2200, 25):
         print("T_surf = %d K" % Ts)
-        out = run_once(Ts, dirs)
+        out = run_once(Ts, dirs, band_edges)
         Ts_arr.append(out[0])
         OLR_arr.append(out[1])
         print(" ")

@@ -28,6 +28,7 @@ from utils.socrates import CleanOutputDir
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 from utils.atmosphere_column import atmos
 import utils.StellarSpectrum as StellarSpectrum
+from utils.ReadSpectralFile import ReadBandEdges
 
 ####################################
 ##### Stand-alone initial conditions
@@ -35,6 +36,14 @@ import utils.StellarSpectrum as StellarSpectrum
 if __name__ == "__main__":
 
     print("Start JANUS")
+
+    # Set up dirs
+    if os.environ.get('JANUS_DIR') == None:
+        raise Exception("Environment variables not set! Have you sourced JANUS.env?")
+    dirs = {
+            "janus": os.getenv('JANUS_DIR')+"/",
+            "output": os.getenv('JANUS_DIR')+"/output/"
+            }
 
     start = t.time()
     ##### Settings
@@ -47,21 +56,16 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 2000.0                # K
-    P_top         = 0.1                  # Pa
+    T_surf        = 1570.0                # K
+    P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    P_surf       =  100 * 1e5
+    P_surf       =  300 * 1e5
     vol_partial = {}
     vol_mixing = { 
-                    "CO2"  : 0.00417,
-                    "H2O"  : 0.03,
-                    "N2"   : 0.78084,
-                    "H2"   : 0.03, 
-                    "CH4"  : 0.000187, 
-                    "O2"   : 0.20946, 
-                    # "O3"   : 0.0000006, 
-                    "He"   : 0.00000524 , 
+                    "CO2"  : 0.0,
+                    "H2O"  : 1.0,
+                    "N2"   : 0.0,
                 }
     
     # OR:
@@ -79,11 +83,14 @@ if __name__ == "__main__":
     #     "H2" : 13.01485e5
     #     }
 
+    # Spectral file 
+    spfile_path = dirs["janus"]+"/spectral_files/shared/Falkreath1000/Falkreath.sf"
+
     # Stellar heating on/off
     stellar_heating = True
 
     # Rayleigh scattering on/off
-    rscatter = True
+    rscatter = False
 
     # Compute contribution function
     calc_cf = False
@@ -93,7 +100,7 @@ if __name__ == "__main__":
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 300.0     # Fixed tropopause value if not calculated dynamically
+    trppT = 1550.0     # Fixed tropopause value if not calculated dynamically
 
     # Water lookup tables enabled (e.g. for L vs T dependence)
     water_lookup = False
@@ -111,21 +118,23 @@ if __name__ == "__main__":
 
     ##### Function calls
 
-    # Set up dirs
-    if os.environ.get('JANUS_DIR') == None:
-        raise Exception("Environment variables not set! Have you sourced JANUS.env?")
-    dirs = {
-            "janus": os.getenv('JANUS_DIR')+"/",
-            "output": os.getenv('JANUS_DIR')+"/output/"
-            }
-    
     # Tidy directory
     if os.path.exists(dirs["output"]):
         shutil.rmtree(dirs["output"])
     os.mkdir(dirs["output"])
 
+    # Move/prepare spectral file
+    print("Inserting stellar spectrum")
+    StellarSpectrum.InsertStellarSpectrum(
+        dirs["janus"]+"/spectral_files/shared/Falkreath10/Falkreath.sf",
+        dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["output"]+"runtime_spectral_file"
+    )
+
+    band_edges = ReadBandEdges(dirs["output"]+"runtime_spectral_file")
+
     # Create atmosphere object
-    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, 
+    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges,
                 vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT, req_levels=100, water_lookup=water_lookup)
 
     # Set stellar heating on or off
@@ -135,28 +144,19 @@ if __name__ == "__main__":
         atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
         print("Instellation:", round(atm.instellation), "W/m^2")
 
-    # Move/prepare spectral file
-    print("Inserting stellar spectrum")
-
-    StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/Reach/Reach",
-        dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
-        dirs["output"]+"runtime_spectral_file"
-    )
-
     # Set up atmosphere with general adiabat
     atm_dry, atm = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
 
     # Plot abundances w/ TP structure
     if (cp_dry):
-        ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
-        atm_dry.write_PT(filename="output/dry_pt.tsv")
-        plot_fluxes(atm_dry,filename="output/dry_fluxes.pdf")
+        ga.plot_adiabats(atm_dry,filename=dirs["output"]+"dry_ga.pdf")
+        atm_dry.write_PT(filename=dirs["output"]+"dry_pt.tsv")
+        plot_fluxes(atm_dry,filename=dirs["output"]+"dry_fluxes.pdf")
 
-    ga.plot_adiabats(atm,filename="output/moist_ga.pdf")
-    atm.write_PT(filename="output/moist_pt.tsv")
-    atm.write_ncdf("output/moist_atm.nc")
-    plot_fluxes(atm,filename="output/moist_fluxes.pdf")
+    ga.plot_adiabats(atm,filename= dirs["output"]+"moist_ga.pdf")
+    atm.write_PT(filename= dirs["output"]+"moist_pt.tsv")
+    atm.write_ncdf( dirs["output"]+"moist_atm.nc")
+    plot_fluxes(atm,filename= dirs["output"]+"moist_fluxes.pdf")
 
     # Tidy
     CleanOutputDir(os.getcwd())

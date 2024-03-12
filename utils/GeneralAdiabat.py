@@ -747,6 +747,7 @@ def general_adiabat( atm ):
     if new_psurf != atm.ps:
         # Backup variables before they are lost
         Tsurf = atm.ts
+        band_edges = atm.band_edges
         minT = atm.minT
         maxT = atm.maxT
         nlev_save = atm.nlev_save
@@ -763,7 +764,7 @@ def general_adiabat( atm ):
            new_vol_list[vol] = new_p_vol[vol] / new_psurf
 
         # New atmos object
-        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, 
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, band_edges,
                     vol_mixing=new_vol_list, trppT=atm.trppT, minT=minT, maxT=maxT, req_levels=nlev_save)
 
         # Restore backed-up variables
@@ -1010,7 +1011,7 @@ if __name__ == "__main__":
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
     P_top         = 1.0                 # Pa
-    
+
     # Volatile molar concentrations in the dictionary below are defined as fractions that must sum to one
     # The vanilla setting defines a water-saturated atmosphere with a 3 bar N2 background
     vol_list = { 
@@ -1025,7 +1026,7 @@ if __name__ == "__main__":
                   "NH3" : pNH3 / P_surf,
                 }
     # Create atmosphere object
-    atm                     = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_list)
+    atm                     = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, [], vol_mixing=vol_list)
 
     # Set fraction of condensate retained in column (0 = full rainout)
     atm.alpha_cloud         = alpha_cloud
