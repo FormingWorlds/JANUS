@@ -83,14 +83,11 @@ if __name__ == "__main__":
     #     "H2" : 13.01485e5
     #     }
 
-    # Spectral file 
-    spfile_path = dirs["janus"]+"/spectral_files/shared/Falkreath1000/Falkreath.sf"
-
     # Stellar heating on/off
     stellar_heating = True
 
     # Rayleigh scattering on/off
-    rscatter = False
+    rscatter = True
 
     # Compute contribution function
     calc_cf = False
@@ -126,12 +123,12 @@ if __name__ == "__main__":
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/shared/Falkreath10/Falkreath.sf",
+        dirs["janus"]+"/spectral_files/Oak/Oak.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
-        dirs["output"]+"runtime_spectral_file"
+        dirs["output"]
     )
 
-    band_edges = ReadBandEdges(dirs["output"]+"runtime_spectral_file")
+    band_edges = ReadBandEdges(dirs["output"]+"star.sf")
 
     # Create atmosphere object
     atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges,

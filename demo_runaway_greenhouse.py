@@ -79,19 +79,19 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/shared/Falkreath300/Falkreath.sf",
+        dirs["janus"]+"/spectral_files/Oak/Oak.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
-        dirs["output"]+"runtime_spectral_file"
+        dirs["output"]
     )
     print(" ")
 
-    band_edges = ReadBandEdges(dirs["output"]+"runtime_spectral_file")
+    band_edges = ReadBandEdges(dirs["output"]+"star.sf")
     
     # Run JANUS in a loop to generate runaway curve
     print("Running JANUS...")
     Ts_arr = []
     OLR_arr = []
-    for Ts in np.linspace(200, 2200, 25):
+    for Ts in np.linspace(200, 2200, 5):
         print("T_surf = %d K" % Ts)
         out = run_once(Ts, dirs, band_edges)
         Ts_arr.append(out[0])

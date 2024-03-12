@@ -113,12 +113,12 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/Oak/Oak",
+        dirs["janus"]+"/spectral_files/Oak/Oak.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
-        dirs["output"]+"runtime_spectral_file"
+        dirs["output"]
     )
 
-    band_edges = ReadBandEdges(dirs["output"]+"runtime_spectral_file")
+    band_edges = ReadBandEdges(dirs["output"]+"star.sf")
 
     # PARAMETERS
     P_surf  = 280.0   # surface pressure [bar]

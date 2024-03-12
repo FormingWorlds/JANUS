@@ -122,11 +122,11 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
         handle.write(content)
 
 
-def InsertStellarSpectrum(orig_file:str, star_file:str, outp_file:str):
+def InsertStellarSpectrum(orig_file:str, star_file:str, output_folder:str):
     """Insert a stellar spectrum.
 
     It's nice to be able to switch out the stellar spectrum for a different one. 
-    This function takes in an original spectra file, with opacity data, and 
+    This function takes in an original spectral file, with opacity data, and 
     inserts a stellar spectrum into a copy of it.
 
     Parameters
@@ -135,13 +135,15 @@ def InsertStellarSpectrum(orig_file:str, star_file:str, outp_file:str):
             Path to original spectral file WITHOUT stellar spectrum.
         star_file : str
             Path to file containing stellar spectrum in the SOCRATES format.
-        outp_file : str
-            Path to output file, containing both opacity and stellar data.
+        output_folder : str
+            Path to output folder
             
     """
 
     # k files
     orig_filek = orig_file+"_k"
+
+    outp_file  = os.path.join(output_folder, "star.sf")
     outp_filek = outp_file+"_k"
 
     # Delete "new" files if they already exist
@@ -154,8 +156,14 @@ def InsertStellarSpectrum(orig_file:str, star_file:str, outp_file:str):
     shutil.copyfile(orig_file,  outp_file)
     shutil.copyfile(orig_filek, outp_filek)
 
-    # Run prep_spec from SOCRATES
-    inputs = [outp_file,'a','6','n','T','100 4000','100','2','n',star_file,'y','-1','EOF']
+    # Copy star file to output folder
+    star_file_cpy = os.path.join(output_folder, "star.dat")
+    if os.path.exists(star_file_cpy):
+        os.remove(star_file_cpy)
+    shutil.copyfile(star_file, star_file_cpy)
+
+    # Run prep_spec from SOCRATES to insert stellar spectrum
+    inputs = [outp_file,'a','6','n','T','100 4000','150','2','n',star_file_cpy,'y','-1','EOF']
     p = subprocess.run(['prep_spec'], stdout=subprocess.PIPE, input='\n'.join(inputs), encoding='ascii')
     if (p.returncode != 0):
         print("WARNING: prep_spec returned with code %d" % p.returncode)

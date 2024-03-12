@@ -35,11 +35,11 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
             Calculate contribution function?
         rscatter : bool
             Include Rayleigh scattering?
-        write_cfg : bool
+        rewrite_cfg : bool
             Re-write configuration values (e.g. TOA heating)
-        write_PT : bool
+        rewrite_PT : bool
             Re-write temperature and pressure arrays
-        write_gas : bool
+        rewrite_gas : bool
             Re-write composition files
             
     """
@@ -56,8 +56,9 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     socrates_use_namelist = True
 
     
-    # Define path to origin spectral file
-    spectral_file = dirs["output"]+"runtime_spectral_file"
+    # Define path spectral files
+    starspectral_file = dirs["output"]+"star.sf"
+    runspectral_file  = dirs["output"]+"runtime.sf"
 
     # Check that atmosphere is okay
     if np.any(atm.cp <= 0):
@@ -74,15 +75,11 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     # Rayleigh scattering
     if rscatter == True:
         
-        # New file
-        spectral_file_old = spectral_file
-        spectral_file = dirs["output"]+"runtime_spectral_file_rscat"
-
         # Skip if already exists
-        if (not os.path.exists(spectral_file)) or rewrite_gas:
+        if (not os.path.exists(runspectral_file)) or rewrite_gas:
 
-            shutil.copyfile(spectral_file_old,spectral_file)
-            shutil.copyfile(spectral_file_old+"_k",spectral_file+"_k")
+            shutil.copyfile(starspectral_file,      runspectral_file)
+            shutil.copyfile(starspectral_file+"_k", runspectral_file+"_k")
 
             # Insert Rayleigh scattering into spectral file
             rscatter_allowed= {"CO2", "N2", "H2O"}
@@ -95,13 +92,17 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
                     rscatter_sratio.append(atm.x_gas[vol][-1])
             RayleighSpectrum.rayleigh_coeff_adder(species_list = rscatter_snames, 
                                                 mixing_ratio_list = rscatter_sratio, 
-                                                spectral_file_path=spectral_file,
+                                                spectral_file_path=runspectral_file,
                                                 wavelength_dummy_file_path=dirs["output"]+'wavelength_band_file.txt'
                                                 )
         scatter_flag = " -r"
     else:
         scatter_flag = ""
 
+    # If we didn't write a new spectral file above, do it now
+    if not os.path.exists(runspectral_file):
+        shutil.copyfile(starspectral_file,      runspectral_file)
+        shutil.copyfile(starspectral_file+"_k", runspectral_file+"_k")
 
     # Write values to netcdf: SOCRATES Userguide p. 45
     basename = 'profile'
@@ -153,14 +154,14 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
                 nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  x_gas_this, vol_lower, longname=vol, units='kg/kg') 
 
     # Call sequences for run SOCRATES + move data
-    seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag]
+    seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag]
     seq_sw_mv = ["fmove", basename,"currentsw"]
     
-    seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", spectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag]
+    seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag]
     seq_lw_mv = ["fmove", basename,"currentlw"]
 
     if calc_cf == True:
-        seq8 = ("Cl_run_cdf -B", basename,"-s", spectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", scatter_flag)
+        seq8 = ("Cl_run_cdf -B", basename,"-s", runspectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", scatter_flag)
         seq9 = ("fmove", basename, "currentlw_cff")
 
     # Write namelist file?
