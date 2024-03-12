@@ -44,6 +44,10 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
             
     """
 
+    # Check if bands have been set
+    if not atm.bands_set:
+        raise Exception("Cannot run radiative transfer because bands have not been loaded into atmos object.")
+
     # Ask SOCRATES to print info to stdout at runtime
     socrates_print = False
 
@@ -67,7 +71,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
         print(atm.x_gas)
         exit(1)
     
-    # Rayleigh scattering for CO2
+    # Rayleigh scattering
     if rscatter == True:
         
         # New file
