@@ -23,6 +23,7 @@ from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.solve_pt import RadConvEqm
 from modules.solve_pt import *
 from modules.plot_flux_balance import plot_fluxes
+from modules.plot_emission_spectrum import plot_emission
 from utils.socrates import CleanOutputDir
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
@@ -60,7 +61,7 @@ if __name__ == "__main__":
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    P_surf       =  300 * 1e5
+    P_surf       =  300.0 * 1e5
     vol_partial = {}
     vol_mixing = { 
                     "CO2"  : 0.0,
@@ -73,21 +74,21 @@ if __name__ == "__main__":
     # P_surf = 0.0
     # vol_mixing = {}
     # vol_partial = {
-    #     "H2O" : 1.54642e5,
-    #     "NH3" : 0.,
-    #     "CO2" : 6.70820e5,
-    #     "CH4" : 0.,
-    #     "CO" : 129.85989e5,
-    #     "O2" : 0.20e5,
-    #     "N2" : 1.53779e5,
-    #     "H2" : 13.01485e5
-    #     }
+        # "H2O" : 0.1e5,
+        # "NH3" : 0.,
+        # "CO2" : 0.,
+        # "CH4" : 0.,
+        # "CO" : 129.85989e5,
+        # "O2" : 0.20e5,
+        # "N2" : 0.,
+        # "H2" : 13.01485e5
+        # }
 
     # Stellar heating on/off
     stellar_heating = True
 
     # Rayleigh scattering on/off
-    rscatter = True
+    rscatter = False
 
     # Compute contribution function
     calc_cf = False
@@ -123,7 +124,7 @@ if __name__ == "__main__":
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/Oak/Oak.sf",
+        dirs["janus"]+"/spectral_files/shared/Falkreath30000_4PT/Falkreath.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
@@ -154,6 +155,7 @@ if __name__ == "__main__":
     atm.write_PT(filename= dirs["output"]+"moist_pt.tsv")
     atm.write_ncdf( dirs["output"]+"moist_atm.nc")
     plot_fluxes(atm,filename= dirs["output"]+"moist_fluxes.pdf")
+    plot_emission(atm, dirs["output"]+"toa_emission.pdf", planck_surface=True, show_bands=True)
 
     # Tidy
     CleanOutputDir(os.getcwd())
