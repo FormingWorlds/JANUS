@@ -193,6 +193,6 @@ def plot_fluxes(atm,filename='output/fluxes.pdf'):
 
     ax.legend(loc='upper left')
 
-    fig.savefig(filename)
+    fig.savefig(filename, bbox_inches='tight', dpi=190)
     plt.close()
 

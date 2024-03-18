@@ -42,6 +42,8 @@ def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, calc_c
             Calculate tropopause dynamically?
         calc_cf : bool
             Calculate contribution function?
+        rscatter : bool
+            Include rayleigh scattering?
         pure_steam_adj : bool
             Use pure steam adjustment?
         surf_dt : float

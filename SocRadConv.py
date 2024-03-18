@@ -57,32 +57,33 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 1570.0                # K
+    T_surf        = 2800.0                # K
     P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    P_surf       =  300.0 * 1e5
-    vol_partial = {}
-    vol_mixing = { 
-                    "CO2"  : 0.0,
-                    "H2O"  : 1.0,
-                    "N2"   : 0.0,
-                }
+    # P_surf       =  300.0 * 1e5
+    # vol_partial = {}
+    # vol_mixing = { 
+    #                 "CO2"  : 0.0,
+    #                 "H2O"  : 1.0,
+    #                 "N2"   : 0.0,
+    #             }
     
     # OR:
     # Define volatiles by partial pressures
-    # P_surf = 0.0
-    # vol_mixing = {}
-    # vol_partial = {
-        # "H2O" : 0.1e5,
+    P_surf = 0.0
+    vol_mixing = {}
+    vol_partial = {
+        "H2O" : 1.0e5,
         # "NH3" : 0.,
-        # "CO2" : 0.,
-        # "CH4" : 0.,
-        # "CO" : 129.85989e5,
+        "CO2" : 2.0e5,
+        "CH4" : 0.0,#3.0e5,
+        "CO" : 1.85989e5,
         # "O2" : 0.20e5,
-        # "N2" : 0.,
-        # "H2" : 13.01485e5
-        # }
+        "N2" : 4.0e5,
+        "H2" : 1.0e5,
+        "O3" : 1.0e5
+        }
 
     # Stellar heating on/off
     stellar_heating = True
@@ -98,7 +99,7 @@ if __name__ == "__main__":
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 1550.0     # Fixed tropopause value if not calculated dynamically
+    trppT = 10.0     # Fixed tropopause value if not calculated dynamically
 
     # Water lookup tables enabled (e.g. for L vs T dependence)
     water_lookup = False
@@ -124,7 +125,8 @@ if __name__ == "__main__":
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/shared/Falkreath30000_4PT/Falkreath.sf",
+        # dirs["janus"]+"/spectral_files/shared/Frostflow256/Frostflow.sf",
+        dirs["janus"]+"/spectral_files/Reach/Reach.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
@@ -147,15 +149,15 @@ if __name__ == "__main__":
 
     # Plot abundances w/ TP structure
     if (cp_dry):
-        ga.plot_adiabats(atm_dry,filename=dirs["output"]+"dry_ga.pdf")
+        ga.plot_adiabats(atm_dry,filename=dirs["output"]+"dry_ga.png")
         atm_dry.write_PT(filename=dirs["output"]+"dry_pt.tsv")
-        plot_fluxes(atm_dry,filename=dirs["output"]+"dry_fluxes.pdf")
+        plot_fluxes(atm_dry,filename=dirs["output"]+"dry_fluxes.png")
 
-    ga.plot_adiabats(atm,filename= dirs["output"]+"moist_ga.pdf")
+    ga.plot_adiabats(atm,filename= dirs["output"]+"moist_ga.png")
     atm.write_PT(filename= dirs["output"]+"moist_pt.tsv")
     atm.write_ncdf( dirs["output"]+"moist_atm.nc")
-    plot_fluxes(atm,filename= dirs["output"]+"moist_fluxes.pdf")
-    plot_emission(atm, dirs["output"]+"toa_emission.pdf", planck_surface=True, show_bands=True)
+    plot_fluxes(atm,filename= dirs["output"]+"moist_fluxes.png")
+    plot_emission(atm, dirs["output"]+"toa_emission.png", planck_surface=True, show_bands=True)
 
     # Tidy
     CleanOutputDir(os.getcwd())

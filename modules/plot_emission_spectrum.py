@@ -75,11 +75,11 @@ def plot_emission(atm:atmos, filename:str='output/toa_emission.pdf',
 
     ax.legend(loc="lower center")
 
-    wlwn = lambda x: 1.0e7/x
+    wlwn = lambda x: 1.0e7/(x-1.0e-20)  # wavelength <-> wavenumber, with small offset to prevent divergence
     secax = ax.secondary_xaxis('top', functions=(wlwn, wlwn))
     secax.set_xlabel('Wavenumber [cm$^{-1}$]')
 
     # Save fig 
-    fig.savefig(filename, bbox_inches='tight')
+    fig.savefig(filename, bbox_inches='tight', dpi=190)
     plt.close()
 
