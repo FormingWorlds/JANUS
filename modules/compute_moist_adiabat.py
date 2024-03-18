@@ -44,7 +44,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
     atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
 
     if standalone == True:
-        print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+        print("w/o stratosphere (net, OLR): " + str(round(atm_moist.net_flux[0], 3)) +" , "+str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")
 
     # Calculate tropopause
     if (trppD == True) or (atm_moist.trppT > atm_moist.minT):
@@ -59,6 +59,6 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
         atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=calc_cf, rscatter=rscatter)
 
         if standalone == True:
-            print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+            print("w/ stratosphere (net, OLR): " + str(round(atm_moist.net_flux[0], 3)) + " , " + str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")
 
     return atm_moist

@@ -38,6 +38,7 @@ vol_colors = {
     "H2"             : [mpl.colormaps["Greens"](i) for i in np.linspace(0,1.0,no_colors)],
     "N2"             : [mpl.colormaps["Purples"](i) for i in np.linspace(0,1.0,no_colors)],
     "O2"             : [mpl.colormaps["Wistia"](i) for i in np.linspace(0,1.0,no_colors+2)],
+    "O3"             : [mpl.colormaps["spring"](i) for i in np.linspace(0,1.0,no_colors+2)],
     "CH4"            : [mpl.colormaps["RdPu"](i) for i in np.linspace(0,1.0,no_colors)],
     "CO"             : [mpl.colormaps["pink_r"](i) for i in np.linspace(0,1.0,no_colors)],
     "S"              : [mpl.colormaps["YlOrBr"](i) for i in np.linspace(0,1.0,no_colors)],
@@ -97,6 +98,7 @@ vol_latex = {
     "N2"      : r"N$_2$",
     "S"       : r"S",
     "O2"      : r"O$_2$",
+    "O3"      : r"O$_3$",
     "He"      : r"He",
     "NH3"     : r"NH$_3$",
     "H2O-CO2" : r"H$_2$O–CO$_2$",
@@ -196,11 +198,6 @@ def atm_z(atm, idx):
 ## Select the molecule of interest with the switch argument (a string).
 def p_sat(switch,T, water_lookup=False): 
 
-    # Force these volatiles to be dry by setting their saturation vapour pressure to be very large
-    force_dry = ["H2"]
-    if switch in force_dry:
-        return 1.0e30
-
     # Define volatile
     match switch:
         case 'H2O':
@@ -222,7 +219,7 @@ def p_sat(switch,T, water_lookup=False):
         case 'NH3':
             e = phys.satvps_function(phys.nh3)   
         case _:
-            e = lambda T,water_lookup: 0.0
+            return 1.0e30
         
     # Return saturation vapor pressure
     svp = e(T,water_lookup=water_lookup)
@@ -774,7 +771,7 @@ def general_adiabat( atm ):
     for vol in atm.vol_list.keys():
         if np.isclose(atm.vol_list[vol] * atm.ps, p_sat(vol,atm.ts,water_lookup=atm.water_lookup)):
             wet_list.append(vol)
-        elif atm.vol_list[vol] > 0:
+        else:
             dry_list.append(vol)
     
     ### Initialization
@@ -982,7 +979,7 @@ def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
     fig.suptitle('$T_{surf}$=%.1f K, $T_{bot}$=%.1f K'% (atm.ts,atm.tmp[-1]))
     #plt.show()
 
-    fig.savefig(filename, bbox_inches='tight')
+    fig.savefig(filename, bbox_inches='tight', dpi=190)
     plt.close()
 
     return

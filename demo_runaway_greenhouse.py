@@ -2,12 +2,12 @@
 
 import matplotlib as mpl
 mpl.use('Agg')
+mpl.rcParams.update({'font.size': 12})
 
 import matplotlib.pyplot as plt
-
-import time as t
 import os, shutil
 import numpy as np
+from matplotlib.ticker import MultipleLocator
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.solve_pt import RadConvEqm
@@ -53,7 +53,7 @@ def run_once(T_surf, dirs, band_edges):
     atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
 
     # Do rad trans
-    _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, calc_cf=False, rscatter=rscatter) 
+    _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, calc_cf=False, rscatter=rscatter, socwrite=False) 
 
     return [T_surf, atm_moist.LW_flux_up[0]]
 
@@ -79,7 +79,7 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/Oak/Oak.sf",
+        dirs["janus"]+"/spectral_files/shared/Falkreath100/Falkreath.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
@@ -91,12 +91,14 @@ if __name__=='__main__':
     print("Running JANUS...")
     Ts_arr = []
     OLR_arr = []
-    for Ts in np.linspace(200, 2200, 5):
+    for Ts in np.linspace(200, 2800, 40):
         print("T_surf = %d K" % Ts)
         out = run_once(Ts, dirs, band_edges)
         Ts_arr.append(out[0])
         OLR_arr.append(out[1])
         print(" ")
+    OLR_arr = np.array(OLR_arr)
+    Ts_arr  = np.array(Ts_arr)
     
     # Get literature data
     g2013 = np.loadtxt(dirs["janus"]+"plotting_tools/comparison_data/Goldblatt13_data.txt",
@@ -105,23 +107,37 @@ if __name__=='__main__':
                           dtype=float, skiprows=2, delimiter=',').T 
     h2015 = np.loadtxt(dirs["janus"]+"plotting_tools/comparison_data/Hamano15_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
+    s2023 = np.loadtxt(dirs["janus"]+"plotting_tools/comparison_data/Selsis23_convective.txt",
+                          dtype=float, skiprows=2, delimiter=',').T 
 
     # Setup plot
     print("Making plot")
-    fig,ax = plt.subplots(1,1)
+    fig,ax = plt.subplots(1,1, figsize=(7,4))
+
+    # SN limit
+    ax.axhline(y=280.0, linewidth=0.9, linestyle='dashed', color='black')
 
     # Plot data
     lw = 2
     ax.plot(k2013[0], k2013[1], color='tab:red',   lw=lw, label='Kopparapu+2013')
     ax.plot(g2013[0], g2013[1], color='tab:green', lw=lw, label='Goldblatt+2013')
     ax.plot(h2015[0], h2015[1], color='tab:blue',  lw=lw, label='Hamano+2015')
-    ax.plot(Ts_arr, OLR_arr,    color='black',     lw=lw, label='JANUS')
+    ax.plot(s2023[0], s2023[1], color='tab:orange',lw=lw, label='Selsis+2023')
+    ax.plot(Ts_arr,   OLR_arr,  color='black',     lw=lw, label='JANUS')
 
     # Setup figure and save
-    fig.legend(loc='upper center')
+    ax.legend(loc='upper left')
+
     ax.set_xlabel("Surface temperature [K]")
-    ax.set_ylabel("OLR [W m-2]")
-    fig.savefig(dirs["output"]+"runaway_demo.pdf")
+    ax.xaxis.set_minor_locator(MultipleLocator(100.0))
+    ax.set_xlim(np.amin(Ts_arr) - 25.0,  np.amax(Ts_arr) + 25.0)  
+
+    ax.set_ylabel("OLR [W m$^{-2}$]")
+    ax.set_ylim(np.amin(OLR_arr) - 10.0, np.amax(OLR_arr) + 40.0)
+    ax.yaxis.set_minor_locator(MultipleLocator(25.0))  
+
+    fig.savefig(dirs["output"]+"runaway_demo.pdf", bbox_inches='tight')
+    fig.savefig(dirs["output"]+"runaway_demo.png", bbox_inches='tight', dpi=190)
     print(" ")
 
     # Tidy
