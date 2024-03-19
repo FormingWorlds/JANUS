@@ -67,7 +67,7 @@ if __name__ == "__main__":
     #                 "CO2"  : 0.0,
     #                 "H2O"  : 1.0,
     #                 "N2"   : 0.0,
-    #             }
+                # }
     
     # OR:
     # Define volatiles by partial pressures
@@ -76,13 +76,12 @@ if __name__ == "__main__":
     vol_partial = {
         "H2O" : 1.0e5,
         # "NH3" : 0.,
-        "CO2" : 2.0e5,
-        "CH4" : 0.0,#3.0e5,
+        "CO2" : 0.0,#2.0e5,
+        "CH4" :  3.0e5,
         "CO" : 1.85989e5,
         # "O2" : 0.20e5,
         "N2" : 4.0e5,
         "H2" : 1.0e5,
-        "O3" : 1.0e5
         }
 
     # Stellar heating on/off
@@ -125,8 +124,8 @@ if __name__ == "__main__":
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        # dirs["janus"]+"/spectral_files/shared/Frostflow256/Frostflow.sf",
-        dirs["janus"]+"/spectral_files/Reach/Reach.sf",
+        # dirs["janus"]+"/spectral_files/shared/old/Dayspring256_old/Dayspring.sf",
+        dirs["janus"]+"/spectral_files/Mallard/Mallard.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )

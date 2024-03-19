@@ -151,7 +151,8 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
             fthis = basename+'.'+vol_lower
             if check_gas(fthis):
                 x_gas_this = phys.molar_mass[vol] / atm.mu * atm.x_gas[vol]
-                nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  x_gas_this, vol_lower, longname=vol, units='kg/kg') 
+                if np.amax(x_gas_this) > 1.0e-30:
+                    nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  x_gas_this, vol_lower, longname=vol, units='kg/kg') 
 
     # Call sequences for run SOCRATES + move data
     seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag]

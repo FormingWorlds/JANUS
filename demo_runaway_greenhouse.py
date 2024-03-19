@@ -53,7 +53,7 @@ def run_once(T_surf, dirs, band_edges):
     atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
 
     # Do rad trans
-    _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, calc_cf=False, rscatter=rscatter, socwrite=False) 
+    _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, calc_cf=False, rscatter=rscatter) 
 
     return [T_surf, atm_moist.LW_flux_up[0]]
 
@@ -79,7 +79,7 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/shared/Falkreath100/Falkreath.sf",
+        dirs["janus"]+"/spectral_files/Oak/Oak.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
@@ -91,7 +91,7 @@ if __name__=='__main__':
     print("Running JANUS...")
     Ts_arr = []
     OLR_arr = []
-    for Ts in np.linspace(200, 2800, 40):
+    for Ts in np.linspace(200, 2800, 20):
         print("T_surf = %d K" % Ts)
         out = run_once(Ts, dirs, band_edges)
         Ts_arr.append(out[0])
@@ -133,7 +133,7 @@ if __name__=='__main__':
     ax.set_xlim(np.amin(Ts_arr) - 25.0,  np.amax(Ts_arr) + 25.0)  
 
     ax.set_ylabel("OLR [W m$^{-2}$]")
-    ax.set_ylim(np.amin(OLR_arr) - 10.0, np.amax(OLR_arr) + 40.0)
+    ax.set_ylim(np.amin(OLR_arr) - 10.0, 900.0)
     ax.yaxis.set_minor_locator(MultipleLocator(25.0))  
 
     fig.savefig(dirs["output"]+"runaway_demo.pdf", bbox_inches='tight')
