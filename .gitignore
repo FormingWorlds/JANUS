@@ -19,6 +19,8 @@ Tprofile.pdf
 __pycache__/
 rad_trans/socrates_code/*
 !rad_trans/socrates_code/.gitkeep
+nogit_*
+spectral_files/shared
 
 # Ignore SOCRATES code files
 rad_trans/socrates_code/*

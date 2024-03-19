@@ -38,6 +38,7 @@ vol_colors = {
     "H2"             : [mpl.colormaps["Greens"](i) for i in np.linspace(0,1.0,no_colors)],
     "N2"             : [mpl.colormaps["Purples"](i) for i in np.linspace(0,1.0,no_colors)],
     "O2"             : [mpl.colormaps["Wistia"](i) for i in np.linspace(0,1.0,no_colors+2)],
+    "O3"             : [mpl.colormaps["spring"](i) for i in np.linspace(0,1.0,no_colors+2)],
     "CH4"            : [mpl.colormaps["RdPu"](i) for i in np.linspace(0,1.0,no_colors)],
     "CO"             : [mpl.colormaps["pink_r"](i) for i in np.linspace(0,1.0,no_colors)],
     "S"              : [mpl.colormaps["YlOrBr"](i) for i in np.linspace(0,1.0,no_colors)],
@@ -97,6 +98,7 @@ vol_latex = {
     "N2"      : r"N$_2$",
     "S"       : r"S",
     "O2"      : r"O$_2$",
+    "O3"      : r"O$_3$",
     "He"      : r"He",
     "NH3"     : r"NH$_3$",
     "H2O-CO2" : r"H$_2$O–CO$_2$",
@@ -222,7 +224,7 @@ def p_sat(switch,T, water_lookup=False):
         case 'NH3':
             e = phys.satvps_function(phys.nh3)   
         case _:
-            e = lambda T,water_lookup: 0.0
+            return 1.0e30
         
     # Return saturation vapor pressure
     svp = e(T,water_lookup=water_lookup)
@@ -747,6 +749,7 @@ def general_adiabat( atm ):
     if new_psurf != atm.ps:
         # Backup variables before they are lost
         Tsurf = atm.ts
+        band_edges = atm.band_edges
         minT = atm.minT
         maxT = atm.maxT
         nlev_save = atm.nlev_save
@@ -763,7 +766,7 @@ def general_adiabat( atm ):
            new_vol_list[vol] = new_p_vol[vol] / new_psurf
 
         # New atmos object
-        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, 
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, band_edges,
                     vol_mixing=new_vol_list, trppT=atm.trppT, minT=minT, maxT=maxT, req_levels=nlev_save)
 
         # Restore backed-up variables
@@ -981,7 +984,7 @@ def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
     fig.suptitle('$T_{surf}$=%.1f K, $T_{bot}$=%.1f K'% (atm.ts,atm.tmp[-1]))
     #plt.show()
 
-    fig.savefig(filename, bbox_inches='tight')
+    fig.savefig(filename, bbox_inches='tight', dpi=190)
     plt.close()
 
     return
@@ -1010,7 +1013,7 @@ if __name__ == "__main__":
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
     P_top         = 1.0                 # Pa
-    
+
     # Volatile molar concentrations in the dictionary below are defined as fractions that must sum to one
     # The vanilla setting defines a water-saturated atmosphere with a 3 bar N2 background
     vol_list = { 
@@ -1025,7 +1028,7 @@ if __name__ == "__main__":
                   "NH3" : pNH3 / P_surf,
                 }
     # Create atmosphere object
-    atm                     = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_list)
+    atm                     = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, [], vol_mixing=vol_list)
 
     # Set fraction of condensate retained in column (0 = full rainout)
     atm.alpha_cloud         = alpha_cloud

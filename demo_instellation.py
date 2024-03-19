@@ -16,8 +16,9 @@ from utils.socrates import CleanOutputDir
 from utils.atmosphere_column import atmos
 import utils.StellarSpectrum as StellarSpectrum
 import utils.phys as phys
+from utils.ReadSpectralFile import ReadBandEdges
 
-def run_once(sep, dirs, T_magma, P_surf, skin_d):
+def run_once(sep, dirs, T_magma, P_surf, skin_d, band_edges):
 
     # Planet 
     time = { "planet": 0., "star": 100e+6 } # yr,
@@ -50,7 +51,8 @@ def run_once(sep, dirs, T_magma, P_surf, skin_d):
     T_trpp = T_eqm * (0.5**0.25)  # radiative skin temperature
 
     # Create atmosphere object
-    atm = atmos(T_magma,  P_surf * 1e5, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, trppT=T_trpp, req_levels=150)
+    atm = atmos(T_magma,  P_surf * 1e5, P_top, pl_radius, pl_mass, band_edges,
+                vol_mixing=vol_mixing, trppT=T_trpp, req_levels=150)
     atm.albedo_pl = A_B
     atm.albedo_s  = A_S
     atm.inst_sf = inst_sf
@@ -111,10 +113,12 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/Oak/Oak",
+        dirs["janus"]+"/spectral_files/Oak/Oak.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
-        dirs["output"]+"runtime_spectral_file"
+        dirs["output"]
     )
+
+    band_edges = ReadBandEdges(dirs["output"]+"star.sf")
 
     # PARAMETERS
     P_surf  = 280.0   # surface pressure [bar]
@@ -122,7 +126,7 @@ if __name__=='__main__':
     skin_d  = 1e-2  # conductive skin thickness [m]
     r_inner = 0.3     # inner orbital distane [AU]
     r_outer = 1.4     # outer orbital distance [AU]
-    samples = 40       # number of samples
+    samples = 5       # number of samples
     logx    = False   # log x-axis?
     legend  = True    # make legend?
     dx_tick = 0.1     # x-tick spacing (set to 0 for automatic)
@@ -140,7 +144,7 @@ if __name__=='__main__':
     tr_arr  = []    # tropopause temperature
     for r in r_arr:
         print("Orbital separation = %.2f AU" % r)
-        out = run_once(r, dirs, T_magma, P_surf, skin_d)
+        out = run_once(r, dirs, T_magma, P_surf, skin_d, band_edges)
         asf_arr.append(out[0] * -1.0)  # directed downwards => minus sign
         OLR_arr.append(out[1])
         net_arr.append(out[2])

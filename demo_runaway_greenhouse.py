@@ -2,12 +2,12 @@
 
 import matplotlib as mpl
 mpl.use('Agg')
+mpl.rcParams.update({'font.size': 12})
 
 import matplotlib.pyplot as plt
-
-import time as t
 import os, shutil
 import numpy as np
+from matplotlib.ticker import MultipleLocator
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
 from modules.solve_pt import RadConvEqm
@@ -15,10 +15,10 @@ from utils.socrates import CleanOutputDir
 
 from utils.atmosphere_column import atmos
 import utils.StellarSpectrum as StellarSpectrum
+from utils.ReadSpectralFile import ReadBandEdges
 
 
-
-def run_once(T_surf, dirs):
+def run_once(T_surf, dirs, band_edges):
 
     # Planet 
     time = { "planet": 0., "star": 4.5e9 } # yr,
@@ -47,7 +47,7 @@ def run_once(T_surf, dirs):
     ##### Function calls
 
     # Create atmosphere object
-    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, trppT=trppT)
+    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges, vol_mixing=vol_mixing, trppT=trppT)
 
     # Compute stellar heating
     atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
@@ -79,23 +79,26 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/Oak/Oak",
+        dirs["janus"]+"/spectral_files/Oak/Oak.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
-        dirs["output"]+"runtime_spectral_file"
+        dirs["output"]
     )
     print(" ")
 
+    band_edges = ReadBandEdges(dirs["output"]+"star.sf")
     
     # Run JANUS in a loop to generate runaway curve
     print("Running JANUS...")
     Ts_arr = []
     OLR_arr = []
-    for Ts in np.linspace(200, 2200, 25):
+    for Ts in np.linspace(200, 2800, 20):
         print("T_surf = %d K" % Ts)
-        out = run_once(Ts, dirs)
+        out = run_once(Ts, dirs, band_edges)
         Ts_arr.append(out[0])
         OLR_arr.append(out[1])
         print(" ")
+    OLR_arr = np.array(OLR_arr)
+    Ts_arr  = np.array(Ts_arr)
     
     # Get literature data
     g2013 = np.loadtxt(dirs["janus"]+"plotting_tools/comparison_data/Goldblatt13_data.txt",
@@ -104,23 +107,37 @@ if __name__=='__main__':
                           dtype=float, skiprows=2, delimiter=',').T 
     h2015 = np.loadtxt(dirs["janus"]+"plotting_tools/comparison_data/Hamano15_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
+    s2023 = np.loadtxt(dirs["janus"]+"plotting_tools/comparison_data/Selsis23_convective.txt",
+                          dtype=float, skiprows=2, delimiter=',').T 
 
     # Setup plot
     print("Making plot")
-    fig,ax = plt.subplots(1,1)
+    fig,ax = plt.subplots(1,1, figsize=(7,4))
+
+    # SN limit
+    ax.axhline(y=280.0, linewidth=0.9, linestyle='dashed', color='black')
 
     # Plot data
     lw = 2
     ax.plot(k2013[0], k2013[1], color='tab:red',   lw=lw, label='Kopparapu+2013')
     ax.plot(g2013[0], g2013[1], color='tab:green', lw=lw, label='Goldblatt+2013')
     ax.plot(h2015[0], h2015[1], color='tab:blue',  lw=lw, label='Hamano+2015')
-    ax.plot(Ts_arr, OLR_arr,    color='black',     lw=lw, label='JANUS')
+    ax.plot(s2023[0], s2023[1], color='tab:orange',lw=lw, label='Selsis+2023')
+    ax.plot(Ts_arr,   OLR_arr,  color='black',     lw=lw, label='JANUS')
 
     # Setup figure and save
-    fig.legend(loc='upper center')
+    ax.legend(loc='upper left')
+
     ax.set_xlabel("Surface temperature [K]")
-    ax.set_ylabel("OLR [W m-2]")
-    fig.savefig(dirs["output"]+"runaway_demo.pdf")
+    ax.xaxis.set_minor_locator(MultipleLocator(100.0))
+    ax.set_xlim(np.amin(Ts_arr) - 25.0,  np.amax(Ts_arr) + 25.0)  
+
+    ax.set_ylabel("OLR [W m$^{-2}$]")
+    ax.set_ylim(np.amin(OLR_arr) - 10.0, 900.0)
+    ax.yaxis.set_minor_locator(MultipleLocator(25.0))  
+
+    fig.savefig(dirs["output"]+"runaway_demo.pdf", bbox_inches='tight')
+    fig.savefig(dirs["output"]+"runaway_demo.png", bbox_inches='tight', dpi=190)
     print(" ")
 
     # Tidy

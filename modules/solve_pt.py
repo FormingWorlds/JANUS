@@ -42,6 +42,8 @@ def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, calc_c
             Calculate tropopause dynamically?
         calc_cf : bool
             Calculate contribution function?
+        rscatter : bool
+            Include rayleigh scattering?
         pure_steam_adj : bool
             Use pure steam adjustment?
         surf_dt : float
@@ -137,6 +139,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     # Store constants
     #    Passed into atmos() constructor ...
     trppT = atm_inp.trppT
+    band_edges = atm_inp.band_edges
     minT = atm_inp.minT; maxT = atm_inp.maxT
     Psurf = atm_inp.ps; ptop = atm_inp.ptop
     pl_r = atm_inp.planet_radius; pl_m = atm_inp.planet_mass
@@ -156,7 +159,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     # Initialise a new atmos object
     def ini_atm(Ts):
         _atm = atmos(Ts, Psurf, ptop, 
-                   pl_r, pl_m, 
+                   pl_r, pl_m, band_edges,
                    vol_mixing=vol_list, trppT=trppT, 
                    minT=minT, maxT=maxT, 
                    req_levels=nlev_save)
