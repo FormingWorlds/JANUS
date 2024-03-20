@@ -18,8 +18,8 @@ from utils.atmosphere_column import atmos
 import utils.phys as phys
 
 
-def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
-               rewrite_cfg=True, rewrite_tmp=True, rewrite_gas=True):
+def radCompSoc(atm, dirs, recalc, rscatter=False,
+               rewrite_cfg=True, rewrite_tmp=True, rewrite_gas=True, do_cloud=False):
     """Runs SOCRATES to calculate fluxes and heating rates
 
     Parameters
@@ -30,11 +30,10 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
             Named directories
         recalc : bool
             Is this function call a 'recalculation' case accounting for a tropopause?
-            
-        calc_cf : bool
-            Calculate contribution function?
         rscatter : bool
             Include Rayleigh scattering?
+        do_cloud : bool
+            Include water cloud radiation?
         rewrite_cfg : bool
             Re-write configuration values (e.g. TOA heating)
         rewrite_PT : bool
@@ -144,6 +143,17 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     fthis = basename+'.q'
     if check_gas(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  phys.molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
 
+    # Clouds
+    if do_cloud:
+        fthis = basename+'.re'
+        if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.re, 're', longname="Effective Radius", units='M') 
+
+        fthis = basename+'.lwm'
+        if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.lwm, 'lwm', longname="Liquid Water Mass Fraction", units='GG-1') 
+
+        fthis = basename+'.clfr'
+        if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.clfr, 'clfr', longname="Cloud Fraction", units='NONE') 
+
     allowed_vols = {"CO2", "O3", "N2O", "CO", "CH4", "O2", "NO", "SO2", "NO2", "NH3", "HNO3", "N2", "H2", "He", "OCS"}
     for vol in atm.vol_list.keys():
         if vol in allowed_vols:
@@ -155,15 +165,19 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
                     nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  x_gas_this, vol_lower, longname=vol, units='kg/kg') 
 
     # Call sequences for run SOCRATES + move data
-    seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag]
-    seq_sw_mv = ["fmove", basename,"currentsw"]
-    
-    seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag]
-    seq_lw_mv = ["fmove", basename,"currentlw"]
+    if do_cloud:
+        seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C ", str(atm.cloud_scheme), " -K ", str(atm.cloud_representation), " -d ", str(atm.droplet_type), " -v ", str(atm.solver), " -u", scatter_flag, " -o"]
+        seq_sw_mv = ["fmove", basename,"currentsw"]
+        
+        seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C ", str(atm.cloud_scheme), " -K ", str(atm.cloud_representation), " -d ", str(atm.droplet_type), " -v ", str(atm.solver), " -u", scatter_flag, " -o"]
+        seq_lw_mv = ["fmove", basename,"currentlw"]
 
-    if calc_cf == True:
-        seq8 = ("Cl_run_cdf -B", basename,"-s", runspectral_file, "-R 1 ", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u -ch 1", scatter_flag)
-        seq9 = ("fmove", basename, "currentlw_cff")
+    else: # cloud flags require Block 10
+        seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag]
+        seq_sw_mv = ["fmove", basename,"currentsw"]
+        
+        seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag]
+        seq_lw_mv = ["fmove", basename,"currentlw"]
 
     # Write namelist file?
     if socrates_use_namelist:
@@ -209,11 +223,6 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     subprocess.run(seq_lw_ex,check=True,stderr=outhandle,stdout=outhandle)
     subprocess.run(seq_lw_mv,check=True,stderr=outhandle,stdout=outhandle)
 
-    if calc_cf == True:
-        subprocess.run(list(seq8),check=True,stderr=outhandle,stdout=outhandle)
-        subprocess.run(list(seq9),check=True,stderr=outhandle,stdout=outhandle)
-
-
     # Open netCDF files produced by SOCRATES
     ncfile1  = net.Dataset('currentsw.vflx')  # direct + diffuse
     ncfile2  = net.Dataset('currentsw.sflx')  # direct
@@ -224,10 +233,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     ncfile7  = net.Dataset('currentlw.dflx')  # diffuse
     ncfile9  = net.Dataset('currentlw.uflx')  # upward
     ncfile10 = net.Dataset('currentlw.hrts')  # heating rate
-
-    if calc_cf == True:
-        ncfile11 = net.Dataset('currentlw_cff.cff')
-        ncfile12 = net.Dataset('currentlw.cff')
+    ncfile11 = net.Dataset('currentlw.cff')   # contribution function
 
     # Loop through netCDF variables and populate arrays
     vflxsw   = ncfile1.variables['vflx']  # SW downward flux (direct + diffuse)
@@ -236,60 +242,53 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     dflxlw   = ncfile7.variables['dflx']  # LW downward flux (diffuse)
     uflxlw   = ncfile9.variables['uflx']  # LW upward flux 
     hrtslw   = ncfile10.variables['hrts'] # LW heating rate (K/day)
-
-    if calc_cf == True:
-        cff    = ncfile11.variables['cff'] # Contribution function (flux, sum)
-        cff_i  = ncfile12.variables['cff'] # Contribution function (channel, plev, lat, lon)
+    cff      = ncfile11.variables['cff']  # Contribution function (channel, plev, lat, lon)
 
     ##### Fluxes
 
-    if calc_cf == False:
+    # Upward SW + LW flux summed over all bands (W/m^2)
+    atm.SW_flux_up          = np.sum(uflxsw[:,:],axis=0)[:,0,0]
+    atm.LW_flux_up          = np.sum(uflxlw[:,:],axis=0)[:,0,0]
 
-        # Upward SW + LW flux summed over all bands (W/m^2)
-        atm.SW_flux_up          = np.sum(uflxsw[:,:],axis=0)[:,0,0]
-        atm.LW_flux_up          = np.sum(uflxlw[:,:],axis=0)[:,0,0]
+    # Downward SW + LW flux summed over all bands (W/m^2)
+    atm.SW_flux_down        = np.sum(vflxsw[:,:],axis=0)[:,0,0]
+    atm.LW_flux_down        = np.sum(dflxlw[:,:],axis=0)[:,0,0]
 
-        # Downward SW + LW flux summed over all bands (W/m^2)
-        atm.SW_flux_down        = np.sum(vflxsw[:,:],axis=0)[:,0,0]
-        atm.LW_flux_down        = np.sum(dflxlw[:,:],axis=0)[:,0,0]
+    # Net SW + LW flux summed over all bands (W/m^2)
+    atm.SW_flux_net         = np.squeeze(np.sum(uflxsw[:,:],axis=0)[:,0,0] - np.sum(vflxsw[:,:],axis=0)[:,0,0])
+    atm.LW_flux_net         = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0])
 
-        # Net SW + LW flux summed over all bands (W/m^2)
-        atm.SW_flux_net         = np.squeeze(np.sum(uflxsw[:,:],axis=0)[:,0,0] - np.sum(vflxsw[:,:],axis=0)[:,0,0])
-        atm.LW_flux_net         = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0])
+    # Upward SW + LW flux per band, W/m^2/(band)
+    atm.LW_spectral_flux_up = uflxlw[:,:,0,0]
+    atm.SW_spectral_flux_up = uflxsw[:,:,0,0]
 
-        # Upward SW + LW flux per band, W/m^2/(band)
-        atm.LW_spectral_flux_up = uflxlw[:,:,0,0]
-        atm.SW_spectral_flux_up = uflxsw[:,:,0,0]
+    # Total up- and downward fluxes, (W/m^2)
+    atm.flux_up_total       = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0]) 
+    atm.flux_down_total     = np.squeeze(np.sum(vflxsw[:,:],axis=0)[:,0,0] + np.sum(dflxlw[:,:],axis=0)[:,0,0])
 
-        # Total up- and downward fluxes, (W/m^2)
-        atm.flux_up_total       = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0]) 
-        atm.flux_down_total     = np.squeeze(np.sum(vflxsw[:,:],axis=0)[:,0,0] + np.sum(dflxlw[:,:],axis=0)[:,0,0])
+    # Total net flux (W/m^2)
+    atm.net_flux            = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0] -  np.sum(vflxsw[:,:],axis=0)[:,0,0])
 
-        # Total net flux (W/m^2)
-        atm.net_flux            = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0] -  np.sum(vflxsw[:,:],axis=0)[:,0,0])
-
-        # Total net flux per band (W/m^2/(band))
-        atm.net_spectral_flux   = uflxlw[:,:,0,0] + uflxsw[:,:,0,0] - dflxlw[:,:,0,0] - vflxsw[:,:,0,0]
+    # Total net flux per band (W/m^2/(band))
+    atm.net_spectral_flux   = uflxlw[:,:,0,0] + uflxsw[:,:,0,0] - dflxlw[:,:,0,0] - vflxsw[:,:,0,0]
+    
+    # Contribution function
+    atm.cff   = cff[:,:,0,0]
+    # Spectral Upward LW flux
+    atm.LW_flux_up_i = uflxlw[:,:,0,0]
 
         ##### Heating rates
 
-        # Heating rates only for no recalc: recalc if tropopause was found
-        if recalc == False:
+    # Heating rates only for no recalc: recalc if tropopause was found
+    if recalc == False:
 
-            # Individual heating contributions (K/day)
-            atm.SW_heating          = np.sum(hrtssw[:,:],axis=0)[:,0,0]
-            atm.LW_heating          = np.sum(hrtslw[:,:],axis=0)[:,0,0]
+        # Individual heating contributions (K/day)
+        atm.SW_heating          = np.sum(hrtssw[:,:],axis=0)[:,0,0]
+        atm.LW_heating          = np.sum(hrtslw[:,:],axis=0)[:,0,0]
 
-            # Total heating (K/day)
-            atm.net_heating       = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
-            atm.net_heating       = np.array(list(atm.net_heating))
-    
-    ### Contribution function
-    if calc_cf == True:
-        # print(cff)
-        atm.cff     = cff[:,0,0]
-        atm.cff_i   = cff_i[:,:,0,0]
-        atm.LW_flux_up_i = uflxlw[:,:,0,0]
+        # Total heating (K/day)
+        atm.net_heating       = np.squeeze(np.sum(hrtssw[:,:],axis=0) + np.sum(hrtslw[:,:],axis=0))
+        atm.net_heating       = np.array(list(atm.net_heating))
 
     # Close netCDF files
     ncfile1.close()
@@ -300,9 +299,7 @@ def radCompSoc(atm, dirs, recalc, calc_cf=False, rscatter=False,
     ncfile7.close()
     ncfile9.close()
     ncfile10.close()
-    if calc_cf == True:
-        ncfile11.close()
-        # ncfile12.close()
+    ncfile11.close()
 
     return atm
 

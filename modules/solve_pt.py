@@ -20,7 +20,7 @@ from modules.set_stratosphere import set_stratosphere
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import utils.socrates as socrates
 
-def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, calc_cf:bool, rscatter:bool, 
+def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool, do_cloud:bool, 
                pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
     """Sets the atmosphere to a temperature profile using the general adiabat. 
     
@@ -40,10 +40,10 @@ def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, calc_c
             Compute dry adiabat case
         trppD : bool 
             Calculate tropopause dynamically?
-        calc_cf : bool
-            Calculate contribution function?
         rscatter : bool
             Include rayleigh scattering?
+        do_cloud : bool
+            Include water cloud radiation?
         pure_steam_adj : bool
             Use pure steam adjustment?
         surf_dt : float
@@ -59,13 +59,13 @@ def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, calc_c
 
     ### Moist/general adiabat
 
-    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf, rscatter)
+    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter, do_cloud)
 
     ### Dry adiabat
     if cp_dry == True:
 
         # Compute dry adiabat  w/ timestepping
-        atm_dry   = compute_dry_adiabat(atm, dirs, standalone, calc_cf, rscatter, pure_steam_adj, surf_dt, cp_surf, mix_coeff_atmos, mix_coeff_surf)
+        atm_dry   = compute_dry_adiabat(atm, dirs, standalone, rscatter, pure_steam_adj, surf_dt, cp_surf, mix_coeff_atmos, mix_coeff_surf, do_cloud)
 
         if standalone == True:
             print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
@@ -177,7 +177,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
         if (trppD == True) or (atm_tmp.trppT > atm_tmp.minT):
 
             if trppD:
-                atm_tmp = socrates.radCompSoc(atm_tmp, dirs, recalc=False, calc_cf=False, rscatter=rscatter)
+                atm_tmp = socrates.radCompSoc(atm_tmp, dirs, recalc=False, rscatter=rscatter)
         
             # Find tropopause index
             atm_tmp = find_tropopause(atm_tmp,trppD, verbose=False)
@@ -186,7 +186,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
             atm_tmp = set_stratosphere(atm_tmp)
 
         # Calculate final fluxes from T(p)
-        atm_tmp = socrates.radCompSoc(atm_tmp, dirs, recalc=True, calc_cf=False, rscatter=rscatter)
+        atm_tmp = socrates.radCompSoc(atm_tmp, dirs, recalc=True, rscatter=rscatter)
 
         if atm_bc == 0:
             F_atm = atm_tmp.net_flux[0]  
