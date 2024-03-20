@@ -10,11 +10,11 @@ import pwd
 
 class atmos:
     
-    def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, re: float, lwm: float, clfr: float, 
+    def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  band_edges:list,
                  vol_mixing: dict = {}, vol_partial: dict = {},
                  req_levels: int = 100, water_lookup: bool=False,
-                 trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0, do_cloud: bool=False):
+                 trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0, do_cloud: bool=False, re: float=0., lwm: float=0., clfr: float=0.):
         
         """Atmosphere class    
     

@@ -138,8 +138,8 @@ if __name__ == "__main__":
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
 
     # Create atmosphere object
-    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, re, lwm, clfr, band_edges,
-                vol_mixing=vol_mixing, vol_partial=vol_partial, trppT=trppT, req_levels=100, water_lookup=water_lookup, do_cloud=do_cloud)
+    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges,
+                vol_mixing=vol_mixing, vol_partial=vol_partial, trppT=trppT, req_levels=100, water_lookup=water_lookup, do_cloud=do_cloud, re=re, lwm=lwm, clfr=clfr)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
