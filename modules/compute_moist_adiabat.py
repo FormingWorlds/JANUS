@@ -14,7 +14,6 @@ from modules.find_tropopause import find_tropopause
 from modules.set_stratosphere import set_stratosphere
 from modules.water_cloud import simple_cloud
 from modules.relative_humidity import compute_Rh
-from modules.make_inversion import inversion
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import utils.socrates as socrates
