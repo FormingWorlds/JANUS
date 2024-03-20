@@ -206,7 +206,7 @@ class atmos:
             self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
             self.net_heating 			= np.zeros(self.nlev) 				# K/day from socrates
             self.heat                   = np.zeros(self.nlev)               # K/day from *
-            self.cff					= np.zeros([self.nbands,self.nlev]) # W/m^2/(band)
+            self.cff					= np.zeros([self.nbands,self.nlev]) # W/m^2/(band). Compute by recompiling SOCRATES after setting the flags on lines 346 and 347 of src/aux/l_run_cdf.F90 to TRUE.
             self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev]) # W/m^2/(band)
 
             # Cloud flags (socrates/bin/rad_pcf.f90) and input arrays
