@@ -217,6 +217,8 @@ def p_sat(switch,T, water_lookup=False):
             e = phys.satvps_function(phys.n2)
         case 'O2':
             e = phys.satvps_function(phys.o2)
+        case 'O3':
+            e = phys.satvps_function(phys.o3)
         case 'H2':
             e = phys.satvps_function(phys.h2)
         case 'He':
@@ -280,6 +282,11 @@ def Tdew(switch, p):
         pref = p_sat('O2',Tref)
         L_O2=phys.O2.L_vaporization*phys.o2.MolecularWeight*1e-3
         return Tref/(1.-(Tref*phys.R_gas/L_O2)*math.log(p/pref))
+    if switch == 'O3':
+        Tref = 161.85 # K, arbitrary point (161.85K,esat(161.85K)=1.013bar) on the coexistence curve of O3 
+        pref = p_sat('O3',Tref)
+        L_O3=phys.O3.L_vaporization*phys.o3.MolecularWeight*1e-3
+        return Tref/(1.-(Tref*phys.R_gas/L_O3)*math.log(p/pref))
     if switch == 'H2':
         Tref = 23.15 # K, arbitrary point (23.15K,esat(23.15K)=1.7bar) on the coexistence curve of H2 
         pref = p_sat('H2',Tref)
@@ -326,6 +333,8 @@ def get_T_crit(switch):
             return phys.N2.CriticalPointT
         case 'O2':
             return phys.O2.CriticalPointT
+        case 'O3':
+            return phys.O3.CriticalPointT
         case 'H2':
             return phys.H2.CriticalPointT
         case 'He':
@@ -385,6 +394,13 @@ def L_heat(switch, T, water_lookup=False):
             T_triple        = phys.O2.TriplePointT
             T_crit          = phys.O2.CriticalPointT
         
+        case 'O3':
+            L_sublimation   = phys.O3.L_sublimation # No O3 sublimation
+            L_vaporization  = phys.O3.L_vaporization # No triple point L_vap
+            MolecularWeight = phys.O3.MolecularWeight
+            T_triple        = phys.O3.TriplePointT
+            T_crit          = phys.O3.CriticalPointT
+
         case 'H2':
             L_sublimation   = phys.H2.L_vaporization # No H2 sublimation
             L_vaporization  = phys.H2.L_vaporization
@@ -757,7 +773,8 @@ def general_adiabat( atm ):
         attrs = {}
         for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
                     "inst_sf", "skin_k", "skin_d", "tmp_magma", "albedo_s",
-                    "planet_mass", "planet_radius"]:
+                    "planet_mass", "planet_radius", "effective_radius", 
+                    "liquid_water_fraction", "cloud_fraction"]:
             attrs[a] = getattr(atm,a)
 
         # Calc new mixing ratios
@@ -766,7 +783,8 @@ def general_adiabat( atm ):
            new_vol_list[vol] = new_p_vol[vol] / new_psurf
 
         # New atmos object
-        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, band_edges,
+        atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, atm.effective_radius, 
+                    atm.liquid_water_fraction, atm.cloud_fraction, band_edges,
                     vol_mixing=new_vol_list, trppT=atm.trppT, minT=minT, maxT=maxT, req_levels=nlev_save)
 
         # Restore backed-up variables
@@ -1003,9 +1021,10 @@ if __name__ == "__main__":
     pN2                     = 3e+5                          # Pa
     pCH4                    = 0.                            # Pa
     pO2                     = 0.                            # Pa
+    pO3                     = 0.                            # Pa
     pHe                     = 0.                            # Pa
     pNH3                    = 0.                            # Pa
-    P_surf                  = pH2O + pCO2 + pH2 + pN2 + pCH4 + pO2 + pHe + pNH3  # Pa
+    P_surf                  = pH2O + pCO2 + pH2 + pN2 + pCH4 + pO2 + pO3 + pHe + pNH3  # Pa
 
     # Set fraction of condensate retained in column (0 = full rainout)
     alpha_cloud             = 0.0
@@ -1013,6 +1032,11 @@ if __name__ == "__main__":
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
     P_top         = 1.0                 # Pa
+
+    # Cloud parameters
+    re   = 1.0e-5 
+    lwm  = 0.8   
+    clfr = 0.0    
 
     # Volatile molar concentrations in the dictionary below are defined as fractions that must sum to one
     # The vanilla setting defines a water-saturated atmosphere with a 3 bar N2 background
@@ -1023,12 +1047,13 @@ if __name__ == "__main__":
                   "N2"  : pN2  / P_surf,
                   "CH4" : pCH4 / P_surf,
                   "O2"  : pO2  / P_surf,
+                  "O3"  : pO3  / P_surf,
                   "CO"  : pN2  / P_surf,
                   "He"  : pHe  / P_surf,
                   "NH3" : pNH3 / P_surf,
                 }
     # Create atmosphere object
-    atm                     = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, [], vol_mixing=vol_list)
+    atm                     = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, re, lwm, clfr, [], vol_mixing=vol_list)
 
     # Set fraction of condensate retained in column (0 = full rainout)
     atm.alpha_cloud         = alpha_cloud
