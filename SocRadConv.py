@@ -74,7 +74,7 @@ if __name__ == "__main__":
     P_surf = 0.0
     vol_mixing = {}
     vol_partial = {
-        "H2O" : 1.0e5,
+        "H2O" : 1000.0e5,
         # "NH3" : 0.,
         "CO2" : 0.0,#2.0e5,
         "CH4" :  3.0e5,
