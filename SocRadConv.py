@@ -57,7 +57,7 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 1400.0                # K
+    T_surf        = 2800.0                # K
     P_top         = 0.01                  # Pa
 
     # Define volatiles by mole fractions
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     P_surf = 0.0
     vol_mixing = {}
     vol_partial = {
-        "H2O" : 300.0e5,
+        "H2O" : 100.0e5,
         "CO2" : 0.0,
         "CH4" : 3.0e5,
         "CO" :  1.0e5,
@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 500.0     # Fixed tropopause value if not calculated dynamically
+    trppT = 10.0     # Fixed tropopause value if not calculated dynamically
 
     # Water lookup tables enabled (e.g. for L vs T dependence)
     water_lookup = False
@@ -126,9 +126,7 @@ if __name__ == "__main__":
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        # dirs["janus"]+"/spectral_files/shared/old/Dayspring256_old/Dayspring.sf",
-        #dirs["janus"]+"/spectral_files/Mallard/Mallard.sf",
-        dirs["janus"]+"/spectral_files/Reach/Reach_cloud/Reach",
+        dirs["janus"]+"/spectral_files/Reach/Reach.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
