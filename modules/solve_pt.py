@@ -145,6 +145,11 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     pl_r = atm_inp.planet_radius; pl_m = atm_inp.planet_mass
     vol_list = atm_inp.vol_list
     nlev_save = atm_inp.nlev_save
+    re=atm_inp.effective_radius
+    lwf=atm_inp.liquid_water_fraction
+    clfr=atm_inp.cloud_fraction
+    do_cloud=atm_inp.do_cloud
+
     #    Passed later ...
     attrs = {}
     for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
@@ -162,7 +167,8 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
                    pl_r, pl_m, band_edges,
                    vol_mixing=vol_list, trppT=trppT, 
                    minT=minT, maxT=maxT, 
-                   req_levels=nlev_save)
+                   req_levels=nlev_save,
+                   re=re, lwf=lwf, clfr=clfr, do_cloud=do_cloud)
         for a in attrs.keys():
             setattr(_atm,a,attrs[a])
         return _atm
