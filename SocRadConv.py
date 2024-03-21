@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     # Cloud radiation
     do_cloud = True
-    # Options activated by do_cloud
+    alpha = 0.0
     re   = 1.0e-5 # Effective radius of the droplets [m] (drizzle forms above 20 microns)
     lwm  = 0.8    # Liquid water mass fraction [kg/kg] - how much liquid vs. gas is there upon cloud formation? 0 : saturated water vapor does not turn liquid ; 1 : the entire mass of the cell contributes to the cloud
     clfr = 0.8    # Water cloud fraction - how much of the current cell turns into cloud? 0 : clear sky cell ; 1 : the cloud takes over the entire area of the cell (just leave at 1 for 1D runs)
@@ -126,6 +126,7 @@ if __name__ == "__main__":
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
+        # dirs["janus"]+"/spectral_files/Dayspring/256/Dayspring.sf",
         dirs["janus"]+"/spectral_files/Reach/Reach.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
@@ -134,7 +135,7 @@ if __name__ == "__main__":
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
 
     # Create atmosphere object
-    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges,
+    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges, alpha_cloud=alpha,
                 vol_mixing=vol_mixing, vol_partial=vol_partial, trppT=trppT, req_levels=100, water_lookup=water_lookup, do_cloud=do_cloud, re=re, lwm=lwm, clfr=clfr)
 
     # Set stellar heating on or off

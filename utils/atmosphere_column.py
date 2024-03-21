@@ -13,7 +13,7 @@ class atmos:
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  band_edges:list,
                  vol_mixing: dict = {}, vol_partial: dict = {},
-                 req_levels: int = 100, water_lookup: bool=False,
+                 req_levels: int = 100, water_lookup: bool=False, alpha_cloud:float=0.0,
                  trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0, do_cloud: bool=False, re: float=0., lwm: float=0., clfr: float=0.):
         
         """Atmosphere class    
@@ -46,6 +46,8 @@ class atmos:
 
             req_levels : int
                 Requested number of vertical levels
+            alpha_cloud : float 
+                Condensate retention fraction (1 -> Li et al 2018; 0 -> full rainout)
             water_lookup : bool
                 Use lookup table for water thermodynamic values (e.g. L, c_p)
             trppT : float
@@ -103,7 +105,7 @@ class atmos:
 
 
         # Initialise other variables
-        self.alpha_cloud 	= 0.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
+        self.alpha_cloud 	= alpha_cloud 	    	# The fraction of condensate retained in the column
         
         self.ts 			= T_surf		# Surface temperature, K
 
@@ -240,6 +242,12 @@ class atmos:
             self.effective_radius       = 0.0
             self.liquid_water_fraction  = 0.0
             self.cloud_fraction         = 0.0
+
+        if self.alpha_cloud < 1.0e-20:
+            self.effective_radius       = 0.0
+            self.liquid_water_fraction  = 0.0
+            self.cloud_fraction         = 0.0
+
 
     def write_PT(self,filename: str="output/PT.tsv", punit:str = "Pa"):
         """Write PT profile to file, with descending pressure.

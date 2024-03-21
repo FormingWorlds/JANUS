@@ -17,6 +17,7 @@ from modules.dry_adiabat_timestep import compute_dry_adiabat
 from utils.atmosphere_column import atmos
 from modules.find_tropopause import find_tropopause
 from modules.set_stratosphere import set_stratosphere
+from modules.water_cloud import simple_cloud
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import utils.socrates as socrates
 
@@ -149,10 +150,11 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     lwm=atm_inp.liquid_water_fraction
     clfr=atm_inp.cloud_fraction
     do_cloud=atm_inp.do_cloud
+    alpha_cloud=atm_inp.alpha_cloud
 
     #    Passed later ...
     attrs = {}
-    for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
+    for a in ["instellation", "zenith_angle", "albedo_pl", 
                 "inst_sf", "skin_k", "skin_d", "tmp_magma", "albedo_s",
                 "planet_mass", "planet_radius"]:
         attrs[a] = getattr(atm_inp,a)
@@ -167,7 +169,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
                    pl_r, pl_m, band_edges,
                    vol_mixing=vol_list, trppT=trppT, 
                    minT=minT, maxT=maxT, 
-                   req_levels=nlev_save,
+                   req_levels=nlev_save, alpha_cloud=alpha_cloud,
                    re=re, lwm=lwm, clfr=clfr, do_cloud=do_cloud)
         for a in attrs.keys():
             setattr(_atm,a,attrs[a])
@@ -178,6 +180,9 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
 
         print("Evaluating at T_surf = %.1f K" % x)
         atm_tmp = ga.general_adiabat(ini_atm(x))
+
+        if atm_tmp.do_cloud:
+            atm_tmp = simple_cloud(atm_tmp)
 
         # Calculate tropopause
         if (trppD == True) or (atm_tmp.trppT > atm_tmp.minT):
@@ -190,6 +195,9 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
 
             # Reset stratosphere temperature and abundance levels
             atm_tmp = set_stratosphere(atm_tmp)
+
+        if atm_tmp.do_cloud:
+            atm_tmp = simple_cloud(atm_tmp)
 
         # Calculate final fluxes from T(p)
         atm_tmp = socrates.radCompSoc(atm_tmp, dirs, recalc=True, rscatter=rscatter)

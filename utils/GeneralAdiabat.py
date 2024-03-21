@@ -773,9 +773,10 @@ def general_adiabat( atm ):
         lwm=atm.liquid_water_fraction
         clfr=atm.cloud_fraction
         do_cloud=atm.do_cloud
+        alpha_cloud=atm.alpha_cloud
 
         attrs = {}
-        for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
+        for a in ["instellation", "zenith_angle", "albedo_pl", 
                     "inst_sf", "skin_k", "skin_d", "tmp_magma", "albedo_s",
                     "planet_mass", "planet_radius"]:
             attrs[a] = getattr(atm,a)
@@ -788,7 +789,7 @@ def general_adiabat( atm ):
         # New atmos object
         atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, band_edges,
                     vol_mixing=new_vol_list, trppT=atm.trppT, minT=minT, maxT=maxT, req_levels=nlev_save,
-                    re=re, lwm=lwm, clfr=clfr, do_cloud=do_cloud
+                    re=re, lwm=lwm, clfr=clfr, do_cloud=do_cloud, alpha_cloud=alpha_cloud
                     )
 
         # Restore backed-up variables
