@@ -770,7 +770,7 @@ def general_adiabat( atm ):
         maxT = atm.maxT
         nlev_save = atm.nlev_save
         re=atm.effective_radius
-        lwf=atm.liquid_water_fraction
+        lwm=atm.liquid_water_fraction
         clfr=atm.cloud_fraction
         do_cloud=atm.do_cloud
 
@@ -788,7 +788,7 @@ def general_adiabat( atm ):
         # New atmos object
         atm = atmos(Tsurf, new_psurf, atm.ptop, atm.planet_radius, atm.planet_mass, band_edges,
                     vol_mixing=new_vol_list, trppT=atm.trppT, minT=minT, maxT=maxT, req_levels=nlev_save,
-                    re=re, lwf=lwf, clfr=clfr, do_cloud=do_cloud
+                    re=re, lwm=lwm, clfr=clfr, do_cloud=do_cloud
                     )
 
         # Restore backed-up variables

@@ -57,8 +57,8 @@ if __name__ == "__main__":
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 2800.0                # K
-    P_top         = 1.0                  # Pa
+    T_surf        = 1400.0                # K
+    P_top         = 0.01                  # Pa
 
     # Define volatiles by mole fractions
     # P_surf       =  300.0 * 1e5
@@ -74,14 +74,12 @@ if __name__ == "__main__":
     P_surf = 0.0
     vol_mixing = {}
     vol_partial = {
-        "H2O" : 1000.0e5,
-        # "NH3" : 0.,
-        "CO2" : 0.0,#2.0e5,
-        "CH4" :  3.0e5,
-        "CO" : 1.85989e5,
-        # "O2" : 0.20e5,
-        "N2" : 4.0e5,
-        "H2" : 1.0e5,
+        "H2O" : 300.0e5,
+        "CO2" : 0.0,
+        "CH4" : 3.0e5,
+        "CO" :  1.0e5,
+        "N2" :  4.0e5,
+        "H2" :  1.0e5,
         }
 
     # Stellar heating on/off
@@ -95,7 +93,7 @@ if __name__ == "__main__":
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 10.0     # Fixed tropopause value if not calculated dynamically
+    trppT = 500.0     # Fixed tropopause value if not calculated dynamically
 
     # Water lookup tables enabled (e.g. for L vs T dependence)
     water_lookup = False

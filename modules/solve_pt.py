@@ -20,7 +20,7 @@ from modules.set_stratosphere import set_stratosphere
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import utils.socrates as socrates
 
-def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool, do_cloud:bool, 
+def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool, do_cloud:bool=False, 
                pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
     """Sets the atmosphere to a temperature profile using the general adiabat. 
     
@@ -146,7 +146,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     vol_list = atm_inp.vol_list
     nlev_save = atm_inp.nlev_save
     re=atm_inp.effective_radius
-    lwf=atm_inp.liquid_water_fraction
+    lwm=atm_inp.liquid_water_fraction
     clfr=atm_inp.cloud_fraction
     do_cloud=atm_inp.do_cloud
 
@@ -168,7 +168,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
                    vol_mixing=vol_list, trppT=trppT, 
                    minT=minT, maxT=maxT, 
                    req_levels=nlev_save,
-                   re=re, lwf=lwf, clfr=clfr, do_cloud=do_cloud)
+                   re=re, lwm=lwm, clfr=clfr, do_cloud=do_cloud)
         for a in attrs.keys():
             setattr(_atm,a,attrs[a])
         return _atm

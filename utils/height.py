@@ -30,14 +30,15 @@ def AtmosphericHeight(atm, m_planet, r_planet):
         # Use hydrostatic equation to get height difference
         dz = phys.R_gas * atm.tmp[n] / (mean_molar_mass * grav_z * atm.p[n]) * (atm.p[n] - atm.p[n+1]) 
         
-        # Check if anything weird happened 
-        if dz > 1.0e7:
+        # Next height
+        z_profile[n+1] = z_profile[n] + dz
+
+        # Check if heights are very large.
+        # This implies that the hydrostatic/gravity integration failed.
+        if z_profile[n+1] > 1.0e8:
             atm.height_error = True 
             print("WARNING: Hydrostatic integration blew up. Setting dummy values for height")
             break
-        
-        # Next height
-        z_profile[n+1] = z_profile[n] + dz
 
     # Set dummy values 
     if atm.height_error:

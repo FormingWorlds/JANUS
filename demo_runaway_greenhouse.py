@@ -53,7 +53,7 @@ def run_once(T_surf, dirs, band_edges):
     atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
 
     # Do rad trans
-    _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, calc_cf=False, rscatter=rscatter) 
+    _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, rscatter=rscatter) 
 
     return [T_surf, atm_moist.LW_flux_up[0]]
 
