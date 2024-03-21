@@ -106,7 +106,7 @@ def MCPA(dirs, atm, standalone:bool, trppD:bool, rscatter:bool):
     """
 
     ### Moist/general adiabat
-    return compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
+    return compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter, do_cloud=atm.do_cloud)
 
 def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess:float=-1, T_surf_max:float=-1, method:int=0, atol:float=1.0e-3):
     """Calculates the temperature profile using the multiple-condensible pseudoadiabat and steps T_surf to conserve energy.
@@ -179,28 +179,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     def func(x):
 
         print("Evaluating at T_surf = %.1f K" % x)
-        atm_tmp = ga.general_adiabat(ini_atm(x))
-
-        if atm_tmp.do_cloud:
-            atm_tmp = simple_cloud(atm_tmp)
-
-        # Calculate tropopause
-        if (trppD == True) or (atm_tmp.trppT > atm_tmp.minT):
-
-            if trppD:
-                atm_tmp = socrates.radCompSoc(atm_tmp, dirs, recalc=False, rscatter=rscatter)
-        
-            # Find tropopause index
-            atm_tmp = find_tropopause(atm_tmp,trppD, verbose=False)
-
-            # Reset stratosphere temperature and abundance levels
-            atm_tmp = set_stratosphere(atm_tmp)
-
-        if atm_tmp.do_cloud:
-            atm_tmp = simple_cloud(atm_tmp)
-
-        # Calculate final fluxes from T(p)
-        atm_tmp = socrates.radCompSoc(atm_tmp, dirs, recalc=True, rscatter=rscatter)
+        atm_tmp = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, rscatter, do_cloud=do_cloud)
 
         if atm_bc == 0:
             F_atm = atm_tmp.net_flux[0]  
@@ -255,7 +234,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
         print("    Using T_surf = %g K" % T_surf)
 
     # Get atmosphere state from solution value
-    atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, False, rscatter)
+    atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, rscatter, do_cloud=do_cloud)
     atm.ts = T_surf
 
     if atm_bc == 0:
