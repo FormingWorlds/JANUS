@@ -17,10 +17,11 @@ from modules.dry_adiabat_timestep import compute_dry_adiabat
 from utils.atmosphere_column import atmos
 from modules.find_tropopause import find_tropopause
 from modules.set_stratosphere import set_stratosphere
+from modules.water_cloud import simple_cloud
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import utils.socrates as socrates
 
-def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool, do_cloud:bool, 
+def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool, do_cloud:bool=False, 
                pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
     """Sets the atmosphere to a temperature profile using the general adiabat. 
     
@@ -105,7 +106,7 @@ def MCPA(dirs, atm, standalone:bool, trppD:bool, rscatter:bool):
     """
 
     ### Moist/general adiabat
-    return compute_moist_adiabat(atm, dirs, standalone, trppD, False, rscatter)
+    return compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter, do_cloud=atm.do_cloud)
 
 def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess:float=-1, T_surf_max:float=-1, method:int=0, atol:float=1.0e-3):
     """Calculates the temperature profile using the multiple-condensible pseudoadiabat and steps T_surf to conserve energy.
@@ -145,9 +146,15 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     pl_r = atm_inp.planet_radius; pl_m = atm_inp.planet_mass
     vol_list = atm_inp.vol_list
     nlev_save = atm_inp.nlev_save
+    re=atm_inp.effective_radius
+    lwm=atm_inp.liquid_water_fraction
+    clfr=atm_inp.cloud_fraction
+    do_cloud=atm_inp.do_cloud
+    alpha_cloud=atm_inp.alpha_cloud
+
     #    Passed later ...
     attrs = {}
-    for a in ["alpha_cloud", "instellation", "zenith_angle", "albedo_pl", 
+    for a in ["instellation", "zenith_angle", "albedo_pl", 
                 "inst_sf", "skin_k", "skin_d", "tmp_magma", "albedo_s",
                 "planet_mass", "planet_radius"]:
         attrs[a] = getattr(atm_inp,a)
@@ -162,7 +169,8 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
                    pl_r, pl_m, band_edges,
                    vol_mixing=vol_list, trppT=trppT, 
                    minT=minT, maxT=maxT, 
-                   req_levels=nlev_save)
+                   req_levels=nlev_save, alpha_cloud=alpha_cloud,
+                   re=re, lwm=lwm, clfr=clfr, do_cloud=do_cloud)
         for a in attrs.keys():
             setattr(_atm,a,attrs[a])
         return _atm
@@ -171,22 +179,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     def func(x):
 
         print("Evaluating at T_surf = %.1f K" % x)
-        atm_tmp = ga.general_adiabat(ini_atm(x))
-
-        # Calculate tropopause
-        if (trppD == True) or (atm_tmp.trppT > atm_tmp.minT):
-
-            if trppD:
-                atm_tmp = socrates.radCompSoc(atm_tmp, dirs, recalc=False, rscatter=rscatter)
-        
-            # Find tropopause index
-            atm_tmp = find_tropopause(atm_tmp,trppD, verbose=False)
-
-            # Reset stratosphere temperature and abundance levels
-            atm_tmp = set_stratosphere(atm_tmp)
-
-        # Calculate final fluxes from T(p)
-        atm_tmp = socrates.radCompSoc(atm_tmp, dirs, recalc=True, rscatter=rscatter)
+        atm_tmp = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, rscatter, do_cloud=do_cloud)
 
         if atm_bc == 0:
             F_atm = atm_tmp.net_flux[0]  
@@ -241,7 +234,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
         print("    Using T_surf = %g K" % T_surf)
 
     # Get atmosphere state from solution value
-    atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, False, rscatter)
+    atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, rscatter, do_cloud=do_cloud)
     atm.ts = T_surf
 
     if atm_bc == 0:

@@ -126,7 +126,7 @@ if __name__=='__main__':
     skin_d  = 1e-2  # conductive skin thickness [m]
     r_inner = 0.3     # inner orbital distane [AU]
     r_outer = 1.4     # outer orbital distance [AU]
-    samples = 5       # number of samples
+    samples = 7       # number of samples
     logx    = False   # log x-axis?
     legend  = True    # make legend?
     dx_tick = 0.1     # x-tick spacing (set to 0 for automatic)

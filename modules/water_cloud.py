@@ -25,14 +25,14 @@ def simple_cloud(atm):
     nlev = len(atm.p)
     Tmid = atm.tmp.copy()
 
-    if np.sum(atm.x_cond['H2O']) == 0.0: # If x_cond = 0, no condensation scheme to provide lwm
+    if (np.sum(atm.x_cond['H2O']) < 1.0e-30): # If x_cond = 0, no condensation scheme to provide lwm
 
         for i in range(nlev-1): 
             pp_h2o = atm.p_vol["H2O"][i]
             if (pp_h2o < 1e-10):
                 continue
             
-            if (Tmid[i] <= ga.Tdew('H2O',pp_h2o)):
+            if (Tmid[i] <= ga.Tdew('H2O',pp_h2o)+1.0e-30):
                 atm.re[i]   = atm.effective_radius
                 atm.lwm[i]  = atm.liquid_water_fraction
                 atm.clfr[i] = atm.cloud_fraction
@@ -42,7 +42,7 @@ def simple_cloud(atm):
                 atm.clfr[i] = 0.0
 
     else: # a condensation scheme is providing x_cond
-            
+
         for i in range(nlev-1): 
             pp_h2o = atm.p_vol["H2O"][i]
             if (pp_h2o < 1e-10):
