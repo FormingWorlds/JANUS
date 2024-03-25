@@ -13,7 +13,7 @@ class atmos:
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
                  band_edges:list,
                  vol_mixing: dict = {}, vol_partial: dict = {},
-                 req_levels: int = 100, water_lookup: bool=False,
+                 req_levels: int = 100, water_lookup: bool=False, alpha_cloud:float=0.0,
                  trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0, do_cloud: bool=False, re: float=0., lwm: float=0., clfr: float=0.):
         
         """Atmosphere class    
@@ -36,19 +36,18 @@ class atmos:
                 Radius of rocky part of planet [m]
             pl_mass : float
                 Mass of rocky part of planet [kg]
-            re : float
-                Effective radius of cloud droplets [m]
-            lwm : float
-                Liquid water mass fraction [kg/kg]
-            clfr : float
-                Water cloud fraction [adimensional]
+            band_edges : list
+                List of band edges in nm, ascending
 
             vol_mixing : dict
                 Dictionary of volatiles (keys) and mixing ratios (values)
             vol_partial: dict
                 Dictionary of volatiles (keys) and partial pressures (values)
+
             req_levels : int
                 Requested number of vertical levels
+            alpha_cloud : float 
+                Condensate retention fraction (1 -> Li et al 2018; 0 -> full rainout)
             water_lookup : bool
                 Use lookup table for water thermodynamic values (e.g. L, c_p)
             trppT : float
@@ -57,6 +56,12 @@ class atmos:
                 Temperature floor
             maxT : float
                 Temperature ceiling
+            re : float
+                Effective radius of cloud droplets [m]
+            lwm : float
+                Liquid water mass fraction [kg/kg]
+            clfr : float
+                Water cloud fraction [adimensional]
                 
         """
 
@@ -100,7 +105,7 @@ class atmos:
 
 
         # Initialise other variables
-        self.alpha_cloud 	= 0.0 	    	# The fraction of condensate retained in the column; 1 -> Li et al 2018; 0 -> full rainout
+        self.alpha_cloud 	= alpha_cloud 	    	# The fraction of condensate retained in the column
         
         self.ts 			= T_surf		# Surface temperature, K
 
@@ -158,6 +163,7 @@ class atmos:
         self.rho            = np.zeros(self.nlev) # Density of atmosphere at a given level
         self.ifatm 			= np.zeros(self.nlev) # Defines nth level to which atmosphere is calculated
         self.cp      		= np.zeros(self.nlev) # Mean heat capacity
+        self.height_error   = True # error when doing hydrostatic integration?
 
         # Define T and P arrays from surface up
         self.tmp[0]         = self.ts         		# K
@@ -182,6 +188,7 @@ class atmos:
 
 
         # Spectral file
+        self.has_contfunc = False
         self.band_edges = np.array(band_edges)  # units of [nm]
         self.bands_set = bool(len(band_edges) > 1)
         if self.bands_set:
@@ -190,50 +197,57 @@ class atmos:
             self.band_widths 	= np.abs(np.diff(self.band_edges))
 
             # Radiation heating and fluxes
-            self.LW_flux_up 			= np.zeros(self.nlev)				# W/m^2
-            self.LW_flux_down 			= np.zeros(self.nlev)				# W/m^2
-            self.LW_flux_net			= np.zeros(self.nlev)				# W/m^2
-            self.LW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
-            self.LW_heating				= np.zeros(self.nlev)				# K/day
-            self.SW_flux_up 			= np.zeros(self.nlev)				# W/m^2
-            self.SW_flux_down 			= np.zeros(self.nlev)				# W/m^2
-            self.SW_flux_net			= np.zeros(self.nlev)				# W/m^2
-            self.SW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
-            self.SW_heating				= np.zeros(self.nlev)				# K/day
-            self.flux_up_total			= np.zeros(self.nlev)				# W/m^2
-            self.flux_down_total		= np.zeros(self.nlev)				# W/m^2
-            self.net_flux				= np.zeros(self.nlev)				# W/m^2
-            self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev])	# W/m^2/(band)
-            self.net_heating 			= np.zeros(self.nlev) 				# K/day from socrates
-            self.heat                   = np.zeros(self.nlev)               # K/day from *
-            self.cff					= np.zeros([self.nbands,self.nlev]) # W/m^2/(band). Compute by recompiling SOCRATES after setting the flags on lines 346 and 347 of src/aux/l_run_cdf.F90 to TRUE.
-            self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev]) # W/m^2/(band)
+            self.LW_flux_up 			= np.zeros(self.nlev_save)				# W/m^2
+            self.LW_flux_down 			= np.zeros(self.nlev_save)				# W/m^2
+            self.LW_flux_net			= np.zeros(self.nlev_save)				# W/m^2
+            self.LW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev_save])	# W/m^2/(band)
+            self.LW_heating				= np.zeros(self.nlev_save)				# K/day
+            self.SW_flux_up 			= np.zeros(self.nlev_save)				# W/m^2
+            self.SW_flux_down 			= np.zeros(self.nlev_save)				# W/m^2
+            self.SW_flux_net			= np.zeros(self.nlev_save)				# W/m^2
+            self.SW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev_save])	# W/m^2/(band)
+            self.SW_heating				= np.zeros(self.nlev_save)				# K/day
+            self.flux_up_total			= np.zeros(self.nlev_save)				# W/m^2
+            self.flux_down_total		= np.zeros(self.nlev_save)				# W/m^2
+            self.net_flux				= np.zeros(self.nlev_save)				# W/m^2
+            self.net_spectral_flux	 	= np.zeros([self.nbands,self.nlev_save])	# W/m^2/(band)
+            self.net_heating 			= np.zeros(self.nlev_save) 				# K/day from socrates
+            self.heat                   = np.zeros(self.nlev_save)               # K/day from *
+            self.cff					= np.zeros([self.nbands,self.nlev_save]) # W/m^2/(band). Compute by recompiling SOCRATES after setting the flags on lines 346 and 347 of src/aux/l_run_cdf.F90 to TRUE.
+            self.LW_flux_up_i 			= np.zeros([self.nbands,self.nlev_save]) # W/m^2/(band)
 
-            # Cloud flags (socrates/bin/rad_pcf.f90) and input arrays
-            if do_cloud == True:            
-                self.cloud_scheme 			= 2	# -C 2 = ip_cloud_mix_max : maximum/random overlap in a mixed column 
-                self.cloud_representation   = 1 # -K 1 = ip_cloud_homogen : ice and water mixed homogeneously 
-                self.droplet_type           = 5 # -d 5 
-                self.solver                 = 16 # -v 16 = i_solver : solver used for the two-stream calculations, chosen from those defined in solver_pcf.f90.
-                # The below three variables should be zero until a cloud scheme forms clouds
-                self.re                     = np.zeros(self.nlev_save) # Effective radius of the droplets [m]
-                self.lwm                    = np.zeros(self.nlev_save) # Liquid water mass fraction [kg/kg]
-                self.clfr                   = np.zeros(self.nlev_save) # Water cloud fraction
-                # Floats defined in SocRadConv and used in the cloud scheme
-                self.effective_radius       = re
-                self.liquid_water_fraction  = lwm
-                self.cloud_fraction         = clfr
-            else:
-                self.cloud_scheme 			= 5 # -C 5 = ip_cloud_off : clear sky. Other flags will be ignored. In principle we shouldn't need to define the variables below in this case.
-                self.cloud_representation   = 1 
-                self.droplet_type           = 5  
-                self.solver                 = 13
-                self.re                     = np.zeros(self.nlev_save)
-                self.lwm                    = np.zeros(self.nlev_save)
-                self.clfr                   = np.zeros(self.nlev_save) 
-                self.effective_radius       = 0.0
-                self.liquid_water_fraction  = 0.0
-                self.cloud_fraction         = 0.0
+        # Cloud flags (socrates/bin/rad_pcf.f90) and input arrays
+        self.do_cloud = do_cloud
+        if self.do_cloud :            
+            self.cloud_scheme 			= 2	# -C 2 = ip_cloud_mix_max : maximum/random overlap in a mixed column 
+            self.cloud_representation   = 1 # -K 1 = ip_cloud_homogen : ice and water mixed homogeneously 
+            self.droplet_type           = 5 # -d 5 
+            self.solver                 = 16 # -v 16 = i_solver : solver used for the two-stream calculations, chosen from those defined in solver_pcf.f90.
+            # The below three variables should be zero until a cloud scheme forms clouds
+            self.re                     = np.zeros(self.nlev_save) # Effective radius of the droplets [m]
+            self.lwm                    = np.zeros(self.nlev_save) # Liquid water mass fraction [kg/kg]
+            self.clfr                   = np.zeros(self.nlev_save) # Water cloud fraction
+            # Floats defined in SocRadConv and used in the cloud scheme
+            self.effective_radius       = re
+            self.liquid_water_fraction  = lwm
+            self.cloud_fraction         = clfr
+        else:
+            self.cloud_scheme 			= 5 # -C 5 = ip_cloud_off : clear sky. Other flags will be ignored. In principle we shouldn't need to define the variables below in this case.
+            self.cloud_representation   = 1 
+            self.droplet_type           = 5  
+            self.solver                 = 13
+            self.re                     = np.zeros(self.nlev_save)
+            self.lwm                    = np.zeros(self.nlev_save)
+            self.clfr                   = np.zeros(self.nlev_save) 
+            self.effective_radius       = 0.0
+            self.liquid_water_fraction  = 0.0
+            self.cloud_fraction         = 0.0
+
+        if self.alpha_cloud < 1.0e-20:
+            self.effective_radius       = 0.0
+            self.liquid_water_fraction  = 0.0
+            self.cloud_fraction         = 0.0
+
 
     def write_PT(self,filename: str="output/PT.tsv", punit:str = "Pa"):
         """Write PT profile to file, with descending pressure.
@@ -387,19 +401,21 @@ class atmos:
         var_cmr   = ds.createVariable('x_cond',  'f4', dimensions=('nlev_c', 'ngases'))  # Condensate mixing ratios per level
         var_pvol  = ds.createVariable('p_vol',   'f4', dimensions=('nlev_c', 'ngases')); var_pvol.units = "Pa"  # Gas phase partial pressures
         var_plvol = ds.createVariable('pl_vol',  'f4', dimensions=('nlev_l', 'ngases')); var_pvol.units = "Pa"
-        var_fdl   = ds.createVariable('fl_D_LW', 'f4', dimensions=('nlev_l'));           var_fdl.units = "W m-2"
-        var_ful   = ds.createVariable('fl_U_LW', 'f4', dimensions=('nlev_l'));           var_ful.units = "W m-2"
-        var_fnl   = ds.createVariable('fl_N_LW', 'f4', dimensions=('nlev_l'));           var_fnl.units = "W m-2"
-        var_fds   = ds.createVariable('fl_D_SW', 'f4', dimensions=('nlev_l'));           var_fds.units = "W m-2"
-        var_fus   = ds.createVariable('fl_U_SW', 'f4', dimensions=('nlev_l'));           var_fus.units = "W m-2"
-        var_fns   = ds.createVariable('fl_N_SW', 'f4', dimensions=('nlev_l'));           var_fns.units = "W m-2"
-        var_fd    = ds.createVariable('fl_D',    'f4', dimensions=('nlev_l'));           var_fd.units = "W m-2"
-        var_fu    = ds.createVariable('fl_U',    'f4', dimensions=('nlev_l'));           var_fu.units = "W m-2"
-        var_fn    = ds.createVariable('fl_N',    'f4', dimensions=('nlev_l'));           var_fn.units = "W m-2"
-        var_hr    = ds.createVariable('rad_hr',  'f4', dimensions=('nlev_c'));           var_hr.units = "K day-1"
-        var_sful  = ds.createVariable('Sfl_U_LW','f4', dimensions=('nbands', 'nlev_l')); var_sful.units = "W m-2 m-1"
-        var_sfus  = ds.createVariable('Sfl_U_SW','f4', dimensions=('nbands', 'nlev_l')); var_sfus.units = "W m-2 m-1"
-        var_cff   = ds.createVariable('cff',     'f4', dimensions=('nbands', 'nlev_c')); var_cff.units = "W m-2 m-1"
+        if self.bands_set:
+            var_fdl   = ds.createVariable('fl_D_LW', 'f4', dimensions=('nlev_l'));           var_fdl.units = "W m-2"
+            var_ful   = ds.createVariable('fl_U_LW', 'f4', dimensions=('nlev_l'));           var_ful.units = "W m-2"
+            var_fnl   = ds.createVariable('fl_N_LW', 'f4', dimensions=('nlev_l'));           var_fnl.units = "W m-2"
+            var_fds   = ds.createVariable('fl_D_SW', 'f4', dimensions=('nlev_l'));           var_fds.units = "W m-2"
+            var_fus   = ds.createVariable('fl_U_SW', 'f4', dimensions=('nlev_l'));           var_fus.units = "W m-2"
+            var_fns   = ds.createVariable('fl_N_SW', 'f4', dimensions=('nlev_l'));           var_fns.units = "W m-2"
+            var_fd    = ds.createVariable('fl_D',    'f4', dimensions=('nlev_l'));           var_fd.units = "W m-2"
+            var_fu    = ds.createVariable('fl_U',    'f4', dimensions=('nlev_l'));           var_fu.units = "W m-2"
+            var_fn    = ds.createVariable('fl_N',    'f4', dimensions=('nlev_l'));           var_fn.units = "W m-2"
+            var_hr    = ds.createVariable('rad_hr',  'f4', dimensions=('nlev_c'));           var_hr.units = "K day-1"
+            var_sful  = ds.createVariable('Sfl_U_LW','f4', dimensions=('nbands', 'nlev_l')); var_sful.units = "W m-2 m-1"
+            var_sfus  = ds.createVariable('Sfl_U_SW','f4', dimensions=('nbands', 'nlev_l')); var_sfus.units = "W m-2 m-1"
+        if self.has_contfunc:
+            var_cff   = ds.createVariable('cff',     'f4', dimensions=('nbands', 'nlev_c')); var_cff.units = "W m-2 m-1"
 
         var_re    = ds.createVariable('re',      'f4', dimensions=('nlev_c'));           var_re.units = "m"
         var_lwm   = ds.createVariable('lwm',     'f4', dimensions=('nlev_c'));           var_lwm.units = "kg kg-1"
@@ -424,23 +440,25 @@ class atmos:
         var_pvol[:]  = np.array([ [ self.p_vol[gas][i] for i in range(nlev_c-1,-1,-1) ] for gas in gas_list  ]).T
         var_plvol[:] = np.array([ [ self.pl_vol[gas][i] for i in range(nlev_l-1,-1,-1) ] for gas in gas_list  ]).T
 
-        var_fdl[:] = self.LW_flux_down[:]
-        var_ful[:] = self.LW_flux_up[:]
-        var_fnl[:] = self.LW_flux_net[:]
+        if  self.bands_set:
+            var_fdl[:] = self.LW_flux_down[:]
+            var_ful[:] = self.LW_flux_up[:]
+            var_fnl[:] = self.LW_flux_net[:]
 
-        var_fds[:] = self.SW_flux_down[:]
-        var_fus[:] = self.SW_flux_up[:]
-        var_fns[:] = self.SW_flux_net[:]
+            var_fds[:] = self.SW_flux_down[:]
+            var_fus[:] = self.SW_flux_up[:]
+            var_fns[:] = self.SW_flux_net[:]
 
-        var_fd[:] = self.flux_down_total[:]
-        var_fu[:] = self.flux_up_total[:]
-        var_fn[:] = self.net_flux[:]
+            var_fd[:] = self.flux_down_total[:]
+            var_fu[:] = self.flux_up_total[:]
+            var_fn[:] = self.net_flux[:]
 
-        var_hr[:] = self.net_heating[:]
+            var_hr[:] = self.net_heating[:]
 
-        var_sful[:,:]  = self.LW_spectral_flux_up[:,:]
-        var_sfus[:,:]  = self.SW_spectral_flux_up[:,:]
-        var_cff[:,:]   = self.cff[:,:]
+            var_sful[:,:]  = self.LW_spectral_flux_up[:,:]
+            var_sfus[:,:]  = self.SW_spectral_flux_up[:,:]
+        if self.has_contfunc:
+            var_cff[:,:]   = self.cff[:,:]
 
         var_re[:]   = self.re[:]
         var_lwm[:]  = self.lwm[:]

@@ -233,7 +233,10 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     ncfile7  = net.Dataset('currentlw.dflx')  # diffuse
     ncfile9  = net.Dataset('currentlw.uflx')  # upward
     ncfile10 = net.Dataset('currentlw.hrts')  # heating rate
-    ncfile11 = net.Dataset('currentlw.cff')   # contribution function
+
+    atm.has_contfunc = os.path.exists('currentlw.cff')
+    if atm.has_contfunc:
+        ncfile11 = net.Dataset('currentlw.cff')   # contribution function
 
     # Loop through netCDF variables and populate arrays
     vflxsw   = ncfile1.variables['vflx']  # SW downward flux (direct + diffuse)
@@ -242,7 +245,8 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     dflxlw   = ncfile7.variables['dflx']  # LW downward flux (diffuse)
     uflxlw   = ncfile9.variables['uflx']  # LW upward flux 
     hrtslw   = ncfile10.variables['hrts'] # LW heating rate (K/day)
-    cff      = ncfile11.variables['cff']  # Contribution function (channel, plev, lat, lon)
+    if atm.has_contfunc:
+        cff  = ncfile11.variables['cff']  # Contribution function (channel, plev, lat, lon)
 
     ##### Fluxes
 
@@ -273,7 +277,8 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     atm.net_spectral_flux   = uflxlw[:,:,0,0] + uflxsw[:,:,0,0] - dflxlw[:,:,0,0] - vflxsw[:,:,0,0]
     
     # Contribution function
-    atm.cff   = cff[:,:,0,0]
+    if atm.has_contfunc:
+        atm.cff   = cff[:,:,0,0]
     # Spectral Upward LW flux
     atm.LW_flux_up_i = uflxlw[:,:,0,0]
 
@@ -299,7 +304,8 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     ncfile7.close()
     ncfile9.close()
     ncfile10.close()
-    ncfile11.close()
+    if atm.has_contfunc:
+        ncfile11.close()
 
     return atm
 
