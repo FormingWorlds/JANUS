@@ -9,17 +9,10 @@ Ryan Boukrouche (RB)
 Harrison Nicholls (HN)
 """
 
-import pickle as pkl
 import scipy.optimize as optimise
-
 from modules.compute_moist_adiabat import compute_moist_adiabat
 from modules.dry_adiabat_timestep import compute_dry_adiabat
 from utils.atmosphere_column import atmos
-from modules.find_tropopause import find_tropopause
-from modules.set_stratosphere import set_stratosphere
-from modules.water_cloud import simple_cloud
-import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import utils.socrates as socrates
 
 def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool, do_cloud:bool=False, 
                pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
@@ -76,11 +69,11 @@ def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatt
         atm_dry = {}
     
     # Plot
-    if standalone == True:
-        #plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs)
-        # Save to disk
-        with open(dirs["output"]+"/"+str(int(time["planet"]))+"_atm.pkl", "wb") as atm_file: 
-            pkl.dump(atm_moist, atm_file, protocol=pkl.HIGHEST_PROTOCOL)
+    # if standalone == True:
+    #     #plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs)
+    #     # Save to disk
+    #     with open(dirs["output"]+"/"+str(int(time["planet"]))+"_atm.pkl", "wb") as atm_file: 
+    #         pkl.dump(atm_moist, atm_file, protocol=pkl.HIGHEST_PROTOCOL)
 
     return atm_dry, atm_moist
 
