@@ -262,9 +262,13 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     atm.SW_flux_net         = np.squeeze(np.sum(uflxsw[:,:],axis=0)[:,0,0] - np.sum(vflxsw[:,:],axis=0)[:,0,0])
     atm.LW_flux_net         = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0])
 
-    # Upward SW + LW flux per band, W/m^2/(band)
+    # Upward SW + LW flux per band, W/m^2
     atm.LW_spectral_flux_up = uflxlw[:,:,0,0]
     atm.SW_spectral_flux_up = uflxsw[:,:,0,0]
+
+    # Downward SW + LW flux per band, W/m^2
+    atm.LW_spectral_flux_down = dflxlw[:,:,0,0]
+    atm.SW_spectral_flux_down = vflxsw[:,:,0,0]
 
     # Total up- and downward fluxes, (W/m^2)
     atm.flux_up_total       = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0]) 
@@ -273,7 +277,7 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     # Total net flux (W/m^2)
     atm.net_flux            = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] - np.sum(dflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0] -  np.sum(vflxsw[:,:],axis=0)[:,0,0])
 
-    # Total net flux per band (W/m^2/(band))
+    # Total net flux per band (W/m^2)
     atm.net_spectral_flux   = uflxlw[:,:,0,0] + uflxsw[:,:,0,0] - dflxlw[:,:,0,0] - vflxsw[:,:,0,0]
     
     # Contribution function
