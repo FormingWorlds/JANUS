@@ -127,8 +127,8 @@ if __name__ == "__main__":
     # Move/prepare spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        # dirs["janus"]+"/spectral_files/shared/Dayspring256/Dayspring.sf",
-        dirs["janus"]+"/spectral_files/Mallard/Mallard.sf",
+        dirs["janus"]+"/spectral_files/Dayspring/256/Dayspring.sf",
+        # dirs["janus"]+"/spectral_files/Mallard/Mallard.sf",
         dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
