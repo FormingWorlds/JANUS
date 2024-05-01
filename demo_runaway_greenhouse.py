@@ -114,9 +114,6 @@ if __name__=='__main__':
     print("Making plot")
     fig,ax = plt.subplots(1,1, figsize=(7,4))
 
-    # SN limit
-    ax.axhline(y=280.0, linewidth=0.9, linestyle='dashed', color='black')
-
     # Plot data
     lw = 2
     ax.plot(k2013[0], k2013[1], color='tab:red',   lw=lw, label='Kopparapu+2013')
@@ -130,10 +127,10 @@ if __name__=='__main__':
 
     ax.set_xlabel("Surface temperature [K]")
     ax.xaxis.set_minor_locator(MultipleLocator(100.0))
-    ax.set_xlim(np.amin(Ts_arr) - 25.0,  np.amax(Ts_arr) + 25.0)  
+    ax.set_xlim(200.0,  2700.0)  
 
     ax.set_ylabel("OLR [W m$^{-2}$]")
-    ax.set_ylim(np.amin(OLR_arr) - 10.0, 900.0)
+    ax.set_ylim(np.amin(OLR_arr) - 10.0, 500.0)
     ax.yaxis.set_minor_locator(MultipleLocator(25.0))  
 
     fig.savefig(dirs["output"]+"runaway_demo.pdf", bbox_inches='tight')
