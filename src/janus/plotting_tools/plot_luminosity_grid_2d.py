@@ -9,13 +9,14 @@ import seaborn as sns
 from scipy.interpolate import griddata
 from matplotlib import ticker, cm
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import pathlib
 
 # Useful links:
 # https://stackoverflow.com/questions/42504987/python-interpolate-point-value-on-2d-grid/42505340
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html
 
 # Get an ordered list of the luminosity tracks
-lum_tracks = natsorted(glob.glob("Lum_m*.txt"))
+lum_tracks = natsorted(glob.glob(str(pathlib.Path(__file__).parent.parent.absolute())+"/data/luminosity_tracks/"+"Lum_m*.txt"))
 print(lum_tracks)
 
 fig = plt.figure(tight_layout=True, constrained_layout=False, figsize=[10, 9])

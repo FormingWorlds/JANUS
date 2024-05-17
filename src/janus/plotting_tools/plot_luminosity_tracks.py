@@ -6,6 +6,7 @@ from natsort import natsorted
 from scipy import interpolate
 import numpy as np
 import seaborn as sns
+import pathlib
 
 sns.set(style="ticks")
 
@@ -14,7 +15,7 @@ sns.set(style="ticks")
 from cycler import cycler
 plt.rcParams['axes.prop_cycle'] = cycler(color=reversed(sns.cubehelix_palette(8)))
 
-lum_tracks = natsorted(glob.glob("Lum_m*.txt"))
+lum_tracks = natsorted(glob.glob(str(pathlib.Path(__file__).parent.parent.absolute())+"/data/luminosity_tracks/"+"Lum_m*.txt"))
 print(lum_tracks)
 
 for lum_track in reversed(lum_tracks):
