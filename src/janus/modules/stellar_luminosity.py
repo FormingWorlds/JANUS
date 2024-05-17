@@ -32,7 +32,7 @@ def InterpolateStellarLuminosity(star_mass, time, mean_distance):
     if star_mass >= 0.1 and star_mass <= 1.4:
             
         # File name
-        fname = str(pathlib.Path(__file__).parent.parent.absolute())+"/luminosity_tracks/Lum_m"+str(star_mass)+".txt"
+        fname = str(pathlib.Path(__file__).parent.parent.absolute())+"/data/luminosity_tracks/Lum_m"+str(star_mass)+".txt"
         
         # If file exists, just interpolate needed time
         if os.path.isfile(fname):
@@ -51,7 +51,7 @@ def InterpolateStellarLuminosity(star_mass, time, mean_distance):
         else:
 
             # Find all luminosity tracks
-            lum_tracks = natural_sort(glob.glob(str(pathlib.Path(__file__).parent.parent.absolute())+"/luminosity_tracks/"+"Lum_m*.txt"))
+            lum_tracks = natural_sort(glob.glob(str(pathlib.Path(__file__).parent.parent.absolute())+"/data/luminosity_tracks/"+"Lum_m*.txt"))
             # Define data arrays for interpolation later on
             xy_age_mass = []
             z_lum       = []

@@ -113,8 +113,8 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/spectral_files/Oak/Oak.sf",
-        dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["janus"]+"/src/janus/data/spectral_files/Oak/Oak.sf",
+        dirs["janus"]+"/src/janus/data/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
 
