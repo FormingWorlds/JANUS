@@ -1,15 +1,14 @@
 import numpy as np
 import math,phys
-import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+from janus.modules.solve_pt import RadConvEqm
 import matplotlib.pyplot as plt
 import matplotlib
-import SocRadModel
-from atmosphere_column import atmos
+from janus.utils.atmosphere_column import atmos
 import pandas as pd
 from scipy import interpolate
 # import seaborn as sns
 import copy
-import SocRadConv
 
 ### Initial conditions
 
@@ -85,7 +84,7 @@ for vol_idx, vol in enumerate(reversed([ "H2O", "CO2", "CH4" ])):
             atm = atmos(T_surf, P_surf, vol_list)
 
             # Compute heat flux
-            atm = SocRadConv.RadConvEqm("./output", star_age, atm, toa_heating, [], [], standalone=False, cp_dry=False, calc_cf=calc_cf)
+            atm = RadConvEqm("./output", star_age, atm, toa_heating, [], [], standalone=False, cp_dry=False, calc_cf=calc_cf)
 
             print(vol, "@", round(P_surf)/1e+5, "bar,", T_surf, "K")
 
