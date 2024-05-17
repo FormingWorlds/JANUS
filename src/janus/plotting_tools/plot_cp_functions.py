@@ -1,10 +1,8 @@
 import numpy as np
 import math,phys
-import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
-import SocRadModel
-from atmosphere_column import atmos
 import pandas as pd
 from scipy import interpolate
 # import seaborn as sns
@@ -200,6 +198,6 @@ ax1.set_ylabel(r'c$_\mathrm{p}$ (J mol$^{-1}$ K$^{-1}$)')
 # ax4.set_ylim(bottom=1e-20, top=1e5)
 # ax4.set_yticks([1e-10, 1e-5, 1e0, 1e5])
 
-plt.savefig("./output"+'/cp_functions.pdf', bbox_inches="tight")
+plt.savefig('./cp_functions.pdf', bbox_inches="tight")
 plt.close(fig)
 

@@ -1,15 +1,13 @@
 import numpy as np
 import math,phys
-import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
-import SocRadModel
-from atmosphere_column import atmos
+from janus.utils.socrates import radCompSoc
 import pandas as pd
 from scipy import interpolate
 import seaborn as sns
 import copy
-import SocRadConv
 import os
 import pickle as pkl
 
@@ -99,7 +97,7 @@ atm_file_stream.close()
 #             atm = atmos(T_surf, P_surf, vol_list)
 
 # Compute contribution function
-atm = SocRadModel.radCompSoc(atm, dirs, recalc=False, calc_cf=True)
+atm = radCompSoc(atm, dirs, recalc=False, calc_cf=True)
 
 # print(vol, "@", round(P_surf)/1e+5, "bar,", T_surf, "K")
 

@@ -1,15 +1,15 @@
 import numpy as np
 import math, phys, os, glob, re
-import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
-import SocRadModel
-from atmosphere_column import atmos
 import pandas as pd
 from scipy import interpolate
 # import seaborn as sns
 import copy
-import SocRadConv
+from janus.modules.stellar_luminosity import InterpolateStellarLuminosity
+from janus.modules.solve_pt import RadConvEqm
+from janus.utils.atmosphere_column import atmos
 # from natsort import natsorted # https://pypi.python.org/pypi/natsort
 import pickle as pkl
 import matplotlib.transforms as mtransforms # https://matplotlib.org/examples/pylab_examples/fancybox_demo.html
@@ -48,7 +48,7 @@ def literature_comparison():
 
     Goldblatt13_Ts  = []
     Goldblatt13_OLR = []
-    with open(dirs["janus"]+"/plotting_tools/comparison_data/Goldblatt13_data.txt", 'r') as data_file:
+    with open(dirs["janus"]+"/sr/janus/data/comparison_data/Goldblatt13_data.txt", 'r') as data_file:
         for line in data_file:
             if not line.startswith('#'):
                 line = line.rstrip('\n')
@@ -57,7 +57,7 @@ def literature_comparison():
                 Goldblatt13_OLR.append(float(line[1]))
     Kopparapu13_Ts  = []
     Kopparapu13_OLR = []
-    with open(dirs["janus"]+"/plotting_tools/comparison_data/Kopparapu13_data.txt", 'r') as data_file:
+    with open(dirs["janus"]+"/src/janus/data/comparison_data/Kopparapu13_data.txt", 'r') as data_file:
         for line in data_file:
             if not line.startswith('#'):
                 line = line.rstrip('\n')
@@ -66,7 +66,7 @@ def literature_comparison():
                 Kopparapu13_OLR.append(float(line[1]))
     Hamano15_Ts  = []
     Hamano15_OLR = []
-    with open(dirs["janus"]+"/plotting_tools/comparison_data/Hamano15_data.txt", 'r') as data_file:
+    with open(dirs["janus"]+"src/janus/data/comparison_data/Hamano15_data.txt", 'r') as data_file:
         for line in data_file:
             if not line.startswith('#'):
                 line = line.rstrip('\n')
@@ -378,10 +378,10 @@ for batch_name in batch_name_list:
                                     atm = atmos(T_surf, P_surf, vol_list)
 
                                     # Compute stellar heating
-                                    atm.toa_heating = SocRadConv.InterpolateStellarLuminosity(Mstar, time, dist, atm.albedo_pl)
+                                    atm.toa_heating = InterpolateStellarLuminosity(Mstar, time, dist, atm.albedo_pl)
 
                                     # Compute atmosphere structure and fluxes
-                                    atm_dry, atm = SocRadConv.RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=cp_dry, trpp=trpp)
+                                    atm_dry, atm = RadConvEqm(dirs, time, atm, [], [], standalone=False, cp_dry=cp_dry, trpp=trpp)
 
                                     # Use timestepped atm
                                     if atm_option == "tstep":
