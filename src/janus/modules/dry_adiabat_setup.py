@@ -9,7 +9,7 @@ Ryan Boukrouche (RB)
 """
 
 import numpy as np
-import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
     
 # Dry adiabat profile
 def dry_adiabat_atm(atm):

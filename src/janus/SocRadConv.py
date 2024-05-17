@@ -19,17 +19,17 @@ import time as t
 import os, shutil
 import numpy as np
 
-from modules.stellar_luminosity import InterpolateStellarLuminosity
-from modules.solve_pt import RadConvEqm
-from modules.solve_pt import *
-from modules.plot_flux_balance import plot_fluxes
-from modules.plot_emission_spectrum import plot_emission
-from utils.socrates import CleanOutputDir
+from janus.modules.stellar_luminosity import InterpolateStellarLuminosity
+from janus.modules.solve_pt import RadConvEqm
+from janus.modules.solve_pt import *
+from janus.modules.plot_flux_balance import plot_fluxes
+from janus.modules.plot_emission_spectrum import plot_emission
+from janus.utils.socrates import CleanOutputDir
 
-import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-from utils.atmosphere_column import atmos
-import utils.StellarSpectrum as StellarSpectrum
-from utils.ReadSpectralFile import ReadBandEdges
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+from janus.utils.atmosphere_column import atmos
+import janus.utils.StellarSpectrum as StellarSpectrum
+from janus.utils.ReadSpectralFile import ReadBandEdges
 
 ####################################
 ##### Stand-alone initial conditions

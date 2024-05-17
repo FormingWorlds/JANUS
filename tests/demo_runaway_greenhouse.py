@@ -9,13 +9,13 @@ import os, shutil
 import numpy as np
 from matplotlib.ticker import MultipleLocator
 
-from modules.stellar_luminosity import InterpolateStellarLuminosity
-from modules.solve_pt import RadConvEqm
-from utils.socrates import CleanOutputDir
+from janus.modules.stellar_luminosity import InterpolateStellarLuminosity
+from janus.modules.solve_pt import RadConvEqm
+from janus.utils.socrates import CleanOutputDir
 
-from utils.atmosphere_column import atmos
-import utils.StellarSpectrum as StellarSpectrum
-from utils.ReadSpectralFile import ReadBandEdges
+from janus.utils.atmosphere_column import atmos
+import janus.utils.StellarSpectrum as StellarSpectrum
+from janus.utils.ReadSpectralFile import ReadBandEdges
 
 
 def run_once(T_surf, dirs, band_edges):
@@ -101,13 +101,13 @@ if __name__=='__main__':
     Ts_arr  = np.array(Ts_arr)
     
     # Get literature data
-    g2013 = np.loadtxt(dirs["janus"]+"src/janus/plotting_tools/comparison_data/Goldblatt13_data.txt",
+    g2013 = np.loadtxt(dirs["janus"]+"src/janus/data/comparison_data/Goldblatt13_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    k2013 = np.loadtxt(dirs["janus"]+"src/janus/plotting_tools/comparison_data/Kopparapu13_data.txt",
+    k2013 = np.loadtxt(dirs["janus"]+"src/janus/data/comparison_data/Kopparapu13_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    h2015 = np.loadtxt(dirs["janus"]+"src/janus/plotting_tools/comparison_data/Hamano15_data.txt",
+    h2015 = np.loadtxt(dirs["janus"]+"src/janus/data/comparison_data/Hamano15_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    s2023 = np.loadtxt(dirs["janus"]+"src/janus/plotting_tools/comparison_data/Selsis23_convective.txt",
+    s2023 = np.loadtxt(dirs["janus"]+"src/janus/data/comparison_data/Selsis23_convective.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
 
     # Setup plot

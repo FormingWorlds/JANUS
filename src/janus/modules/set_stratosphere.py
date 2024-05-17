@@ -9,8 +9,8 @@ Ryan Boukrouche (RB)
 """
 
 import numpy as np
-import utils.phys as phys
-import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.phys as phys
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
     
 def set_stratosphere(atm):
 

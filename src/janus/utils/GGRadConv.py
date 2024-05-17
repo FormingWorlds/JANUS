@@ -6,9 +6,9 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
-import utils.phys as phys
-import utils.planets as planets
-import utils.GreyHeat as Grey
+import janus.utils.phys as phys
+import janus.utils.planets as planets
+import janus.utils.GreyHeat as Grey
 
 
 #Set the gravity and thermodynamic constants

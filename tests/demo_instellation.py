@@ -10,13 +10,13 @@ from matplotlib.ticker import MultipleLocator
 import os, shutil
 import numpy as np
 
-from modules.stellar_luminosity import InterpolateStellarLuminosity
-from modules.solve_pt import *
-from utils.socrates import CleanOutputDir
-from utils.atmosphere_column import atmos
-import utils.StellarSpectrum as StellarSpectrum
-import utils.phys as phys
-from utils.ReadSpectralFile import ReadBandEdges
+from janus.modules.stellar_luminosity import InterpolateStellarLuminosity
+from janus.modules.solve_pt import *
+from janus.utils.socrates import CleanOutputDir
+from janus.utils.atmosphere_column import atmos
+import janus.utils.StellarSpectrum as StellarSpectrum
+import janus.utils.phys as phys
+from janus.utils.ReadSpectralFile import ReadBandEdges
 
 def run_once(sep, dirs, T_magma, P_surf, skin_d, band_edges):
 

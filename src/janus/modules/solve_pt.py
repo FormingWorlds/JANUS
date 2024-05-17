@@ -10,9 +10,9 @@ Harrison Nicholls (HN)
 """
 
 import scipy.optimize as optimise
-from modules.compute_moist_adiabat import compute_moist_adiabat
-from modules.dry_adiabat_timestep import compute_dry_adiabat
-from utils.atmosphere_column import atmos
+from janus.modules.compute_moist_adiabat import compute_moist_adiabat
+from janus.modules.dry_adiabat_timestep import compute_dry_adiabat
+from janus.utils.atmosphere_column import atmos
 
 def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool, do_cloud:bool=False, 
                pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):

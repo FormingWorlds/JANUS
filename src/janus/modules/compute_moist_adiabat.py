@@ -10,13 +10,13 @@ Ryan Boukrouche (RB)
 
 import copy
 import numpy as np
-from modules.find_tropopause import find_tropopause
-from modules.set_stratosphere import set_stratosphere
-from modules.water_cloud import simple_cloud
-from modules.relative_humidity import compute_Rh
+from janus.modules.find_tropopause import find_tropopause
+from janus.modules.set_stratosphere import set_stratosphere
+from janus.modules.water_cloud import simple_cloud
+from janus.modules.relative_humidity import compute_Rh
 
-import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import utils.socrates as socrates
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.socrates as socrates
 
 def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False, do_cloud=False):
     """Compute moist adiabat case

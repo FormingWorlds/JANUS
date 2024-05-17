@@ -8,7 +8,7 @@ Ryan Boukrouche (RB)
 """
 
 import numpy as np
-import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 
 def simple_cloud(atm):
     """Simple water cloud routine.

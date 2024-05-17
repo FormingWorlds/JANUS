@@ -1,5 +1,5 @@
 import numpy as np
-import utils.phys as phys
+import janus.utils.phys as phys
 
 def gravity( m, r ):
     g = phys.G*m/r**2

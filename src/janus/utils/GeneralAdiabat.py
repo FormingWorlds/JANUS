@@ -19,12 +19,12 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-import utils.water_tables as wt
+import janus.utils.water_tables as wt
 
-from utils.cp_funcs import *
-from utils.ClimateUtilities import *
-from utils.atmosphere_column import atmos
-import utils.phys as phys
+from janus.utils.cp_funcs import *
+from janus.utils.ClimateUtilities import *
+from janus.utils.atmosphere_column import atmos
+import janus.utils.phys as phys
 
 # Color definitions: 
 # https://www.codecademy.com/articles/seaborn-design-ii
