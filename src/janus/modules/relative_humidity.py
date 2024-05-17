@@ -8,8 +8,8 @@ Ryan Boukrouche (RB)
 """
 
 import numpy as np
-from utils.find_lcl import find_intersection
-import utils.GeneralAdiabat as ga
+from janus.utils.find_lcl import find_intersection
+import janus.utils.GeneralAdiabat as ga
     
 def compute_Rh(atm):
     """Compute the relative humidity.

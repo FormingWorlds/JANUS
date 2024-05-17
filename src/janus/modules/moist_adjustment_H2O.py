@@ -9,7 +9,7 @@ Harrison Nicholls (HN)
 """
 
 import numpy as np
-import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 
 def moist_adj(atm, conv_timescale, nb_convsteps = 10):
     """Moist adjustment routine, as formulated by RB.

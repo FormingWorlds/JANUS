@@ -13,8 +13,8 @@ import numpy as np
 import math 
 #import json
 
-from modules.spectral_planck_surface import surf_Planck_nu
-import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+from janus.modules.spectral_planck_surface import surf_Planck_nu
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 
 
 def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):

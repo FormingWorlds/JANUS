@@ -1,7 +1,7 @@
 import math
 import numpy as np
-from utils.ClimateUtilities import * #To get the math methods routines
-import utils.water_tables as wt
+from janus.utils.ClimateUtilities import * #To get the math methods routines
+import janus.utils.water_tables as wt
 #
 #All units are mks units
 #

@@ -3,8 +3,8 @@
 
 import numpy as np
 import netCDF4 as nc
-from utils import phys
-from utils.height import AtmosphericHeight
+from janus.utils import phys
+from janus.utils.height import AtmosphericHeight
 import os, copy, platform, shutil
 import pwd
 

@@ -12,10 +12,10 @@ import matplotlib.pyplot as plt
 import subprocess
 import f90nml
 
-import utils.nctools as nctools
-import utils.RayleighSpectrum as RayleighSpectrum
-from utils.atmosphere_column import atmos
-import utils.phys as phys
+import janus.utils.nctools as nctools
+import janus.utils.RayleighSpectrum as RayleighSpectrum
+from janus.utils.atmosphere_column import atmos
+import janus.utils.phys as phys
 
 
 def radCompSoc(atm, dirs, recalc, rscatter=False,

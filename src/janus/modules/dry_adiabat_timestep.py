@@ -11,15 +11,15 @@ Ryan Boukrouche (RB)
 import copy
 import numpy as np
 
-from modules.dry_adiabat_setup import dry_adiabat_atm
-from modules.moist_adjustment_H2O import moist_adj
-from modules.dry_adjustment import DryAdj
-from modules.simple_boundary import simple_boundary_tend
-from modules.water_cloud import simple_cloud
+from janus.modules.dry_adiabat_setup import dry_adiabat_atm
+from janus.modules.moist_adjustment_H2O import moist_adj
+from janus.modules.dry_adjustment import DryAdj
+from janus.modules.simple_boundary import simple_boundary_tend
+from janus.modules.water_cloud import simple_cloud
 
-import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import utils.socrates as socrates
-import utils.phys as phys
+import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
+import janus.utils.socrates as socrates
+import janus.utils.phys as phys
 
 # Time integration for n steps
 def compute_dry_adiabat(atm, dirs, standalone, rscatter=False, pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6, do_cloud=False):
