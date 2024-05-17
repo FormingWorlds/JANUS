@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "janus"
+version = "24.04.04"
+description = "Temperature structure generator for planetory atmospheres."
+readme = "README.md"
+authors = [
+    {name = "Tim Lichtenberg", email = "tim.lichtenberg@rug.nl"},
+    {name = "Mark Hammond", email = "mark.hammond@physics.ox.ac.uk"},
+    {name = "Ryan Boukrouche", email = "ryan.boukrouche@astro.su.se"},
+    {name = "RJ Graham", email = "arejaygraham@uchicago.edu"},
+    {name = "Harrison Nicholls", email = "harrison.nicholls@physics.ox.ac.uk"},
+    {name = "Hamish Innes", email = "hamish.innes@physics.ox.ac.uk"},
+    {name = "Laurent Soucasse", email = "l.soucasse@esciencecenter.nl"},
+]
+license =  {file = "LICENSE.md"}
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+  'matplotlib',
+  'natsort',
+  'netcdf4',
+  'numpy',
+  'pandas',
+  'scipy',
+  'tomlkit' 
+]
+
+[project.urls]
+homepage = "https://github.com/FormingWorlds/JANUS"
+
+[tool.setuptools]
+package-dir = {"janus" = "src/janus"}
+include-package-data = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
