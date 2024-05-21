@@ -1,14 +1,14 @@
 import os
 import numpy as np
-import utils.GeneralAdiabat as ga
+import janus.utils.GeneralAdiabat as ga
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.ticker import LogLocator
 import seaborn as sns
 
-aeolus_dir = os.getenv('AEOLUS_DIR')+"/"
+janus_dir = os.getenv('JANUS_DIR')+"/"
 
-plot_output_dir = aeolus_dir+'plots/'
+plot_output_dir = janus_dir+'plots/'
 
 if not os.path.exists(plot_output_dir):
         os.makedirs(plot_output_dir)
