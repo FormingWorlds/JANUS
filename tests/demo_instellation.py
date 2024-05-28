@@ -6,6 +6,7 @@ mpl.rcParams.update({'font.size': 12})
 mpl.rcParams['axes.formatter.useoffset'] = False
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
+from importlib.resources import files
 
 import os, shutil
 import numpy as np
@@ -98,11 +99,11 @@ if __name__=='__main__':
     }
 
     # Set up dirs
-    if os.environ.get('JANUS_DIR') == None:
-        raise Exception("Environment variables not set! Have you sourced JANUS.env?")
+    if os.environ.get('RAD_DIR') == None:
+        raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
     dirs = {
-            "janus": os.getenv('JANUS_DIR')+"/",
-            "output": os.getenv('JANUS_DIR')+"/output/"
+            "janus": str(files("janus"))+"/",
+            "output": os.path.abspath(os.getcwd())+"/output/"
             }
     
     # Tidy directory
@@ -113,8 +114,8 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"/src/janus/data/spectral_files/Oak/Oak.sf",
-        dirs["janus"]+"/src/janus/data/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["janus"]+"data/spectral_files/Oak/Oak.sf",
+        dirs["janus"]+"data/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
 

@@ -29,12 +29,14 @@ https://proteus-code.readthedocs.io
 
 ### Developer installation instructions
 1. Download and install Socrates
-    * `git clone xxx/socrates.git .`
+    * `git clone git@github.com:FormingWorlds/SOCRATES.git ./my_socrates`
+    * `cd my_socrates`
     * `./configure`
     * `./build-code`
     * `source set_rad_env`
 2. Download and install Janus
-    * `git clone git@github.com:FormingWorlds/JANUS.git .`
+    * `git clone git@github.com:FormingWorlds/JANUS.git ./my_janus`
+    * `cd my_janus`
     * `pip install -e .`
 
 ### Run instructions
