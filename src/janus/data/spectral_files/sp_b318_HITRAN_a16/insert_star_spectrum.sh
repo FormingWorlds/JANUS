@@ -1,12 +1,14 @@
 #!/bin/bash
 # Usage: bash insert_star_spectrum.sh
 
+read -p "Please enter Janus directory: " JANUS_DIR
+
 # Set stellar spectrum to use
 # This is the main parameter to change 
-STAR_SPEC="$JANUS_DIR/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt"
+STAR_SPEC="$JANUS_DIR/src/janus/data/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt"
 
 # Set spectral file to use as basis
-ORIG_FILE="$JANUS_DIR/spectral_files/sp_b318_HITRAN_a16/sp_b318_HITRAN_a16_no_spectrum"
+ORIG_FILE="$JANUS_DIR/src/janus/data/spectral_files/sp_b318_HITRAN_a16/sp_b318_HITRAN_a16_no_spectrum"
 
 # New spectral file name
 NEW_FILE="$JANUS_DIR/output/runtime_spectral_file"

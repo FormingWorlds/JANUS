@@ -3,8 +3,6 @@ import numpy as np
 import shutil
 import glob
 
-JANUS_DIR = os.getenv('JANUS_DIR')
-
 ###################################
 ########## BASE SETTINGS ##########
 ###################################
@@ -12,7 +10,7 @@ JANUS_DIR = os.getenv('JANUS_DIR')
 # Define data and code directories
 #dir_socrates    = "/Users/tim/bitbucket/pcd_couple-interior-atmosphere/atm_rad_conv/rad_trans/socrates_code/"
 #dat_home        = "/Users/tim/Dropbox/work/Projects/20_greenedge/line_lists/"
-dir_socrates    = JANUS_DIR + "/rad_trans/socrates_code/"
+dir_socrates    = RAD_DIR + "/"
 #dir_socrates    = "/home/n/nichollsh/socrates_2211/"
 #dat_home        = "/network/group/aopp/planetary/RTP015_LICHTENBERG_20GEDGE/spectral_files/"
 dat_home        = "/network/group/aopp/planetary/RTP035_NICHOLLS_PROTEUS/linelists/"

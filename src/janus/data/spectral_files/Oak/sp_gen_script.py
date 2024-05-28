@@ -3,14 +3,12 @@ import numpy as np
 import shutil
 import glob
 
-JANUS_DIR = os.getenv('JANUS_DIR')
-
 ###################################
 ########## BASE SETTINGS ##########
 ###################################
 
 # Define data and code directories
-dir_socrates    = JANUS_DIR + "/rad_trans/socrates_code/"
+dir_socrates    = RAD_DIR + "/"
 dat_home        = "/network/group/aopp/planetary/RTP035_NICHOLLS_PROTEUS/linelists/"
 dir_continua    = dat_home+"dat_continua/"
 dir_hitran      = dat_home+"dat_hitran/"
