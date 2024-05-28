@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "janus"
+name = "fwl-janus"
 version = "24.04.04"
 description = "Temperature structure generator for planetory atmospheres."
 readme = "README.md"
