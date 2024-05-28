@@ -3,8 +3,8 @@ mpl.use('Agg')
 
 import matplotlib.pyplot as plt
 import numpy as np
-from utils.atmosphere_column import atmos
-import utils.phys as phys
+from janus.utils.atmosphere_column import atmos
+import janus.utils.phys as phys
 
 def plot_emission(atm:atmos, filename:str='output/toa_emission.pdf', 
                   level_idx:int=0, planck_surface:bool=True, show_bands:bool=False):
