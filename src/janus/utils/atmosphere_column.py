@@ -201,11 +201,13 @@ class atmos:
             self.LW_flux_down 			= np.zeros(self.nlev_save)				# W/m^2
             self.LW_flux_net			= np.zeros(self.nlev_save)				# W/m^2
             self.LW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev_save])	# W/m^2/(band)
+            self.LW_spectral_flux_down 	= np.zeros([self.nbands,self.nlev_save])	# W/m^2/(band)
             self.LW_heating				= np.zeros(self.nlev_save)				# K/day
             self.SW_flux_up 			= np.zeros(self.nlev_save)				# W/m^2
             self.SW_flux_down 			= np.zeros(self.nlev_save)				# W/m^2
             self.SW_flux_net			= np.zeros(self.nlev_save)				# W/m^2
             self.SW_spectral_flux_up 	= np.zeros([self.nbands,self.nlev_save])	# W/m^2/(band)
+            self.SW_spectral_flux_down 	= np.zeros([self.nbands,self.nlev_save])	# W/m^2/(band)
             self.SW_heating				= np.zeros(self.nlev_save)				# K/day
             self.flux_up_total			= np.zeros(self.nlev_save)				# W/m^2
             self.flux_down_total		= np.zeros(self.nlev_save)				# W/m^2
@@ -339,6 +341,7 @@ class atmos:
         ds.createDimension('ngases', ngases)    # Gases
         ds.createDimension('nchars', nchars)    # Length of string containing gas names
         ds.createDimension('nbands', self.nbands) # Number of bands in the spectral file
+        ds.createDimension('nedges', self.nbands+1) 
 
         # ----------------------
         # Scalar quantities  
@@ -412,10 +415,14 @@ class atmos:
             var_fu    = ds.createVariable('fl_U',    'f4', dimensions=('nlev_l'));           var_fu.units = "W m-2"
             var_fn    = ds.createVariable('fl_N',    'f4', dimensions=('nlev_l'));           var_fn.units = "W m-2"
             var_hr    = ds.createVariable('rad_hr',  'f4', dimensions=('nlev_c'));           var_hr.units = "K day-1"
-            var_sful  = ds.createVariable('Sfl_U_LW','f4', dimensions=('nbands', 'nlev_l')); var_sful.units = "W m-2 m-1"
-            var_sfus  = ds.createVariable('Sfl_U_SW','f4', dimensions=('nbands', 'nlev_l')); var_sfus.units = "W m-2 m-1"
+            var_sful  = ds.createVariable('Sfl_U_LW','f4', dimensions=('nbands', 'nlev_l')); var_sful.units = "W m-2"
+            var_sfus  = ds.createVariable('Sfl_U_SW','f4', dimensions=('nbands', 'nlev_l')); var_sfus.units = "W m-2"
+            var_sfdl  = ds.createVariable('Sfl_D_LW','f4', dimensions=('nbands', 'nlev_l')); var_sfdl.units = "W m-2"
+            var_sfds  = ds.createVariable('Sfl_D_SW','f4', dimensions=('nbands', 'nlev_l')); var_sfds.units = "W m-2"
+            var_edge  = ds.createVariable('band_edges','f4', dimensions=('nedges'));         var_edge.units = "nm"
+
         if self.has_contfunc:
-            var_cff   = ds.createVariable('cff',     'f4', dimensions=('nbands', 'nlev_c')); var_cff.units = "W m-2 m-1"
+            var_cff   = ds.createVariable('cff',     'f4', dimensions=('nbands', 'nlev_c')); var_cff.units = "W m-2 m-1" ## units??
 
         var_re    = ds.createVariable('re',      'f4', dimensions=('nlev_c'));           var_re.units = "m"
         var_lwm   = ds.createVariable('lwm',     'f4', dimensions=('nlev_c'));           var_lwm.units = "kg kg-1"
@@ -457,6 +464,11 @@ class atmos:
 
             var_sful[:,:]  = self.LW_spectral_flux_up[:,:]
             var_sfus[:,:]  = self.SW_spectral_flux_up[:,:]
+            var_sfdl[:,:]  = self.LW_spectral_flux_down[:,:]
+            var_sfds[:,:]  = self.SW_spectral_flux_down[:,:]
+
+            var_edge[:]    = self.band_edges[:]
+
         if self.has_contfunc:
             var_cff[:,:]   = self.cff[:,:]
 

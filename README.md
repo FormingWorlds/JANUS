@@ -1,6 +1,8 @@
 ## JANUS (temperature structure generator)
 
-Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.
+Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.   
+
+Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
 ### Documentation
 https://proteus-code.readthedocs.io
