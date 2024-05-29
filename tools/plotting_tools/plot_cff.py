@@ -3,6 +3,7 @@ import math,phys
 import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
+from importlib.resources import files
 from janus.utils.socrates import radCompSoc
 import pandas as pd
 from scipy import interpolate
@@ -62,11 +63,14 @@ legendA2_handles = []
 # legendB1_handles = []
 # legendB2_handles = []
 
-dirs = {"output": os.getcwd()+"/../output", "janus": os.getcwd()+"/.."}
+dirs = {
+        "janus": str(files("janus"))+"/",
+        "output": os.path.abspath(os.getcwd())+"/output/"
+        }
 
 # Define pkl file
 
-atm_file = dirs["output"]+"/"+"0_atm.pkl"
+atm_file = dirs["output"]+"0_atm.pkl"
 
 # Read pickle file
 atm_file_stream = open(atm_file,'rb')
