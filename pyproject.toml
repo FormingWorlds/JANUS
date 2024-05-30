@@ -25,14 +25,14 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
-  'importlib',
   'matplotlib',
   'natsort',
   'netcdf4',
   'numpy',
   'pandas',
   'scipy',
-  'tomlkit' 
+  'tomlkit',
+  'f90nml' 
 ]
 
 [project.urls]
