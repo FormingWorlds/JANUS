@@ -1,5 +1,4 @@
 import numpy as np
-import math,phys
 import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import matplotlib.pyplot as plt
 import matplotlib
