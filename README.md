@@ -37,8 +37,8 @@ https://proteus-code.readthedocs.io
     * `./build-code`
     * `source set_rad_env`
 2. Download and install Janus
-    * `git clone git@github.com:FormingWorlds/JANUS.git ./my_janus`
-    * `cd my_janus`
+    * `git clone git@github.com:FormingWorlds/JANUS.git`
+    * `cd JANUS`
     * `pip install -e .`
 
 ### Run instructions
