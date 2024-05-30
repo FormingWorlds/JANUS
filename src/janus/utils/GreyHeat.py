@@ -17,8 +17,8 @@ Problem = '{Workbook:RadBalance2:PressBroadenedHeating}'
 #This script can also be modified to use for the problem
 # '{Workbook:RadBalance2:StratTropOLRGrey}'
 
-
-import math,phys
+import janus.utils.phys as phys
+import math
 # from ClimateUtilities import *
 
 
