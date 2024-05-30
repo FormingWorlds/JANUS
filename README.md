@@ -31,8 +31,8 @@ https://proteus-code.readthedocs.io
 
 ### Developer installation instructions
 1. Download and install Socrates
-    * `git clone git@github.com:FormingWorlds/SOCRATES.git ./my_socrates`
-    * `cd my_socrates`
+    * `git clone git@github.com:FormingWorlds/SOCRATES.git`
+    * `cd SOCRATES`
     * `./configure`
     * `./build-code`
     * `source set_rad_env`
