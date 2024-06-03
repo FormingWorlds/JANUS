@@ -14,11 +14,8 @@ import math
 #import json
 
 from modules.spectral_planck_surface import surf_Planck_nu
+import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 
-try:
-    import GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-except:
-    import atm_rad_conv.GeneralAdiabat as ga
 
 def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
 
@@ -156,7 +153,7 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     # ax4.set_xticks([0.1, 0.3, 1, 3, 10, 30, 100])
     # ax4.set_xticklabels(["0.1", "0.3", "1", "3", "10", "30", "100"])
 
-    plt.savefig(dirs["output"]+"/"+"TP_"+str(round(time["planet"]))+'.pdf', bbox_inches="tight")
+    fig.savefig(dirs["output"]+"/"+"TP_"+str(round(time["planet"]))+'.pdf', bbox_inches="tight")
     plt.close(fig)
 
     # with open(dirs["output"]+"/"+str(int(time["planet"]))+"_atm.pkl", "wb") as atm_file: 
@@ -166,3 +163,36 @@ def plot_flux_balance(atm_dry, atm_moist, cp_dry, time, dirs):
     # json_atm = json.dumps(atm.__dict__)
     # with open(dirs["output"]+"/"+str(int(time_current))+"_atm.json", "wb") as atm_file:
     #     json.dump(json_atm, atm_file)
+
+
+# Plotting
+def plot_fluxes(atm,filename='output/fluxes.pdf'):
+
+    fig,ax = plt.subplots()
+
+    ax.axvline(0,color='black',lw=0.8)
+
+    # for p in np.logspace(-6, 3, 80)*1.0e5:
+    #     ax.axhline(y=p, color='purple', lw=1, alpha=0.3)
+
+    ax.plot(atm.flux_up_total,atm.pl,color='red',label='UP',lw=1)
+    ax.plot(atm.SW_flux_up   ,atm.pl,color='red',label='UP SW',linestyle='dotted',lw=2)
+    ax.plot(atm.LW_flux_up   ,atm.pl,color='red',label='UP LW',linestyle='dashed',lw=1)
+
+    ax.plot(-1.0*atm.flux_down_total,atm.pl,color='green',label='DN',lw=2)
+    ax.plot(-1.0*atm.SW_flux_down   ,atm.pl,color='green',label='DN SW',linestyle='dotted',lw=3)
+    ax.plot(-1.0*atm.LW_flux_down   ,atm.pl,color='green',label='DN LW',linestyle='dashed',lw=2)
+
+    ax.plot(atm.net_flux ,atm.pl,color='black',label='NET')
+
+    ax.set_xlabel("Upward-directed flux [W m-2]")
+    ax.set_xscale("symlog")
+    ax.set_ylabel("Pressure [Pa]")
+    ax.set_yscale("log")
+    ax.set_ylim([atm.pl[-1],atm.pl[0]])
+
+    ax.legend(loc='upper left')
+
+    fig.savefig(filename, bbox_inches='tight', dpi=190)
+    plt.close()
+

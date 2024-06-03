@@ -1,6 +1,8 @@
-## AEOLUS (radiative-convective solver)
+## JANUS (temperature structure generator)
 
-Runs until the OLR changes by less than a threshold value in W/m<sup>2</sup>, or stops after a fixed number of iterations.
+Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.   
+
+Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
 ### Documentation
 https://proteus-code.readthedocs.io
@@ -11,30 +13,31 @@ https://proteus-code.readthedocs.io
 * RB – Ryan Boukrouche (ryan.boukrouche@astro.su.se)
 * RJG – RJ Graham (arejaygraham@uchicago.edu)
 * HN - Harrison Nicholls (harrison.nicholls@physics.ox.ac.uk)
+* HII - Hamish Innes (hamish.innes@physics.ox.ac.uk)
 
 ### Repository structure
 
-* `SocRadConv.py`               - Main AEOLUS Python script
+* `SocRadConv.py`               - Main JANUS Python script
+* `demo_runaway_greenhouse.py`  - Demonstrate pure-steam runaway greenhouse OLR curve
+* `demo_instellation.py`        - Calculate fluxes (and temperatures) for different instellations
 * `README.md`                   - This file
 * `INSTALL.md`                  - Installation instructions
-* `AEOLUS.env`                  - Sets environment flags to run the code
-* `MoistAdiabat_RayCode.py`     - Legacy file
+* `JANUS.env`                   - Sets environment flags to run the code
 * `utils/`                      - Utility python scripts
 * `modules/`                    - Utility python scripts
 * `output/`                     - Output folder
 * `luminosity_tracks/`          - Stellar evolution data
-* `plotting_tools/`             -  Plotting scripts
-* `rad_trans/`                  - Subfolder with adiative transfer code/s
-
-
-* `spectral_files`         - Spectral files for SOCRATES
+* `plotting_tools/`             - Plotting scripts
+* `rad_trans/`                  - Subfolder for radiative transfer code/s
+* `spectral_files/`             - Spectral files for SOCRATES
+* `tools/`                      - Useful tools
 
 ### Installation instructions
-See `INSTALL.md` for steps. If you encounter issues check `INSTALL.md` and `TROUBLESHOOTING.md` in [PROTEUS](https://github.com/FormingWorlds/PROTEUS) repository. `INSTALL.md` will soon be superseded by https://proteus-code.readthedocs.io.
+Follow environment- and JANUS-related steps in https://proteus-code.readthedocs.io.
 
 ### Run instructions
-Only attempt to run AEOLUS after you have followed all of the instructions in INSTALL.md    
+Only attempt to run JANUS after you have followed all of the instructions in INSTALL.md    
 If using a fresh shell, it is necessary to perform the following steps:     
-1. `source AEOLUS.env`
-2. `conda activate aeolus`
+1. `source JANUS.env`    
+2. `conda activate janus`    
 Then you can run the code by running: `python SocRadConv.py`      

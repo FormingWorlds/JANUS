@@ -1,0 +1,2 @@
+Replaces Mallard. Derived from DACE absorption data.
+Contains cloud scattering properties.

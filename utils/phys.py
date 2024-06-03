@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from utils.ClimateUtilities import * #To get the math methods routines
+import utils.water_tables as wt
 #
 #All units are mks units
 #
@@ -50,6 +51,33 @@ Rstar = 1000.*k*N_avogadro   #Universal gas constant
 #for "normal" temperatures and pressures, suitable only
 #for rough calculations.
 #
+
+
+# Molar masses of each species (note the units)
+molar_mass = {
+        "H2O" : 0.01801528,     # kg mol−1
+        "CO2" : 0.04401,        # kg mol−1
+        "H2"  : 0.00201588,     # kg mol−1
+        "CH4" : 0.01604,        # kg mol−1
+        "CO"  : 0.02801,        # kg mol−1
+        "N2"  : 0.028014,       # kg mol−1
+        "O2"  : 0.031999,       # kg mol−1
+        "SO2" : 0.064066,       # kg mol−1
+        "H2S" : 0.0341,         # kg mol−1 
+        "H"   : 0.001008,       # kg mol−1 
+        "C"   : 0.012011,       # kg mol−1 
+        "O"   : 0.015999,       # kg mol−1 
+        "N"   : 0.014007,       # kg mol−1 
+        "S"   : 0.03206,        # kg mol−1 
+        "He"  : 0.0040026,      # kg mol−1 
+        "NH3" : 0.017031,       # kg mol−1 
+        "O3"  : 0.0479982,      # kg mol-1
+        "N2O" : 0.0440128, 
+        "NO"  : 0.0300061, 
+        "NO2" : 0.0460055, 
+        "HNO3": 0.06301284, 
+        "OCS" : 0.060075       
+    }
 
 #This class allows convenient access
 #to the basic thermodynamic properties of
@@ -308,6 +336,26 @@ O2.formula = 'O2'
 O2.L_vaporization=2.420000e+05
 O2.rho_liquid=1.307000e+03
 #------------------------
+O3 = gas() # https://encyclopedia.airliquide.com/ozone#properties
+O3.CriticalPointT = 2.61e+02  
+O3.CriticalPointP = 5.57e6
+O3.TriplePointT = 8.015e+01  
+O3.TriplePointP = 7.346e-01
+O3.L_vaporization_BoilingPoint = 2.8849e+05   
+O3.L_vaporization_TriplePoint = None # left to find
+O3.L_fusion = 4.1668e+04
+O3.L_sublimation = 0.1e-99 # !CAREFUL! Actually: None
+O3.rho_liquid_BoilingPoint = 1.34908e+03
+O3.rho_liquid_TriplePoint = None # left to find
+O3.rho_solid = 1.351000e+03 # left to find
+O3.cp = 8.197165e+02 # https://webbook.nist.gov/cgi/cbook.cgi?ID=C10028156&Mask=1&Type=JANAFG&Table=on#JANAFG
+O3.gamma = 1.393000e+00  # left to find cv
+O3.MolecularWeight = 4.798e+01
+O3.name = 'Ozone' 
+O3.formula = 'O3' 
+O3.L_vaporization=2.8849e+05 # left to find L_vaporization_TriplePoint
+O3.rho_liquid=1.34908e+03
+#------------------------
 H2 = gas()
 H2.CriticalPointT = 3.320000e+01
 H2.CriticalPointP = 1.298000e+06
@@ -377,6 +425,7 @@ co2     = CO2
 co      = CO
 n2      = N2
 o2      = O2
+o3      = O3
 h2      = H2
 he      = He
 nh3     = NH3
@@ -552,8 +601,20 @@ class satvps_function:
             self.M = MolecularWeight
             self.T0 = Gas_or_T0
             self.e0 = e0_or_iceFlag
-    def __call__(self,T):
+
+    def __call__(self,T, water_lookup=False):
         #Decide which latent heat to use
+        if self.gas == 'H2O' and water_lookup:
+            # Water special case -- use IAPWS steam tables in water_tables.py
+            if T > wt.T_tp:
+                return wt.lookup('psat', T)
+            else:
+                if self.iceFlag=='switch':
+                    L = self.gas.L_sublimation
+                else:
+                    L = wt.L_vap[0]
+                return satvps(T, self.T0, self.e0, self.M, L)
+            
         if self.iceFlag == 'switch':
             if T<self.gas.TriplePointT:
                 L = self.gas.L_sublimation

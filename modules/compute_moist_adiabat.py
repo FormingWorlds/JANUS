@@ -9,13 +9,16 @@ Ryan Boukrouche (RB)
 """
 
 import copy
+import numpy as np
 from modules.find_tropopause import find_tropopause
 from modules.set_stratosphere import set_stratosphere
+from modules.water_cloud import simple_cloud
+from modules.relative_humidity import compute_Rh
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import utils.SocRadModel as SocRadModel
+import utils.socrates as socrates
 
-def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=False):
+def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False, do_cloud=False):
     """Compute moist adiabat case
 
     Parameters
@@ -25,13 +28,13 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
         dirs : dict
             Named directories
         standalone : bool
-            Running AEOLUS as standalone code?
+            Running JANUS as standalone code?
         trppD : bool 
             Calculate tropopause dynamically?
-        calc_cf : bool
-            Calculate contribution function?
         rscatter : bool
             Include Rayleigh scattering?
+        do_cloud : bool
+            Include water cloud radiation?
             
     """
 
@@ -39,26 +42,33 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, calc_cf=False, rscatter=
 
     # Build general adiabat structure
     atm_moist = ga.general_adiabat(atm_moist)
+    
+    atm_moist.rh = compute_Rh(atm_moist)
+
+    if do_cloud:
+        atm_moist = simple_cloud(atm_moist) # Before radiation, set up the cloud for Socrates using the current PT profile
 
     # Run SOCRATES
-    atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
+    atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=False, rscatter=rscatter, do_cloud=do_cloud)
 
     if standalone == True:
-        print("w/o stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+        print("w/o stratosphere (net, OLR): " + str(round(atm_moist.net_flux[0], 3)) +" , "+str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")
 
-    # Calculate tropopause dynamically
-    if (trppD == True) or ( (trppD == False) and (atm_moist.trppT > 0.0) ):
+    # Calculate tropopause
+    if (trppD == True) or (atm_moist.trppT > atm_moist.minT):
       
         # Find tropopause index
-        atm_moist = find_tropopause(atm_moist,trppD)
+        atm_moist = find_tropopause(atm_moist,trppD, verbose=standalone)
 
         # Reset stratosphere temperature and abundance levels
         atm_moist = set_stratosphere(atm_moist)
 
+        if do_cloud:
+            atm_moist = simple_cloud(atm_moist) # Update cloud location after previous PT changes
         # Recalculate fluxes w/ new atmosphere structure
-        atm_moist = SocRadModel.radCompSoc(atm_moist, dirs, recalc=True, calc_cf=calc_cf, rscatter=rscatter)
+        atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=True, rscatter=rscatter, do_cloud=do_cloud)
 
         if standalone == True:
-            print("w/ stratosphere (net, OLR):", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)), "W/m^2")
+            print("w/ stratosphere (net, OLR): " + str(round(atm_moist.net_flux[0], 3)) + " , " + str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")
 
     return atm_moist

@@ -24,7 +24,7 @@ def natural_sort(l):
     alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
     return sorted(l, key = alphanum_key)
 
-def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo, Sfrac):
+def InterpolateStellarLuminosity(star_mass, time, mean_distance):
 
     L_sun           = 3.828e+26        # W, IAU definition
     AU              = 1.495978707e+11  # m
@@ -97,10 +97,6 @@ def InterpolateStellarLuminosity(star_mass, time, mean_distance, albedo, Sfrac):
     else: # Works only for TRAPPIST-1 right now!
         L_star          = 0.000553*L_sun     # Trappist-1 luminosity
 
-
-    F               = L_star /  ( 4. * np.pi * (mean_distance*AU)**2. )     # Flux at orbital radius (W/m^2)
-    toa_heating     = ( 1. - albedo ) * F     # Heating at TOA (W/m^2)
-    S_0             = F * Sfrac # Scale instellation by fixed fraction
-    
-    return S_0, toa_heating
+    inst  = L_star /  ( 4. * np.pi * (mean_distance*AU)**2. )      # Flux at orbital radius (W/m^2)
+    return inst
 

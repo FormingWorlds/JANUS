@@ -15,13 +15,14 @@ from modules.dry_adiabat_setup import dry_adiabat_atm
 from modules.moist_adjustment_H2O import moist_adj
 from modules.dry_adjustment import DryAdj
 from modules.simple_boundary import simple_boundary_tend
+from modules.water_cloud import simple_cloud
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import utils.SocRadModel as SocRadModel
+import utils.socrates as socrates
 import utils.phys as phys
 
 # Time integration for n steps
-def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
+def compute_dry_adiabat(atm, dirs, standalone, rscatter=False, pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6, do_cloud=False):
 
     # Dry adiabat settings 
     rad_steps   = 100  # Maximum number of radiation steps
@@ -29,14 +30,11 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
     dT_max      = 20.  # K, Maximum temperature change per radiation step
     T_floor     = 10.  # K, Temperature floor to prevent SOCRATES crash
 
-    print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
     # Build general adiabat structure
     atm                 = ga.general_adiabat(copy.deepcopy(atm))
-    print("atm.toa_heating in compute_dry_adiabat = ", atm.toa_heating)
 
     # Copy moist pressure arrays for dry adiabat
     atm_dry             = dry_adiabat_atm(atm)
-    print("atm_dry.toa_heating in compute_dry_adiabat = ", atm_dry.toa_heating)
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry         = 0.
@@ -52,10 +50,9 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
 
         # Compute radiation, midpoint method time stepping
         try:
-            atm_dry         = SocRadModel.radCompSoc(atm_dry, dirs, recalc=False, calc_cf=calc_cf, rscatter=rscatter)
-            # print("atm_dry.net_heating in compute_dry_adiabat = ", atm_dry.net_heating)
-            # print("atm_dry.SW_flux_down in compute_dry_adiabat = ", atm_dry.SW_flux_down)
-            
+            if do_cloud:
+                atm_dry         = simple_cloud(atm_dry) # Before radiation, set up the cloud for Socrates using the current PT profile
+            atm_dry         = socrates.radCompSoc(atm_dry, dirs, recalc=False, rscatter=rscatter, do_cloud=do_cloud)
             dT_dry          = atm_dry.net_heating * atm_dry.dt
     
             # Limit the temperature change per step
@@ -78,11 +75,11 @@ def compute_dry_adiabat(atm, dirs, standalone, calc_cf=False, rscatter=False, pu
                 atm_dry.tmp[-1] += dT_dry[-1] * k_turb * (atm_dry.tmp[-1] - atm_dry.ts) 
                 
             # Apply heating
-            atm_dry.tmp     += dT_dry
+            atm_dry.tmp     += dT_dry 
             
             # Pure steam convective adjustment
             if pure_steam_adj:
-                dT_moist = moist_adj(atm_dry.tmp,atm_dry.p,atm_dry.pl,1000.)
+                dT_moist = moist_adj(atm_dry,1000.)
                 atm_dry.tmp     += dT_moist
             
             # Dry convective adjustment

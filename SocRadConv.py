@@ -9,103 +9,95 @@ Tim Lichtenberg (TL)
 Ryan Boukrouche (RB)
 Harrison Nicholls (HN)
 
-AEOLUS radiative-convective model, using SOCRATES for radiative-transfer.
+JANUS radiative-convective model, using SOCRATES for radiative-transfer.
 """
 
+import matplotlib as mpl
+mpl.use('Agg')
+
 import time as t
-import os
+import os, shutil
 import numpy as np
 
 from modules.stellar_luminosity import InterpolateStellarLuminosity
-from modules.radcoupler import RadConvEqm
+from modules.solve_pt import RadConvEqm
+from modules.solve_pt import *
+from modules.plot_flux_balance import plot_fluxes
+from modules.plot_emission_spectrum import plot_emission
+from utils.socrates import CleanOutputDir
 
 import utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import utils.SocRadModel as SocRadModel
 from utils.atmosphere_column import atmos
+import utils.StellarSpectrum as StellarSpectrum
+from utils.ReadSpectralFile import ReadBandEdges
 
 ####################################
 ##### Stand-alone initial conditions
 ####################################
 if __name__ == "__main__":
 
-    print("Start AEOLUS")
+    print("Start JANUS")
+
+    # Set up dirs
+    if os.environ.get('JANUS_DIR') == None:
+        raise Exception("Environment variables not set! Have you sourced JANUS.env?")
+    dirs = {
+            "janus": os.getenv('JANUS_DIR')+"/",
+            "output": os.getenv('JANUS_DIR')+"/output/"
+            }
 
     start = t.time()
     ##### Settings
 
-    # Constants
-    L_sun                   = 3.828e+26        # W, IAU definition
-    AU                      = 1.495978707e+11  # m
-    
     # Planet 
-    time = { "planet": 0., "star": 4567e+6 } # yr,
-    # time_current  = 0                 # yr, time after start of MO
-    # time_offset   = 4567e+6           # yr, time relative to star formation
+    time = { "planet": 0., "star": 4e+9 } # yr,
     star_mass     = 1.0                 # M_sun, mass of star
     mean_distance = 1.0                 # au, orbital distance
     pl_radius     = 6.371e6             # m, planet radius
     pl_mass       = 5.972e24            # kg, planet mass
 
     # Boundary conditions for pressure & temperature
-    T_surf        = 300.0                # K
-    P_top         = 10.0                  # Pa
+    T_surf        = 2800.0               # K
+    P_top         = 1.0                  # Pa
 
     # Define volatiles by mole fractions
-    # P_surf       = 50 * 1e5
-    # vol_mixing = { 
-    #                 "CO2"  : 1.0 - 5e-2,
-    #                 "H2O"  : 5e-2 - 1e-6,
-    #                 "N2"   : 1e-6,  
-    #                 "H2"   : 0.0, 
-    #                 "NH3"  : 0.0,
-    #                 "CH4"  : 0.0, 
-    #                 "O2"   : 0.0, 
-    #                 "CO"   : 0.0, 
-    #                 # # No thermodynamic data, RT only
-    #                 # "O3"   : 0.01, 
-    #                 # "N2O"  : 0.01, 
-    #                 # "NO"   : 0.01, 
-    #                 # "SO2"  : 0.01, 
-    #                 # "NO2"  : 0.01, 
-    #                 # "HNO3" : 0.01, 
-    #                 # "He"   : 0.01, 
-    #                 # "OCS"  : 0.01,
-    #             }
+    # P_surf       =  300.0 * 1e5
     # vol_partial = {}
-
+    # vol_mixing = { 
+    #                 "CO2"  : 0.0,
+    #                 "H2O"  : 1.0,
+    #                 "N2"   : 0.0,
+                # }
+    
     # OR:
     # Define volatiles by partial pressures
     P_surf = 0.0
     vol_mixing = {}
-    vol_partial    = { 
-                          "H2O" :  0.004e5,
-                          "NH3" :  0.,
-                          "CO2" :  0.035e5,
-                          "CH4" :  0.,
-                          "CO"  :  0.,
-                          "O2"  :  0.20e5,
-                          "N2"  :  0.78e5,
-                          "H2"  :  0.
-                        }
+    vol_partial = {
+        "H2O" : 9.0e5,
+        "CO2" : 2.0e5,
+        "CH4" : 3.0e5,
+        "CO" :  5.0e5,
+        "N2" :  4.0e5,
+        "H2" :  1.0e5,
+        }
+
 
     # Stellar heating on/off
     stellar_heating = True
-    
-    # False: interpolate luminosity from age and mass tables. True: define a custom instellation.
-    custom_ISR = False
 
     # Rayleigh scattering on/off
-    rscatter = True
-
-    # Compute contribution function
-    calc_cf = False
+    rscatter = False
 
     # Pure steam convective adjustment
     pure_steam_adj = False
 
     # Tropopause calculation
     trppD = False   # Calculate dynamically?
-    trppT = 70.0     # Fixed tropopause value if not calculated dynamically
+    trppT = 10.0     # Fixed tropopause value if not calculated dynamically
+
+    # Water lookup tables enabled (e.g. for L vs T dependence)
+    water_lookup = False
     
     # Surface temperature time-stepping
     surf_dt = False
@@ -115,35 +107,63 @@ if __name__ == "__main__":
     mix_coeff_atmos = 1e6 # mixing coefficient of the atmosphere [s]
     mix_coeff_surf  = 1e6 # mixing coefficient at the surface [s]
 
+    # Cloud radiation
+    do_cloud = False
+    alpha = 1.0
+    re   = 1.0e-5 # Effective radius of the droplets [m] (drizzle forms above 20 microns)
+    lwm  = 0.8    # Liquid water mass fraction [kg/kg] - how much liquid vs. gas is there upon cloud formation? 0 : saturated water vapor does not turn liquid ; 1 : the entire mass of the cell contributes to the cloud
+    clfr = 0.8    # Water cloud fraction - how much of the current cell turns into cloud? 0 : clear sky cell ; 1 : the cloud takes over the entire area of the cell (just leave at 1 for 1D runs)
+
     # Instellation scaling | 1.0 == no scaling
     Sfrac = 1.0
 
     ##### Function calls
 
-    # Create atmosphere object
-    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, vol_mixing=vol_mixing, vol_partial=vol_partial, calc_cf=calc_cf, trppT=trppT)
+    # Tidy directory
+    if os.path.exists(dirs["output"]):
+        shutil.rmtree(dirs["output"])
+    os.mkdir(dirs["output"])
 
-    # Compute stellar heating
-    S_0, atm.toa_heating = InterpolateStellarLuminosity(star_mass, time, mean_distance, atm.albedo_pl, Sfrac)
+    # Move/prepare spectral file
+    print("Inserting stellar spectrum")
+    StellarSpectrum.InsertStellarSpectrum(
+        dirs["janus"]+"/spectral_files/Dayspring/256/Dayspring.sf",
+        # dirs["janus"]+"/spectral_files/Mallard/Mallard.sf",
+        dirs["janus"]+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        dirs["output"]
+    )
+
+    band_edges = ReadBandEdges(dirs["output"]+"star.sf")
+
+    # Create atmosphere object
+    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges, alpha_cloud=alpha,
+                vol_mixing=vol_mixing, vol_partial=vol_partial, trppT=trppT, req_levels=100, water_lookup=water_lookup, do_cloud=do_cloud, re=re, lwm=lwm, clfr=clfr)
 
     # Set stellar heating on or off
     if stellar_heating == False: 
-        atm.toa_heating = 0.
+        atm.instellation = 0.
     else:
-        print("TOA heating:", round(atm.toa_heating), "W/m^2")
-        
-    # Compute heat flux
-    dirs = {"output": os.getcwd()+"/output", "rad_conv": os.getcwd()}
-    atm_dry, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, calc_cf=calc_cf, rscatter=rscatter, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
-    
+        atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
+        print("Instellation:", round(atm.instellation), "W/m^2")
+
+    # Set up atmosphere with general adiabat
+    atm_dry, atm = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, rscatter=rscatter, do_cloud=do_cloud, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
+
     # Plot abundances w/ TP structure
     if (cp_dry):
-        ga.plot_adiabats(atm_dry,filename="output/dry_ga.pdf")
-        atm_dry.write_PT(filename="output/dry_pt.tsv")
+        ga.plot_adiabats(atm_dry,filename=dirs["output"]+"dry_ga.png")
+        atm_dry.write_PT(filename=dirs["output"]+"dry_pt.tsv")
+        plot_fluxes(atm_dry,filename=dirs["output"]+"dry_fluxes.png")
 
-    ga.plot_adiabats(atm_moist,filename="output/moist_ga.pdf")
-    atm_moist.write_PT(filename="output/moist_pt.tsv")
+    ga.plot_adiabats(atm,filename= dirs["output"]+"moist_ga.png")
+    atm.write_PT(filename= dirs["output"]+"moist_pt.tsv")
+    atm.write_ncdf( dirs["output"]+"moist_atm.nc")
+    plot_fluxes(atm,filename= dirs["output"]+"moist_fluxes.png")
+    plot_emission(atm, dirs["output"]+"toa_emission.png", planck_surface=True, show_bands=True)
 
+    # Tidy
+    CleanOutputDir(os.getcwd())
+    CleanOutputDir(dirs['output'])
 
     end = t.time()
     print("Runtime:", round(end - start,2), "s")
