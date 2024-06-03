@@ -21,6 +21,7 @@ rad_trans/socrates_code/*
 !rad_trans/socrates_code/.gitkeep
 nogit_*
 spectral_files/shared
+fwl_janus.egg-info
 
 # Ignore SOCRATES code files
 rad_trans/socrates_code/*

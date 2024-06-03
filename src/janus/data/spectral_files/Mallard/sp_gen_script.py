@@ -1,23 +1,18 @@
-#!/usr/bin/env python3
-
-# Script to generate spectral files from HITRAN and HITEMP data.
-# This is a highly intensive process, and will take a lot of time and
-# disk space to complete. We recommend running this script inside of a 
-# `screen` session, and allocating a large number of processors to the task.
-
 import os
 import numpy as np
 import shutil
 import glob
-
-RAD_DIR = os.getenv('RAD_DIR')
 
 ###################################
 ########## BASE SETTINGS ##########
 ###################################
 
 # Define data and code directories
+#dir_socrates    = "/Users/tim/bitbucket/pcd_couple-interior-atmosphere/atm_rad_conv/rad_trans/socrates_code/"
+#dat_home        = "/Users/tim/Dropbox/work/Projects/20_greenedge/line_lists/"
 dir_socrates    = RAD_DIR + "/"
+#dir_socrates    = "/home/n/nichollsh/socrates_2211/"
+#dat_home        = "/network/group/aopp/planetary/RTP015_LICHTENBERG_20GEDGE/spectral_files/"
 dat_home        = "/network/group/aopp/planetary/RTP035_NICHOLLS_PROTEUS/linelists/"
 dir_continua    = dat_home+"dat_continua/"
 dir_hitran      = dat_home+"dat_hitran/"
@@ -26,31 +21,32 @@ dir_hitemp      = dat_home+"dat_hitemp/"
 # Specify absorbers that are included
 volatile_list = [ 
                     "H2O", 
-                    #"CO2", 
+                    "CO2", 
                     #"O3", 
                     #"N2O", 
-                    #"CO", 
-                    #"CH4", 
-                    #"O2", 
+                    "CO", 
+                    "CH4", 
+                    "O2", 
                     #"NO", 
                     #"SO2", 
                     #"NO2", 
                     #"NH3", 
                     #"HNO3", 
-                    #"N2", 
-                    #"H2", 
-                    #"He", 
+                    "N2", 
+                    "H2", 
+                    "He", 
                     #"OCS", 
                 ]
 
 # Specify database: HITEMP or HITRAN
+database        = "HITEMP"
 database        = "HITRAN"
 
 # Available modes: 1: production; 2: testing
 run_mode        =  1
  
 # Number of CPU cores
-nprocs          = 60
+nprocs          = 70
 
 # Restart flag. 0: Start always from scratch, 1: Restart from previous state.
 restart         = 0
@@ -396,19 +392,19 @@ if restart == 0 or rs_no == "0":
     # Write band edges one by one
     f.write(str(bands[0])+'\n')
     for band in bands[1:-1]:
-        f.write(str(band)+'\n')
-        f.write(str(band)+'\n')
+    	f.write(str(band)+'\n')
+    	f.write(str(band)+'\n')
     f.write(str(bands[-1])+'\n')
 
     # Set absorbers in each band: line *absorbers IDs*
     # Set to '0' when using MT_CKD or HITEMP data!
     for band in bands[:-1]:
-        f.write('0'+ '\n') # 1 2 5 6 7 13 23
+    	f.write('0'+ '\n') # 1 2 5 6 7 13 23
 
     # Set continua in each band: CIA *indexing IDs*
     # Set to '0' when using MT_CKD or HITEMP data!
     for band in bands[:-1]:
-        f.write('0'+ '\n') # 1 2 3 ... 
+    	f.write('0'+ '\n') # 1 2 3 ... 
 
     # Exclude no bands
     f.write('n'+ '\n')
@@ -1447,40 +1443,3 @@ os.system('rm -rf *n2_*')
 os.system('rm -rf *h2_*')
 os.system('rm -rf *he_*')
 os.system('rm -rf *ocs_*')
-
-kfile = file_name+'_k'
-
-# Open original file
-print("Cleaning k-table file")
-old = open(kfile,'r')
-
-# Work out the pitch of data in the file
-lines = old.readlines()
-sample = str(lines[10]).split() # use line 0 as a sample of the data
-pitch = int(len(sample[0]) + 1)
-if pitch < 8:
-    raise Exception("Could not parse file '%s'" % kfile)
-
-# Remove temp file if it already exists
-temp_file = "temp_k_clean"
-if os.path.isfile(temp_file):
-    os.remove(temp_file)
-
-# Replace NaN values with zero
-new = open(temp_file,'w')
-for l in lines:
-    f = " "*(pitch-3) + "NaN" 				# search for this
-    r = " 0." + "0"*(pitch-7) + "E+00" 		# replace with this
-    n = str(l).replace(f,r)					# do replacement
-    new.write(n)							# write to temp file
-    
-# Done writing
-old.close()
-new.close()
-
-# Copy 'temp' file into location of 'old' file
-os.remove(kfile)
-shutil.copyfile(temp_file, kfile)
-os.remove(temp_file)
-
-
