@@ -1,16 +1,7 @@
-#!/usr/bin/env python3
-
-# Script to generate spectral files from HITRAN and HITEMP data.
-# This is a highly intensive process, and will take a lot of time and
-# disk space to complete. We recommend running this script inside of a 
-# `screen` session, and allocating a large number of processors to the task.
-
 import os
 import numpy as np
 import shutil
 import glob
-
-RAD_DIR = os.getenv('RAD_DIR')
 
 ###################################
 ########## BASE SETTINGS ##########
@@ -396,19 +387,19 @@ if restart == 0 or rs_no == "0":
     # Write band edges one by one
     f.write(str(bands[0])+'\n')
     for band in bands[1:-1]:
-        f.write(str(band)+'\n')
-        f.write(str(band)+'\n')
+    	f.write(str(band)+'\n')
+    	f.write(str(band)+'\n')
     f.write(str(bands[-1])+'\n')
 
     # Set absorbers in each band: line *absorbers IDs*
     # Set to '0' when using MT_CKD or HITEMP data!
     for band in bands[:-1]:
-        f.write('0'+ '\n') # 1 2 5 6 7 13 23
+    	f.write('0'+ '\n') # 1 2 5 6 7 13 23
 
     # Set continua in each band: CIA *indexing IDs*
     # Set to '0' when using MT_CKD or HITEMP data!
     for band in bands[:-1]:
-        f.write('0'+ '\n') # 1 2 3 ... 
+    	f.write('0'+ '\n') # 1 2 3 ... 
 
     # Exclude no bands
     f.write('n'+ '\n')
@@ -1459,7 +1450,7 @@ lines = old.readlines()
 sample = str(lines[10]).split() # use line 0 as a sample of the data
 pitch = int(len(sample[0]) + 1)
 if pitch < 8:
-    raise Exception("Could not parse file '%s'" % kfile)
+	raise Exception("Could not parse file '%s'" % kfile)
 
 # Remove temp file if it already exists
 temp_file = "temp_k_clean"
@@ -1469,11 +1460,11 @@ if os.path.isfile(temp_file):
 # Replace NaN values with zero
 new = open(temp_file,'w')
 for l in lines:
-    f = " "*(pitch-3) + "NaN" 				# search for this
-    r = " 0." + "0"*(pitch-7) + "E+00" 		# replace with this
-    n = str(l).replace(f,r)					# do replacement
-    new.write(n)							# write to temp file
-    
+	f = " "*(pitch-3) + "NaN" 				# search for this
+	r = " 0." + "0"*(pitch-7) + "E+00" 		# replace with this
+	n = str(l).replace(f,r)					# do replacement
+	new.write(n)							# write to temp file
+	
 # Done writing
 old.close()
 new.close()
