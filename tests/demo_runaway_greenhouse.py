@@ -100,15 +100,15 @@ if __name__=='__main__':
         print(" ")
     OLR_arr = np.array(OLR_arr)
     Ts_arr  = np.array(Ts_arr)
-    
+
     # Get literature data
-    g2013 = np.loadtxt(dirs["janus"]+"src/janus/data/comparison_data/Goldblatt13_data.txt",
+    g2013 = np.loadtxt(dirs["janus"]+"data/comparison_data/Goldblatt13_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    k2013 = np.loadtxt(dirs["janus"]+"src/janus/data/comparison_data/Kopparapu13_data.txt",
+    k2013 = np.loadtxt(dirs["janus"]+"data/comparison_data/Kopparapu13_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    h2015 = np.loadtxt(dirs["janus"]+"src/janus/data/comparison_data/Hamano15_data.txt",
+    h2015 = np.loadtxt(dirs["janus"]+"data/comparison_data/Hamano15_data.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
-    s2023 = np.loadtxt(dirs["janus"]+"src/janus/data/comparison_data/Selsis23_convective.txt",
+    s2023 = np.loadtxt(dirs["janus"]+"data/comparison_data/Selsis23_convective.txt",
                           dtype=float, skiprows=2, delimiter=',').T 
 
     # Setup plot
