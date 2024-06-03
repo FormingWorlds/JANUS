@@ -16,7 +16,7 @@ authors = [
     {name = "Hamish Innes", email = "hamish.innes@physics.ox.ac.uk"},
     {name = "Laurent Soucasse", email = "l.soucasse@esciencecenter.nl"},
 ]
-license =  {file = "LICENSE.md"}
+license = {text = "Apache 2.0 License"}
 classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
@@ -24,6 +24,7 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
 ]
+keywords = ["exoplanet", "atmosphere"]
 requires-python = '>=3.10'
 dependencies = [
   'matplotlib',
