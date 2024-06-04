@@ -23,6 +23,16 @@ jobs:
           repository: 'FormingWorlds/SOCRATES'
           path: 'SOCRATES'
 
+      - name: Setup system
+        run: |
+          sudo apt update
+          sudo apt-get install libnetcdff-dev netcdf-bin gfortran gcc
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Build SOCRATES
         run: |
           export LD_LIBRARY_PATH=""
@@ -31,11 +41,6 @@ jobs:
           ./build_code 
           source set_rad_env
           cd ..
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Build JANUS
         run: |
