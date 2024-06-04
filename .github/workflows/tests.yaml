@@ -2,9 +2,8 @@ name: Tests for JANUS
 
 on:
   push:
-    branches: [ "master", "testing" ]
   pull_request:
-    branches: [ "master" ]
+  workflow_dispatch:
 
 jobs:
   test:
