@@ -1,0 +1,52 @@
+name: Tests for JANUS
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get SOCRATES
+        uses: actions/checkout@v4
+        with:
+          repository: 'FormingWorlds/SOCRATES'
+          path: 'SOCRATES'
+
+      - name: Setup system
+        run: |
+          sudo apt update
+          sudo apt-get install libnetcdff-dev netcdf-bin gfortran gcc
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build SOCRATES
+        run: |
+          export LD_LIBRARY_PATH=""
+          cd SOCRATES
+          ./configure
+          ./build_code 
+          source set_rad_env
+          cd ..
+
+      - name: Build JANUS
+        run: |
+          pip install -e .
+
+      - name: Test with pytest
+        run: |
+          pip install pytest
+          source SOCRATES/set_rad_env
+          pytest
