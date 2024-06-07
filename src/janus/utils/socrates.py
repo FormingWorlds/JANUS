@@ -19,7 +19,7 @@ import janus.utils.phys as phys
 
 
 def radCompSoc(atm, dirs, recalc, rscatter=False,
-               rewrite_cfg=True, rewrite_tmp=True, rewrite_gas=True, do_cloud=False):
+               rewrite_cfg=True, rewrite_tmp=True, rewrite_gas=True):
     """Runs SOCRATES to calculate fluxes and heating rates
 
     Parameters
@@ -32,8 +32,6 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
             Is this function call a 'recalculation' case accounting for a tropopause?
         rscatter : bool
             Include Rayleigh scattering?
-        do_cloud : bool
-            Include water cloud radiation?
         rewrite_cfg : bool
             Re-write configuration values (e.g. TOA heating)
         rewrite_PT : bool
@@ -144,7 +142,7 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     if check_gas(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  phys.molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
 
     # Clouds
-    if do_cloud:
+    if atm.do_cloud:
         fthis = basename+'.re'
         if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.re, 're', longname="Effective Radius", units='M') 
 
@@ -165,7 +163,7 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
                     nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  x_gas_this, vol_lower, longname=vol, units='kg/kg') 
 
     # Call sequences for run SOCRATES + move data
-    if do_cloud:
+    if atm.do_cloud:
         seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C ", str(atm.cloud_scheme), " -K ", str(atm.cloud_representation), " -d ", str(atm.droplet_type), " -v ", str(atm.solver), " -u", scatter_flag, " -o"]
         seq_sw_mv = ["fmove", basename,"currentsw"]
         
