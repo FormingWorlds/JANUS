@@ -17,17 +17,12 @@ https://proteus-code.readthedocs.io
 * LS - Laurent Soucasse (l.soucasse@esciencecenter.nl)
 
 ### Repository structure
-* `README.md`                          - This file
-* `JANUS.env`                          - Sets environment flags to run the code
-* `src/janus/SocRadConv.py`            - Main JANUS Python script
-* `src/janus/data/luminosity_tracks/`  - Stellar evolution data
-* `src/janus/data/spectral_files/`     - Spectral files for SOCRATES
-* `src/janus/modules/`                 - Utility python scripts
-* `src/janus/plotting_tools/`          - Plotting scripts
-* `src/janus/utils/`                   - Utility python scripts
-* `tests/demo_runaway_greenhouse.py`   - Demonstrate pure-steam runaway greenhouse OLR curve
-* `tests/demo_instellation.py`         - Calculate fluxes (and temperatures) for different instellations
-* `tools/`                             - Useful tools
+* `README.md`           - This file
+* `src/janus/data/`     - Janus data files
+* `src/janus/modules/`  - Utility python scripts
+* `src/janus/utils/`    - Utility python scripts
+* `examples/`           - Typical use scripts
+* `tools/`              - Useful tools
 
 ### Developer installation instructions
 1. Download and install Socrates
@@ -36,14 +31,11 @@ https://proteus-code.readthedocs.io
     * `./configure`
     * `./build-code`
     * `source set_rad_env`
+    * `cd ..`
 2. Download and install Janus
     * `git clone git@github.com:FormingWorlds/JANUS.git`
     * `cd JANUS`
     * `pip install -e .`
 
 ### Run instructions
-Only attempt to run JANUS after you have followed all of the instructions in INSTALL.md    
-If using a fresh shell, it is necessary to perform the following steps:     
-1. `source JANUS.env`    
-2. `conda activate janus`    
-Then you can run the code by running: `python SocRadConv.py`      
+In the examples folder you can find python scripts showing typical usecases/workflows of atmosphere modelling with Janus.
