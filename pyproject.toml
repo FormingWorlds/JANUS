@@ -47,6 +47,7 @@ develop = [
   "pytest"
 ]
 publishing = [
+  "twine",
   "wheel",
   "build"
 ]
