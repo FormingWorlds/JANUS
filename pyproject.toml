@@ -27,19 +27,29 @@ classifiers = [
 keywords = ["exoplanet", "atmosphere"]
 requires-python = '>=3.10'
 dependencies = [
-  'matplotlib',
-  'natsort',
-  'netcdf4',
-  'numpy',
-  'pandas',
-  'scipy',
-  'seaborn',
-  'tomlkit',
-  'f90nml' 
+  "matplotlib",
+  "natsort",
+  "netcdf4",
+  "numpy",
+  "pandas",
+  "scipy",
+  "seaborn",
+  "tomlkit",
+  "f90nml"
 ]
 
 [project.urls]
 homepage = "https://github.com/FormingWorlds/JANUS"
+
+[project.optional-dependencies]
+develop = [
+  "bump-my-version",
+  "pytest"
+]
+publishing = [
+  "wheel",
+  "build"
+]
 
 [tool.setuptools]
 package-dir = {"janus" = "src/janus"}
@@ -47,3 +57,11 @@ include-package-data = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.bumpversion]
+current_version = "24.04.04"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""
