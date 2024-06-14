@@ -42,9 +42,28 @@ dependencies = [
 [project.urls]
 homepage = "https://github.com/FormingWorlds/JANUS"
 
+[project.optional-dependencies]
+develop = [
+  "bump-my-version",
+  "pytest"
+]
+publishing = [
+  "twine",
+  "wheel",
+  "build"
+]
+
 [tool.setuptools]
 package-dir = {"janus" = "src/janus"}
 include-package-data = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.bumpversion]
+current_version = "24.04.04"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""
