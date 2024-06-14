@@ -5,7 +5,7 @@ mpl.use('Agg')
 mpl.rcParams.update({'font.size': 12})
 
 import matplotlib.pyplot as plt
-import os, shutil
+import os, shutil, toml
 import numpy as np
 from matplotlib.ticker import MultipleLocator
 from importlib.resources import files
@@ -17,47 +17,6 @@ from janus.utils.socrates import CleanOutputDir
 from janus.utils.atmosphere_column import atmos
 import janus.utils.StellarSpectrum as StellarSpectrum
 from janus.utils.ReadSpectralFile import ReadBandEdges
-
-
-def run_once(T_surf, dirs, band_edges):
-
-    # Planet 
-    time = { "planet": 0., "star": 4.5e9 } # yr,
-    star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 0.5                 # au, orbital distance
-    pl_radius     = 6.371e6             # m, planet radius
-    pl_mass       = 5.972e24            # kg, planet mass
-
-    # Boundary conditions for pressure & temperature
-    P_top         = 1.0                  # Pa
-
-    # Define volatiles by mole fractions
-    P_surf       = 300 * 1e5
-    vol_mixing = {
-                    "H2O" : 1.0,
-                    "CO2" : 0.0,
-                    "N2"  : 0.0
-                }
-    
-    # Rayleigh scattering on/off
-    rscatter = False
-
-    # Tropopause calculation
-    trppT = 0.0     # Fixed tropopause value if not calculated dynamically
-    
-    ##### Function calls
-
-    # Create atmosphere object
-    atm            = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges, vol_mixing=vol_mixing, trppT=trppT)
-
-    # Compute stellar heating
-    atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
-
-    # Do rad trans
-    _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, rscatter=rscatter) 
-
-    return [T_surf, atm_moist.LW_flux_up[0]]
-
 
 if __name__=='__main__':
 
@@ -71,7 +30,7 @@ if __name__=='__main__':
             "janus": str(files("janus"))+"/",
             "output": os.path.abspath(os.getcwd())+"/output/"
             }
-    
+
     # Tidy directory
     if os.path.exists(dirs["output"]):
         shutil.rmtree(dirs["output"])
@@ -85,19 +44,44 @@ if __name__=='__main__':
         dirs["output"]
     )
     print(" ")
-
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
-    
+
+    # Open config file
+    cfg_file =  dirs["janus"]+"data/tests/config_runaway.toml"
+    with open(cfg_file, 'r') as f:
+          cfg = toml.load(f)
+
+    # Planet
+    time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
+    star_mass = cfg['star']['star_mass']
+    mean_distance = cfg['star']['mean_distance']
+
+    vol_mixing = {
+                    "H2O" : 1.0,
+                    "CO2" : 0.0,
+                    "N2"  : 0.0
+                }
+    # Create atmosphere object
+    atm = atmos.from_file(cfg_file, band_edges, vol_mixing=vol_mixing, vol_partial={})
+
+    # Compute stellar heating
+    atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
+
+    #Run Janus
+ 
     # Run JANUS in a loop to generate runaway curve
     print("Running JANUS...")
-    Ts_arr = []
+    Ts_arr = np.linspace(200, 2800, 20)
     OLR_arr = []
-    for Ts in np.linspace(200, 2800, 20):
-        print("T_surf = %d K" % Ts)
-        out = run_once(Ts, dirs, band_edges)
-        Ts_arr.append(out[0])
-        OLR_arr.append(out[1])
-        print(" ")
+    for i in range(20):
+      print("T_surf = %d K" % Ts_arr[i])
+      atmos.setSurfaceTemperature(atm, Ts_arr[i])
+
+      _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, rscatter=False)
+
+      OLR_arr.append(atm_moist.LW_flux_up[0])
+      print(" ")
+
     OLR_arr = np.array(OLR_arr)
     Ts_arr  = np.array(Ts_arr)
 

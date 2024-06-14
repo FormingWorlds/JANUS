@@ -1,0 +1,22 @@
+[planet]
+time = 0.0
+pl_radius = 6.371e6
+pl_mass = 5.972e24
+
+[star]
+time = 4.0e+9 # yr
+star_mass     = 1.0 # M_sun, mass of star
+mean_distance = 1.0 # au, orbital distance
+stellar_heating = true
+
+[atmos]
+T_surf = 2800.0
+P_surf = 0.0
+P_top = 1.0
+trppT = 10.0
+req_levels = 100
+do_cloud = false
+alpha = 1.0
+re   = 1.0e-5 # Effective radius of the droplets [m] (drizzle forms above 20 microns)
+lwm  = 0.8    # Liquid water mass fraction [kg/kg] - how much liquid vs. gas is there upon cloud formation? 0 : saturated water vapor does not turn liquid ; 1 : the entire mass of the cell contributes to the cloud
+clfr = 0.8    # Water cloud fraction - how much of the current cell turns into cloud? 0 : clear sky cell ; 1 : the cloud takes over the entire area of the cell (just leave at 1 for 1D runs)
