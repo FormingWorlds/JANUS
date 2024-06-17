@@ -38,12 +38,12 @@ jobs:
         bump-my-version bump --new-version $GITHUB_REF_NAME patch
         git commit -am "Bump version to: $GITHUB_REF_NAME"
 
-    - name: Push back changes to main and tag
+    - name: Push back changes to master and tag
       run: |
         git tag --force $GITHUB_REF_NAME HEAD
         git push --force --tags
-        git switch -C main
-        git push --set-upstream -f origin main
+        git switch -C master
+        git push --set-upstream -f origin master
 
   deploy:
     needs: fix_release_deps
