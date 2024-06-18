@@ -22,7 +22,7 @@ import janus.utils.socrates as socrates
 import janus.utils.phys as phys
 
 # Time integration for n steps
-def compute_dry_adiabat(atm, dirs, standalone, rscatter=False, pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6, do_cloud=False):
+def compute_dry_adiabat(atm, dirs, standalone, rscatter=False, pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
 
     # Dry adiabat settings 
     rad_steps   = 100  # Maximum number of radiation steps
@@ -50,14 +50,14 @@ def compute_dry_adiabat(atm, dirs, standalone, rscatter=False, pure_steam_adj=Fa
 
         # Compute radiation, midpoint method time stepping
         try:
-            if do_cloud:
+            if atm.do_cloud:
                 atm_dry         = simple_cloud(atm_dry) # Before radiation, set up the cloud for Socrates using the current PT profile
-            atm_dry         = socrates.radCompSoc(atm_dry, dirs, recalc=False, rscatter=rscatter, do_cloud=do_cloud)
-            dT_dry          = atm_dry.net_heating * atm_dry.dt
+                atm_dry         = socrates.radCompSoc(atm_dry, dirs, recalc=False, rscatter=rscatter)
+                dT_dry          = atm_dry.net_heating * atm_dry.dt
     
-            # Limit the temperature change per step
-            dT_dry          = np.where(dT_dry > dT_max, dT_max, dT_dry)
-            dT_dry          = np.where(dT_dry < -dT_max, -dT_max, dT_dry)
+                # Limit the temperature change per step
+                dT_dry          = np.where(dT_dry > dT_max, dT_max, dT_dry)
+                dT_dry          = np.where(dT_dry < -dT_max, -dT_max, dT_dry)
     
             # Do the surface balance
             if surf_dt:

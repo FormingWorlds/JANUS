@@ -14,7 +14,7 @@ from janus.modules.compute_moist_adiabat import compute_moist_adiabat
 from janus.modules.dry_adiabat_timestep import compute_dry_adiabat
 from janus.utils.atmosphere_column import atmos
 
-def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool, do_cloud:bool=False, 
+def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool,
                pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
     """Sets the atmosphere to a temperature profile using the general adiabat. 
     
@@ -36,8 +36,6 @@ def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatt
             Calculate tropopause dynamically?
         rscatter : bool
             Include rayleigh scattering?
-        do_cloud : bool
-            Include water cloud radiation?
         pure_steam_adj : bool
             Use pure steam adjustment?
         surf_dt : float
@@ -53,13 +51,13 @@ def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatt
 
     ### Moist/general adiabat
 
-    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter, do_cloud)
+    atm_moist = compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter)
 
     ### Dry adiabat
     if cp_dry == True:
 
         # Compute dry adiabat  w/ timestepping
-        atm_dry   = compute_dry_adiabat(atm, dirs, standalone, rscatter, pure_steam_adj, surf_dt, cp_surf, mix_coeff_atmos, mix_coeff_surf, do_cloud)
+        atm_dry   = compute_dry_adiabat(atm, dirs, standalone, rscatter, pure_steam_adj, surf_dt, cp_surf, mix_coeff_atmos, mix_coeff_surf)
 
         if standalone == True:
             print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
@@ -99,7 +97,7 @@ def MCPA(dirs, atm, standalone:bool, trppD:bool, rscatter:bool):
     """
 
     ### Moist/general adiabat
-    return compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter, do_cloud=atm.do_cloud)
+    return compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter)
 
 def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_guess:float=-1, T_surf_max:float=-1, method:int=0, atol:float=1.0e-3):
     """Calculates the temperature profile using the multiple-condensible pseudoadiabat and steps T_surf to conserve energy.
@@ -172,7 +170,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     def func(x):
 
         print("Evaluating at T_surf = %.1f K" % x)
-        atm_tmp = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, rscatter, do_cloud=do_cloud)
+        atm_tmp = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, rscatter)
 
         if atm_bc == 0:
             F_atm = atm_tmp.net_flux[0]  
@@ -227,7 +225,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
         print("    Using T_surf = %g K" % T_surf)
 
     # Get atmosphere state from solution value
-    atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, rscatter, do_cloud=do_cloud)
+    atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, rscatter)
     atm.ts = T_surf
 
     if atm_bc == 0:

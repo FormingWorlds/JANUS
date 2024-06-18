@@ -18,7 +18,7 @@ from janus.modules.relative_humidity import compute_Rh
 import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import janus.utils.socrates as socrates
 
-def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False, do_cloud=False):
+def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False):
     """Compute moist adiabat case
 
     Parameters
@@ -33,8 +33,6 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False, do_cloud
             Calculate tropopause dynamically?
         rscatter : bool
             Include Rayleigh scattering?
-        do_cloud : bool
-            Include water cloud radiation?
             
     """
 
@@ -45,11 +43,11 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False, do_cloud
     
     atm_moist.rh = compute_Rh(atm_moist)
 
-    if do_cloud:
+    if atm.do_cloud:
         atm_moist = simple_cloud(atm_moist) # Before radiation, set up the cloud for Socrates using the current PT profile
 
     # Run SOCRATES
-    atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=False, rscatter=rscatter, do_cloud=do_cloud)
+    atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=False, rscatter=rscatter)
 
     if standalone == True:
         print("w/o stratosphere (net, OLR): " + str(round(atm_moist.net_flux[0], 3)) +" , "+str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")
@@ -63,10 +61,10 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False, do_cloud
         # Reset stratosphere temperature and abundance levels
         atm_moist = set_stratosphere(atm_moist)
 
-        if do_cloud:
+        if atm.do_cloud:
             atm_moist = simple_cloud(atm_moist) # Update cloud location after previous PT changes
         # Recalculate fluxes w/ new atmosphere structure
-        atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=True, rscatter=rscatter, do_cloud=do_cloud)
+        atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=True, rscatter=rscatter)
 
         if standalone == True:
             print("w/ stratosphere (net, OLR): " + str(round(atm_moist.net_flux[0], 3)) + " , " + str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")

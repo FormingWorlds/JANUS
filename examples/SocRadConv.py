@@ -16,7 +16,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 
 import time as t
-import os, shutil
+import os, shutil, toml
 import numpy as np
 from importlib.resources import files
 
@@ -49,30 +49,16 @@ if __name__ == "__main__":
 
     start = t.time()
     ##### Settings
+    cfg_file =  dirs["janus"]+"data/tests/config_janus.toml"
+    with open(cfg_file, 'r'):
+          cfg = toml.load(cfg_file)  
 
-    # Planet 
-    time = { "planet": 0., "star": 4e+9 } # yr,
-    star_mass     = 1.0                 # M_sun, mass of star
-    mean_distance = 1.0                 # au, orbital distance
-    pl_radius     = 6.371e6             # m, planet radius
-    pl_mass       = 5.972e24            # kg, planet mass
-
-    # Boundary conditions for pressure & temperature
-    T_surf        = 2800.0               # K
-    P_top         = 1.0                  # Pa
-
-    # Define volatiles by mole fractions
-    # P_surf       =  300.0 * 1e5
-    # vol_partial = {}
-    # vol_mixing = { 
-    #                 "CO2"  : 0.0,
-    #                 "H2O"  : 1.0,
-    #                 "N2"   : 0.0,
-                # }
-    
-    # OR:
+    # Planet
+    time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
+    star_mass = cfg['star']['star_mass']
+    mean_distance = cfg['star']['mean_distance']
+ 
     # Define volatiles by partial pressures
-    P_surf = 0.0
     vol_mixing = {}
     vol_partial = {
         "H2O" : 9.0e5,
@@ -83,43 +69,6 @@ if __name__ == "__main__":
         "H2" :  1.0e5,
         }
 
-
-    # Stellar heating on/off
-    stellar_heating = True
-
-    # Rayleigh scattering on/off
-    rscatter = False
-
-    # Pure steam convective adjustment
-    pure_steam_adj = False
-
-    # Tropopause calculation
-    trppD = False   # Calculate dynamically?
-    trppT = 10.0     # Fixed tropopause value if not calculated dynamically
-
-    # Water lookup tables enabled (e.g. for L vs T dependence)
-    water_lookup = False
-    
-    # Surface temperature time-stepping
-    surf_dt = False
-    cp_dry = False
-    # Options activated by surf_dt
-    cp_surf = 1e5         # Heat capacity of the ground [J.kg^-1.K^-1]
-    mix_coeff_atmos = 1e6 # mixing coefficient of the atmosphere [s]
-    mix_coeff_surf  = 1e6 # mixing coefficient at the surface [s]
-
-    # Cloud radiation
-    do_cloud = False
-    alpha = 1.0
-    re   = 1.0e-5 # Effective radius of the droplets [m] (drizzle forms above 20 microns)
-    lwm  = 0.8    # Liquid water mass fraction [kg/kg] - how much liquid vs. gas is there upon cloud formation? 0 : saturated water vapor does not turn liquid ; 1 : the entire mass of the cell contributes to the cloud
-    clfr = 0.8    # Water cloud fraction - how much of the current cell turns into cloud? 0 : clear sky cell ; 1 : the cloud takes over the entire area of the cell (just leave at 1 for 1D runs)
-
-    # Instellation scaling | 1.0 == no scaling
-    Sfrac = 1.0
-
-    ##### Function calls
-
     # Tidy directory
     if os.path.exists(dirs["output"]):
         shutil.rmtree(dirs["output"])
@@ -129,7 +78,6 @@ if __name__ == "__main__":
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         dirs["janus"]+"data/spectral_files/Dayspring/256/Dayspring.sf",
-        # dirs["janus"]+"data/spectral_files/Reach/Reach.sf",
         dirs["janus"]+"data/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
@@ -137,25 +85,32 @@ if __name__ == "__main__":
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
 
     # Create atmosphere object
-    atm = atmos(T_surf, P_surf, P_top, pl_radius, pl_mass, band_edges, alpha_cloud=alpha,
-                vol_mixing=vol_mixing, vol_partial=vol_partial, trppT=trppT, req_levels=100, water_lookup=water_lookup, do_cloud=do_cloud, re=re, lwm=lwm, clfr=clfr)
+    atm = atmos.from_file(cfg_file, band_edges, vol_mixing=vol_mixing, vol_partial=vol_partial)
 
     # Set stellar heating on or off
-    if stellar_heating == False: 
+    if cfg['star']['stellar_heating'] == False: 
         atm.instellation = 0.
     else:
         atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
         print("Instellation:", round(atm.instellation), "W/m^2")
 
     # Set up atmosphere with general adiabat
-    atm_dry, atm = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=cp_dry, trppD=trppD, rscatter=rscatter, do_cloud=do_cloud, pure_steam_adj=pure_steam_adj, surf_dt=surf_dt, cp_surf=cp_surf, mix_coeff_atmos=mix_coeff_atmos, mix_coeff_surf=mix_coeff_surf) 
+    atm_dry, atm = RadConvEqm(dirs,
+                              time,
+                              atm,
+                              standalone=True,
+                              cp_dry=False,
+                              trppD=False, # Calculate dynamically?
+                              rscatter=False, # Rayleigh scattering on/off
+                              pure_steam_adj=False, # Pure steam convective adjustment
+                              surf_dt=False, # Surface temperature time-stepping
+                              # Options activated by surf_dt
+                              cp_surf=1e5, # Heat capacity of the ground [J.kg^-1.K^-1],
+                              mix_coeff_atmos=1e6, # mixing coefficient of the atmosphere [s]
+                              mix_coeff_surf=1e6 # mixing coefficient at the surface [s]
+                              )
 
     # Plot abundances w/ TP structure
-    if (cp_dry):
-        ga.plot_adiabats(atm_dry,filename=dirs["output"]+"dry_ga.png")
-        atm_dry.write_PT(filename=dirs["output"]+"dry_pt.tsv")
-        plot_fluxes(atm_dry,filename=dirs["output"]+"dry_fluxes.png")
-
     ga.plot_adiabats(atm,filename= dirs["output"]+"moist_ga.png")
     atm.write_PT(filename= dirs["output"]+"moist_pt.tsv")
     atm.write_ncdf( dirs["output"]+"moist_atm.nc")
