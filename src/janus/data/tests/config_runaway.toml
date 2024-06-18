@@ -1,0 +1,14 @@
+[planet]
+time = 0.0
+pl_radius = 6.371e6
+pl_mass = 5.972e24
+
+[star]
+time = 100e+6       # yr
+star_mass     = 1.0 # M_sun, mass of star
+mean_distance = 0.5 # au, orbital distance
+
+[atmos]
+P_surf = 3.0e7
+P_top = 1.0
+trppT = 0.0

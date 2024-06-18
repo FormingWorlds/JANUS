@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 from importlib.resources import files
 
-import os, shutil
+import os, shutil, toml
 import numpy as np
 
 from janus.modules.stellar_luminosity import InterpolateStellarLuminosity
@@ -19,84 +19,9 @@ import janus.utils.StellarSpectrum as StellarSpectrum
 import janus.utils.phys as phys
 from janus.utils.ReadSpectralFile import ReadBandEdges
 
-def run_once(sep, dirs, T_magma, P_surf, skin_d, band_edges):
-
-    # Planet 
-    time = { "planet": 0., "star": 100e+6 } # yr,
-    star_mass     = 1.0                 # M_sun, mass of star
-    pl_radius     = 6.371e6             # m, planet radius
-    pl_mass       = 5.972e24            # kg, planet mass
-
-    # Boundary conditions for pressure & temperature
-    P_top         = 1.0                  # Pa
-
-    # Define volatiles by mole fractions
-    vol_mixing = {
-                    "H2O" : 1.0,
-                    "CO2" : 0.0,
-                    "N2"  : 0.0
-                }
-    
-    rscatter = True
-    A_B = 0.1  # bond albedo
-    A_S = 0.1
-    inst_sf = 3.0/8.0
-    
-    ##### Function calls
-
-    S_0 = InterpolateStellarLuminosity(star_mass, time, sep) 
-
-    zenith_angle = 48.19 # cronin+14 (also for scaling by a factor of 3/8 ^^)
-
-    T_eqm = (S_0 * inst_sf * (1.0 - A_B) /phys.sigma)**(1.0/4.0)
-    T_trpp = T_eqm * (0.5**0.25)  # radiative skin temperature
-
-    # Create atmosphere object
-    atm = atmos(T_magma,  P_surf * 1e5, P_top, pl_radius, pl_mass, band_edges,
-                vol_mixing=vol_mixing, trppT=T_trpp, req_levels=150)
-    atm.albedo_pl = A_B
-    atm.albedo_s  = A_S
-    atm.inst_sf = inst_sf
-    atm.zenith_angle = zenith_angle
-    atm.instellation = S_0
-    atm.skin_d = skin_d
-    atm.tmp_magma = T_magma
-
-    # Do rad trans
-    atm = MCPA_CBL(dirs, atm, False, rscatter, T_surf_max=9.0e99, T_surf_guess = T_trpp+100)
-
-    # Plot case 
-    plt.ioff()
-    fig,ax = plt.subplots(1,1)
-    ax.plot(atm.tmpl, atm.pl, color='black', lw=2)
-    ax.set_yscale("log"); ax.invert_yaxis()
-    ax.set_ylabel("Pressure [Pa]")
-    ax.set_xlabel("Temperature [K]")
-    ax.set_title("a = %g AU" % sep)
-    fig.savefig(dirs["output"]+"/recent.jpg",bbox_inches='tight', dpi=100)
-    plt.close()
-
-    # Save netcdf
-    atm.write_ncdf(dirs["output"]+"/recent.nc")
-
-    return [atm.SW_flux_down[0], atm.LW_flux_up[0], atm.net_flux[0], atm.ts, T_trpp]
-
-
 if __name__=='__main__':
 
     print("Start")
-
-    # Planet data
-    x_planets = {
-        "Earth": 1.0,
-        "Venus": 0.723,
-        "Mercury": 0.387
-    }
-    c_planets = {
-        "Earth": 'deepskyblue',
-        "Venus": 'goldenrod',
-        "Mercury": 'violet'
-    }
 
     # Set up dirs
     if os.environ.get('RAD_DIR') == None:
@@ -105,7 +30,7 @@ if __name__=='__main__':
             "janus": str(files("janus"))+"/",
             "output": os.path.abspath(os.getcwd())+"/output/"
             }
-    
+
     # Tidy directory
     if os.path.exists(dirs["output"]):
         shutil.rmtree(dirs["output"])
@@ -118,48 +43,76 @@ if __name__=='__main__':
         dirs["janus"]+"data/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
-
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
 
+    # Open config file
+    cfg_file =  dirs["janus"]+"data/tests/config_instellation.toml"
+    with open(cfg_file, 'r') as f:
+          cfg = toml.load(f)
+
+    # Planet
+    time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
+    star_mass = cfg['star']['star_mass']
+
+    # Define volatiles by mole fractions
+    vol_mixing = {
+                    "H2O" : 1.0,
+                    "CO2" : 0.0,
+                    "N2"  : 0.0
+                }
+
+
     # PARAMETERS
-    P_surf  = 280.0   # surface pressure [bar]
-    T_magma = 3000.0  # magma temperature [K]
-    skin_d  = 1e-2  # conductive skin thickness [m]
-    r_inner = 0.3     # inner orbital distane [AU]
-    r_outer = 1.4     # outer orbital distance [AU]
-    samples = 7       # number of samples
-    logx    = False   # log x-axis?
     legend  = True    # make legend?
     dx_tick = 0.1     # x-tick spacing (set to 0 for automatic)
     # /PARAMETERS
+
+    # Create atmosphere object
+    atm = atmos.from_file(cfg_file, band_edges, vol_mixing=vol_mixing, vol_partial={})
+    T_magma = atm.tmp_magma #get default value 3000 K but this could be a config option
+
+    r_arr = np.linspace(0.3, 1.4, 7) # orbital distance range [AU]
     
-    # Run JANUS in a loop to generate data
-    if logx:
-        r_arr = np.logspace( np.log10(r_inner), np.log10(r_outer), samples)
-    else:
-        r_arr = np.linspace(r_inner, r_outer, samples)
     asf_arr  = []   # ASF
     OLR_arr = []    # OLR
     net_arr = []    # net flux at TOA
     ts_arr  = []    # surface temperature
     tr_arr  = []    # tropopause temperature
-    for r in r_arr:
-        print("Orbital separation = %.2f AU" % r)
-        out = run_once(r, dirs, T_magma, P_surf, skin_d, band_edges)
-        asf_arr.append(out[0] * -1.0)  # directed downwards => minus sign
-        OLR_arr.append(out[1])
-        net_arr.append(out[2])
-        ts_arr.append(out[3])
-        tr_arr.append(out[4])
-        print(" ")
+    for i in range(7):
+      print("Orbital separation = %.2f AU" % r_arr[i])
+
+      atm.instellation = InterpolateStellarLuminosity(star_mass, time, r_arr[i])
+      atmos.setTropopauseTemperature(atm)
+
+      atm = MCPA_CBL(dirs, atm, False, rscatter = True, T_surf_max=9.0e99, T_surf_guess = atm.trppT+100)
+
+      asf_arr.append(atm.SW_flux_down[0] * -1.0)  # directed downwards => minus sign
+      OLR_arr.append(atm.LW_flux_up[0])
+      net_arr.append(atm.net_flux[0])
+      ts_arr.append(atm.ts)
+      tr_arr.append(atm.trppT)
+
+      # Plot case 
+      plt.ioff()
+      fig,ax = plt.subplots(1,1)
+      ax.plot(atm.tmpl, atm.pl, color='black', lw=2)
+      ax.set_yscale("log"); ax.invert_yaxis()
+      ax.set_ylabel("Pressure [Pa]")
+      ax.set_xlabel("Temperature [K]")
+      ax.set_title("a = %.2f AU" %r_arr[i])
+      fig.savefig(dirs["output"]+"/profile%.2fAU.jpg"%r_arr[i],bbox_inches='tight', dpi=100)
+      plt.close()
+
+      # Save netcdf
+      atm.write_ncdf(dirs["output"]+"/profile%.2fAU.nc"%r_arr[i])
+
+      print(" ")
 
     save_arr = [r_arr, asf_arr, OLR_arr, net_arr, ts_arr, tr_arr]
     np.savetxt(dirs["output"]+"/data_%dK.csv"%T_magma, 
                np.array(save_arr).T, fmt="%.5e", delimiter=",",
                header="r [AU],  S_0 [W m-2], OLR [W m-2], net [W m-2], ts [K], tr[K] ")
     
-    # Setup plot
-    lw = 2.5
     print("Making plots")
 
     plt.ioff()
@@ -171,16 +124,13 @@ if __name__=='__main__':
     ax1.text(r_arr[0], -1.0, "Warming", verticalalignment='center', color='seagreen', weight='bold', zorder=8).set_bbox(dict(facecolor='white', alpha=0.7, linewidth=0))
     ax1.axhline(y=0, color='black', lw=0.7, zorder=0)  # zero flux
 
-    ax1.plot(r_arr, asf_arr, color='royalblue', lw=lw, label='ASF')    # absorbed stellar flux (sw down)
-    ax1.plot(r_arr, OLR_arr, color='crimson',   lw=lw, label='OLR')    # outgoing longwave radiation (lw up)
-    ax1.plot(r_arr, net_arr, color='seagreen' , lw=lw, label='Net')    # net upward-directed flux
+    ax1.plot(r_arr, asf_arr, color='royalblue', lw=2.5, label='ASF')    # absorbed stellar flux (sw down)
+    ax1.plot(r_arr, OLR_arr, color='crimson',   lw=2.5, label='OLR')    # outgoing longwave radiation (lw up)
+    ax1.plot(r_arr, net_arr, color='seagreen' , lw=2.5, label='Net')    # net upward-directed flux
 
-    if legend:
-        ax1.legend(loc='center right', framealpha=1.0)
+    ax1.legend(loc='center right', framealpha=1.0)
     ax1.set_yscale("symlog")
     ax1.set_ylabel("Upward flux [W m$^{-2}$]")
-    if logx:
-        ax1.set_xscale("log")
     ax1.set_xticklabels([])
     if dx_tick > 1.0e-10:
         ax1.xaxis.set_minor_locator(MultipleLocator(dx_tick))
@@ -189,19 +139,27 @@ if __name__=='__main__':
     yticks = np.delete(yticks, np.argwhere( yticks == 0.0 ))
     ax1.set_yticks(yticks)
 
+    # Planet data
+    x_planets = {
+        "Earth": 1.0,
+        "Venus": 0.723,
+        "Mercury": 0.387
+    }
+    c_planets = {
+        "Earth": 'deepskyblue',
+        "Venus": 'goldenrod',
+        "Mercury": 'violet'
+    }
     for p in x_planets.keys():
         for ax in (ax1,ax2):
-            ax.axvline(x=x_planets[p], color=c_planets[p], lw=lw*0.5, linestyle='dashed', label=p , zorder=1)
+            ax.axvline(x=x_planets[p], color=c_planets[p], lw=3, linestyle='dashed', label=p , zorder=1)
 
     arr_magma = np.ones(len(r_arr))*T_magma
-    ax2.plot(r_arr, np.zeros(len(r_arr)), zorder=6, color='silver', lw=lw, label=r"$\tilde{T}_s$") # magma temperature
-    ax2.plot(r_arr, ts_arr - arr_magma,   zorder=6, color='black',  lw=lw, label=r"$T_s$") # surface solution temperature 
+    ax2.plot(r_arr, np.zeros(len(r_arr)), zorder=6, color='silver', lw=2.5, label=r"$\tilde{T}_s$") # magma temperature
+    ax2.plot(r_arr, ts_arr - arr_magma,   zorder=6, color='black',  lw=2.5, label=r"$T_s$") # surface solution temperature 
 
-    if legend:
-        ax2.legend(loc='center right', framealpha=1.0)
+    ax2.legend(loc='center right', framealpha=1.0)
     ax2.set_ylabel(r"$T - \tilde{T_s}$ [K]")
-    if logx:
-        ax2.set_xscale("log")
     if dx_tick > 1.0e-10:
         ax2.xaxis.set_minor_locator(MultipleLocator(dx_tick))
 
