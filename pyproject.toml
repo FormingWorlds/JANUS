@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-janus"
-version = "24.04.04"
+version = "24.6.26"
 description = "Temperature structure generator for planetory atmospheres."
 readme = "README.md"
 authors = [
@@ -61,7 +61,7 @@ include-package-data = true
 testpaths = ["tests"]
 
 [tool.bumpversion]
-current_version = "24.04.04"
+current_version = "24.6.26"
 
 [[tool.bumpversion.files]]
 filename = "pyproject.toml"
