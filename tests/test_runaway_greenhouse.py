@@ -12,12 +12,15 @@ from janus.utils.socrates import CleanOutputDir
 from janus.utils.atmosphere_column import atmos
 import janus.utils.StellarSpectrum as StellarSpectrum
 from janus.utils.ReadSpectralFile import ReadBandEdges
+from janus.utils.data import DownloadSpectralFiles
 
 def test_runaway_greenhouse():
 
     # Set up dirs
     if os.environ.get('RAD_DIR') == None:
         raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
+    if os.environ.get('FWL_DATA') == None:
+        raise Exception("The FWL_DATA environment variable where spectral data will be downloaded needs to be set up!")
     dirs = {
             "janus": str(files("janus"))+"/",
             "output": os.path.abspath(os.getcwd())+"/output/"
@@ -28,11 +31,15 @@ def test_runaway_greenhouse():
         shutil.rmtree(dirs["output"])
     os.mkdir(dirs["output"])
 
+    #Download required spectral files
+    DownloadSpectralFiles("/Oak")
+    DownloadSpectralFiles("/stellar_spectra")
+
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        dirs["janus"]+"data/spectral_files/Oak/Oak.sf",
-        dirs["janus"]+"data/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
+        os.environ.get('FWL_DATA')+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
         dirs["output"]
     )
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
