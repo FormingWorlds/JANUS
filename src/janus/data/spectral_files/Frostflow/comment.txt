@@ -1,3 +1,0 @@
-Replaces Oak. Derived from DACE/POKAZATEL absorption data.
-Contains cloud scattering properties.
-
