@@ -31,6 +31,7 @@ dependencies = [
   'natsort',
   'netcdf4',
   'numpy',
+  'osfclient',
   'pandas',
   'scipy',
   'seaborn',
