@@ -1,6 +1,7 @@
 # atmosphere_column.py
 # class for atmospheric column data
 
+import toml
 import numpy as np
 import netCDF4 as nc
 from janus.utils import phys
@@ -11,10 +12,12 @@ import pwd
 class atmos:
     
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
-                 band_edges:list,
-                 vol_mixing: dict = {}, vol_partial: dict = {},
+                 band_edges:list, vol_mixing: dict = {}, vol_partial: dict = {},
                  req_levels: int = 100, water_lookup: bool=False, alpha_cloud:float=0.0,
-                 trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0, do_cloud: bool=False, re: float=0., lwm: float=0., clfr: float=0.):
+                 trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0, do_cloud: bool=False,
+                 re: float=0., lwm: float=0., clfr: float=0.,
+                 albedo_s: float=0.0, albedo_pl: float=0.175, zenith_angle: float=54.74
+                 ):
         
         """Atmosphere class    
     
@@ -62,7 +65,12 @@ class atmos:
                 Liquid water mass fraction [kg/kg]
             clfr : float
                 Water cloud fraction [adimensional]
-                
+            albedo_s : float
+                Surface albedo
+            albedo_pl : float
+                Bond albedo (scattering) applied to self.toa_heating in socrates.py
+            zenith_angle : float
+                solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+10: 48.19
         """
 
         # Parse volatiles 
@@ -128,9 +136,9 @@ class atmos:
         self.toa_heating    = 0.                            # ASF
 
         self.inst_sf        = 3.0/8.0                       # Scale factor applied to instellation (see Cronin+14 for definitions)
-        self.albedo_s   	= 0.0 							# surface albedo
-        self.albedo_pl   	= 0.175 						# Bond albedo (scattering) applied to self.toa_heating in socrates.py
-        self.zenith_angle  	= 54.74							# solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+10: 48.19 (arccos(2/3)), see Cronin+14 for definitions
+        self.albedo_s   	= albedo_s                      # surface albedo
+        self.albedo_pl   	= albedo_pl                     # Bond albedo (scattering) applied to self.toa_heating in socrates.py
+        self.zenith_angle  	= zenith_angle                  # solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+10: 48.19 (arccos(2/3)), see Cronin+14 for definitions
 
         self.planet_mass    = pl_mass
         self.planet_radius  = pl_radius
@@ -250,6 +258,56 @@ class atmos:
             self.liquid_water_fraction  = 0.0
             self.cloud_fraction         = 0.0
 
+    #New contructor based on toml file
+    @classmethod
+    def from_file(atm, file: str, band_edges: list, vol_mixing: dict = {}, vol_partial: dict = {}):
+
+        with open(file, 'r') as f:
+          cfg = toml.load(f)
+
+        # Set parameters according to toml file if key present
+        # Otherwise set default values
+        T_surf     = cfg['atmos']['T_surf']     if "T_surf"     in cfg['atmos'] else 0.0
+        P_surf     = cfg['atmos']['P_surf']     if "P_surf"     in cfg['atmos'] else 1.0e5
+        P_top      = cfg['atmos']['P_top']      if "P_top"      in cfg['atmos'] else 1.0
+        pl_radius  = cfg['planet']['pl_radius'] if "pl_radius"  in cfg['planet'] else 6.371e6
+        pl_mass    = cfg['planet']['pl_mass']   if "pl_mass"    in cfg['planet'] else 5.972e24
+        #optional arguments
+        req_levels = cfg['atmos']['req_levels'] if "req_levels" in cfg['atmos'] else 100
+        alpha      = cfg['atmos']['alpha']      if "alpha"      in cfg['atmos'] else 0.
+        trppT      = cfg['atmos']['trppT']      if "trppT"      in cfg['atmos'] else 290.0
+        do_cloud   = cfg['atmos']['do_cloud']   if "do_cloud"   in cfg['atmos'] else False
+        re         = cfg['atmos']['re']         if "re"         in cfg['atmos'] else 0.
+        lwm        = cfg['atmos']['lwm']        if "lwm"        in cfg['atmos'] else 0.
+        clfr       = cfg['atmos']['clfr']       if "clfr"       in cfg['atmos'] else 0.
+        albedo_pl  = cfg['atmos']['albedo_pl']  if "albedo_pl"  in cfg['atmos'] else 0.175
+        albedo_s   = cfg['atmos']['albedo_s']   if "albedo_s"   in cfg['atmos'] else 0.
+        zenith_angle = cfg['atmos']['zenith_angle'] if "zenith_angle" in cfg['atmos'] else 54.74
+
+        return atm(T_surf, P_surf, P_top, pl_radius, pl_mass,
+                   band_edges, vol_mixing, vol_partial,
+                   #optional arguments
+                   req_levels=req_levels,
+                   alpha_cloud=alpha,
+                   trppT=trppT,
+                   do_cloud=do_cloud,
+                   re=re,
+                   lwm=lwm,
+                   clfr=clfr,
+                   albedo_pl=albedo_pl,
+                   albedo_s=albedo_s,
+                   zenith_angle=zenith_angle)
+
+    def setSurfaceTemperature(self, Tsurf: float):
+
+        self.ts      = Tsurf
+        self.tmp[0]  = Tsurf
+        self.tmpl[0] = Tsurf
+
+    def setTropopauseTemperature(self):
+
+        T_eqm = (self.instellation * self.inst_sf * (1.0 - self.albedo_pl) /phys.sigma)**(1.0/4.0)
+        self.trppT = T_eqm * (0.5**0.25)  # radiative skin temperature
 
     def write_PT(self,filename: str="output/PT.tsv", punit:str = "Pa"):
         """Write PT profile to file, with descending pressure.

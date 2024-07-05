@@ -17,22 +17,15 @@ Tprofile.pdf
 .DS_Store
 .vscode
 __pycache__/
-rad_trans/socrates_code/*
-!rad_trans/socrates_code/.gitkeep
 nogit_*
-spectral_files/shared
+src/janus/data/spectral_files/shared
 fwl_janus.egg-info
-
-# Ignore SOCRATES code files
-rad_trans/socrates_code/*
 
 # Video files
 *.mp4
-spectral_files/sp_b318_HITRAN_a16_gen_original
-spectral_files/sp_b318_HITRAN_a16_2203/temp
-spectral_files/sp_b318_HITRAN_a16_2203
-socrates_2002.tar.xz
-set_rad_env
+src/janus/data/spectral_files/sp_b318_HITRAN_a16_gen_original
+src/janus/data/spectral_files/sp_b318_HITRAN_a16_2203/temp
+src/janus/data/spectral_files/sp_b318_HITRAN_a16_2203
 
 output/
 utils/*.ipynb*

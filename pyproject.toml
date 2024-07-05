@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-janus"
-version = "24.04.04"
+version = "24.6.26"
 description = "Temperature structure generator for planetory atmospheres."
 readme = "README.md"
 authors = [
@@ -31,9 +31,11 @@ dependencies = [
   'natsort',
   'netcdf4',
   'numpy',
+  'osfclient',
   'pandas',
   'scipy',
   'seaborn',
+  'toml',
   'tomlkit',
   'f90nml' 
 ]
@@ -41,9 +43,28 @@ dependencies = [
 [project.urls]
 homepage = "https://github.com/FormingWorlds/JANUS"
 
+[project.optional-dependencies]
+develop = [
+  "bump-my-version",
+  "pytest"
+]
+publishing = [
+  "twine",
+  "wheel",
+  "build"
+]
+
 [tool.setuptools]
 package-dir = {"janus" = "src/janus"}
 include-package-data = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.bumpversion]
+current_version = "24.6.26"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""
