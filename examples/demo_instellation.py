@@ -11,14 +11,10 @@ from importlib.resources import files
 import os, shutil, toml
 import numpy as np
 
-from janus.modules.stellar_luminosity import InterpolateStellarLuminosity
-from janus.modules.solve_pt import *
-from janus.utils.socrates import CleanOutputDir
-from janus.utils.atmosphere_column import atmos
-import janus.utils.StellarSpectrum as StellarSpectrum
-import janus.utils.phys as phys
-from janus.utils.ReadSpectralFile import ReadBandEdges
-from janus.utils.data import DownloadSpectralFiles
+from janus.modules import MCPA_CBL
+from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, ReadBandEdges, StellarSpectrum
+
+import mors
 
 if __name__=='__main__':
 
@@ -28,7 +24,7 @@ if __name__=='__main__':
     if os.environ.get('RAD_DIR') == None:
         raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
     if os.environ.get('FWL_DATA') == None:
-        raise Exception("The FWL_DATA environment variable where spectral data will be downloaded needs to be set up!")
+        raise Exception("The FWL_DATA environment variable where spectral and evolution tracks data will be downloaded needs to be set up!")
     dirs = {
             "janus": str(files("janus"))+"/",
             "output": os.path.abspath(os.getcwd())+"/output/"
@@ -57,9 +53,11 @@ if __name__=='__main__':
     with open(cfg_file, 'r') as f:
           cfg = toml.load(f)
 
-    # Planet
+    # Star luminosity
     time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
     star_mass = cfg['star']['star_mass']
+    mors.DownloadEvolutionTracks("/Baraffe")
+    baraffe = mors.BaraffeTrack(star_mass)
 
     # Define volatiles by mole fractions
     vol_mixing = {
@@ -88,7 +86,7 @@ if __name__=='__main__':
     for i in range(7):
       print("Orbital separation = %.2f AU" % r_arr[i])
 
-      atm.instellation = InterpolateStellarLuminosity(star_mass, time, r_arr[i])
+      atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i]) 
       atmos.setTropopauseTemperature(atm)
 
       atm = MCPA_CBL(dirs, atm, False, rscatter = True, T_surf_max=9.0e99, T_surf_guess = atm.trppT+100)
