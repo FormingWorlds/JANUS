@@ -62,16 +62,16 @@ def DownloadSpectralFiles(fname="",nband=256):
     #If no folder specified download all basic list
     if not fname:
         for folder in basic_list:
-            print(folder)
-            download_folder(storage,folder,data_dir)
+            if not os.path.exists(data_dir+folder):
+                download_folder(storage,folder,data_dir)
     elif fname in ["/Dayspring","/Frostflow","/Honeyside"]:
-        print("HERE ")
         folder = fname + "/" + str(nband)
-        print(folder)
-        download_folder(storage,folder,data_dir)
+        if not os.path.exists(data_dir+folder):
+            download_folder(storage,folder,data_dir)
     elif fname in ["/Kynesgrove","/Legacy","/Mallard","/Oak","/Reach","/stellar_spectra"]:
         folder = fname
-        download_folder(storage,folder,data_dir)
+        if not os.path.exists(data_dir+folder):
+            download_folder(storage,folder,data_dir)
     else:
         print("Unrecognised folder name in DownloadSpectralFiles")
 
