@@ -37,7 +37,8 @@ dependencies = [
   'seaborn',
   'toml',
   'tomlkit',
-  'f90nml' 
+  'f90nml',
+  'fwl-mors'
 ]
 
 [project.urls]

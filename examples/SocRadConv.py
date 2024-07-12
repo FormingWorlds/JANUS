@@ -20,18 +20,9 @@ import os, shutil, toml
 import numpy as np
 from importlib.resources import files
 
-from janus.modules.stellar_luminosity import InterpolateStellarLuminosity
-from janus.modules.solve_pt import RadConvEqm
-from janus.modules.solve_pt import *
-from janus.modules.plot_flux_balance import plot_fluxes
-from janus.modules.plot_emission_spectrum import plot_emission
-from janus.utils.socrates import CleanOutputDir
-
-import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-from janus.utils.atmosphere_column import atmos
-import janus.utils.StellarSpectrum as StellarSpectrum
-from janus.utils.ReadSpectralFile import ReadBandEdges
-from janus.utils.data import DownloadSpectralFiles
+from janus.modules import RadConvEqm, plot_fluxes, plot_emission
+from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, plot_adiabats, ReadBandEdges, StellarSpectrum
+import mors
 
 ####################################
 ##### Stand-alone initial conditions
@@ -44,7 +35,7 @@ if __name__ == "__main__":
     if os.environ.get('RAD_DIR') == None:
         raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
     if os.environ.get('FWL_DATA') == None:
-        raise Exception("The FWL_DATA environment variable where spectral data will be downloaded needs to be set up!")
+        raise Exception("The FWL_DATA environment variable where spectral and evolution tracks data will be downloaded needs to be set up!")
     dirs = {
             "janus": str(files("janus"))+"/",
             "output": os.path.abspath(os.getcwd())+"/output/"
@@ -98,7 +89,9 @@ if __name__ == "__main__":
     if cfg['star']['stellar_heating'] == False: 
         atm.instellation = 0.
     else:
-        atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
+        mors.DownloadEvolutionTracks("/Baraffe")
+        baraffe = mors.BaraffeTrack(star_mass)
+        atm.instellation = baraffe.BaraffeSolarConstant(time['star'], mean_distance) 
         print("Instellation:", round(atm.instellation), "W/m^2")
 
     # Set up atmosphere with general adiabat
@@ -118,7 +111,7 @@ if __name__ == "__main__":
                               )
 
     # Plot abundances w/ TP structure
-    ga.plot_adiabats(atm,filename= dirs["output"]+"moist_ga.png")
+    plot_adiabats(atm,filename= dirs["output"]+"moist_ga.png")
     atm.write_PT(filename= dirs["output"]+"moist_pt.tsv")
     atm.write_ncdf( dirs["output"]+"moist_atm.nc")
     plot_fluxes(atm,filename= dirs["output"]+"moist_fluxes.png")
