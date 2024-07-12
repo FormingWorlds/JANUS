@@ -5,14 +5,9 @@ import numpy as np
 from matplotlib.ticker import MultipleLocator
 from importlib.resources import files
 
-from janus.modules.stellar_luminosity import InterpolateStellarLuminosity
-from janus.modules.solve_pt import RadConvEqm
-from janus.utils.socrates import CleanOutputDir
-
-from janus.utils.atmosphere_column import atmos
-import janus.utils.StellarSpectrum as StellarSpectrum
-from janus.utils.ReadSpectralFile import ReadBandEdges
-from janus.utils.data import DownloadSpectralFiles
+from janus.modules import RadConvEqm
+from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, ReadBandEdges, StellarSpectrum
+import mors
 
 def test_runaway_greenhouse():
 
@@ -20,7 +15,7 @@ def test_runaway_greenhouse():
     if os.environ.get('RAD_DIR') == None:
         raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
     if os.environ.get('FWL_DATA') == None:
-        raise Exception("The FWL_DATA environment variable where spectral data will be downloaded needs to be set up!")
+        raise Exception("The FWL_DATA environment variable where spectral and evolution tracks data will be downloaded needs to be set up!")
     dirs = {
             "janus": str(files("janus"))+"/",
             "output": os.path.abspath(os.getcwd())+"/output/"
@@ -67,8 +62,10 @@ def test_runaway_greenhouse():
     # Create atmosphere object
     atm = atmos.from_file(cfg_file, band_edges, vol_mixing=vol_mixing, vol_partial={})
 
-    # Compute stellar heating
-    atm.instellation = InterpolateStellarLuminosity(star_mass, time, mean_distance)
+    # Compute stellar heating from Baraffe evolution tracks
+    mors.DownloadEvolutionTracks("/Baraffe")
+    baraffe = mors.BaraffeTrack(star_mass)
+    atm.instellation = baraffe.BaraffeSolarConstant(time['star'], mean_distance)
 
     #Run Janus
     Ts_arr = np.linspace(200, 2800, 20)
