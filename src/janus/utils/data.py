@@ -31,15 +31,22 @@ def download_folder(storage, folder_name, local_path):
 
 
 def GetFWLData():
+    ''''
+    Get path to FWL data directory on the disk
+    '''
     fwl_data_dir = os.getenv('FWL_DATA')
     if os.environ.get("FWL_DATA") == None:
         raise Exception("The FWL_DATA environment variable where spectral data will be downloaded needs to be set up!")
-    return fwl_data_dir
+    return os.path.abspath(fwl_data_dir)
 
 def DownloadStellarSpectra():
+    ''''
+    Download stellar spectra
+    '''
+
     #project ID of the stellar spectra on OSF 
     project_id = '8r2sw'
-
+    
     # Link with OSF project repository
     osf = OSF()
     project = osf.project(project_id)
@@ -51,7 +58,9 @@ def DownloadStellarSpectra():
         os.makedirs(data_dir)
 
     # Get all named spectra
-    download_folder(storage,"/Named",data_dir)
+    if not os.path.exists(data_dir+"/Named"):
+        print("Downloading stellar spectra")
+        download_folder(storage,"/Named",data_dir)
 
 
 def DownloadSpectralFiles(fname="",nband=256):
@@ -82,6 +91,7 @@ def DownloadSpectralFiles(fname="",nband=256):
     if not fname:
         for folder in basic_list:
             if not os.path.exists(data_dir+folder):
+                print("Downloading basic SOCRATES spectral files")
                 download_folder(storage,folder,data_dir)
     elif fname in ["/Dayspring","/Frostflow","/Honeyside"]:
         folder = fname + "/" + str(nband)

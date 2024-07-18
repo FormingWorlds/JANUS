@@ -29,11 +29,19 @@ def test_instellation():
     DownloadSpectralFiles("/Oak")
     DownloadStellarSpectra()
 
+    # Read spectrum
+    spec = mors.Spectrum()
+    spec.LoadTSV(os.environ.get('FWL_DATA')+"/stellar_spectra/Named/sun.txt")
+
+    # Convert to SOCRATES format 
+    socstar = os.path.join(dirs["output"], "socstar.txt")
+    StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
+
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
-        os.environ.get('FWL_DATA')+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        socstar,
         dirs["output"]
     )
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
