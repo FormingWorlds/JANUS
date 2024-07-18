@@ -36,12 +36,13 @@ https://proteus-code.readthedocs.io
     * `git clone git@github.com:FormingWorlds/JANUS.git`
     * `cd JANUS`
     * `pip install -e .`
-3. Download spectral files from the [OSF repository](https://osf.io/vehxg/)
+3. Download data from the [OSF repository](https://osf.io/vehxg/)
     * Set the environment variable FWL_DATA to define where the spectral data files will be stored
         * `export FWL_DATA=...`
-    * Run the following commands within a python environment (or script) to download all basic spectral files
-        * `from janus.utils.data import DownloadSpectralFiles`
+    * Run the following commands within a python environment (or script) to download all basic data
+        * `from janus.utils.data import *`
         * `DownloadSpectralFiles()`
+        * `DownloadStellarSpectra()`
     * Alternatively, you can specify which spectral data you want to download, and optionally the number of bands
     * `DownloadSpectralFiles("/Frostflow", 4096)`
 
