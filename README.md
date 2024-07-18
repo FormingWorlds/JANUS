@@ -1,4 +1,4 @@
-## JANUS (temperature structure generator)
+## JANUS (1D convective atmosphere model)
 
 Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.   
 

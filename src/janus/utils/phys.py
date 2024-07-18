@@ -76,7 +76,9 @@ molar_mass = {
         "NO"  : 0.0300061, 
         "NO2" : 0.0460055, 
         "HNO3": 0.06301284, 
-        "OCS" : 0.060075       
+        "OCS" : 0.060075,       
+        "S2"  : 0.0641,               # kg mol-1
+      
     }
 
 #This class allows convenient access

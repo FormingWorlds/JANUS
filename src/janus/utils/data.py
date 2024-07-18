@@ -1,17 +1,13 @@
 import os
 from osfclient.api import OSF
 
-#project ID of the stellar evolution tracks folder in the OSF
-project_id = 'vehxg'
-
 basic_list =[
         "/Dayspring/256",
         "/Frostflow/256",
         "/Legacy",
         "/Mallard",
         "/Oak",
-        "/Reach",
-        "/stellar_spectra"
+        "/Reach"
         ]
 
 def download_folder(storage, folder_name, local_path):
@@ -33,6 +29,31 @@ def download_folder(storage, folder_name, local_path):
                 file.write_to(local_file)
     return
 
+
+def GetFWLData():
+    fwl_data_dir = os.getenv('FWL_DATA')
+    if os.environ.get("FWL_DATA") == None:
+        raise Exception("The FWL_DATA environment variable where spectral data will be downloaded needs to be set up!")
+    return fwl_data_dir
+
+def DownloadStellarSpectra():
+    #project ID of the stellar spectra on OSF 
+    project_id = '8r2sw'
+
+    # Link with OSF project repository
+    osf = OSF()
+    project = osf.project(project_id)
+    storage = project.storage('osfstorage')
+
+    # Folder
+    data_dir = GetFWLData() + "/stellar_spectra"
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
+    # Get all named spectra
+    download_folder(storage,"/Named",data_dir)
+
+
 def DownloadSpectralFiles(fname="",nband=256):
     ''''
     Download spectral files data
@@ -44,13 +65,11 @@ def DownloadSpectralFiles(fname="",nband=256):
                                 (only relevant for Dayspring, Frostflow and Honeyside)
     '''
 
-    #Check if data environment variable is set up
-    fwl_data_dir = os.getenv('FWL_DATA')
-    if os.environ.get("FWL_DATA") == None:
-        raise Exception("The FWL_DATA environment variable where spectral data will be downloaded needs to be set up!")
+    #project ID of the spectral files on OSF 
+    project_id = 'vehxg'
 
     #Create spectral file data repository if not existing
-    data_dir = fwl_data_dir + "/spectral_files"
+    data_dir = GetFWLData() + "/spectral_files"
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 

@@ -21,7 +21,7 @@ import numpy as np
 from importlib.resources import files
 
 from janus.modules import RadConvEqm, plot_fluxes, plot_emission
-from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, plot_adiabats, ReadBandEdges, StellarSpectrum
+from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, plot_adiabats, ReadBandEdges, StellarSpectrum
 import mors
 
 ####################################
@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     #Download required spectral files
     DownloadSpectralFiles("/Dayspring")
-    DownloadSpectralFiles("/stellar_spectra")
+    DownloadStellarSpectra()
 
     # Move/prepare spectral file
     print("Inserting stellar spectrum")

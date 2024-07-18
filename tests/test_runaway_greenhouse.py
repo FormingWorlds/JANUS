@@ -6,7 +6,7 @@ from matplotlib.ticker import MultipleLocator
 from importlib.resources import files
 
 from janus.modules import RadConvEqm
-from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, ReadBandEdges, StellarSpectrum
+from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
 import mors
 
 def test_runaway_greenhouse():
@@ -28,7 +28,7 @@ def test_runaway_greenhouse():
 
     #Download required spectral files
     DownloadSpectralFiles("/Oak")
-    DownloadSpectralFiles("/stellar_spectra")
+    DownloadStellarSpectra()
 
     # Setup spectral file
     print("Inserting stellar spectrum")
