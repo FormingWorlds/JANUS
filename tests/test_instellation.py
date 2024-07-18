@@ -84,10 +84,10 @@ def test_instellation():
 
         print_out = "%.5e,"%float(r_arr[i])
         print_out += ",".join(["%.5e"%o for o in out])
-        print(print_out)
+        print("Calculated:",print_out)
 
-        print_out = "%.5e,"%float(r_arr[i])
-        print_out += ",".join(["%.5e"%o for o in ref[i]])
+        # print_out = ",".join(["%.5e"%o for o in ref[i]])
+        # print("Target:",print_out)
 
         np.testing.assert_allclose(out, ref[i][1:6], rtol=1e-5, atol=0)
 

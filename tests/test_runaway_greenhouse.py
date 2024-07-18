@@ -83,8 +83,8 @@ def test_runaway_greenhouse():
 
       _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, rscatter=False)
 
-      out = [atm_moist.LW_flux_up[0]]
-      print("Output %s; Reference %s" % (out, OLR_ref[i][1]))
+      out = atm_moist.LW_flux_up[0]
+      print("Output %.5e; Reference %.5e" % (out, OLR_ref[i][1]))
       np.testing.assert_allclose(out, OLR_ref[i][1], rtol=1e-5, atol=0)      
 
     # Tidy
