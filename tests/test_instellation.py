@@ -49,7 +49,7 @@ def test_instellation():
     # Open config file
     cfg_file =  dirs["janus"]+"data/tests/config_instellation.toml"
     with open(cfg_file, 'r') as f:
-          cfg = toml.load(f)
+        cfg = toml.load(f)
 
     # Star luminosity
     time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
@@ -73,17 +73,23 @@ def test_instellation():
 
     r_arr = np.linspace(0.3, 1.4, 7) # orbital distance range [AU]
     for i in range(7):
-      print("Orbital separation = %.2f AU" % r_arr[i])
+        print("Orbital separation = %.2f AU" % r_arr[i])
 
-      atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i])
-      atmos.setTropopauseTemperature(atm)
+        atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i])
+        atmos.setTropopauseTemperature(atm)
 
-      atm = MCPA_CBL(dirs, atm, False, rscatter = True, T_surf_max=9.0e99, T_surf_guess = atm.trppT+100)
+        atm = MCPA_CBL(dirs, atm, False, rscatter = True, T_surf_max=9.0e99, T_surf_guess = atm.trppT+100)
 
-      out = [atm.SW_flux_down[0], atm.LW_flux_up[0], atm.net_flux[0], atm.ts, atm.trppT]
-      print(out)
-      print(ref[i][1:6])
-      np.testing.assert_allclose(out, ref[i][1:6], rtol=1e-5, atol=0)
+        out = [atm.SW_flux_down[0], atm.LW_flux_up[0], atm.net_flux[0], atm.ts, atm.trppT]
+
+        print_out = "%.5e,"%float(r_arr[i])
+        print_out += ",".join(["%.5e"%o for o in out])
+        print(print_out)
+
+        print_out = "%.5e,"%float(r_arr[i])
+        print_out += ",".join(["%.5e"%o for o in ref[i]])
+
+        np.testing.assert_allclose(out, ref[i][1:6], rtol=1e-5, atol=0)
 
     # Tidy
     CleanOutputDir(os.getcwd())
