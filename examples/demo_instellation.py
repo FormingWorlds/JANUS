@@ -12,7 +12,7 @@ import os, shutil, toml
 import numpy as np
 
 from janus.modules import MCPA_CBL
-from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, ReadBandEdges, StellarSpectrum
+from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
 
 import mors
 
@@ -37,13 +37,22 @@ if __name__=='__main__':
 
     #Download required spectral files
     DownloadSpectralFiles("/Oak")
-    DownloadSpectralFiles("/stellar_spectra")
+    DownloadStellarSpectra()
+
+    # Read spectrum
+    spec = mors.Spectrum()
+    spec.LoadTSV(os.environ.get('FWL_DATA')+"/stellar_spectra/Named/sun.txt")
+
+    # Convert to SOCRATES format 
+    socstar = os.path.join(dirs["output"], "socstar.txt")
+    StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
+
 
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
-        os.environ.get('FWL_DATA')+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        socstar,
         dirs["output"]
     )
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")

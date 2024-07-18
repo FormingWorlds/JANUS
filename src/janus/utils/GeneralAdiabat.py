@@ -33,17 +33,19 @@ import janus.utils.phys as phys
 # https://chrisalbon.com/python/data_visualization/seaborn_color_palettes/
 no_colors   = 7
 vol_colors = {
-    "H2O"            : [mpl.colormaps["PuBu"](i) for i in np.linspace(0,1.0,no_colors)],
-    "CO2"            : [mpl.colormaps["Reds"](i) for i in np.linspace(0,1.0,no_colors)],
-    "H2"             : [mpl.colormaps["Greens"](i) for i in np.linspace(0,1.0,no_colors)],
-    "N2"             : [mpl.colormaps["Purples"](i) for i in np.linspace(0,1.0,no_colors)],
     "O2"             : [mpl.colormaps["Wistia"](i) for i in np.linspace(0,1.0,no_colors+2)],
     "O3"             : [mpl.colormaps["spring"](i) for i in np.linspace(0,1.0,no_colors+2)],
-    "CH4"            : [mpl.colormaps["RdPu"](i) for i in np.linspace(0,1.0,no_colors)],
-    "CO"             : [mpl.colormaps["pink_r"](i) for i in np.linspace(0,1.0,no_colors)],
     "S"              : [mpl.colormaps["YlOrBr"](i) for i in np.linspace(0,1.0,no_colors)],
-    "He"             : [mpl.colormaps["Greys"](i) for i in np.linspace(0,1.0,no_colors)],
-    "NH3"            : [mpl.colormaps["summer"](i) for i in np.linspace(0,1.0,no_colors)],
+    "H2O": "#027FB1",
+    "CO2": "#D24901",
+    "H2" : "#008C01",
+    "CH4": "#C720DD",
+    "CO" : "#D1AC02",
+    "N2" : "#870036",
+    "S2" : "#FF8FA1",
+    "SO2": "#00008B",
+    "He" : "#30FF71",
+    "NH3": "#675200",
     "mixtures"       : [mpl.colormaps["Set3"](i) for i in np.linspace(0,1.0,no_colors)],
     "H2O-CO2"        : mpl.colormaps["Set3"](1.0/no_colors),
     "CO2-H2O"        : mpl.colormaps["Set3"](1.0/no_colors),
@@ -943,17 +945,17 @@ def plot_adiabats(atm,filename='output/general_adiabat.pdf'):
     
             # Saturation vapor pressure for given temperature
             Psat_array = [ p_sat(vol, T,water_lookup=atm.water_lookup) for T in T_sat_array ]
-            ax1.semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+vol_latex[vol], lw=ls_ind, ls=":", color=vol_colors[vol][4])
+            ax1.semilogy( T_sat_array, Psat_array, label=r'$p_\mathrm{sat}$'+vol_latex[vol], lw=ls_ind, ls=":", color=vol_colors[vol])
 
             # Plot partial pressures
-            ax1.semilogy(atm.tmp, atm.p_vol[vol], color=vol_colors[vol][4], lw=ls_ind, ls="-", label=r'$p$'+vol_latex[vol],alpha=0.99)
+            ax1.semilogy(atm.tmp, atm.p_vol[vol], color=vol_colors[vol], lw=ls_ind, ls="-", label=r'$p$'+vol_latex[vol],alpha=0.99)
 
             # Sum up partial pressures
             p_partial_sum += atm.p_vol[vol]
 
             # Plot individual molar concentrations
-            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="--", label=vol_latex[vol]+" cond.")
-            ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol][4], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
+            ax2.semilogy(atm.x_cond[vol],atm.p, color=vol_colors[vol], lw=ls_ind, ls="--", label=vol_latex[vol]+" cond.")
+            ax2.semilogy(atm.x_gas[vol],atm.p, color=vol_colors[vol], lw=ls_ind, ls="-", label=vol_latex[vol]+" gas")
             
     # # Plot sum of partial pressures as check
     ax1.semilogy(atm.tmp, p_partial_sum, color="green", lw=ls_dry, ls="--", label=r'$\sum p^\mathrm{i}$',alpha=0.99)

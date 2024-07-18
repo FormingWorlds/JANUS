@@ -4,6 +4,7 @@ from .atmosphere_column import *
 
 # Data download
 from .data import DownloadSpectralFiles
+from .data import DownloadStellarSpectra
 
 # Socrates utility module
 from .socrates import CleanOutputDir

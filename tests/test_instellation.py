@@ -5,7 +5,7 @@ import os, shutil, toml
 import numpy as np
 
 from janus.modules import MCPA_CBL
-from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, ReadBandEdges, StellarSpectrum
+from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
 import mors
 
 def test_instellation():
@@ -27,13 +27,21 @@ def test_instellation():
 
     #Download required spectral files
     DownloadSpectralFiles("/Oak")
-    DownloadSpectralFiles("/stellar_spectra")
+    DownloadStellarSpectra()
+
+    # Read spectrum
+    spec = mors.Spectrum()
+    spec.LoadTSV(os.environ.get('FWL_DATA')+"/stellar_spectra/Named/sun.txt")
+
+    # Convert to SOCRATES format 
+    socstar = os.path.join(dirs["output"], "socstar.txt")
+    StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
 
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
-        os.environ.get('FWL_DATA')+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        socstar,
         dirs["output"]
     )
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
@@ -41,7 +49,7 @@ def test_instellation():
     # Open config file
     cfg_file =  dirs["janus"]+"data/tests/config_instellation.toml"
     with open(cfg_file, 'r') as f:
-          cfg = toml.load(f)
+        cfg = toml.load(f)
 
     # Star luminosity
     time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
@@ -65,17 +73,23 @@ def test_instellation():
 
     r_arr = np.linspace(0.3, 1.4, 7) # orbital distance range [AU]
     for i in range(7):
-      print("Orbital separation = %.2f AU" % r_arr[i])
+        print("Orbital separation = %.2f AU" % r_arr[i])
 
-      atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i])
-      atmos.setTropopauseTemperature(atm)
+        atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i])
+        atmos.setTropopauseTemperature(atm)
 
-      atm = MCPA_CBL(dirs, atm, False, rscatter = True, T_surf_max=9.0e99, T_surf_guess = atm.trppT+100)
+        atm = MCPA_CBL(dirs, atm, False, rscatter = True, T_surf_max=9.0e99, T_surf_guess = atm.trppT+100)
 
-      out = [atm.SW_flux_down[0], atm.LW_flux_up[0], atm.net_flux[0], atm.ts, atm.trppT]
-      print(out)
-      print(ref[i][1:6])
-      np.testing.assert_allclose(out, ref[i][1:6], rtol=1e-5, atol=0)
+        out = [atm.SW_flux_down[0], atm.LW_flux_up[0], atm.net_flux[0], atm.ts, atm.trppT]
+
+        print_out = "%.5e,"%float(r_arr[i])
+        print_out += ",".join(["%.5e"%o for o in out])
+        print("Calculated:",print_out)
+
+        # print_out = ",".join(["%.5e"%o for o in ref[i]])
+        # print("Target:",print_out)
+
+        np.testing.assert_allclose(out, ref[i][1:6], rtol=1e-5, atol=0)
 
     # Tidy
     CleanOutputDir(os.getcwd())
