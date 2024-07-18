@@ -52,7 +52,10 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     # Only supported from SOCRATES version 2306 onwards (revision 1403)
     socrates_use_namelist = True
 
-    
+    # Change directory
+    olddir = os.getcwd()
+    os.chdir(dirs["output"])
+
     # Define path spectral files
     starspectral_file = dirs["output"]+"star.sf"
     runspectral_file  = dirs["output"]+"runtime.sf"
@@ -308,6 +311,8 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     ncfile10.close()
     if atm.has_contfunc:
         ncfile11.close()
+
+    os.chdir(olddir)
 
     return atm
 

@@ -7,7 +7,8 @@ from janus.utils.atmosphere_column import atmos
 import janus.utils.phys as phys
 
 def plot_emission(atm:atmos, filename:str='output/toa_emission.pdf', 
-                  level_idx:int=0, planck_surface:bool=True, show_bands:bool=False):
+                  level_idx:int=0, planck_surface:bool=True, 
+                  incoming_solar:bool=True, show_bands:bool=False):
 
     # Configure
     planck_samps = 1000
@@ -33,6 +34,13 @@ def plot_emission(atm:atmos, filename:str='output/toa_emission.pdf',
 
     # Make plot 
     fig,ax = plt.subplots(1,1, figsize=(8,4))
+
+    # Plot incoming stellar spectrum
+    if incoming_solar:
+        ysolar = atm.SW_spectral_flux_down.T[0] # W m-2 
+        ysolar /= atm.band_widths 
+        ysolar *= 1e3 
+        ax.plot(x, ysolar, color="green", lw=lw, label="TOA stellar flux")
 
     # Plot band edges
     if show_bands:
@@ -70,7 +78,7 @@ def plot_emission(atm:atmos, filename:str='output/toa_emission.pdf',
     ax.set_xlim(max(xmin, np.amin(x)), min(xmax, np.amax(x)))
     ax.set_xscale("log")
 
-    ax.set_ylabel("Upward flux [erg s$^{-1}$ cm$^{-2}$ nm$^{-1}$]")
+    ax.set_ylabel("Flux density [erg s$^{-1}$ cm$^{-2}$ nm$^{-1}$]")
     ax.set_yscale("log")
 
     ax.legend(loc="lower center")
