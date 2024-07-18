@@ -19,7 +19,7 @@ import janus.utils.phys as phys
 
 
 def radCompSoc(atm, dirs, recalc, rscatter=False,
-               rewrite_cfg=True, rewrite_tmp=True, rewrite_gas=True):
+               rewrite_cfg=True, rewrite_tmp=True, rewrite_gas=False):
     """Runs SOCRATES to calculate fluxes and heating rates
 
     Parameters
@@ -52,7 +52,6 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     # Only supported from SOCRATES version 2306 onwards (revision 1403)
     socrates_use_namelist = True
 
-    
     # Define path spectral files
     starspectral_file = dirs["output"]+"star.sf"
     runspectral_file  = dirs["output"]+"runtime.sf"

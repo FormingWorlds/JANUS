@@ -6,7 +6,7 @@ from matplotlib.ticker import MultipleLocator
 from importlib.resources import files
 
 from janus.modules import RadConvEqm
-from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, ReadBandEdges, StellarSpectrum
+from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
 import mors
 
 def test_runaway_greenhouse():
@@ -28,13 +28,21 @@ def test_runaway_greenhouse():
 
     #Download required spectral files
     DownloadSpectralFiles("/Oak")
-    DownloadSpectralFiles("/stellar_spectra")
+    DownloadStellarSpectra()
+
+    # Read spectrum
+    spec = mors.Spectrum()
+    spec.LoadTSV(os.environ.get('FWL_DATA')+"/stellar_spectra/Named/sun.txt")
+
+    # Convert to SOCRATES format 
+    socstar = os.path.join(dirs["output"], "socstar.txt")
+    StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
 
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
-        os.environ.get('FWL_DATA')+"/spectral_files/stellar_spectra/Sun_t4_4Ga_claire_12.txt",
+        socstar,
         dirs["output"]
     )
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
@@ -75,8 +83,8 @@ def test_runaway_greenhouse():
 
       _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, rscatter=False)
 
-      out = [atm_moist.LW_flux_up[0]]
-      print("Output %s; Reference %s" % (out, OLR_ref[i][1]))
+      out = atm_moist.LW_flux_up[0]
+      print("Output %.5e; Reference %.5e" % (out, OLR_ref[i][1]))
       np.testing.assert_allclose(out, OLR_ref[i][1], rtol=1e-5, atol=0)      
 
     # Tidy
