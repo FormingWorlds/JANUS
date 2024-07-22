@@ -16,17 +16,10 @@ from janus.utils import (
 import mors
 
 
-def test_instellation():
-
-    dirs = {
-        "janus": str(files("janus")) + "/",
-        "output": os.path.abspath(os.getcwd()) + "/output/",
-    }
-
-    # Tidy directory
-    if os.path.exists(dirs["output"]):
-        shutil.rmtree(dirs["output"])
-    os.mkdir(dirs["output"])
+def test_instellation(tmpdir):
+    
+    janus = str(files("janus")) + "/"
+    output = str(tmpdir) + "/"
 
     # Download required spectral files
     DownloadSpectralFiles("/Oak")
@@ -37,7 +30,7 @@ def test_instellation():
     spec.LoadTSV(os.environ.get("FWL_DATA") + "/stellar_spectra/Named/sun.txt")
 
     # Convert to SOCRATES format
-    socstar = os.path.join(dirs["output"], "socstar.txt")
+    socstar = os.path.join(output, "socstar.txt")
     StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
 
     # Setup spectral file
@@ -45,12 +38,12 @@ def test_instellation():
     StellarSpectrum.InsertStellarSpectrum(
         os.environ.get("FWL_DATA") + "/spectral_files/Oak/318/Oak.sf",
         socstar,
-        dirs["output"],
+        output,
     )
-    band_edges = ReadBandEdges(dirs["output"] + "star.sf")
+    band_edges = ReadBandEdges(output + "star.sf")
 
     # Open config file
-    cfg_file = dirs["janus"] + "data/tests/config_instellation.toml"
+    cfg_file = janus + "data/tests/config_instellation.toml"
     with open(cfg_file) as f:
         cfg = toml.load(f)
 
@@ -65,7 +58,7 @@ def test_instellation():
 
     # Get reference data
     ref = np.loadtxt(
-        dirs["janus"] + "data/tests/data_instellation.csv",
+        janus + "data/tests/data_instellation.csv",
         dtype=float,
         skiprows=1,
         delimiter=",",
@@ -82,7 +75,7 @@ def test_instellation():
         atm.setTropopauseTemperature()
 
         atm = MCPA_CBL(
-            dirs,
+            {'janus':janus, 'output':output},
             atm,
             False,
             rscatter=True,
@@ -98,4 +91,4 @@ def test_instellation():
 
     # Tidy
     CleanOutputDir(os.getcwd())
-    CleanOutputDir(dirs["output"])
+    CleanOutputDir(output)
