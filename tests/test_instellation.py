@@ -79,7 +79,7 @@ def test_instellation():
         (1.4, ref[6]),
     ):
         atm.instellation = baraffe.BaraffeSolarConstant(time["star"], r)
-        atmos.setTropopauseTemperature(atm)
+        atm.setTropopauseTemperature()
 
         atm = MCPA_CBL(
             dirs,
