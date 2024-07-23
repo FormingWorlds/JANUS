@@ -22,22 +22,21 @@ jobs:
 
       - name: Setup system
         run: |
-          sudo apt update
           sudo apt-get install libnetcdff-dev netcdf-bin gfortran gcc
 
       - name: Get SOCRATES
         uses: actions/checkout@v4
         with:
           repository: 'FormingWorlds/SOCRATES'
-          path: '~/SOCRATES'
+          path: 'SOCRATES'
 
       - uses: actions/cache@v3
         id: cache-socrates
         with:
           path: |
-            ~/SOCRATES/bin
-            ~/SOCRATES/sbin
-            ~/SOCRATES/set_rad_env
+            SOCRATES/bin
+            SOCRATES/sbin
+            SOCRATES/set_rad_env
           key: socrates-${{ hashFiles('version') }}
 
       - name: Build SOCRATES
@@ -68,5 +67,5 @@ jobs:
       - name: Test with pytest
         run: |
           export FWL_DATA="./fwl_data"
-          source ~/SOCRATES/set_rad_env
+          source SOCRATES/set_rad_env
           pytest
