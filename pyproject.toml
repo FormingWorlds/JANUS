@@ -47,6 +47,7 @@ homepage = "https://github.com/FormingWorlds/JANUS"
 [project.optional-dependencies]
 develop = [
   "bump-my-version",
+  "coverage[toml]",
   "pytest"
 ]
 publishing = [
@@ -58,6 +59,10 @@ publishing = [
 [tool.setuptools]
 package-dir = {"janus" = "src/janus"}
 include-package-data = true
+
+[tool.coverage.run]
+branch = true
+source = ["janus"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
