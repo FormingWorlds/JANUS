@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'FormingWorlds/SOCRATES'
-          path: 'SOCRATES'
+          path: '~/SOCRATES'
 
       - uses: actions/cache@v3
         id: cache-socrates
@@ -38,7 +38,7 @@ jobs:
             ~/SOCRATES/bin
             ~/SOCRATES/sbin
             ~/SOCRATES/set_rad_env
-          key: socrates-$( cat version )
+          key: socrates-${{ hashFiles('version') }}
 
       - name: Build SOCRATES
         if: steps.cache-socrates.outputs.cache-hit != 'true'
