@@ -45,13 +45,19 @@ jobs:
           source set_rad_env
           cd ..
 
+      - uses: actions/cache@v3
+        id: cache-virtualenv
+        with:
+          path: ${{ env.pythonLocation }}
+          key: ${{ env.pythonLocation }}-${{ hashFiles('pyproject.toml') }}
+
       - name: Build JANUS
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
         run: |
-          pip install -e .
+          python -m pip install -e .[develop]
 
       - name: Test with pytest
         run: |
-          pip install pytest
           export FWL_DATA="./fwl_data"
           source SOCRATES/set_rad_env
           pytest
