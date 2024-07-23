@@ -1,3 +1,5 @@
+![Coverage](https://gist.githubusercontent.com/stefsmeets/99391a66bb9229771504c3a4db611d05/raw/covbadge.svg)
+
 ## JANUS (1D convective atmosphere model)
 
 Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.   
