@@ -43,11 +43,10 @@ jobs:
 
       - name: Build JANUS
         run: |
-          pip install -e .
+          python -m pip install -e .[develop]
 
       - name: Test with pytest
         run: |
-          pip install pytest
           export FWL_DATA="./fwl_data"
           source SOCRATES/set_rad_env
           coverage run -m pytest
