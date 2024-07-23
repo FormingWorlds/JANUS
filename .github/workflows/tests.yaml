@@ -52,6 +52,6 @@ jobs:
       - name: Test with pytest
         run: |
           pip install pytest
-          export FWL_DATA="./fwl_data"
+          export FWL_DATA="~/fwl_data"
           source SOCRATES/set_rad_env
           pytest
