@@ -37,7 +37,7 @@ jobs:
             SOCRATES/bin
             SOCRATES/sbin
             SOCRATES/set_rad_env
-          key: socrates-${{ hashFiles('version') }}
+          key: socrates-${{ hashFiles('SOCRATES/version') }}
 
       - name: Build SOCRATES
         if: steps.cache-socrates.outputs.cache-hit != 'true'
