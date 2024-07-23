@@ -30,3 +30,4 @@ src/janus/data/spectral_files/sp_b318_HITRAN_a16_2203
 output/
 utils/*.ipynb*
 fwl_data
+.coverage
