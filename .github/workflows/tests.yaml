@@ -20,6 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup system
+        run: |
+          sudo apt update
+          sudo apt-get install libnetcdff-dev netcdf-bin gfortran gcc
+
       - name: Get SOCRATES
         uses: actions/checkout@v4
         with:
@@ -43,11 +48,6 @@ jobs:
           ./configure
           ./build_code 
           cd ..
-
-      - name: Setup system
-        run: |
-          sudo apt update
-          sudo apt-get install libnetcdff-dev netcdf-bin gfortran gcc
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
