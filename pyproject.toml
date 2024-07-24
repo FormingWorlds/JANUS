@@ -50,6 +50,12 @@ develop = [
   "coverage[toml]",
   "pytest"
 ]
+docs = [
+    "markdown-include",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+]
 publishing = [
   "twine",
   "wheel",
