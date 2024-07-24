@@ -89,8 +89,8 @@ def DownloadSpectralFiles(fname: str="",nband: int=256):
         folder_list = basic_list
     elif fname in ("Dayspring", "Frostflow", "Honeyside"):
         folder_list = [fname + "/" + str(nband)]
-    elif folder_name in ("Kynesgrove","Legacy","Mallard","Oak","Reach","stellar_spectra"):
-        folder_list = [folder_name]
+    elif fname in ("Kynesgrove","Legacy","Mallard","Oak","Reach","stellar_spectra"):
+        folder_list = [fname]
     else:
         print(f"Unrecognised folder name: {fname}")
 
