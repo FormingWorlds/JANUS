@@ -67,12 +67,12 @@ jobs:
       - uses: actions/cache@v3
         id: cache-fwl-data
         with:
-          path: ~/fwl_data
+          path: /home/runner/work/fwl_data
           key: fwl-data-1
 
       - name: Test with pytest
         run: |
-          export FWL_DATA="~/fwl_data"
+          export FWL_DATA="/home/runner/work/fwl_data"
           source SOCRATES/set_rad_env
           coverage run -m pytest
 
