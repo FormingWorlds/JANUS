@@ -27,7 +27,7 @@ def test_runaway_greenhouse():
     os.mkdir(dirs["output"])
 
     #Download required spectral files
-    DownloadSpectralFiles("/Oak")
+    DownloadSpectralFiles("Oak")
     DownloadStellarSpectra()
 
     # Read spectrum
