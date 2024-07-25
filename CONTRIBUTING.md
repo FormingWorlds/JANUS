@@ -16,6 +16,8 @@ mkdocs serve
 You can find the documentation source in the [docs](https://github.com/FormingWorlds/JANUS/tree/main/docs) directory.
 If you are adding new pages, make sure to update the listing in the [`mkdocs.yml`](https://github.com/FormingWorlds/JANUS/blob/main/mkdocs.yml) under the `nav` entry.
 
+The documentation is hosted on [readthedocs](https://readthedocs.io/projects/fwl-janus).
+
 ### Running tests
 
 JANUS uses [pytest](https://docs.pytest.org/en/latest/) to run the tests. You can run the tests for yourself using:
