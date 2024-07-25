@@ -26,7 +26,7 @@ def test_instellation():
     os.mkdir(dirs["output"])
 
     #Download required spectral files
-    DownloadSpectralFiles("/Oak")
+    DownloadSpectralFiles("Oak")
     DownloadStellarSpectra()
 
     # Read spectrum

@@ -1,70 +1,69 @@
 import os
 from osfclient.api import OSF
+from pathlib import Path
 
-basic_list =[
-        "/Dayspring/256",
-        "/Frostflow/256",
-        "/Legacy",
-        "/Mallard",
-        "/Oak",
-        "/Reach"
-        ]
+basic_list = (
+        "Dayspring/256",
+        "Frostflow/256",
+        "Legacy",
+        "Mallard",
+        "Oak",
+        "Reach",
+        )
 
-def download_folder(storage, folder_name, local_path):
-    ''''
+def download_folder(*, storage, folders: list[str], data_dir: Path):
+    """
     Download a specific folder in the OSF repository
     
     Inputs :
-        - storage     : OSF storage name 
-        - folder_name : folder name to be downloaded
-        - local_path  : local repository where data are saved
-    '''
+        - storage : OSF storage name 
+        - folders : folder names to download
+        - data_dir : local repository where data are saved
+    """
     for file in storage.files:
-        if file.path.startswith(folder_name):
-            local_file_path = local_path + file.path
-            #Create local directory if needed
-            os.makedirs(os.path.dirname(local_file_path), exist_ok=True)
-            #Download the file
-            with open(local_file_path, 'wb') as local_file:
-                file.write_to(local_file)
-    return
+        for folder in folders:
+            if not file.path[1:].startswith(folder):
+                continue
+            parts = file.path.split('/')[1:]
+            target = Path(data_dir, *parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            print(f'Downloading {file.path}...')
+            with open(target, 'wb') as f:
+                file.write_to(f)
+            break
 
 
-def GetFWLData():
-    ''''
+def GetFWLData() -> Path:
+    """
     Get path to FWL data directory on the disk
-    '''
+    """
     fwl_data_dir = os.getenv('FWL_DATA')
-    if os.environ.get("FWL_DATA") == None:
+    if not os.environ.get("FWL_DATA"):
         raise Exception("The FWL_DATA environment variable where spectral data will be downloaded needs to be set up!")
-    return os.path.abspath(fwl_data_dir)
+    return Path(fwl_data_dir).absolute()
 
 def DownloadStellarSpectra():
-    ''''
+    """
     Download stellar spectra
-    '''
-
+    """
     #project ID of the stellar spectra on OSF 
     project_id = '8r2sw'
+    folder_name = 'Named'
     
-    # Link with OSF project repository
     osf = OSF()
     project = osf.project(project_id)
     storage = project.storage('osfstorage')
 
-    # Folder
-    data_dir = GetFWLData() + "/stellar_spectra"
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
+    data_dir = GetFWLData() / "stellar_spectra"
+    data_dir.mkdir(parents=True, exist_ok=True)
 
-    # Get all named spectra
-    if not os.path.exists(data_dir+"/Named"):
+    if not (data_dir / folder_name).exists():
         print("Downloading stellar spectra")
-        download_folder(storage,"/Named",data_dir)
+        download_folder(storage=storage, folders=[folder_name], data_dir=data_dir)
 
 
-def DownloadSpectralFiles(fname="",nband=256):
-    ''''
+def DownloadSpectralFiles(fname: str="",nband: int=256):
+    """
     Download spectral files data
     
     Inputs :
@@ -72,15 +71,13 @@ def DownloadSpectralFiles(fname="",nband=256):
                                 if not provided download all the basic list  
         - nband (optional) :    number of band = 16, 48, 256, 4096 
                                 (only relevant for Dayspring, Frostflow and Honeyside)
-    '''
-
+    """
     #project ID of the spectral files on OSF 
     project_id = 'vehxg'
 
     #Create spectral file data repository if not existing
-    data_dir = GetFWLData() + "/spectral_files"
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
+    data_dir = GetFWLData() / "spectral_files"
+    data_dir.mkdir(parents=True, exist_ok=True)
 
     #Link with OSF project repository
     osf = OSF()
@@ -89,19 +86,16 @@ def DownloadSpectralFiles(fname="",nband=256):
 
     #If no folder specified download all basic list
     if not fname:
-        for folder in basic_list:
-            if not os.path.exists(data_dir+folder):
-                print("Downloading basic SOCRATES spectral files")
-                download_folder(storage,folder,data_dir)
-    elif fname in ["/Dayspring","/Frostflow","/Honeyside"]:
-        folder = fname + "/" + str(nband)
-        if not os.path.exists(data_dir+folder):
-            download_folder(storage,folder,data_dir)
-    elif fname in ["/Kynesgrove","/Legacy","/Mallard","/Oak","/Reach","/stellar_spectra"]:
-        folder = fname
-        if not os.path.exists(data_dir+folder):
-            download_folder(storage,folder,data_dir)
+        folder_list = basic_list
+    elif fname in ("Dayspring", "Frostflow", "Honeyside"):
+        folder_list = [fname + "/" + str(nband)]
+    elif fname in ("Kynesgrove","Legacy","Mallard","Oak","Reach","stellar_spectra"):
+        folder_list = [fname]
     else:
-        print("Unrecognised folder name in DownloadSpectralFiles")
+        print(f"Unrecognised folder name: {fname}")
 
-    return
+    folders = [folder for folder in folder_list if not (data_dir / folder).exists()]
+
+    if folders:
+        print("Downloading SOCRATES spectral files")
+        download_folder(storage=storage, folders=folders, data_dir=data_dir)
