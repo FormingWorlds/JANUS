@@ -53,7 +53,7 @@ def get_spectrum_data(drc):
     return band_edges
 
 
-def get_atmosphere_config(*, band_edges, cfg_name: str):
+def get_atmosphere_config(*, band_edges, cfg_name: str, distance: float):
     cfg_file = DATA_DRC / cfg_name
 
     with open(cfg_file) as f:
@@ -61,7 +61,6 @@ def get_atmosphere_config(*, band_edges, cfg_name: str):
 
     star_time = cfg['star']['time']
     star_mass = cfg['star']['star_mass']
-    distance = cfg['star']['mean_distance']
 
     vol_mixing = {'H2O': 1.0, 'CO2': 0.0, 'N2': 0.0}
 
