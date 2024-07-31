@@ -92,7 +92,7 @@ def DownloadSpectralFiles(fname: str="",nband: int=256):
     elif fname in ("Kynesgrove","Legacy","Mallard","Oak","Reach","stellar_spectra"):
         folder_list = [fname]
     else:
-        print(f"Unrecognised folder name: {fname}")
+        raise ValueError(f"Unrecognised folder name: {fname}")
 
     folders = [folder for folder in folder_list if not (data_dir / folder).exists()]
 

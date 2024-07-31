@@ -35,7 +35,7 @@ def work_directory(path: Path | str):
 
 
 def get_spectrum_data(drc):
-    DownloadSpectralFiles('/Oak')
+    DownloadSpectralFiles('Oak')
     DownloadStellarSpectra()
 
     spec = mors.Spectrum()
