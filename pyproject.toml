@@ -27,6 +27,7 @@ classifiers = [
 keywords = ["exoplanet", "atmosphere"]
 requires-python = '>=3.10'
 dependencies = [
+  'click',
   'matplotlib',
   'natsort',
   'netcdf4',
@@ -50,11 +51,20 @@ develop = [
   "coverage[toml]",
   "pytest"
 ]
+docs = [
+    "markdown-include",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+]
 publishing = [
   "twine",
   "wheel",
   "build"
 ]
+
+[project.scripts]
+janus = "janus.cli:cli"
 
 [tool.setuptools]
 package-dir = {"janus" = "src/janus"}
