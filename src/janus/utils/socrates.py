@@ -17,8 +17,7 @@ import janus.utils.RayleighSpectrum as RayleighSpectrum
 from janus.utils.atmosphere_column import atmos
 import janus.utils.phys as phys
 
-from ..socrates import set_rad_env
-set_rad_env()
+from .. import set_socrates_env  # noqa
 
 
 def radCompSoc(atm, dirs, recalc, rscatter=False,
