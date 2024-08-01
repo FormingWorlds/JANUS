@@ -6,6 +6,9 @@ import click
 import platformdirs
 import requests
 
+import zipfile
+
+
 SOCRATES_DIR = Path(os.environ.get('SOCRATES', platformdirs.user_data_dir('socrates')))
 
 
@@ -40,6 +43,7 @@ def set_rad_env():
 
 
 def download_socrates():
+    filename = 'socrates.zip'
     version = 'x.y.z'
     url = f'https://github.com/FormingWorlds/SOCRATES/releases/download/{version}/socrates-Linux.zip'
 
@@ -50,12 +54,22 @@ def download_socrates():
         r.raise_for_status()
 
         with (
-            open('socrates.zip', 'wb') as f,
+            open(filename, 'wb') as f,
             click.progressbar(label='Downloading', length=total_size) as pbar,
         ):
             for chunk in r.iter_content(chunk_size=chunk_size):
                 f.write(chunk)
                 pbar.update(chunk_size)
 
-    if SOCRATES_DIR.exists():
+    SOCRATES_DIR.mkdir(exist_ok=True, parents=True)
+
+    target_dir = SOCRATES_DIR / 'socrates'
+
+    if target_dir.exists():
         raise RuntimeError(f'SOCRATES directory already exists: {SOCRATES_DIR}')
+
+    with zipfile.ZipFile(filename, 'r') as zip_ref:
+        zip_ref.extractall(SOCRATES_DIR)
+
+    print(f'SOCRATES downloaded to {SOCRATES_DIR}')
+    filename.unlink()
