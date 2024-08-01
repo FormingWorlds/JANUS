@@ -34,6 +34,7 @@ dependencies = [
   'numpy',
   'osfclient',
   'pandas',
+  'requests',
   'scipy',
   'seaborn',
   'toml',

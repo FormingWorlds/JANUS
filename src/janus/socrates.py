@@ -2,7 +2,9 @@ import os
 import sys
 from pathlib import Path
 
+import click
 import platformdirs
+import requests
 
 SOCRATES_DIR = Path(os.environ.get('SOCRATES', platformdirs.user_data_dir('socrates')))
 
@@ -35,3 +37,25 @@ def set_rad_env():
     sys.path.append(str(SOCRATES_DIR / 'python'))
 
     os.environ['LD_LIBRARY_PATH'] = 'netcdfff' + sep + os.environ.get('LD_LIBRARY_PATH', '')
+
+
+def download_socrates():
+    version = 'x.y.z'
+    url = f'https://github.com/FormingWorlds/SOCRATES/releases/download/{version}/socrates-Linux.zip'
+
+    with requests.get(url, stream=True) as r:
+        total_size = int(r.headers.get('Content-Length', 0))
+        chunk_size = 1024 * 8
+
+        r.raise_for_status()
+
+        with (
+            open('socrates.zip', 'wb') as f,
+            click.progressbar(label='Downloading', length=total_size) as pbar,
+        ):
+            for chunk in r.iter_content(chunk_size=chunk_size):
+                f.write(chunk)
+                pbar.update(chunk_size)
+
+    if SOCRATES_DIR.exists():
+        raise RuntimeError(f'SOCRATES directory already exists: {SOCRATES_DIR}')

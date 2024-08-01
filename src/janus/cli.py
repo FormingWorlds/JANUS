@@ -29,7 +29,8 @@ def stellar():
 @click.command()
 def socrates():
     """Download SOCRATES code"""
-    raise NotImplementedError
+    from .socrates import download_socrates
+    download_socrates()
 
 
 cli.add_command(download)
