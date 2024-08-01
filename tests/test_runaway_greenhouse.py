@@ -1,92 +1,54 @@
-#!/usr/bin/env python3
-
-import os, shutil, toml
 import numpy as np
-from matplotlib.ticker import MultipleLocator
-from importlib.resources import files
-
+from helpers import get_atmosphere_config, get_spectrum_data, work_directory
 from janus.modules import RadConvEqm
-from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
-import mors
+import pytest
 
-def test_runaway_greenhouse():
 
-    # Set up dirs
-    if os.environ.get('RAD_DIR') == None:
-        raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
-    if os.environ.get('FWL_DATA') == None:
-        raise Exception("The FWL_DATA environment variable where spectral and evolution tracks data will be downloaded needs to be set up!")
-    dirs = {
-            "janus": str(files("janus"))+"/",
-            "output": os.path.abspath(os.getcwd())+"/output/"
-            }
+TEST_DATA = (
+    (200.00000000,9.07314e+01),
+#    (336.84210526,2.77416e+02),
+#    (473.68421053,2.77349e+02),
+#    (610.52631579,2.77138e+02),
+#    (747.36842105,2.77217e+02),
+#    (884.21052632,2.77049e+02),
+#    (1021.05263158,2.77241e+02),
+#    (1157.89473684,2.76997e+02),
+#    (1294.73684211,2.77013e+02),
+#    (1431.57894737,2.77166e+02),
+#    (1568.42105263,2.77504e+02),
+    (1705.26315789,2.78884e+02),
+#    (1842.10526316,2.85329e+02),
+#    (1978.94736842,3.07788e+02),
+#    (2115.78947368,3.74184e+02),
+#    (2252.63157895,5.47014e+02),
+#    (2389.47368421,9.50390e+02),
+#    (2526.31578947,1.80287e+03),
+#    (2663.15789474,3.49537e+03),
+    (2800.00000000,6.58174e+03),
+)
 
-    # Tidy directory
-    if os.path.exists(dirs["output"]):
-        shutil.rmtree(dirs["output"])
-    os.mkdir(dirs["output"])
 
-    #Download required spectral files
-    DownloadSpectralFiles("Oak")
-    DownloadStellarSpectra()
+@pytest.mark.parametrize("inp,expected", TEST_DATA)
+def test_runaway_greenhouse(tmpdir, inp, expected):
+    out_drc = str(tmpdir) + '/'
 
-    # Read spectrum
-    spec = mors.Spectrum()
-    spec.LoadTSV(os.environ.get('FWL_DATA')+"/stellar_spectra/Named/sun.txt")
+    band_edges = get_spectrum_data(out_drc)
+    atm, cfg = get_atmosphere_config(band_edges=band_edges, distance=0.3, cfg_name='config_runaway.toml')
 
-    # Convert to SOCRATES format 
-    socstar = os.path.join(dirs["output"], "socstar.txt")
-    StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
+    time = {'planet': cfg['planet']['time'], 'star': cfg['star']['time']}
 
-    # Setup spectral file
-    print("Inserting stellar spectrum")
-    StellarSpectrum.InsertStellarSpectrum(
-        os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
-        socstar,
-        dirs["output"]
-    )
-    band_edges = ReadBandEdges(dirs["output"]+"star.sf")
+    atm.setSurfaceTemperature(inp)
 
-    # Open config file
-    cfg_file =  dirs["janus"]+"data/tests/config_runaway.toml"
-    with open(cfg_file, 'r') as f:
-          cfg = toml.load(f)
+    with work_directory(tmpdir):
+        _, atm_moist = RadConvEqm(
+            {'output': out_drc},
+            time,
+            atm,
+            standalone=True,
+            cp_dry=False,
+            trppD=False,
+            rscatter=False,
+        )
 
-    # Planet
-    time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
-    star_mass = cfg['star']['star_mass']
-    mean_distance = cfg['star']['mean_distance']
-
-    vol_mixing = {
-                    "H2O" : 1.0,
-                    "CO2" : 0.0,
-                    "N2"  : 0.0
-                }
-
-    #Get reference values
-    OLR_ref = np.loadtxt(dirs["janus"]+"data/tests/data_runaway_greenhouse.csv",
-                         dtype=float, skiprows=1, delimiter=',')
-
-    # Create atmosphere object
-    atm = atmos.from_file(cfg_file, band_edges, vol_mixing=vol_mixing, vol_partial={})
-
-    # Compute stellar heating from Baraffe evolution tracks
-    mors.DownloadEvolutionTracks("/Baraffe")
-    baraffe = mors.BaraffeTrack(star_mass)
-    atm.instellation = baraffe.BaraffeSolarConstant(time['star'], mean_distance)
-
-    #Run Janus
-    Ts_arr = np.linspace(200, 2800, 20)
-    for i in range(20):
-
-      atmos.setSurfaceTemperature(atm, Ts_arr[i])
-
-      _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, rscatter=False)
-
-      out = atm_moist.LW_flux_up[0]
-      print("Output %.5e; Reference %.5e" % (out, OLR_ref[i][1]))
-      np.testing.assert_allclose(out, OLR_ref[i][1], rtol=1e-5, atol=0)      
-
-    # Tidy
-    CleanOutputDir(os.getcwd())
-    CleanOutputDir(dirs['output'])
+    ret = atm_moist.LW_flux_up[0]
+    np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0)

@@ -6,6 +6,7 @@ pl_mass = 5.972e24
 [star]
 time = 100e+6       # yr
 star_mass = 1.0 # M_sun, mass of star
+mean_distance = 0.3 # au, orbital distance
 
 [atmos]
 T_surf = 2800.0

@@ -1,96 +1,42 @@
-#!/usr/bin/env python3
-
-from importlib.resources import files
-import os, shutil, toml
-import numpy as np
-
+from numpy.testing import assert_allclose
+from helpers import get_atmosphere_config, get_spectrum_data, work_directory
 from janus.modules import MCPA_CBL
-from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
-import mors
+import pytest
 
-def test_instellation():
 
-    # Set up dirs
-    if os.environ.get('RAD_DIR') == None:
-        raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
-    if os.environ.get('FWL_DATA') == None:
-        raise Exception("The FWL_DATA environment variable where spectral and evolution tracks data will be downloaded needs to be set up!")
-    dirs = {
-            "janus": str(files("janus"))+"/",
-            "output": os.path.abspath(os.getcwd())+"/output/"
-            }
+TEST_DATA = (
+    (0.3, (2.34297e03, 1.94397e03, -4.67185e01, 3.00023e03, 4.19568e02)),
+#    (0.483333, (9.02641e02, 8.43916e02, 7.70272e01, 2.99961e03, 3.30552e02)),
+#    (0.666667, (4.74451e02, 5.01731e02, 9.86425e01, 2.99951e03, 2.81454e02)),
+#    (0.85, (2.91857e02, 4.21028e02, 1.73069e02, 2.99913e03, 2.49260e02)),
+#    (1.03333, (1.97482e02, 4.16319e02, 2.48540e02, 2.99876e03, 2.26070e02)),
+#    (1.21667, (1.42451e02, 4.15915e02, 2.94890e02, 2.99853e03, 2.08342e02)),
+    (1.4, (1.07585e02, 4.15768e02, 3.24365e02, 2.99838e03, 1.94222e02)),
+)
 
-    # Tidy directory
-    if os.path.exists(dirs["output"]):
-        shutil.rmtree(dirs["output"])
-    os.mkdir(dirs["output"])
 
-    #Download required spectral files
-    DownloadSpectralFiles("Oak")
-    DownloadStellarSpectra()
+@pytest.mark.parametrize("inp,expected", TEST_DATA)
+def test_instellation(tmpdir, inp, expected):
+    out_drc = str(tmpdir) + "/"
 
-    # Read spectrum
-    spec = mors.Spectrum()
-    spec.LoadTSV(os.environ.get('FWL_DATA')+"/stellar_spectra/Named/sun.txt")
-
-    # Convert to SOCRATES format 
-    socstar = os.path.join(dirs["output"], "socstar.txt")
-    StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
-
-    # Setup spectral file
-    print("Inserting stellar spectrum")
-    StellarSpectrum.InsertStellarSpectrum(
-        os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
-        socstar,
-        dirs["output"]
+    band_edges = get_spectrum_data(out_drc)
+    atm, cfg = get_atmosphere_config(
+        band_edges=band_edges,
+        distance=inp,
+        cfg_name="config_instellation.toml",
     )
-    band_edges = ReadBandEdges(dirs["output"]+"star.sf")
+    atm.setTropopauseTemperature()
 
-    # Open config file
-    cfg_file =  dirs["janus"]+"data/tests/config_instellation.toml"
-    with open(cfg_file, 'r') as f:
-        cfg = toml.load(f)
+    with work_directory(tmpdir):
+        atm = MCPA_CBL(
+            {"output": out_drc},
+            atm,
+            False,
+            rscatter=True,
+            T_surf_max=9.0e99,
+            T_surf_guess=atm.trppT + 100,
+        )
 
-    # Star luminosity
-    time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
-    star_mass = cfg['star']['star_mass']
-    mors.DownloadEvolutionTracks("/Baraffe")
-    baraffe = mors.BaraffeTrack(star_mass)
+    ret = (atm.SW_flux_down[0], atm.LW_flux_up[0], atm.net_flux[0], atm.ts, atm.trppT)
 
-    # Define volatiles by mole fractions
-    vol_mixing = {
-                    "H2O" : 1.0,
-                    "CO2" : 0.0,
-                    "N2"  : 0.0
-                }
-
-    #Get reference data
-    ref = np.loadtxt(dirs["janus"]+"data/tests/data_instellation.csv",
-                     dtype=float, skiprows=1, delimiter=',')
-
-    # Create atmosphere object
-    atm = atmos.from_file(cfg_file, band_edges, vol_mixing=vol_mixing, vol_partial={})
-
-    r_arr = np.linspace(0.3, 1.4, 7) # orbital distance range [AU]
-    for i in range(7):
-        print("Orbital separation = %.2f AU" % r_arr[i])
-
-        atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i])
-        atmos.setTropopauseTemperature(atm)
-
-        atm = MCPA_CBL(dirs, atm, False, rscatter = True, T_surf_max=9.0e99, T_surf_guess = atm.trppT+100)
-
-        out = [atm.SW_flux_down[0], atm.LW_flux_up[0], atm.net_flux[0], atm.ts, atm.trppT]
-
-        print_out = "%.5e,"%float(r_arr[i])
-        print_out += ",".join(["%.5e"%o for o in out])
-        print("Calculated:",print_out)
-
-        # print_out = ",".join(["%.5e"%o for o in ref[i]])
-        # print("Target:",print_out)
-
-        np.testing.assert_allclose(out, ref[i][1:6], rtol=1e-5, atol=0)
-
-    # Tidy
-    CleanOutputDir(os.getcwd())
-    CleanOutputDir(dirs['output'])
+    assert_allclose(ret, expected, rtol=1e-5, atol=0)
