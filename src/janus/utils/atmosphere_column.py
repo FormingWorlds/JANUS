@@ -357,6 +357,11 @@ class atmos:
                 Output filename
         """ 
 
+        # Get SOCRATES version string 
+        verpath = os.path.join(os.environ.get("RAD_DIR"),"version")
+        with open(verpath, 'r') as hdl:
+            SOCRATES_version = hdl.read().replace("\n","")
+
         # ----------------------
         # Calculate gravity and height (in case it hasn't been done already)
         self.z = AtmosphericHeight(self, self.planet_mass, self.planet_radius)
@@ -382,7 +387,7 @@ class atmos:
             username = pwd.getpwuid(os.getuid()).pw_name
         ds.username         = str(username)
         ds.JANUS_version    = "0.1"
-        ds.SOCRATES_version = "2306"
+        ds.SOCRATES_version = str(SOCRATES_version)
         ds.platform         = str(platform.system())
         ds.date             = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         ds.description      = 'JANUS atmosphere data'
