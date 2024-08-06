@@ -8,6 +8,7 @@ from janus.utils import phys
 from janus.utils.height import AtmosphericHeight
 import os, copy, platform, shutil
 import pwd
+from datetime import datetime
 
 class atmos:
     
@@ -371,19 +372,24 @@ class atmos:
             os.remove(fpath)
 
         ds = nc.Dataset(fpath, 'w', format='NETCDF4')
-        ds.description        = 'JANUS atmosphere data'
-        ds.hostname           = str(platform.node())
+
+        # Metadata
         try:
             # Try to get the login using os.getlogin()
             username = os.getlogin()
         except OSError:
             # If os.getlogin() fails, try an alternative method
             username = pwd.getpwuid(os.getuid()).pw_name
-        ds.username = str(username)
-        ds.JANUS_version     = "0.1"
-        ds.SOCRATES_version   = "2306"
-        ds.platform           = str(platform.system())
+        ds.username         = str(username)
+        ds.JANUS_version    = "0.1"
+        ds.SOCRATES_version = "2306"
+        ds.platform         = str(platform.system())
+        ds.date             = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        ds.description      = 'JANUS atmosphere data'
+        ds.hostname         = str(platform.node())
 
+        # ----------------------
+        # Variable sizes
         nlev_c = len(self.p)
         nlev_l = nlev_c + 1
 
@@ -392,21 +398,18 @@ class atmos:
 
         nchars = 16
 
-        # ----------------------
         # Create dimensions
-        ds.createDimension('nlev_c', nlev_c)    # Cell centres
-        ds.createDimension('nlev_l', nlev_l)    # Cell edges
-        ds.createDimension('ngases', ngases)    # Gases
-        ds.createDimension('nchars', nchars)    # Length of string containing gas names
-        ds.createDimension('nbands', self.nbands) # Number of bands in the spectral file
-        ds.createDimension('nedges', self.nbands+1) 
+        ds.createDimension('nlev_c', nlev_c)            # Cell centres
+        ds.createDimension('nlev_l', nlev_l)            # Cell edges
+        ds.createDimension('ngases', ngases)            # Gases
+        ds.createDimension('nchars', nchars)            # Length of string containing gas names
+        ds.createDimension('nbands', self.nbands)       # Number of bands in the spectral file
+        ds.createDimension('nchannels', self.nbands)
 
         # ----------------------
         # Scalar quantities  
         #    Create variables
-        var_tstar   = ds.createVariable('tstar',         'f4');  var_tstar.units = "K"     # BOA LW BC
-        var_ps      = ds.createVariable('ps',            'f4');  var_ps.units = "Pa"
-        var_ptop    = ds.createVariable('ptop',          'f4');  var_ptop.units = "Pa" 
+        var_tstar   = ds.createVariable('tmp_surf',      'f4');  var_tstar.units = "K"     # Ground temperature
         var_trppP   = ds.createVariable('trppP',         'f4');  var_trppP.units = "Pa" 
         var_inst    = ds.createVariable("instellation",  'f4');  var_inst.units = "W m-2"  # Solar flux at TOA
         var_s0fact  = ds.createVariable("inst_factor",   'f4');                            # Scale factor applied to instellation
@@ -426,8 +429,6 @@ class atmos:
         var_tstar.assignValue(self.ts)
         var_inst.assignValue(self.instellation)  
         var_toah.assignValue(self.toa_heating)
-        var_ps.assignValue(self.ps)
-        var_ptop.assignValue(self.ptop)
         var_trppP.assignValue(self.trppP)
         var_znth.assignValue(self.zenith_angle)
         var_s0fact.assignValue(self.inst_sf)
@@ -453,8 +454,6 @@ class atmos:
         var_zl    = ds.createVariable('zl',      'f4', dimensions=('nlev_l'));           var_zl.units = "m"
         var_grav  = ds.createVariable('gravity', 'f4', dimensions=('nlev_c'));           var_grav.units = "m s-2"
         var_cp    = ds.createVariable('cp',      'f4', dimensions=('nlev_c'));           var_cp.units = "J/(kg K)"
-        var_xd    = ds.createVariable('xd',      'f4', dimensions=('nlev_c'));           var_xd.units = "none"
-        var_xv    = ds.createVariable('xv',      'f4', dimensions=('nlev_c'));           var_xv.units = "none"
 
         var_mmw   = ds.createVariable('mmw',     'f4', dimensions=('nlev_c'));           var_mmw.units = "kg mol-1"
         var_gases = ds.createVariable('gases',   'S1', dimensions=('ngases', 'nchars'))  # Names of gases
@@ -472,15 +471,18 @@ class atmos:
             var_fd    = ds.createVariable('fl_D',    'f4', dimensions=('nlev_l'));           var_fd.units = "W m-2"
             var_fu    = ds.createVariable('fl_U',    'f4', dimensions=('nlev_l'));           var_fu.units = "W m-2"
             var_fn    = ds.createVariable('fl_N',    'f4', dimensions=('nlev_l'));           var_fn.units = "W m-2"
-            var_hr    = ds.createVariable('rad_hr',  'f4', dimensions=('nlev_c'));           var_hr.units = "K day-1"
-            var_sful  = ds.createVariable('Sfl_U_LW','f4', dimensions=('nbands', 'nlev_l')); var_sful.units = "W m-2"
-            var_sfus  = ds.createVariable('Sfl_U_SW','f4', dimensions=('nbands', 'nlev_l')); var_sfus.units = "W m-2"
-            var_sfdl  = ds.createVariable('Sfl_D_LW','f4', dimensions=('nbands', 'nlev_l')); var_sfdl.units = "W m-2"
-            var_sfds  = ds.createVariable('Sfl_D_SW','f4', dimensions=('nbands', 'nlev_l')); var_sfds.units = "W m-2"
-            var_edge  = ds.createVariable('band_edges','f4', dimensions=('nedges'));         var_edge.units = "nm"
+            var_hr    = ds.createVariable('hrate',   'f4', dimensions=('nlev_c'));           var_hr.units = "K day-1"
+            var_bul   = ds.createVariable('ba_U_LW','f4',  dimensions=('nbands', 'nlev_l')); var_bul.units = "W m-2"
+            var_bdl   = ds.createVariable('ba_D_LW','f4',  dimensions=('nbands', 'nlev_l')); var_bdl.units = "W m-2"
+            var_bnl   = ds.createVariable('ba_N_LW','f4',  dimensions=('nbands', 'nlev_l')); var_bnl.units = "W m-2"
+            var_bus   = ds.createVariable('ba_U_SW','f4',  dimensions=('nbands', 'nlev_l')); var_bus.units = "W m-2"
+            var_bds   = ds.createVariable('ba_D_SW','f4',  dimensions=('nbands', 'nlev_l')); var_bds.units = "W m-2"
+            var_bns   = ds.createVariable('ba_N_SW','f4',  dimensions=('nbands', 'nlev_l')); var_bns.units = "W m-2"
+            var_bmin  = ds.createVariable('bandmin','f4',  dimensions=('nbands'));           var_bmin.units = "m"
+            var_bmax  = ds.createVariable('bandmax','f4',  dimensions=('nbands'));           var_bmax.units = "m"
 
         if self.has_contfunc:
-            var_cff   = ds.createVariable('cff',     'f4', dimensions=('nbands', 'nlev_c')); var_cff.units = "W m-2 m-1" ## units??
+            var_cff   = ds.createVariable('contfunc',     'f4', dimensions=('nbands', 'nlev_c')); var_cff.units = "W m-2 m-1" ## units??
 
         var_re    = ds.createVariable('re',      'f4', dimensions=('nlev_c'));           var_re.units = "m"
         var_lwm   = ds.createVariable('lwm',     'f4', dimensions=('nlev_c'));           var_lwm.units = "kg kg-1"
@@ -496,8 +498,6 @@ class atmos:
         var_mmw[:]  = self.mu[:]
         var_grav[:] = self.grav_z[:]
         var_cp[:]   = self.cp[:]
-        var_xd[:]   = self.xd[:]
-        var_xv[:]   = self.xv[:]
 
         var_gases[:] = np.array([ [c for c in gas.ljust(nchars)[:nchars]] for gas in gas_list ] , dtype='S1')
         var_mr[:]    = np.array([ [ self.x_gas[gas][i] for i in range(nlev_c-1,-1,-1) ] for gas in gas_list  ]).T
@@ -520,12 +520,16 @@ class atmos:
 
             var_hr[:] = self.net_heating[:]
 
-            var_sful[:,:]  = self.LW_spectral_flux_up[:,:]
-            var_sfus[:,:]  = self.SW_spectral_flux_up[:,:]
-            var_sfdl[:,:]  = self.LW_spectral_flux_down[:,:]
-            var_sfds[:,:]  = self.SW_spectral_flux_down[:,:]
+            var_bul[:,:]  = self.LW_spectral_flux_up[:,:]
+            var_bdl[:,:]  = self.LW_spectral_flux_down[:,:]
+            var_bnl[:,:]  = var_bul[:,:] - var_bdl[:,:]
+            
+            var_bus[:,:]  = self.SW_spectral_flux_up[:,:]
+            var_bds[:,:]  = self.SW_spectral_flux_down[:,:]
+            var_bns[:,:]  = var_bus[:,:] - var_bds[:,:]
 
-            var_edge[:]    = self.band_edges[:]
+            var_bmin[:]    = self.band_edges[:-1] * 1e-9
+            var_bmin[:]    = self.band_edges[1:] * 1e-9
 
         if self.has_contfunc:
             var_cff[:,:]   = self.cff[:,:]
