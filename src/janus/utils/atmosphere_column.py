@@ -529,7 +529,7 @@ class atmos:
             var_bns[:,:]  = var_bus[:,:] - var_bds[:,:]
 
             var_bmin[:]    = self.band_edges[:-1] * 1e-9
-            var_bmin[:]    = self.band_edges[1:] * 1e-9
+            var_bmax[:]    = self.band_edges[1:] * 1e-9
 
         if self.has_contfunc:
             var_cff[:,:]   = self.cff[:,:]
