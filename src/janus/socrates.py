@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-import sys
+import subprocess as sp
 import zipfile
 from pathlib import Path
 
@@ -9,18 +9,14 @@ import click
 import platformdirs
 import requests
 
-SOCRATES_DIR = Path(os.environ.get('SOCRATES', platformdirs.user_data_dir('socrates')))
+SOCRATES_DATA_DIR = Path(platformdirs.user_data_dir('socrates'))
+SOCRATES_DIR = Path(os.environ.get('SOCRATES', SOCRATES_DATA_DIR / 'SOCRATES'))
 
 
 def _set_permissions(drc: Path):
     """Set executable flag for scripts."""
-    for p in drc.iterdir():
-        if p.suffix:
-            continue
-        if p.stem.startswith('Mk_') or p.stem.startswith('Make'):
-            continue
-        # set executable flag
-        p.chmod(mode=33261)
+    # Set executable permissions for make script
+    (drc / 'make' / 'mkdep').chmod(mode=33261)
 
 
 def _download(*, url: str, filename: str):
@@ -39,27 +35,33 @@ def _download(*, url: str, filename: str):
                 pbar.update(chunk_size)
 
 
-def download_socrates():
-    version = 'x.y.z'
+def download_socrates(ref: str = 'main'):
+    """Version can be 'main' or the git commit hash."""
     filename = 'socrates.zip'
+    path = 'refs/heads/main' if ref == 'main' else ref
 
     _download(
-        url=f'https://github.com/FormingWorlds/SOCRATES/releases/download/{version}/socrates-Linux.zip',
+        url=f'https://github.com/nichollsh/SOCRATES/archive/{path}.zip',
         filename=filename,
     )
 
-    SOCRATES_DIR.mkdir(exist_ok=True, parents=True)
+    SOCRATES_DATA_DIR.mkdir(exist_ok=True, parents=True)
 
-    is_empty = not any(SOCRATES_DIR).iterdir()
-    if not is_empty:
-        raise RuntimeError(f'SOCRATES directory is not empty: {SOCRATES_DIR}')
+    subdir = f'SOCRATES-{ref}'
+    target_dir = SOCRATES_DATA_DIR / subdir
+
+    click.echo(f'Extracting to {target_dir}')
 
     with zipfile.ZipFile(filename, 'r') as zip_ref:
-        zip_ref.extractall(SOCRATES_DIR)
+        zip_ref.extractall(SOCRATES_DATA_DIR)
 
-    _set_permissions(SOCRATES_DIR / 'bin')
-    _set_permissions(SOCRATES_DIR / 'sbin')
+    _set_permissions(drc=target_dir)
 
-    filename.unlink()
+    sp.run(['bash', 'configure'], cwd=target_dir)
+    sp.run(['bash', 'build_code'], cwd=target_dir)
 
-    print(f'SOCRATES downloaded to {SOCRATES_DIR}')
+    symlink = SOCRATES_DATA_DIR / 'SOCRATES'
+    symlink.unlink(missing_ok=True)
+    symlink.symlink_to(target_dir)
+
+    print(f'SOCRATES downloaded to {target_dir}')
