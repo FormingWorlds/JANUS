@@ -69,7 +69,7 @@ if __name__ == "__main__":
     os.mkdir(dirs["output"])
 
     #Download required spectral files
-    DownloadSpectralFiles("/Dayspring")
+    DownloadSpectralFiles("Dayspring")
     DownloadStellarSpectra()
 
     # Read spectrum
