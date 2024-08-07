@@ -22,7 +22,8 @@ jobs:
 
       - name: Setup system
         run: |
-          sudo apt-get install libnetcdff-dev netcdf-bin gfortran gcc
+          sudo apt-get update
+          sudo apt-get install libnetcdff-dev netcdf-bin
 
       - name: Get SOCRATES
         uses: actions/checkout@v4
@@ -45,7 +46,7 @@ jobs:
           export LD_LIBRARY_PATH=""
           cd SOCRATES
           ./configure
-          ./build_code 
+          ./build_code
           cd ..
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -98,5 +99,3 @@ jobs:
           minColorRange: 50
           maxColorRange: 90
           valColorRange: ${{ env.total }}
-
-
