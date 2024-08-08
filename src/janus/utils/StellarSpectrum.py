@@ -11,6 +11,9 @@ import shutil , os
 import subprocess
 from scipy.interpolate import PchipInterpolator
 
+from .. import set_socrates_env  # noqa
+
+
 def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
     """Write a stellar spectrum.
 
