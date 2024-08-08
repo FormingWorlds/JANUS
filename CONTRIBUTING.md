@@ -33,3 +33,28 @@ coverage run -m pytest
 coverage report  # to output to terminal
 coverage html    # to generate html report
 ```
+
+
+### Making a release
+
+The versioning scheme we use is [CalVer](https://calver.org/).
+
+0. Update requirements files:
+
+```console
+python tools/requirements_txt.py
+pip-compile -o requirements_full.txt pyproject.toml
+```
+
+1. Bump the version (`release`/`patch`) as needed
+
+```console
+bump-my-version release
+# 24.06.26
+```
+
+2. Commit and push your changes.
+
+3. Make a new [release](https://github.com/FormingWorlds/JANUS/releases). Make sure to set the tag to the specified version, e.g. `24.06.26`.
+
+4. The [upload to pypi](https://pypi.org/project/fwl-janus) is triggered when a release is published and handled by [this workflow](https://github.com/FormingWorlds/JANUS/actions/workflows/publish.yaml).
