@@ -50,11 +50,11 @@ pip-compile -o requirements_full.txt pyproject.toml
 
 ```console
 bump-my-version release
-# 24.6.26
+# 24.06.26
 ```
 
 2. Commit and push your changes.
 
-3. Make a new [release](https://github.com/FormingWorlds/JANUS/releases). Make sure to set the tag to the specified version, e.g. `24.6.26`.
+3. Make a new [release](https://github.com/FormingWorlds/JANUS/releases). Make sure to set the tag to the specified version, e.g. `24.06.26`.
 
 4. The [upload to pypi](https://pypi.org/project/fwl-janus) is triggered when a release is published and handled by [this workflow](https://github.com/FormingWorlds/JANUS/actions/workflows/publish.yaml).
