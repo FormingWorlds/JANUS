@@ -33,3 +33,23 @@ coverage run -m pytest
 coverage report  # to output to terminal
 coverage html    # to generate html report
 ```
+
+
+### Making a release
+
+The versioning scheme we use is [CalVer](https://calver.org/).
+
+1. Bump the version (`release`/`patch`) as needed
+
+```console
+bumpversion release
+# 24.6.26
+```
+
+2. Commit and push your changes.
+
+3. Make a new [release](https://github.com/FormingWorlds/JANUS/releases). Make sure to set the tag to the specified version, e.g. `24.6.26`.
+
+4. The [upload to pypi](https://pypi.org/project/fwl-janus) is triggered when a release is published and handled by [this workflow](https://github.com/FormingWorlds/JANUS/actions/workflows/publish.yaml).
+
+5. The [upload to zenodo](https://zenodo.org/record/XXX) is triggered when a release is published.
