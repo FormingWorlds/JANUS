@@ -3,6 +3,7 @@
 Based on:
 https://github.com/FormingWorlds/SOCRATES/blob/main/sbin/set_rad_env_tmp
 """
+
 from __future__ import annotations
 
 from .socrates import SOCRATES_DIR

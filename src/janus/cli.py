@@ -1,13 +1,16 @@
 import click
 
+
 @click.group()
 def cli():
     pass
+
 
 @click.group()
 def download():
     """Download data and dependencies"""
     pass
+
 
 @click.command()
 @click.option('-n', '--name', 'fname', type=str, help='Name of the spectra')
@@ -18,19 +21,25 @@ def spectral(**kwargs):
     By default, download all files.
     """
     from .utils.data import DownloadSpectralFiles
+
     DownloadSpectralFiles(**kwargs)
+
 
 @click.command()
 def stellar():
     """Download stellar spectra"""
     from .utils.data import DownloadStellarSpectra
+
     DownloadStellarSpectra()
 
+
 @click.command()
-def socrates():
+@click.option('-r', '--ref', type=str, default='main', help='Git reference (hash) to download')
+def socrates(**kwargs):
     """Download SOCRATES code"""
     from .socrates import download_socrates
-    download_socrates()
+
+    download_socrates(**kwargs)
 
 
 cli.add_command(download)
