@@ -39,10 +39,17 @@ coverage html    # to generate html report
 
 The versioning scheme we use is [CalVer](https://calver.org/).
 
+0. Update requirements files:
+
+```console
+python tools/requirements_txt.py
+pip-compile -o requirements_full.txt pyproject.toml
+```
+
 1. Bump the version (`release`/`patch`) as needed
 
 ```console
-bumpversion release
+bump-my-version release
 # 24.6.26
 ```
 
