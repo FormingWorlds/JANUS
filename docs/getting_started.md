@@ -27,7 +27,12 @@ janus download stellar
 
 ## Environment variables
 
-If you install and compile [SOCRATES](https://github.com/nichollsh/SOCRATES) yourself, you can specify the path using the `SOCRATES` environment variable, e.g.
+### `SOCRATES`
+
+By default, SOCRATES is installed to the default location based on the [XDG specification](https://specifications.freedesktop.org/basedir-spec/latest/).
+
+If you install and compile [SOCRATES](https://github.com/nichollsh/SOCRATES) yourself,
+you can override the path using the `SOCRATES` environment variable, e.g.
 
 ```console
 SOCRATES=/home/user/path/to/SOCRATES pytest
