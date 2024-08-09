@@ -33,3 +33,5 @@ utils/*.ipynb*
 build/
 fwl_data*/
 dist/
+.pytest_cache
+

@@ -38,7 +38,7 @@ if __name__=='__main__':
     os.mkdir(dirs["output"])
 
     #Download required spectral files
-    DownloadSpectralFiles("/Oak")
+    DownloadSpectralFiles("Oak")
     DownloadStellarSpectra()
 
     # Read spectrum
