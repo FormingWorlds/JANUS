@@ -10,14 +10,17 @@ import numpy as np
 from matplotlib.ticker import MultipleLocator
 from importlib.resources import files
 
+from janus.utils.logs import GetLogger
+log = GetLogger()
+
 from janus.modules import RadConvEqm
 from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
 import mors
 
 if __name__=='__main__':
 
-    print("Start")
-    print(" ")
+    log.info("Start")
+    log.info(" ")
 
     # Set up dirs
     if os.environ.get('RAD_DIR') == None:
@@ -48,13 +51,13 @@ if __name__=='__main__':
 
 
     # Setup spectral file
-    print("Inserting stellar spectrum")
+    log.info("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
         socstar,
         dirs["output"]
     )
-    print(" ")
+    log.info(" ")
     band_edges = ReadBandEdges(dirs["output"]+"star.sf")
 
     # Open config file
@@ -76,24 +79,24 @@ if __name__=='__main__':
     atm = atmos.from_file(cfg_file, band_edges, vol_mixing=vol_mixing, vol_partial={})
 
     # Compute stellar heating
-    mors.DownloadEvolutionTracks("/Baraffe")
+    mors.DownloadEvolutionTracks("Baraffe")
     baraffe = mors.BaraffeTrack(star_mass)
     atm.instellation = baraffe.BaraffeSolarConstant(time['star'], mean_distance) 
 
     #Run Janus
  
     # Run JANUS in a loop to generate runaway curve
-    print("Running JANUS...")
+    log.info("Running JANUS...")
     Ts_arr = np.linspace(200, 2800, 20)
     OLR_arr = []
     for i in range(20):
-      print("T_surf = %d K" % Ts_arr[i])
+      log.info("T_surf = %d K" % Ts_arr[i])
       atmos.setSurfaceTemperature(atm, Ts_arr[i])
 
       _, atm_moist = RadConvEqm(dirs, time, atm, standalone=True, cp_dry=False, trppD=False, rscatter=False)
 
       OLR_arr.append(atm_moist.LW_flux_up[0])
-      print(" ")
+      log.info(" ")
 
     OLR_arr = np.array(OLR_arr)
     Ts_arr  = np.array(Ts_arr)
@@ -109,7 +112,7 @@ if __name__=='__main__':
                           dtype=float, skiprows=2, delimiter=',').T 
 
     # Setup plot
-    print("Making plot")
+    log.info("Making plot")
     fig,ax = plt.subplots(1,1, figsize=(7,4))
 
     # Plot data
@@ -133,12 +136,12 @@ if __name__=='__main__':
 
     fig.savefig(dirs["output"]+"runaway_demo.pdf", bbox_inches='tight')
     fig.savefig(dirs["output"]+"runaway_demo.png", bbox_inches='tight', dpi=190)
-    print(" ")
+    log.info(" ")
 
     # Tidy
     CleanOutputDir(os.getcwd())
     CleanOutputDir(dirs['output'])
 
     # Done
-    print("Done!")
+    log.info("Done!")
 

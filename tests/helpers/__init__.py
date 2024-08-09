@@ -66,7 +66,7 @@ def get_atmosphere_config(*, band_edges, cfg_name: str, distance: float):
 
     atm = atmos.from_file(cfg_file, band_edges, vol_mixing=vol_mixing, vol_partial={})
 
-    mors.DownloadEvolutionTracks('/Baraffe')
+    mors.DownloadEvolutionTracks('Baraffe')
     baraffe = mors.BaraffeTrack(star_mass)
     atm.instellation = baraffe.BaraffeSolarConstant(star_time, distance)
 
