@@ -47,8 +47,6 @@ def ncout_surf(file, lon, lat, basis, alb):
         raise RuntimeError(' Error in ncout_surf: arrays dont match', nvals
                             , n_lon * n_lat * levels)
 
-    #print('ncout_surf - file: ',file)
-
     ncdf_file = create_cdf(file)
 
     write_dim(ncdf_file, n_lon, lon, 'lon', 'f4', 'lon', 'degree', 'LONGITUDE')
@@ -82,8 +80,6 @@ def ncout_spectral_surf(file, lon, lat, bands, alb):
     else:
         raise RuntimeError(' Error in ncout_surf: arrays dont match', nvals
                            , n_lon * n_lat * bands)
-
-    #print('ncout_spectral_surf - file: ', file)
 
     ncdf_file = create_cdf(file)
     write_dim(ncdf_file, n_lon, lon, 'lon', 'f4', 'lon', 'degree', 'LONGITUDE')
@@ -123,7 +119,6 @@ def ncout2d(file, lon, lat, val, name = None, longname = None
     if (type(name) is not str):
         patterns = re.compile(r'\\|\.')
         name = file[patterns.search(file).start() + 1:]
-    #print('ncout2d - file: ',file)
 
     ncdf_file = create_cdf(file)
 
@@ -172,8 +167,6 @@ def ncout3d(file, lon, lat, p, val, name = None
     if (type(name) is not str):
         patterns = re.compile(r'\\|\.')
         name = file[patterns.search(file).start() + 1:]
-
-    #print('ncout3d - file: ',file)
 
     ncdf_file = create_cdf(file)
 
@@ -256,17 +249,12 @@ def ncout_opt_prop(file, lon, lat, p, bands, absp, scat, phf):
         scat_vals = scat_vals[:, order, :, :]
         phf_vals = phf_vals[:, :, order, :, :]
 
-    #print('ncout_opt_prop - file: ', file)
-
     ncdf_file = create_cdf(file)
 
     write_dim(ncdf_file, n_lon, lon, 'lon', 'f4', 'lon', 'degree', 'LONGITUDE')
     write_dim(ncdf_file, n_lat, lat, 'lat', 'f4', 'lat', 'degree', 'LATITUDE')
     write_dim(ncdf_file, levels, p, 'plev', 'f4', 'plev', 'Pa', 'PRESSURE')
     write_dim(ncdf_file, 1, 1, 'mom', 'i2', 'mom', 'none', 'moment')
-    #print('bands=', bands)
-    #print('np.sum(bands)=', np.sum(bands))
-    #print('np.arange(bands)+1=', np.arange(bands)+1)
     write_dim(ncdf_file, bands, np.arange(bands)+1, 'band', 'i2', 'band',
               'none', 'band')
 

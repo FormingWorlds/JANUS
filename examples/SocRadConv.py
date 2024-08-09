@@ -20,6 +20,9 @@ import os, shutil, toml
 import numpy as np
 from importlib.resources import files
 
+from janus.utils.logs import GetLogger
+log = GetLogger()
+
 from janus.modules import RadConvEqm, plot_fluxes, plot_emission
 from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, plot_adiabats, ReadBandEdges, StellarSpectrum
 import mors
@@ -29,7 +32,7 @@ import mors
 ####################################
 if __name__ == "__main__":
 
-    print("Start JANUS")
+    log.info("Start JANUS")
 
     # Set up dirs
     if os.environ.get('RAD_DIR') == None:
@@ -81,7 +84,7 @@ if __name__ == "__main__":
     StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
 
     # Move/prepare spectral file
-    print("Inserting stellar spectrum")
+    log.info("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         os.environ.get('FWL_DATA')+"/spectral_files/Dayspring/256/Dayspring.sf",
         socstar,
@@ -97,10 +100,10 @@ if __name__ == "__main__":
     if cfg['star']['stellar_heating'] == False: 
         atm.instellation = 0.
     else:
-        mors.DownloadEvolutionTracks("/Baraffe")
+        mors.DownloadEvolutionTracks("Baraffe")
         baraffe = mors.BaraffeTrack(star_mass)
         atm.instellation = baraffe.BaraffeSolarConstant(time['star'], mean_distance) 
-        print("Instellation:", round(atm.instellation), "W/m^2")
+        log.info("Instellation: %.2e W/m^2" % atm.instellation)
 
     # Set up atmosphere with general adiabat
     atm_dry, atm = RadConvEqm(dirs,
@@ -130,5 +133,5 @@ if __name__ == "__main__":
     CleanOutputDir(dirs['output'])
 
     end = t.time()
-    print("Runtime:", round(end - start,2), "s")
+    log.info("Runtime: %.2f s" % float(end-start))
 

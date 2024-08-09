@@ -2,6 +2,9 @@ import os
 from osfclient.api import OSF
 from pathlib import Path
 
+from janus.utils.logs import GetLogger
+log = GetLogger()
+
 basic_list = (
         "Dayspring/256",
         "Frostflow/256",
@@ -27,7 +30,7 @@ def download_folder(*, storage, folders: list[str], data_dir: Path):
             parts = file.path.split('/')[1:]
             target = Path(data_dir, *parts)
             target.parent.mkdir(parents=True, exist_ok=True)
-            print(f'Downloading {file.path}...')
+            log.info(f'Downloading {file.path}...')
             with open(target, 'wb') as f:
                 file.write_to(f)
             break
@@ -58,7 +61,7 @@ def DownloadStellarSpectra():
     data_dir.mkdir(parents=True, exist_ok=True)
 
     if not (data_dir / folder_name).exists():
-        print("Downloading stellar spectra")
+        log.info("Downloading stellar spectra")
         download_folder(storage=storage, folders=[folder_name], data_dir=data_dir)
 
 
@@ -97,5 +100,5 @@ def DownloadSpectralFiles(fname: str="",nband: int=256):
     folders = [folder for folder in folder_list if not (data_dir / folder).exists()]
 
     if folders:
-        print("Downloading SOCRATES spectral files")
+        log.info("Downloading SOCRATES spectral files")
         download_folder(storage=storage, folders=folders, data_dir=data_dir)

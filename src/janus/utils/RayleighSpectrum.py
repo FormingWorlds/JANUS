@@ -62,8 +62,6 @@ def cross_section(wavelength, info_dict):#wavelength in m
 def band_integrator(species_list, molar_mixing_ratio_list, wavelength1_list, wavelength2_list):
     total_coefficient = 0
     for n, species in enumerate(species_list):
-        #print(species)
-        #print(species_info(species))
         info_tup = species_info(species)
         
         #Coefficient w/o mixing ratio weight
@@ -146,7 +144,6 @@ def rayleigh_coeff_adder(species_list = ['co2'], mixing_ratio_list = [1.], spect
     
     # This loop puts the cross sections in the proper format and then adds them to the list line by line
     for n in range(cross_section_list.shape[0]):
-        #print('{0:5d}'.format(np.array(cross_section_list[n,0],dtype=int))+'\t\t %.9E\n'%(cross_section_list[n,1]))
         block3_list.append('{0:5d}'.format(np.array(cross_section_list[n,0],dtype=int))+'        %.9E\n'%(cross_section_list[n,1]))
     
     # Adding the end statement of block 3

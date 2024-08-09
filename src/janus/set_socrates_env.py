@@ -17,14 +17,17 @@ import click
 import platformdirs
 import requests
 
+from janus.utils.logs import GetLogger
+log = GetLogger()
+
 if not SOCRATES_DIR.exists():
     raise RuntimeError(f'Cannot find SOCRATES in this location: {SOCRATES_DIR}')
 
 with open(SOCRATES_DIR / 'version') as f:
     version = f.readline()
 
-print(f'socrates location: {SOCRATES_DIR}')
-print(f'socrates version: {version}')
+log.debug(f'socrates location: {SOCRATES_DIR}')
+log.debug(f'socrates version: {version}')
 
 sep = os.pathsep
 
