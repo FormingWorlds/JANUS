@@ -1,8 +1,7 @@
-from numpy.testing import assert_allclose
+import pytest
 from helpers import get_atmosphere_config, get_spectrum_data, work_directory
 from janus.modules import MCPA_CBL
-import pytest
-
+from numpy.testing import assert_allclose
 
 TEST_DATA = (
     (0.3, (2.34297e03, 1.94397e03, -4.67185e01, 3.00023e03, 4.19568e02)),

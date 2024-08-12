@@ -1,6 +1,15 @@
 import os
-from osfclient.api import OSF
 from pathlib import Path
+import logging
+
+import platformdirs
+from osfclient.api import OSF
+
+logger = logging.getLogger(__name__)
+
+FWL_DATA_DIR = Path(os.environ.get('FWL_DATA', platformdirs.user_data_dir('fwl_data')))
+
+logger.info(f'FWL data location: {FWL_DATA_DIR}')
 
 basic_list = (
         "Dayspring/256",
@@ -14,9 +23,9 @@ basic_list = (
 def download_folder(*, storage, folders: list[str], data_dir: Path):
     """
     Download a specific folder in the OSF repository
-    
+
     Inputs :
-        - storage : OSF storage name 
+        - storage : OSF storage name
         - folders : folder names to download
         - data_dir : local repository where data are saved
     """
@@ -37,19 +46,16 @@ def GetFWLData() -> Path:
     """
     Get path to FWL data directory on the disk
     """
-    fwl_data_dir = os.getenv('FWL_DATA')
-    if not os.environ.get("FWL_DATA"):
-        raise Exception("The FWL_DATA environment variable where spectral data will be downloaded needs to be set up!")
-    return Path(fwl_data_dir).absolute()
+    return FWL_DATA_DIR.absolute()
 
 def DownloadStellarSpectra():
     """
     Download stellar spectra
     """
-    #project ID of the stellar spectra on OSF 
+    #project ID of the stellar spectra on OSF
     project_id = '8r2sw'
     folder_name = 'Named'
-    
+
     osf = OSF()
     project = osf.project(project_id)
     storage = project.storage('osfstorage')
@@ -65,14 +71,14 @@ def DownloadStellarSpectra():
 def DownloadSpectralFiles(fname: str="",nband: int=256):
     """
     Download spectral files data
-    
+
     Inputs :
         - fname (optional) :    folder name, i.e. "/Dayspring"
-                                if not provided download all the basic list  
-        - nband (optional) :    number of band = 16, 48, 256, 4096 
+                                if not provided download all the basic list
+        - nband (optional) :    number of band = 16, 48, 256, 4096
                                 (only relevant for Dayspring, Frostflow and Honeyside)
     """
-    #project ID of the spectral files on OSF 
+    #project ID of the spectral files on OSF
     project_id = 'vehxg'
 
     #Create spectral file data repository if not existing
