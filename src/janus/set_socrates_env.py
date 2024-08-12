@@ -24,10 +24,10 @@ if not SOCRATES_DIR.exists():
     raise RuntimeError(f'Cannot find SOCRATES in this location: {SOCRATES_DIR}')
 
 with open(SOCRATES_DIR / 'version') as f:
-    version = f.readline()
+    SOCRATES_VERSION = f.readline()
 
 logger.info(f'socrates location: %s', SOCRATES_DIR)
-logger.info('socrates version: %s', version)
+logger.info('socrates version: %s', SOCRATES_VERSION)
 
 sep = os.pathsep
 
