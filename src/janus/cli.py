@@ -48,8 +48,8 @@ def env():
     from janus.socrates import SOCRATES_DIR
     from janus.utils.data import FWL_DATA_DIR
 
-    click.echo(f'SOCRATES location: {SOCRATES_DIR}')
-    click.echo(f'FWL data location: {FWL_DATA_DIR}')
+    click.echo(f'RAD_DIR location: {SOCRATES_DIR}')
+    click.echo(f'FWL_DATA location: {FWL_DATA_DIR}')
 
 
 cli.add_command(download)

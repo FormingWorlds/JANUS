@@ -27,6 +27,12 @@ janus download stellar
 
 ## Environment variables
 
+To see all environment variables and locations, use:
+
+```console
+janus env
+```
+
 ### `SOCRATES`
 
 By default, SOCRATES is installed to the default location based on the [XDG specification](https://specifications.freedesktop.org/basedir-spec/latest/).
@@ -36,4 +42,13 @@ you can override the path using the `SOCRATES` environment variable, e.g.
 
 ```console
 SOCRATES=/home/user/path/to/SOCRATES pytest
+```
+
+### `FWL_DATA`
+
+Set this variable to modify where janus stores its stellar and spectral data. By default this is based on the [XDG specification](https://specifications.freedesktop.org/basedir-spec/latest/).
+You can override the path using the `FWL_DATA` environment variable, e.g.
+
+```console
+FWL_DATA=/home/user/path/to/fwl_data pytest
 ```
