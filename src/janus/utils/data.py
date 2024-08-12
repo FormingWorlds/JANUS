@@ -64,7 +64,7 @@ def DownloadStellarSpectra():
     data_dir.mkdir(parents=True, exist_ok=True)
 
     if not (data_dir / folder_name).exists():
-        print("Downloading stellar spectra")
+        print(f"Downloading stellar spectra to {data_dir}")
         download_folder(storage=storage, folders=[folder_name], data_dir=data_dir)
 
 
@@ -103,5 +103,5 @@ def DownloadSpectralFiles(fname: str="",nband: int=256):
     folders = [folder for folder in folder_list if not (data_dir / folder).exists()]
 
     if folders:
-        print("Downloading SOCRATES spectral files")
+        print(f"Downloading SOCRATES spectral files to {data_dir}")
         download_folder(storage=storage, folders=folders, data_dir=data_dir)
