@@ -1,8 +1,7 @@
 import numpy as np
+import pytest
 from helpers import get_atmosphere_config, get_spectrum_data, work_directory
 from janus.modules import RadConvEqm
-import pytest
-
 
 TEST_DATA = (
     (200.00000000,9.07314e+01),
