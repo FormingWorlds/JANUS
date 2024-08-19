@@ -12,19 +12,22 @@ import os
 import sys
 import zipfile
 from pathlib import Path
+import logging
 
 import click
 import platformdirs
 import requests
 
+logger = logging.getLogger(__name__)
+
 if not SOCRATES_DIR.exists():
     raise RuntimeError(f'Cannot find SOCRATES in this location: {SOCRATES_DIR}')
 
 with open(SOCRATES_DIR / 'version') as f:
-    version = f.readline()
+    SOCRATES_VERSION = f.readline()
 
-print(f'socrates location: {SOCRATES_DIR}')
-print(f'socrates version: {version}')
+logger.info(f'socrates location: %s', SOCRATES_DIR)
+logger.info('socrates version: %s', SOCRATES_VERSION)
 
 sep = os.pathsep
 

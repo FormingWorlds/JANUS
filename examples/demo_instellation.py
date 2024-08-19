@@ -16,6 +16,8 @@ from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadSt
 
 import mors
 
+from janus.utils.data import FWL_DATA_DIR
+
 if __name__=='__main__':
 
     print("Start")
@@ -23,8 +25,7 @@ if __name__=='__main__':
     # Set up dirs
     if os.environ.get('RAD_DIR') == None:
         raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
-    if os.environ.get('FWL_DATA') == None:
-        raise Exception("The FWL_DATA environment variable where spectral and evolution tracks data will be downloaded needs to be set up!")
+
     dirs = {
             "janus": str(files("janus"))+"/",
             "output": os.path.abspath(os.getcwd())+"/output/"
@@ -41,9 +42,9 @@ if __name__=='__main__':
 
     # Read spectrum
     spec = mors.Spectrum()
-    spec.LoadTSV(os.environ.get('FWL_DATA')+"/stellar_spectra/Named/sun.txt")
+    spec.LoadTSV(str(FWL_DATA_DIR / 'stellar_spectra' / 'Named' / 'sun.txt'))
 
-    # Convert to SOCRATES format 
+    # Convert to SOCRATES format
     socstar = os.path.join(dirs["output"], "socstar.txt")
     StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
 
@@ -51,7 +52,7 @@ if __name__=='__main__':
     # Setup spectral file
     print("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
+        str(FWL_DATA_DIR / 'spectral_files'/'Oak'/'318'/'Oak.sf'),
         socstar,
         dirs["output"]
     )
@@ -86,7 +87,7 @@ if __name__=='__main__':
     T_magma = atm.tmp_magma #get default value 3000 K but this could be a config option
 
     r_arr = np.linspace(0.3, 1.4, 7) # orbital distance range [AU]
-    
+
     asf_arr  = []   # ASF
     OLR_arr = []    # OLR
     net_arr = []    # net flux at TOA
@@ -95,7 +96,7 @@ if __name__=='__main__':
     for i in range(7):
       print("Orbital separation = %.2f AU" % r_arr[i])
 
-      atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i]) 
+      atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i])
       atmos.setTropopauseTemperature(atm)
 
       atm = MCPA_CBL(dirs, atm, False, rscatter = True, T_surf_max=9.0e99, T_surf_guess = atm.trppT+100)
@@ -106,7 +107,7 @@ if __name__=='__main__':
       ts_arr.append(atm.ts)
       tr_arr.append(atm.trppT)
 
-      # Plot case 
+      # Plot case
       plt.ioff()
       fig,ax = plt.subplots(1,1)
       ax.plot(atm.tmpl, atm.pl, color='black', lw=2)
@@ -123,10 +124,10 @@ if __name__=='__main__':
       print(" ")
 
     save_arr = [r_arr, asf_arr, OLR_arr, net_arr, ts_arr, tr_arr]
-    np.savetxt(dirs["output"]+"/data_%dK.csv"%T_magma, 
+    np.savetxt(dirs["output"]+"/data_%dK.csv"%T_magma,
                np.array(save_arr).T, fmt="%.5e", delimiter=",",
                header="r [AU],  S_0 [W m-2], OLR [W m-2], net [W m-2], ts [K], tr[K] ")
-    
+
     print("Making plots")
 
     plt.ioff()
@@ -170,7 +171,7 @@ if __name__=='__main__':
 
     arr_magma = np.ones(len(r_arr))*T_magma
     ax2.plot(r_arr, np.zeros(len(r_arr)), zorder=6, color='silver', lw=2.5, label=r"$\tilde{T}_s$") # magma temperature
-    ax2.plot(r_arr, ts_arr - arr_magma,   zorder=6, color='black',  lw=2.5, label=r"$T_s$") # surface solution temperature 
+    ax2.plot(r_arr, ts_arr - arr_magma,   zorder=6, color='black',  lw=2.5, label=r"$T_s$") # surface solution temperature
 
     ax2.legend(loc='center right', framealpha=1.0)
     ax2.set_ylabel(r"$T - \tilde{T_s}$ [K]")
@@ -180,7 +181,7 @@ if __name__=='__main__':
     ax2.set_xlabel("Orbital separation [AU]")
     fig.subplots_adjust(hspace=0.08)
     fig.savefig(dirs["output"]+"inst_%dK.pdf"%T_magma, bbox_inches='tight')
-    
+
 
     # Tidy
     CleanOutputDir(os.getcwd())
@@ -188,4 +189,3 @@ if __name__=='__main__':
 
     # Done
     print("Done!")
-
