@@ -304,6 +304,33 @@ class atmos:
         self.tmp[0]  = Tsurf
         self.tmpl[0] = Tsurf
 
+    def setSurfacePressure(self, Psurf: float):
+
+        self.ps      = Psurf
+        self.p[0]  = Psurf
+        self.pl[0] = Psurf
+
+    def setPlanetProperties(self, pl_radius:float, pl_mass:float):
+
+        self.planet_radius = pl_radius
+        self.planet_mass = pl_mass
+        self.grav_s = phys.G*self.planet_mass/(self.planet_radius**2) # m s-2
+        self.grav_z[0] = self.grav_s
+
+    def setVolatiles(self, vol_mixing: dict)
+
+        tot_mixing =  float(sum(vol_mixing.values()))  # Ensure mixing ratios add up to unity
+        self.vol_list = {}
+        for vol in vol_mixing.keys():
+          self.vol_list[vol] = vol_mixing[vol]/tot_mixing
+
+        # H2O floor to prevent NaNs
+        self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-20 ] )
+
+        # Update volatile surface partial pressure
+        for vol in self.vol_list.keys():
+            self.p_vol[vol][0]   = self.ps * self.vol_list[vol]
+
     def setTropopauseTemperature(self):
 
         T_eqm = (self.instellation * self.inst_sf * (1.0 - self.albedo_pl) /phys.sigma)**(1.0/4.0)
