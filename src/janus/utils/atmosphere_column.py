@@ -317,7 +317,7 @@ class atmos:
         self.grav_s = phys.G*self.planet_mass/(self.planet_radius**2) # m s-2
         self.grav_z[0] = self.grav_s
 
-    def setVolatiles(self, vol_mixing: dict)
+    def setVolatiles(self, vol_mixing: dict):
 
         tot_mixing =  float(sum(vol_mixing.values()))  # Ensure mixing ratios add up to unity
         self.vol_list = {}
