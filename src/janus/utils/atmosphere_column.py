@@ -300,14 +300,14 @@ class atmos:
 
     def setSurfaceTemperature(self, Tsurf: float):
 
-        self.ts      = Tsurf
-        self.tmp[0]  = Tsurf
+        self.ts = Tsurf
+        self.tmp[0] = Tsurf
         self.tmpl[0] = Tsurf
 
     def setSurfacePressure(self, Psurf: float):
 
-        self.ps      = Psurf
-        self.p[0]  = Psurf
+        self.ps = Psurf
+        self.p[0] = Psurf
         self.pl[0] = Psurf
 
     def setPlanetProperties(self, pl_radius:float, pl_mass:float):
@@ -329,7 +329,7 @@ class atmos:
 
         # Update volatile surface partial pressure
         for vol in self.vol_list.keys():
-            self.p_vol[vol][0]   = self.ps * self.vol_list[vol]
+            self.p_vol[vol][0] = self.ps * self.vol_list[vol]
 
     def setTropopauseTemperature(self):
 
