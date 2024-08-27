@@ -320,15 +320,13 @@ class atmos:
     def setVolatiles(self, vol_mixing: dict):
 
         tot_mixing =  float(sum(vol_mixing.values()))  # Ensure mixing ratios add up to unity
-        self.vol_list = {}
-        for vol in vol_mixing.keys():
-          self.vol_list[vol] = vol_mixing[vol]/tot_mixing
+        self.vol_list = {key: val/tot_mixing for key, val in self.vol_mixing.items()}
 
         # H2O floor to prevent NaNs
         self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-20 ] )
 
         # Update volatile surface partial pressure
-        for vol in self.vol_list.keys():
+        for vol in self.vol_list:
             self.p_vol[vol][0] = self.ps * self.vol_list[vol]
 
     def setTropopauseTemperature(self):
