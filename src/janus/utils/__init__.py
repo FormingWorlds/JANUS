@@ -10,7 +10,7 @@ from .data import DownloadStellarSpectra
 from .socrates import CleanOutputDir
 
 # Stellar Spectrum utilities
-from .StellarSpectrum import InsertStellarSpectrum
+from .StellarSpectrum import InsertStellarSpectrum, PrepareStellarSpectrum
 
 # Read spectral file
 from .ReadSpectralFile import ReadBandEdges
