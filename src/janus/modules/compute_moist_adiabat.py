@@ -16,7 +16,7 @@ from janus.modules.water_cloud import simple_cloud
 from janus.modules.relative_humidity import compute_Rh
 
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import janus.utils.socrates as socrates

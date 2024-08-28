@@ -4,7 +4,7 @@ import subprocess
 from scipy.interpolate import PchipInterpolator
 
 import logging 
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 
 from .. import set_socrates_env 

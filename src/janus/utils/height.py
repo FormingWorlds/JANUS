@@ -2,7 +2,7 @@ import numpy as np
 import janus.utils.phys as phys
 
 import logging 
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 
 def gravity( m, r ):

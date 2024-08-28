@@ -4,7 +4,7 @@ import sys
 # Simple terminal-logger instance 
 def SetupLogger(level:str="INFO"):
 
-    custom_logger = logging.getLogger(__name__)
+    custom_logger = logging.getLogger("fwl."+__name__)
     custom_logger.handlers.clear()
 
     level = str(level).strip().upper()

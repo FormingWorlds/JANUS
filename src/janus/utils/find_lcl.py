@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 def find_intersection(curve1, curve2, tolerance=1e-1):
     # Starting from the TOA, find the last index where the absolute difference is within the tolerance

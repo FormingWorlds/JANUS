@@ -22,7 +22,7 @@ import numpy as np
 import janus.utils.water_tables as wt
 
 import logging
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 from janus.utils.cp_funcs import *
 from janus.utils.ClimateUtilities import *

@@ -5,7 +5,7 @@ import logging
 import platformdirs
 from osfclient.api import OSF
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 FWL_DATA_DIR = Path(os.environ.get('FWL_DATA', platformdirs.user_data_dir('fwl_data')))
 
