@@ -3,8 +3,9 @@ import shutil , os
 import subprocess
 from scipy.interpolate import PchipInterpolator
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+import logging 
+log = logging.getLogger(__name__)
+
 
 from .. import set_socrates_env 
 

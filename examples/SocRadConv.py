@@ -3,9 +3,9 @@
 """
 Created on Mon Jan 23 12:20:27 2023
 
-@authors: 
+@authors:
 Mark Hammond (MH)
-Tim Lichtenberg (TL)    
+Tim Lichtenberg (TL)
 Ryan Boukrouche (RB)
 Harrison Nicholls (HN)
 
@@ -20,12 +20,16 @@ import os, shutil, toml
 import numpy as np
 from importlib.resources import files
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+from janus.utils.logs import SetupLogger
+log = SetupLogger()
 
 from janus.modules import RadConvEqm, plot_fluxes, plot_emission
 from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, plot_adiabats, ReadBandEdges, StellarSpectrum
 import mors
+
+import logging
+
+from janus.utils.data import FWL_DATA_DIR
 
 ####################################
 ##### Stand-alone initial conditions
@@ -37,8 +41,6 @@ if __name__ == "__main__":
     # Set up dirs
     if os.environ.get('RAD_DIR') == None:
         raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
-    if os.environ.get('FWL_DATA') == None:
-        raise Exception("The FWL_DATA environment variable where spectral and evolution tracks data will be downloaded needs to be set up!")
     dirs = {
             "janus": str(files("janus"))+"/",
             "output": os.path.abspath(os.getcwd())+"/output/"
@@ -48,13 +50,13 @@ if __name__ == "__main__":
     ##### Settings
     cfg_file =  dirs["janus"]+"data/tests/config_janus.toml"
     with open(cfg_file, 'r'):
-          cfg = toml.load(cfg_file)  
+          cfg = toml.load(cfg_file)
 
     # Planet
     time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
     star_mass = cfg['star']['star_mass']
     mean_distance = cfg['star']['mean_distance']
- 
+
     # Define volatiles by partial pressures
     vol_mixing = {}
     vol_partial = {
@@ -77,16 +79,16 @@ if __name__ == "__main__":
 
     # Read spectrum
     spec = mors.Spectrum()
-    spec.LoadTSV(os.environ.get('FWL_DATA')+"/stellar_spectra/Named/sun.txt")
+    spec.LoadTSV(str(FWL_DATA_DIR / 'stellar_spectra' / 'Named' / 'sun.txt'))
 
-    # Convert to SOCRATES format 
+    # Convert to SOCRATES format
     socstar = os.path.join(dirs["output"], "socstar.txt")
     StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
 
     # Move/prepare spectral file
     log.info("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        os.environ.get('FWL_DATA')+"/spectral_files/Dayspring/256/Dayspring.sf",
+        str(FWL_DATA_DIR / 'spectral_files'/'Oak'/'318'/'Oak.sf'),
         socstar,
         dirs["output"]
     )
@@ -97,7 +99,7 @@ if __name__ == "__main__":
     atm = atmos.from_file(cfg_file, band_edges, vol_mixing=vol_mixing, vol_partial=vol_partial)
 
     # Set stellar heating on or off
-    if cfg['star']['stellar_heating'] == False: 
+    if cfg['star']['stellar_heating'] == False:
         atm.instellation = 0.
     else:
         mors.DownloadEvolutionTracks("Baraffe")

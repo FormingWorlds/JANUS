@@ -15,8 +15,8 @@ from janus.modules.set_stratosphere import set_stratosphere
 from janus.modules.water_cloud import simple_cloud
 from janus.modules.relative_humidity import compute_Rh
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+import logging
+log = logging.getLogger(__name__)
 
 import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import janus.utils.socrates as socrates

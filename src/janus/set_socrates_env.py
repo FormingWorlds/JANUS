@@ -12,22 +12,22 @@ import os
 import sys
 import zipfile
 from pathlib import Path
+import logging
 
 import click
 import platformdirs
 import requests
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+log = logging.getLogger(__name__)
 
 if not SOCRATES_DIR.exists():
     raise RuntimeError(f'Cannot find SOCRATES in this location: {SOCRATES_DIR}')
 
 with open(SOCRATES_DIR / 'version') as f:
-    version = f.readline()
+    SOCRATES_VERSION = f.readline()
 
-log.debug(f'socrates location: {SOCRATES_DIR}')
-log.debug(f'socrates version: {version}')
+log.debug('socrates location: %s' % SOCRATES_DIR)
+log.debug('socrates version: %s' % SOCRATES_VERSION)
 
 sep = os.pathsep
 

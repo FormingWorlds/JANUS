@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 import subprocess
 import f90nml
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+import logging 
+log = logging.getLogger(__name__)
 
 import janus.utils.nctools as nctools
 import janus.utils.RayleighSpectrum as RayleighSpectrum

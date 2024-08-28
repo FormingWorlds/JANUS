@@ -10,12 +10,14 @@ import numpy as np
 from matplotlib.ticker import MultipleLocator
 from importlib.resources import files
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+from janus.utils.logs import SetupLogger
+log = SetupLogger()
 
 from janus.modules import RadConvEqm
 from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
 import mors
+
+from janus.utils.data import FWL_DATA_DIR
 
 if __name__=='__main__':
 
@@ -25,8 +27,7 @@ if __name__=='__main__':
     # Set up dirs
     if os.environ.get('RAD_DIR') == None:
         raise Exception("Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?")
-    if os.environ.get('FWL_DATA') == None:
-        raise Exception("The FWL_DATA environment variable where spectral and evolution tracks data will be downloaded needs to be set up!")
+
     dirs = {
             "janus": str(files("janus"))+"/",
             "output": os.path.abspath(os.getcwd())+"/output/"
@@ -43,9 +44,9 @@ if __name__=='__main__':
 
     # Read spectrum
     spec = mors.Spectrum()
-    spec.LoadTSV(os.environ.get('FWL_DATA')+"/stellar_spectra/Named/sun.txt")
+    spec.LoadTSV(str(FWL_DATA_DIR / 'stellar_spectra' / 'Named' / 'sun.txt'))
 
-    # Convert to SOCRATES format 
+    # Convert to SOCRATES format
     socstar = os.path.join(dirs["output"], "socstar.txt")
     StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
 
@@ -53,7 +54,7 @@ if __name__=='__main__':
     # Setup spectral file
     log.info("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        os.environ.get('FWL_DATA')+"/spectral_files/Oak/318/Oak.sf",
+        str(FWL_DATA_DIR / 'spectral_files'/'Oak'/'318'/'Oak.sf'),
         socstar,
         dirs["output"]
     )
@@ -81,10 +82,10 @@ if __name__=='__main__':
     # Compute stellar heating
     mors.DownloadEvolutionTracks("Baraffe")
     baraffe = mors.BaraffeTrack(star_mass)
-    atm.instellation = baraffe.BaraffeSolarConstant(time['star'], mean_distance) 
+    atm.instellation = baraffe.BaraffeSolarConstant(time['star'], mean_distance)
 
     #Run Janus
- 
+
     # Run JANUS in a loop to generate runaway curve
     log.info("Running JANUS...")
     Ts_arr = np.linspace(200, 2800, 20)
@@ -103,13 +104,13 @@ if __name__=='__main__':
 
     # Get literature data
     g2013 = np.loadtxt(dirs["janus"]+"data/comparison_data/Goldblatt13_data.txt",
-                          dtype=float, skiprows=2, delimiter=',').T 
+                          dtype=float, skiprows=2, delimiter=',').T
     k2013 = np.loadtxt(dirs["janus"]+"data/comparison_data/Kopparapu13_data.txt",
-                          dtype=float, skiprows=2, delimiter=',').T 
+                          dtype=float, skiprows=2, delimiter=',').T
     h2015 = np.loadtxt(dirs["janus"]+"data/comparison_data/Hamano15_data.txt",
-                          dtype=float, skiprows=2, delimiter=',').T 
+                          dtype=float, skiprows=2, delimiter=',').T
     s2023 = np.loadtxt(dirs["janus"]+"data/comparison_data/Selsis23_convective.txt",
-                          dtype=float, skiprows=2, delimiter=',').T 
+                          dtype=float, skiprows=2, delimiter=',').T
 
     # Setup plot
     log.info("Making plot")
@@ -128,11 +129,11 @@ if __name__=='__main__':
 
     ax.set_xlabel("Surface temperature [K]")
     ax.xaxis.set_minor_locator(MultipleLocator(100.0))
-    ax.set_xlim(200.0,  2700.0)  
+    ax.set_xlim(200.0,  2700.0)
 
     ax.set_ylabel("OLR [W m$^{-2}$]")
     ax.set_ylim(np.amin(OLR_arr) - 10.0, 500.0)
-    ax.yaxis.set_minor_locator(MultipleLocator(25.0))  
+    ax.yaxis.set_minor_locator(MultipleLocator(25.0))
 
     fig.savefig(dirs["output"]+"runaway_demo.pdf", bbox_inches='tight')
     fig.savefig(dirs["output"]+"runaway_demo.png", bbox_inches='tight', dpi=190)

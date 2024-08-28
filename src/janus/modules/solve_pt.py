@@ -11,8 +11,8 @@ Harrison Nicholls (HN)
 
 import scipy.optimize as optimise
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+import logging 
+log = logging.getLogger(__name__)
 
 from janus.modules.compute_moist_adiabat import compute_moist_adiabat
 from janus.modules.dry_adiabat_timestep import compute_dry_adiabat
