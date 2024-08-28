@@ -11,8 +11,8 @@ from importlib.resources import files
 import os, shutil, toml
 import numpy as np
 
-from janus.utils.logs import SetupLogger
-log = SetupLogger()
+from janus.utils.logs import setup_logger
+log = setup_logger()
 
 from janus.modules import MCPA_CBL
 from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum

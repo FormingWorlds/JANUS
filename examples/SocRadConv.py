@@ -20,8 +20,8 @@ import os, shutil, toml
 import numpy as np
 from importlib.resources import files
 
-from janus.utils.logs import SetupLogger
-log = SetupLogger()
+from janus.utils.logs import setup_logger
+log = setup_logger()
 
 from janus.modules import RadConvEqm, plot_fluxes, plot_emission
 from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, plot_adiabats, ReadBandEdges, StellarSpectrum
