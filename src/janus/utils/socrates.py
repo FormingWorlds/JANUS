@@ -13,7 +13,7 @@ import subprocess
 import f90nml
 
 import logging 
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 import janus.utils.nctools as nctools
 import janus.utils.RayleighSpectrum as RayleighSpectrum

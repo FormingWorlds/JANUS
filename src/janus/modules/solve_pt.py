@@ -12,7 +12,7 @@ Harrison Nicholls (HN)
 import scipy.optimize as optimise
 
 import logging 
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 from janus.modules.compute_moist_adiabat import compute_moist_adiabat
 from janus.modules.dry_adiabat_timestep import compute_dry_adiabat

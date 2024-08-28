@@ -12,7 +12,7 @@ Harrison Nicholls (HN)
 import numpy as np
 
 import logging 
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 
 def find_tropopause(atm_moist, dynamic: bool, verbose=True):

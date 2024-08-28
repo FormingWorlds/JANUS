@@ -18,7 +18,7 @@ import click
 import platformdirs
 import requests
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 if not SOCRATES_DIR.exists():
     raise RuntimeError(f'Cannot find SOCRATES in this location: {SOCRATES_DIR}')
