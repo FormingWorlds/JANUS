@@ -1,8 +1,9 @@
 import numpy as np
 import janus.utils.phys as phys
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+import logging 
+log = logging.getLogger(__name__)
+
 
 def gravity( m, r ):
     g = phys.G*m/r**2

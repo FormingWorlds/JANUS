@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import janus.utils.water_tables as wt
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+import logging
+log = logging.getLogger(__name__)
 
 from janus.utils.cp_funcs import *
 from janus.utils.ClimateUtilities import *

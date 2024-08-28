@@ -11,8 +11,9 @@ Harrison Nicholls (HN)
 
 import numpy as np
 
-from janus.utils.logs import GetLogger
-log = GetLogger()
+import logging 
+log = logging.getLogger(__name__)
+
 
 def find_tropopause(atm_moist, dynamic: bool, verbose=True):
     """Computes tropopause location via two methods: dynamically based on heating rates, or by a set temperature value.

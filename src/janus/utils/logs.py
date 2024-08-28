@@ -2,9 +2,9 @@ import logging
 import sys
 
 # Simple terminal-logger instance 
-def SetupLogger(level:str="INFO", name:str="FWL"):
+def SetupLogger(level:str="INFO"):
 
-    custom_logger = logging.getLogger(name)
+    custom_logger = logging.getLogger(__name__)
     custom_logger.handlers.clear()
 
     level = str(level).strip().upper()
@@ -29,14 +29,3 @@ def SetupLogger(level:str="INFO", name:str="FWL"):
     sys.excepthook = handle_exception
     
     return custom_logger
-
-def GetLogger(name="FWL"):
-    # Get logger by name 
-    log = logging.getLogger(name)
-
-    # Setup logger if not already 
-    if not log.hasHandlers():
-        SetupLogger(name)
-    
-    # Return the logger
-    return log

@@ -42,10 +42,21 @@ def socrates(**kwargs):
     download_socrates(**kwargs)
 
 
+@click.command()
+def env():
+    """Show environment variables and locations"""
+    from janus.socrates import SOCRATES_DIR
+    from janus.utils.data import FWL_DATA_DIR
+
+    click.echo(f'RAD_DIR location: {SOCRATES_DIR}')
+    click.echo(f'FWL_DATA location: {FWL_DATA_DIR}')
+
+
 cli.add_command(download)
 download.add_command(spectral)
 download.add_command(stellar)
 download.add_command(socrates)
+cli.add_command(env)
 
 if __name__ == '__main__':
     cli()
