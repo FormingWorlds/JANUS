@@ -10,8 +10,8 @@ import numpy as np
 from matplotlib.ticker import MultipleLocator
 from importlib.resources import files
 
-from janus.utils.logs import SetupLogger
-log = SetupLogger()
+from janus.utils.logs import setup_logger
+log = setup_logger()
 
 from janus.modules import RadConvEqm
 from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
