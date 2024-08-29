@@ -5,11 +5,11 @@ import logging
 import platformdirs
 from osfclient.api import OSF
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 FWL_DATA_DIR = Path(os.environ.get('FWL_DATA', platformdirs.user_data_dir('fwl_data')))
 
-logger.info(f'FWL data location: {FWL_DATA_DIR}')
+log.info(f'FWL data location: {FWL_DATA_DIR}')
 
 basic_list = (
         "Dayspring/256",
@@ -36,7 +36,7 @@ def download_folder(*, storage, folders: list[str], data_dir: Path):
             parts = file.path.split('/')[1:]
             target = Path(data_dir, *parts)
             target.parent.mkdir(parents=True, exist_ok=True)
-            print(f'Downloading {file.path}...')
+            log.info(f'Downloading {file.path}...')
             with open(target, 'wb') as f:
                 file.write_to(f)
             break

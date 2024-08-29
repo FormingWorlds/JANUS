@@ -18,7 +18,7 @@ import click
 import platformdirs
 import requests
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger("fwl."+__name__)
 
 if not SOCRATES_DIR.exists():
     raise RuntimeError(f'Cannot find SOCRATES in this location: {SOCRATES_DIR}')
@@ -26,8 +26,8 @@ if not SOCRATES_DIR.exists():
 with open(SOCRATES_DIR / 'version') as f:
     SOCRATES_VERSION = f.readline()
 
-logger.info(f'socrates location: %s', SOCRATES_DIR)
-logger.info('socrates version: %s', SOCRATES_VERSION)
+log.debug('socrates location: %s' % SOCRATES_DIR)
+log.debug('socrates version: %s' % SOCRATES_VERSION)
 
 sep = os.pathsep
 

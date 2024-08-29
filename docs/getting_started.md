@@ -41,7 +41,7 @@ If you install and compile [SOCRATES](https://github.com/nichollsh/SOCRATES) you
 you can override the path using the `SOCRATES` environment variable, e.g.
 
 ```console
-SOCRATES=/home/user/path/to/SOCRATES pytest
+RAD_DIR=/home/user/path/to/SOCRATES pytest
 ```
 
 ### `FWL_DATA`

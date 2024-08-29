@@ -10,7 +10,7 @@ import platformdirs
 import requests
 
 SOCRATES_DATA_DIR = Path(platformdirs.user_data_dir('socrates'))
-SOCRATES_DIR = Path(os.environ.get('SOCRATES', SOCRATES_DATA_DIR / 'SOCRATES'))
+SOCRATES_DIR = Path(os.environ.get('RAD_DIR', SOCRATES_DATA_DIR / 'SOCRATES'))
 
 
 def _set_permissions(drc: Path):
@@ -64,4 +64,4 @@ def download_socrates(ref: str = 'main'):
     symlink.unlink(missing_ok=True)
     symlink.symlink_to(target_dir)
 
-    print(f'SOCRATES downloaded to {target_dir}')
+    click.echo(f'SOCRATES downloaded to {target_dir}')

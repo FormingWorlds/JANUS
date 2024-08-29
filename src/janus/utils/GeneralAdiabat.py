@@ -21,6 +21,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import janus.utils.water_tables as wt
 
+import logging
+log = logging.getLogger("fwl."+__name__)
+
 from janus.utils.cp_funcs import *
 from janus.utils.ClimateUtilities import *
 from janus.utils.atmosphere_column import atmos
@@ -161,8 +164,6 @@ def atm_z(atm, idx):
     # # Use gas phase mean molar mass
     # atm.mu[idx] = atm.mu[idx]
 
-    # print(atm.grav_z[idx], atm.mu[idx], atm.p[idx], atm.p[idx+1])
-    
 
     mu_c = 0.
     if atm.xc[idx] > 0:
@@ -180,18 +181,15 @@ def atm_z(atm, idx):
     dz =  -dp / atm.rho[idx]
     atm.zl[idx+1] = atm.zl[idx] + dz
     if dz<0:
-        print("WARNING: dz  = %g < 0 " % dz)
-        print("         (dp  = %g)" % dp)
-        print("         (rho = %g)" % atm.rho[idx])
+        log.warning("dz  = %g < 0 " % dz)
+        log.warning("(dp  = %g)" % dp)
+        log.warning("(rho = %g)" % atm.rho[idx])
     
     # Next gravity
     atm.grav_z[idx+1] = atm.grav_s * ((atm.planet_radius)**2) / ((atm.planet_radius+atm.z[idx+1])**2)
 
     # Calculate scale height in km
     # H = 1e-3 * phys.R_gas * atm.tmp[idx] / (atm.mu[idx] * atm.grav_z[idx])
-    # print(H)
-
-    # print(idx, T_mean_down, dz, atm.z[idx], atm.z[idx+1], atm.grav_z[idx], atm.grav_z[idx+1])
 
     return atm
 
@@ -462,12 +460,12 @@ def slopeRay( logpa, logT ):
     pa      = math.exp(logpa)
     T       = math.exp(logT)
     qsat    = eps*(satvph2o(T)/pa)
-    print('qsat=%.3f'%qsat)
+    log.debug('qsat=%.3f'%qsat)
     num     = (1. + (L/(Ra*T))*qsat)*Ra
-    print('numerator=%.3f'%num)
+    log.debug('numerator=%.3f'%num)
     den     = cpa + (cpc + (L/(Rc*T) - 1.)*(L/T))*qsat
-    print('denominator=%.3f'%den)
-    print('dlnT/dlnPa=%.3f'%(num/den))
+    log.debug('denominator=%.3f'%den)
+    log.debug('dlnT/dlnPa=%.3f'%(num/den))
     return num/den
 
 
@@ -525,7 +523,6 @@ def dlnT_dlnP_d(lnP, lnT, atm):
         # Coefficients
         eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
         eta_cond    = atm.x_cond[vol][idx] / atm.xd[idx]
-        #print(eta_vol)
         # sums for saturated comps
         # HII added, ensure below the critical point !
         if ((np.isclose(atm.p_vol[vol][idx] ,p_sat(vol,tmp, water_lookup=atm.water_lookup)) or
@@ -544,7 +541,6 @@ def dlnT_dlnP_d(lnP, lnT, atm):
             
         # sums for subsaturated comps
         else: 
-            #print(eta_vol)
             denom_sum += cpv(vol,tmp) * eta_vol #The eta_vol (x_vol/x_d) is there so that if there are multiple dry components the average dry specific heat is used
         
     
@@ -581,7 +577,6 @@ def moist_slope(lnP, lnT, atm):
         # Coefficients
         eta_vol     = atm.x_gas[vol][idx] / atm.xd[idx]
         
-        #print(eta_vol)
         # sums for saturated comps
         # Ensure below the critical point for volatile before we
         # assume condensation occurs
@@ -651,7 +646,6 @@ def condensation( atm, idx, wet_list, dry_list, prs_reset):
         # Calculate the individual partial pressures of dry species
         for vol in atm.vol_list:
             if vol in dry_list:
-                #print(atm.x_gas[vol][idx-1])
                 atm.p_vol[vol][idx] = p_dry_tot * (atm.x_gas[vol][idx-1]/dry_frac_sum)
                 
        
@@ -836,8 +830,6 @@ def general_adiabat( atm ):
 
         # Calculate next local gravity and height
         atm = atm_z(atm, idx)
-
-        # print("RK4 step, idx:", idx, round(atm.p[idx+1],5), round(atm.tmp[idx+1],5))
 
         # Set next level to calculate
         idx             += 1

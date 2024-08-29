@@ -76,8 +76,6 @@ atm_file_stream = open(atm_file,'rb')
 atm = pkl.load(atm_file_stream)
 atm_file_stream.close()
 
-# print(atm.p)
-
 ##### PLOT A
 
 # # Loop through volatiles, options: "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"

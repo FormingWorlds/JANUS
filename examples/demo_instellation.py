@@ -11,6 +11,9 @@ from importlib.resources import files
 import os, shutil, toml
 import numpy as np
 
+from janus.utils.logs import setup_logger
+log = setup_logger()
+
 from janus.modules import MCPA_CBL
 from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadStellarSpectra, ReadBandEdges, StellarSpectrum
 
@@ -20,7 +23,7 @@ from janus.utils.data import FWL_DATA_DIR
 
 if __name__=='__main__':
 
-    print("Start")
+    log.info("Start")
 
     # Set up dirs
     if os.environ.get('RAD_DIR') == None:
@@ -37,7 +40,7 @@ if __name__=='__main__':
     os.mkdir(dirs["output"])
 
     #Download required spectral files
-    DownloadSpectralFiles("/Oak")
+    DownloadSpectralFiles("Oak")
     DownloadStellarSpectra()
 
     # Read spectrum
@@ -50,7 +53,7 @@ if __name__=='__main__':
 
 
     # Setup spectral file
-    print("Inserting stellar spectrum")
+    log.info("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
         str(FWL_DATA_DIR / 'spectral_files'/'Oak'/'318'/'Oak.sf'),
         socstar,
@@ -66,7 +69,7 @@ if __name__=='__main__':
     # Star luminosity
     time = { "planet": cfg['planet']['time'], "star": cfg['star']['time']}
     star_mass = cfg['star']['star_mass']
-    mors.DownloadEvolutionTracks("/Baraffe")
+    mors.DownloadEvolutionTracks("Baraffe")
     baraffe = mors.BaraffeTrack(star_mass)
 
     # Define volatiles by mole fractions
@@ -94,7 +97,7 @@ if __name__=='__main__':
     ts_arr  = []    # surface temperature
     tr_arr  = []    # tropopause temperature
     for i in range(7):
-      print("Orbital separation = %.2f AU" % r_arr[i])
+      log.info("Orbital separation = %.2f AU" % r_arr[i])
 
       atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i])
       atmos.setTropopauseTemperature(atm)
@@ -121,14 +124,14 @@ if __name__=='__main__':
       # Save netcdf
       atm.write_ncdf(dirs["output"]+"/profile%.2fAU.nc"%r_arr[i])
 
-      print(" ")
+      log.info(" ")
 
     save_arr = [r_arr, asf_arr, OLR_arr, net_arr, ts_arr, tr_arr]
     np.savetxt(dirs["output"]+"/data_%dK.csv"%T_magma,
                np.array(save_arr).T, fmt="%.5e", delimiter=",",
                header="r [AU],  S_0 [W m-2], OLR [W m-2], net [W m-2], ts [K], tr[K] ")
-
-    print("Making plots")
+    
+    log.info("Making plots")
 
     plt.ioff()
     fig,(ax1, ax2) = plt.subplots(2,1, figsize=(6,6.4))
@@ -188,4 +191,5 @@ if __name__=='__main__':
     CleanOutputDir(dirs['output'])
 
     # Done
-    print("Done!")
+    log.info("Done!")
+

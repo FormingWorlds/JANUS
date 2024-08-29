@@ -1,18 +1,13 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 15 16:07:20 2023
-
-@author: nichollsh
-"""
-
 import numpy as np
 import shutil , os
 import subprocess
 from scipy.interpolate import PchipInterpolator
 
-from .. import set_socrates_env  # noqa
+import logging 
+log = logging.getLogger("fwl."+__name__)
 
+
+from .. import set_socrates_env 
 
 def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
     """Write a stellar spectrum.
@@ -40,7 +35,7 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
     if (len(wl) != len(fl)):
         raise Exception("Stellar wavelength and flux arrays have different lengths")
     if (len(wl) < 500):
-        print("WARNING: Loaded stellar spectrum is very short!")
+        log.warning("Loaded stellar spectrum is very short!")
 
     nbins_max = min(len(wl), nbins_max)
     
@@ -49,14 +44,14 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
 
     # Down-sample spectrum when necessary or requested
     if len(wl) > socrates_nbins_max:
-        print("Rebinning stellar spectrum")
+        log.info("Rebinning stellar spectrum")
 
         # Store old wl,fl arrays
         wl_orig = wl
         fl_orig = fl
 
         if (nbins_max < 500):
-            print("WARNING: Requested number of bins is small (%d bins)" % nbins_max)
+            log.warning("Requested number of bins is small (%d bins)" % nbins_max)
 
         nbins_max = min( int(socrates_nbins_max), nbins_max) # Must be fewer than 100k
 
@@ -134,6 +129,6 @@ def InsertStellarSpectrum(orig_file:str, star_file:str, output_folder:str):
               ]
     p = subprocess.run(['prep_spec'], stdout=subprocess.PIPE, input='\n'.join(inputs), encoding='ascii')
     if (p.returncode != 0):
-        print("WARNING: prep_spec returned with code %d" % p.returncode)
+        log.warning("prep_spec returned with code %d" % p.returncode)
     
 
