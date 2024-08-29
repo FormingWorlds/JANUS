@@ -1,6 +1,10 @@
 import numpy as np
 import janus.utils.phys as phys
 
+import logging 
+log = logging.getLogger("fwl."+__name__)
+
+
 def gravity( m, r ):
     g = phys.G*m/r**2
     return g
@@ -37,7 +41,7 @@ def AtmosphericHeight(atm, m_planet, r_planet):
         # This implies that the hydrostatic/gravity integration failed.
         if z_profile[n+1] > 1.0e8:
             atm.height_error = True 
-            print("WARNING: Hydrostatic integration blew up. Setting dummy values for height")
+            log.warning("Hydrostatic integration blew up. Setting dummy values for height")
             break
 
     # Set dummy values 

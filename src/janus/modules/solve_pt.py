@@ -10,6 +10,10 @@ Harrison Nicholls (HN)
 """
 
 import scipy.optimize as optimise
+
+import logging 
+log = logging.getLogger("fwl."+__name__)
+
 from janus.modules.compute_moist_adiabat import compute_moist_adiabat
 from janus.modules.dry_adiabat_timestep import compute_dry_adiabat
 from janus.utils.atmosphere_column import atmos
@@ -60,9 +64,9 @@ def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatt
         atm_dry   = compute_dry_adiabat(atm, dirs, standalone, rscatter, pure_steam_adj, surf_dt, cp_surf, mix_coeff_atmos, mix_coeff_surf)
 
         if standalone == True:
-            print("Net, OLR => moist:", str(round(atm_moist.net_flux[0], 3)), str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2", end=" ")
-            print("| dry:", str(round(atm_dry.net_flux[0], 3)), str(round(atm_dry.LW_flux_up[0], 3)) + " W/m^2", end=" ")
-            print()
+            log.info("Net, OLR => moist: %.3f, %.3f W/m^2" % ( atm_moist.net_flux[0],atm_moist.LW_flux_up[0]))
+            log.info("^^       =>   dry: %.3f, %.3f W/m^2" % ( atm_dry.net_flux[0],  atm_dry.LW_flux_up[0]))
+            log.info("")
     else: 
         atm_dry = {}
     
@@ -169,7 +173,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     # We want to optimise this function (returns residual of F_atm and F_skn, given T_surf)
     def func(x):
 
-        print("Evaluating at T_surf = %.1f K" % x)
+        log.info("Evaluating at T_surf = %.1f K" % x)
         atm_tmp = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, rscatter)
 
         if atm_bc == 0:
@@ -178,12 +182,12 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
             F_atm = atm_tmp.net_flux[-1]  
 
         F_skn = skin(atm_tmp)
-        print("    F_atm = %+.2e W m-2      F_skn = %+.2e W m-2" % (F_atm,F_skn))
+        log.info("    F_atm = %+.2e W m-2      F_skn = %+.2e W m-2" % (F_atm,F_skn))
 
         del atm_tmp
         return float(F_skn - F_atm)
     
-    print("Solving for global energy balance with conductive lid (T_magma = %.1f K)" % attrs["tmp_magma"])
+    log.info("Solving for global energy balance with conductive lid (T_magma = %.1f K)" % attrs["tmp_magma"])
 
     # Use an 'initial guess' method
     if method == 0:
@@ -209,9 +213,9 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     succ  = bool(r.converged)
 
     if not succ:
-        print("WARNING: Did not find solution for surface skin balance")
+        log.warning("Did not find solution for surface skin balance")
     else:
-        print("Found surface solution")
+        log.info("Found surface solution")
         
     # Check bounds on T_surf
     T_surf = max(T_surf_sol, minT)
@@ -220,9 +224,9 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
         T_surf = min(T_surf, T_surf_max)
 
     if T_surf != T_surf_sol:
-        print("T_surf limits activated")
-        print("    Found T_surf = %g K" % T_surf_sol)
-        print("    Using T_surf = %g K" % T_surf)
+        log.info("T_surf limits activated")
+        log.info("    Found T_surf = %g K" % T_surf_sol)
+        log.info("    Using T_surf = %g K" % T_surf)
 
     # Get atmosphere state from solution value
     atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, rscatter)
@@ -235,10 +239,10 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
 
     F_olr = atm.LW_flux_up[0]
 
-    print("    T_surf = %g K"       % T_surf)
-    print("    F_atm  = %.4e W m-2" % F_atm)
-    print("    F_skn  = %.4e W m-2" % skin(atm))
-    print("    F_olr  = %.4e W m-2" % F_olr)
+    log.info("    T_surf = %g K"       % T_surf)
+    log.info("    F_atm  = %.4e W m-2" % F_atm)
+    log.info("    F_skn  = %.4e W m-2" % skin(atm))
+    log.info("    F_olr  = %.4e W m-2" % F_olr)
 
     return atm
 

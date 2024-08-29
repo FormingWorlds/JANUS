@@ -11,6 +11,10 @@ Harrison Nicholls (HN)
 
 import numpy as np
 
+import logging 
+log = logging.getLogger("fwl."+__name__)
+
+
 def find_tropopause(atm_moist, dynamic: bool, verbose=True):
     """Computes tropopause location via two methods: dynamically based on heating rates, or by a set temperature value.
 
@@ -26,8 +30,7 @@ def find_tropopause(atm_moist, dynamic: bool, verbose=True):
     # Heating criterion
     if dynamic:
 
-        if verbose:
-            print("TROPOPAUSE SET BY HEATING")
+        log.debug("TROPOPAUSE SET BY HEATING")
 
         # Find tropopause index
         trpp_idx   = 0 
@@ -44,7 +47,6 @@ def find_tropopause(atm_moist, dynamic: bool, verbose=True):
         if np.size(signchange_indices) > 0 and np.max(atm_moist.net_heating) > DeltaT_max_sign:
 
             # First guess: maximum heating index
-            # print(np.argmax(atm_moist.net_heating))
             max_heat_idx = np.argmax(atm_moist.net_heating)
 
             # Lower height while heating still significant
@@ -84,9 +86,6 @@ def find_tropopause(atm_moist, dynamic: bool, verbose=True):
         # If significant tropopause found or isothermal atmosphere from stellar heating
         if trpp_idx != 0:
 
-            # # Print tropopause index for debugging
-            # print("Tropopause @ (index, P/Pa, T/K):", trpp_idx, round(atm_moist.pl[trpp_idx],3), round(atm_moist.tmpl[trpp_idx],3))
-        
             atm_moist.trppidx   = trpp_idx                  # index
             atm_moist.trppP     = atm_moist.pl[trpp_idx]    # pressure 
             atm_moist.trppT     = atm_moist.tmpl[trpp_idx]  # temperature
@@ -94,8 +93,7 @@ def find_tropopause(atm_moist, dynamic: bool, verbose=True):
     # Temperature criterion
     else:
 
-        if verbose:
-            print("TROPOPAUSE SET BY CONTANT VALUE OF", atm_moist.trppT, "K")
+        log.debug("TROPOPAUSE SET BY CONTANT VALUE OF %.2f K"%atm_moist.trppT)
 
         # Tropopause is triggered
         if np.any(atm_moist.tmpl <= atm_moist.trppT) or np.any(atm_moist.tmp <= atm_moist.trppT):

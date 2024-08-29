@@ -15,6 +15,9 @@ from janus.modules.set_stratosphere import set_stratosphere
 from janus.modules.water_cloud import simple_cloud
 from janus.modules.relative_humidity import compute_Rh
 
+import logging
+log = logging.getLogger("fwl."+__name__)
+
 import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
 import janus.utils.socrates as socrates
 
@@ -50,7 +53,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False):
     atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=False, rscatter=rscatter)
 
     if standalone == True:
-        print("w/o stratosphere (net, OLR): " + str(round(atm_moist.net_flux[0], 3)) +" , "+str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")
+        log.info("w/o stratosphere (net, OLR): %.3f, %.3f W/m^2" % ( atm_moist.net_flux[0] , atm_moist.LW_flux_up[0]))
 
     # Calculate tropopause
     if (trppD == True) or (atm_moist.trppT > atm_moist.minT):
@@ -67,6 +70,6 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False):
         atm_moist = socrates.radCompSoc(atm_moist, dirs, recalc=True, rscatter=rscatter)
 
         if standalone == True:
-            print("w/ stratosphere (net, OLR): " + str(round(atm_moist.net_flux[0], 3)) + " , " + str(round(atm_moist.LW_flux_up[0], 3)) + " W/m^2")
+            log.info("w/ stratosphere (net, OLR): %.3f, %.3f W/m^2" % (atm_moist.net_flux[0] , atm_moist.LW_flux_up[0] )) 
 
     return atm_moist

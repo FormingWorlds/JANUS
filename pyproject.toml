@@ -42,7 +42,6 @@ dependencies = [
   'tomlkit',
   'f90nml',
   'fwl-mors',
-  'datetime'
 ]
 
 [project.urls]

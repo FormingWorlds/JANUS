@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 import subprocess
 import f90nml
 
+import logging 
+log = logging.getLogger("fwl."+__name__)
+
 import janus.utils.nctools as nctools
 import janus.utils.RayleighSpectrum as RayleighSpectrum
 from janus.utils.atmosphere_column import atmos
@@ -60,14 +63,14 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
 
     # Check that atmosphere is okay
     if np.any(atm.cp <= 0):
-        print("ERROR: Negative heat capacity!")
+        log.error("Negative heat capacity!")
         exit(1)
     vals = []
     for arr in atm.x_gas.values():
         vals.append(arr)
     if np.any(np.array(vals).flatten() < 0):
-        print("ERROR: Negative mixing ratio(s)!")
-        print(atm.x_gas)
+        log.error("Negative mixing ratio(s)!")
+        log.error(str(atm.x_gas))
         exit(1)
     
     # Rayleigh scattering
@@ -329,9 +332,3 @@ def CleanOutputDir( output_dir ):
     for file in natural_sort(files_to_delete):
         os.remove(file)
 
-
-# Disable and enable print: https://stackoverflow.com/questions/8391411/suppress-calls-to-print-python
-def blockPrint():
-    sys.stdout = open(os.devnull, 'w')
-def enablePrint():
-    sys.stdout = sys.__stdout__
