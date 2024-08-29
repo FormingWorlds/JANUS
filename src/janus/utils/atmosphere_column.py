@@ -11,21 +11,21 @@ import pwd
 from datetime import datetime
 
 class atmos:
-    
-    def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float, 
+
+    def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float,
                  band_edges:list, vol_mixing: dict = {}, vol_partial: dict = {},
                  req_levels: int = 100, water_lookup: bool=False, alpha_cloud:float=0.0,
                  trppT: float = 290.0, minT: float = 1.0, maxT: float = 9000.0, do_cloud: bool=False,
                  re: float=0., lwm: float=0., clfr: float=0.,
                  albedo_s: float=0.0, albedo_pl: float=0.175, zenith_angle: float=54.74
                  ):
-        
-        """Atmosphere class    
-    
-        Stores compositional and thermodynamic information for the column.    
-        Also stores planetary parameters.   
 
-        One of either vol_mixing or vol_partial must be passed in. 
+        """Atmosphere class
+
+        Stores compositional and thermodynamic information for the column.
+        Also stores planetary parameters.
+
+        One of either vol_mixing or vol_partial must be passed in.
         If vol_partial is passed, then the value of P_surf is recalculated as the sum of partial pressures.
 
         Parameters
@@ -50,7 +50,7 @@ class atmos:
 
             req_levels : int
                 Requested number of vertical levels
-            alpha_cloud : float 
+            alpha_cloud : float
                 Condensate retention fraction (1 -> Li et al 2018; 0 -> full rainout)
             water_lookup : bool
                 Use lookup table for water thermodynamic values (e.g. L, c_p)
@@ -74,23 +74,23 @@ class atmos:
                 solar zenith angle, Hamano+15 (arccos(1/sqrt(3) = 54.74), Wordsworth+10: 48.19
         """
 
-        # Parse volatiles 
+        # Parse volatiles
         if (len(vol_mixing) == 0) and (len(vol_partial) == 0):
             raise Exception("Either vol_mixing OR vol_partial must be passed to atmos.__init__ function!\nNeither were.")
         if (len(vol_mixing) > 0) and (len(vol_partial) > 0):
             raise Exception("Either vol_mixing OR vol_partial must be passed to atmos.__init__ function!\nBoth were.")
-        
+
         if len(vol_mixing) > 0:  # Set by mixing ratio
             self.ps = P_surf
             if (P_surf <= 0.0):
                 raise Exception("Surface pressure passed to atmos.__init__ must be positive!\nValue passed = '%g'" % P_surf)
-            
+
             tot_mixing =  float(sum(vol_mixing.values()))  # Ensure mixing ratios add up to unity
             self.vol_list = {}
             for key in vol_mixing.keys():
                 self.vol_list[key] = vol_mixing[key]/tot_mixing
 
-        
+
         if len(vol_partial) > 0: # Set by partial pressure
             self.ps = float(sum(vol_partial.values()))
             self.vol_list = {}
@@ -101,10 +101,10 @@ class atmos:
         required_vols = {"H2O","CO2","N2"}
         if len(required_vols.intersection(self.vol_list.keys())) < len(required_vols):
             raise Exception("Missing required volatiles!\nRequired vols = %s" % str(required_vols))
-        
+
         # H2O floor to prevent NaNs
         self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-20 ] )
-        
+
         # Remove volatiles with mixing ratio of zero
         # vol_list_old = copy.deepcopy(self.vol_list)
         # self.vol_list = {}
@@ -115,7 +115,7 @@ class atmos:
 
         # Initialise other variables
         self.alpha_cloud 	= alpha_cloud 	    	# The fraction of condensate retained in the column
-        
+
         self.ts 			= T_surf		# Surface temperature, K
 
         self.ptop 			= P_top 			# Top pressure in Pa
@@ -144,7 +144,7 @@ class atmos:
         self.planet_mass    = pl_mass
         self.planet_radius  = pl_radius
         self.grav_s 		= phys.G*self.planet_mass/(self.planet_radius**2) # m s-2
-        
+
         self.tmp 			= np.zeros(self.nlev)      		# self.ts*np.ones(self.nlev)
         self.tmpl 			= np.zeros(self.nlev+1)
         self.Rcp    		= 2./7. 						# standard earth air
@@ -152,11 +152,11 @@ class atmos:
         self.mixing_ratios 	= np.zeros([self.n_species,self.nlev])
 
         self.water_lookup   = water_lookup
-        
+
         self.tmp_magma      = 3000.0
         self.skin_d         = 0.01 # m
         self.skin_k         = 2.0  # W m-1 K-1
-        
+
         # Level-dependent quantities
         self.p_vol 			= {} # Gas phase partial pressures
         self.pl_vol 		= {} # Gas phase partial pressures
@@ -191,7 +191,7 @@ class atmos:
             self.pl_vol[vol]     = np.zeros(self.nlev+1)
             self.x_gas[vol]      = np.zeros(self.nlev)
             self.x_cond[vol]     = np.zeros(self.nlev)
-        
+
             # Surface partial pressures
             self.p_vol[vol][0]   = self.ps * self.vol_list[vol]
 
@@ -229,10 +229,10 @@ class atmos:
 
         # Cloud flags (socrates/bin/rad_pcf.f90) and input arrays
         self.do_cloud = do_cloud
-        if self.do_cloud :            
-            self.cloud_scheme 			= 2	# -C 2 = ip_cloud_mix_max : maximum/random overlap in a mixed column 
-            self.cloud_representation   = 1 # -K 1 = ip_cloud_homogen : ice and water mixed homogeneously 
-            self.droplet_type           = 5 # -d 5 
+        if self.do_cloud :
+            self.cloud_scheme 			= 2	# -C 2 = ip_cloud_mix_max : maximum/random overlap in a mixed column
+            self.cloud_representation   = 1 # -K 1 = ip_cloud_homogen : ice and water mixed homogeneously
+            self.droplet_type           = 5 # -d 5
             self.solver                 = 16 # -v 16 = i_solver : solver used for the two-stream calculations, chosen from those defined in solver_pcf.f90.
             # The below three variables should be zero until a cloud scheme forms clouds
             self.re                     = np.zeros(self.nlev_save) # Effective radius of the droplets [m]
@@ -244,12 +244,12 @@ class atmos:
             self.cloud_fraction         = clfr
         else:
             self.cloud_scheme 			= 5 # -C 5 = ip_cloud_off : clear sky. Other flags will be ignored. In principle we shouldn't need to define the variables below in this case.
-            self.cloud_representation   = 1 
-            self.droplet_type           = 5  
+            self.cloud_representation   = 1
+            self.droplet_type           = 5
             self.solver                 = 13
             self.re                     = np.zeros(self.nlev_save)
             self.lwm                    = np.zeros(self.nlev_save)
-            self.clfr                   = np.zeros(self.nlev_save) 
+            self.clfr                   = np.zeros(self.nlev_save)
             self.effective_radius       = 0.0
             self.liquid_water_fraction  = 0.0
             self.cloud_fraction         = 0.0
@@ -380,9 +380,9 @@ class atmos:
         ----------
             fpath : string
                 Output filename
-        """ 
+        """
 
-        # Get SOCRATES version string 
+        # Get SOCRATES version string
         verpath = os.path.join(os.environ.get("RAD_DIR"),"version")
         with open(verpath, 'r') as hdl:
             SOCRATES_version = hdl.read().replace("\n","")
@@ -437,10 +437,10 @@ class atmos:
         ds.createDimension('nchannels', self.nbands)
 
         # ----------------------
-        # Scalar quantities  
+        # Scalar quantities
         #    Create variables
         var_tstar   = ds.createVariable('tmp_surf',      'f4');  var_tstar.units = "K"     # Ground temperature
-        var_trppP   = ds.createVariable('trppP',         'f4');  var_trppP.units = "Pa" 
+        var_trppP   = ds.createVariable('trppP',         'f4');  var_trppP.units = "Pa"
         var_inst    = ds.createVariable("instellation",  'f4');  var_inst.units = "W m-2"  # Solar flux at TOA
         var_s0fact  = ds.createVariable("inst_factor",   'f4');                            # Scale factor applied to instellation
         var_znth    = ds.createVariable("zenith_angle",  'f4');  var_znth.units = "deg"    # Scale factor applied to instellation
@@ -457,7 +457,7 @@ class atmos:
 
         #     Store data
         var_tstar.assignValue(self.ts)
-        var_inst.assignValue(self.instellation)  
+        var_inst.assignValue(self.instellation)
         var_toah.assignValue(self.toa_heating)
         var_trppP.assignValue(self.trppP)
         var_znth.assignValue(self.zenith_angle)
@@ -474,7 +474,7 @@ class atmos:
 
 
         # ----------------------
-        # Layer quantities  
+        # Layer quantities
         #    Create variables
         var_p     = ds.createVariable('p',       'f4', dimensions=('nlev_c'));           var_p.units = "Pa"
         var_pl    = ds.createVariable('pl',      'f4', dimensions=('nlev_l'));           var_pl.units = "Pa"
@@ -502,12 +502,12 @@ class atmos:
             var_fu    = ds.createVariable('fl_U',    'f4', dimensions=('nlev_l'));           var_fu.units = "W m-2"
             var_fn    = ds.createVariable('fl_N',    'f4', dimensions=('nlev_l'));           var_fn.units = "W m-2"
             var_hr    = ds.createVariable('hrate',   'f4', dimensions=('nlev_c'));           var_hr.units = "K day-1"
-            var_bul   = ds.createVariable('ba_U_LW','f4',  dimensions=('nbands', 'nlev_l')); var_bul.units = "W m-2"
-            var_bdl   = ds.createVariable('ba_D_LW','f4',  dimensions=('nbands', 'nlev_l')); var_bdl.units = "W m-2"
-            var_bnl   = ds.createVariable('ba_N_LW','f4',  dimensions=('nbands', 'nlev_l')); var_bnl.units = "W m-2"
-            var_bus   = ds.createVariable('ba_U_SW','f4',  dimensions=('nbands', 'nlev_l')); var_bus.units = "W m-2"
-            var_bds   = ds.createVariable('ba_D_SW','f4',  dimensions=('nbands', 'nlev_l')); var_bds.units = "W m-2"
-            var_bns   = ds.createVariable('ba_N_SW','f4',  dimensions=('nbands', 'nlev_l')); var_bns.units = "W m-2"
+            var_bul   = ds.createVariable('ba_U_LW','f4',  dimensions=('nlev_l', 'nbands')); var_bul.units = "W m-2"
+            var_bdl   = ds.createVariable('ba_D_LW','f4',  dimensions=('nlev_l', 'nbands')); var_bdl.units = "W m-2"
+            var_bnl   = ds.createVariable('ba_N_LW','f4',  dimensions=('nlev_l', 'nbands')); var_bnl.units = "W m-2"
+            var_bus   = ds.createVariable('ba_U_SW','f4',  dimensions=('nlev_l', 'nbands')); var_bus.units = "W m-2"
+            var_bds   = ds.createVariable('ba_D_SW','f4',  dimensions=('nlev_l', 'nbands')); var_bds.units = "W m-2"
+            var_bns   = ds.createVariable('ba_N_SW','f4',  dimensions=('nlev_l', 'nbands')); var_bns.units = "W m-2"
             var_bmin  = ds.createVariable('bandmin','f4',  dimensions=('nbands'));           var_bmin.units = "m"
             var_bmax  = ds.createVariable('bandmax','f4',  dimensions=('nbands'));           var_bmax.units = "m"
 
@@ -550,12 +550,12 @@ class atmos:
 
             var_hr[:] = self.net_heating[:]
 
-            var_bul[:,:]  = self.LW_spectral_flux_up[:,:]
-            var_bdl[:,:]  = self.LW_spectral_flux_down[:,:]
+            var_bul[:,:]  = self.LW_spectral_flux_up.T[:,:]
+            var_bdl[:,:]  = self.LW_spectral_flux_down.T[:,:]
             var_bnl[:,:]  = var_bul[:,:] - var_bdl[:,:]
-            
-            var_bus[:,:]  = self.SW_spectral_flux_up[:,:]
-            var_bds[:,:]  = self.SW_spectral_flux_down[:,:]
+
+            var_bus[:,:]  = self.SW_spectral_flux_up.T[:,:]
+            var_bds[:,:]  = self.SW_spectral_flux_down.T[:,:]
             var_bns[:,:]  = var_bus[:,:] - var_bds[:,:]
 
             var_bmin[:]    = self.band_edges[:-1] * 1e-9
