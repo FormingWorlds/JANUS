@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-janus"
-version = "24.06.26"
+version = "24.08.29"
 description = "Temperature structure generator for planetory atmospheres."
 readme = "README.md"
 authors = [
@@ -41,7 +41,6 @@ dependencies = [
   'toml',
   'tomlkit',
   'f90nml',
-  'fwl-mors',
 ]
 
 [project.urls]
@@ -51,6 +50,7 @@ homepage = "https://github.com/FormingWorlds/JANUS"
 develop = [
   "bump-my-version",
   "coverage[toml]",
+  'fwl-mors',
   "pytest"
 ]
 docs = [
@@ -81,7 +81,7 @@ testpaths = ["tests"]
 
 [tool.bumpversion]
 # https://callowayproject.github.io/bump-my-version/howtos/calver/
-current_version = "24.06.26"
+current_version = "24.08.29"
 parse = """(?x)                     # Verbose mode
     (?P<release>                    # The release part
         (?:[1-9][0-9])\\.           # YY.

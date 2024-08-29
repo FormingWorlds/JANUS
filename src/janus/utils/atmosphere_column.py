@@ -321,7 +321,7 @@ class atmos:
     def setVolatiles(self, vol_mixing: dict):
 
         tot_mixing =  float(sum(vol_mixing.values()))  # Ensure mixing ratios add up to unity
-        self.vol_list = {key: val/tot_mixing for key, val in self.vol_mixing.items()}
+        self.vol_list = {key: val/tot_mixing for key, val in vol_mixing.items()}
 
         # H2O floor to prevent NaNs
         self.vol_list["H2O"] = np.max( [ self.vol_list["H2O"], 1e-20 ] )
