@@ -30,7 +30,7 @@ https://proteus-code.readthedocs.io
 ### Developer installation instructions
 1. Download and install Socrates
 ```console
-git clone git@github.com:FormingWorlds/SOCRATES.git
+git clone git@github.com:nichollsh/SOCRATES.git
 cd SOCRATES
 ./configure
 ./build-code
@@ -50,7 +50,7 @@ pip install -e .
         * `janus download spectral`
         * `janus download stellar`
     * Alternatively, you can specify which spectral data you want to download, and optionally the number of bands
-        * `janus download spectral /Frostflow 4096`
+        * `janus download spectral -n Frostflow -b 4096`
 
 ### Run instructions
 In the examples folder you can find python scripts showing typical usecases/workflows of atmosphere modelling with Janus.
