@@ -41,7 +41,6 @@ dependencies = [
   'toml',
   'tomlkit',
   'f90nml',
-  'fwl-mors',
 ]
 
 [project.urls]
@@ -51,6 +50,7 @@ homepage = "https://github.com/FormingWorlds/JANUS"
 develop = [
   "bump-my-version",
   "coverage[toml]",
+  'fwl-mors',
   "pytest"
 ]
 docs = [
