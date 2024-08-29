@@ -30,7 +30,7 @@ https://proteus-code.readthedocs.io
 ### Developer installation instructions
 1. Download and install Socrates
 ```console
-git clone git@github.com:FormingWorlds/SOCRATES.git
+git clone git@github.com:nichollsh/SOCRATES.git
 cd SOCRATES
 ./configure
 ./build-code
