@@ -1,7 +1,7 @@
 """Import this file to set environment variables for socrates.
 
 Based on:
-https://github.com/FormingWorlds/SOCRATES/blob/main/sbin/set_rad_env_tmp
+https://github.com/nichollsh/SOCRATES/blob/main/sbin/set_rad_env_tmp
 """
 
 from __future__ import annotations

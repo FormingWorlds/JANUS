@@ -42,14 +42,14 @@ The versioning scheme we use is [CalVer](https://calver.org/).
 0. Update requirements files:
 
 ```console
-python tools/requirements_txt.py
+python tools/generate_requirements_txt.py
 pip-compile -o requirements_full.txt pyproject.toml
 ```
 
 1. Bump the version (`release`/`patch`) as needed
 
 ```console
-bump-my-version release
+bump-my-version bump release
 # 24.06.26
 ```
 
