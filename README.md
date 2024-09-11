@@ -3,21 +3,27 @@
 
 ## JANUS (1D convective atmosphere model)
 
-Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.   
+Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.
 
 Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
 ### Documentation
-https://proteus-code.readthedocs.io
+https://fwl-proteus.readthedocs.io
 
-### Contributors (abbreviations & email addresses):
-* TL - Tim Lichtenberg (tim.lichtenberg@rug.nl)
-* MH - Mark Hammond (mark.hammond@physics.ox.ac.uk)
-* RB – Ryan Boukrouche (ryan.boukrouche@astro.su.se)
-* RJG – RJ Graham (arejaygraham@uchicago.edu)
-* HN - Harrison Nicholls (harrison.nicholls@physics.ox.ac.uk)
-* HII - Hamish Innes (hamish.innes@physics.ox.ac.uk)
-* LS - Laurent Soucasse (l.soucasse@esciencecenter.nl)
+## Contributors
+
+| Name  | Email address |
+| -     | -             |
+Tim Lichtenberg         | tim.lichtenberg[at]rug.nl |
+Harrison Nicholls       | harrison.nicholls[at]physics.ox.ac.uk |
+Laurent Soucasse        | l.soucasse[at]esciencecenter.nl |
+Stef Smeets             | s.smeets[at]esciencecenter.nl |
+Mark Hammond            | mark.hammond[at]physics.ox.ac.uk |
+RJ Graham               | arejaygraham[at]uchicago.edu |
+Raymond Pierrehumbert   | raymond.pierrehumbert[at]physics.ox.ac.uk |
+Ryan Boukrouche         | ryan.boukrouche[at]astro.su.se |
+Hamish Innes            | hamish.innes[at]fu-berlin.de |
+
 
 ### Repository structure
 * `README.md`           - This file
