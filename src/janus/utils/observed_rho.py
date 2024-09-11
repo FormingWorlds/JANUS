@@ -34,7 +34,7 @@ def calc_observed_rho(atm):
     transspec_m += atm.planet_mass
 
     # get density of all enclosed by observed layer
-    transspec_rho = 3.0 * atm.transspec_m / (4.0 * np.pi * transspec_r**3)
+    transspec_rho = 3.0 * transspec_m / (4.0 * np.pi * transspec_r**3)
 
     return transspec_rho
 
