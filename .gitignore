@@ -34,4 +34,6 @@ build/
 fwl_data*/
 dist/
 .pytest_cache
+.ruff_cache
+
 
