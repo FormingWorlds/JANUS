@@ -1,7 +1,4 @@
 import numpy as np
-import logging
-
-log = logging.getLogger("fwl."+__name__)
 
 def calc_observed_rho(atm):
     """Calculate the observed bulk density.
