@@ -389,13 +389,7 @@ class atmos:
 
         # ----------------------
         # Calculate gravity and height (in case it hasn't been done already)
-        self.z, height_err = integrate_heights(self, self.planet_mass, self.planet_radius)
-        self.height_error = height_err
-
-        self.zl = np.zeros(len(self.z)+1)
-        for i in range(1,len(self.z)):
-            self.zl[i] = 0.5 * (self.z[i-1] + self.z[i])
-        self.zl[0] = 2*self.z[0] - self.zl[1] # estimate TOA height
+        self.z, self.zl, self.height_error = integrate_heights(self, self.planet_mass, self.planet_radius)
 
         # ----------------------
         # Prepare NetCDF
@@ -455,6 +449,7 @@ class atmos:
         var_albsurf = ds.createVariable("surf_albedo",   'f4');                            # Surface albedo
         var_sknd    = ds.createVariable("cond_skin_d"   ,'f4');  var_sknd.units = "m"      # Conductive skin thickness
         var_sknk    = ds.createVariable("cond_skin_k"   ,'f4');  var_sknk.units = "W m-1 K-1"    # Conductive skin thermal conductivity
+        var_zok     = ds.createVariable("height_ok"     ,'S1'); # Hydrostatic integration is ok
 
         #     Store data
         var_tstar.assignValue(self.ts)
@@ -472,6 +467,10 @@ class atmos:
         var_albsurf.assignValue(self.albedo_s)
         var_sknd.assignValue(self.skin_d)
         var_sknk.assignValue(self.skin_k)
+        if self.height_error:
+            var_zok[0] = 'n'
+        else:
+            var_zok[0] = 'y'
 
 
         # ----------------------
