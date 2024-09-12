@@ -406,7 +406,7 @@ class atmos:
             # If os.getlogin() fails, try an alternative method
             username = pwd.getpwuid(os.getuid()).pw_name
         ds.username         = str(username)
-        ds.JANUS_version    = "0.1"
+        ds.JANUS_version    = "24.09.12"
         ds.SOCRATES_version = str(SOCRATES_version)
         ds.platform         = str(platform.system())
         ds.date             = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
