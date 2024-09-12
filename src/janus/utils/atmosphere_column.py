@@ -5,7 +5,7 @@ import toml
 import numpy as np
 import netCDF4 as nc
 from janus.utils import phys
-from janus.utils.height import AtmosphericHeight
+from janus.utils.height import integrate_heights
 import os, copy, platform, shutil
 import pwd
 from datetime import datetime
@@ -172,7 +172,7 @@ class atmos:
         self.rho            = np.zeros(self.nlev) # Density of atmosphere at a given level
         self.ifatm 			= np.zeros(self.nlev) # Defines nth level to which atmosphere is calculated
         self.cp      		= np.zeros(self.nlev) # Mean heat capacity
-        self.height_error   = True # error when doing hydrostatic integration?
+        self.height_error   = False # error when doing hydrostatic integration?
 
         # Define T and P arrays from surface up
         self.tmp[0]         = self.ts         		# K
@@ -389,12 +389,7 @@ class atmos:
 
         # ----------------------
         # Calculate gravity and height (in case it hasn't been done already)
-        self.z = AtmosphericHeight(self, self.planet_mass, self.planet_radius)
-
-        self.zl = np.zeros(len(self.z)+1)
-        for i in range(1,len(self.z)):
-            self.zl[i] = 0.5 * (self.z[i-1] + self.z[i])
-        self.zl[0] = 2*self.z[0] - self.zl[1] # estimate TOA height
+        self.z, self.zl, self.height_error = integrate_heights(self, self.planet_mass, self.planet_radius)
 
         # ----------------------
         # Prepare NetCDF
@@ -454,6 +449,7 @@ class atmos:
         var_albsurf = ds.createVariable("surf_albedo",   'f4');                            # Surface albedo
         var_sknd    = ds.createVariable("cond_skin_d"   ,'f4');  var_sknd.units = "m"      # Conductive skin thickness
         var_sknk    = ds.createVariable("cond_skin_k"   ,'f4');  var_sknk.units = "W m-1 K-1"    # Conductive skin thermal conductivity
+        var_zok     = ds.createVariable("height_ok"     ,'S1'); # Hydrostatic integration is ok
 
         #     Store data
         var_tstar.assignValue(self.ts)
@@ -471,6 +467,10 @@ class atmos:
         var_albsurf.assignValue(self.albedo_s)
         var_sknd.assignValue(self.skin_d)
         var_sknk.assignValue(self.skin_k)
+        if self.height_error:
+            var_zok[0] = 'n'
+        else:
+            var_zok[0] = 'y'
 
 
         # ----------------------
