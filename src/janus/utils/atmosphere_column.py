@@ -4,6 +4,7 @@
 import toml
 import numpy as np
 import netCDF4 as nc
+from janus import __version__
 from janus.utils import phys
 from janus.utils.height import integrate_heights
 import os, copy, platform, shutil
@@ -406,7 +407,7 @@ class atmos:
             # If os.getlogin() fails, try an alternative method
             username = pwd.getpwuid(os.getuid()).pw_name
         ds.username         = str(username)
-        ds.JANUS_version    = "24.09.12"
+        ds.JANUS_version    = __version__
         ds.SOCRATES_version = str(SOCRATES_version)
         ds.platform         = str(platform.system())
         ds.date             = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
