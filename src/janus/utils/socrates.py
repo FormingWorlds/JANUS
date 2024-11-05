@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import subprocess
 import f90nml
 
-import logging 
+import logging
 log = logging.getLogger("fwl."+__name__)
 
 import janus.utils.nctools as nctools
@@ -24,7 +24,8 @@ from .. import set_socrates_env  # noqa
 
 
 def radCompSoc(atm, dirs, recalc, rscatter=False,
-               rewrite_cfg=True, rewrite_tmp=True, rewrite_gas=False):
+               rewrite_cfg=True, rewrite_tmp=True, rewrite_gas=False,
+               verbose=False):
     """Runs SOCRATES to calculate fluxes and heating rates
 
     Parameters
@@ -43,15 +44,13 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
             Re-write temperature and pressure arrays
         rewrite_gas : bool
             Re-write composition files
-            
+        verbose : bool
+            Print SOCRATES output
     """
 
     # Check if bands have been set
     if not atm.bands_set:
         raise Exception("Cannot run radiative transfer because bands have not been loaded into atmos object.")
-
-    # Ask SOCRATES to print info to stdout at runtime
-    socrates_print = False
 
     # Pass namelist information to SOCRATES
     # Only supported from SOCRATES version 2306 onwards (revision 1403)
@@ -72,10 +71,10 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
         log.error("Negative mixing ratio(s)!")
         log.error(str(atm.x_gas))
         exit(1)
-    
+
     # Rayleigh scattering
     if rscatter == True:
-        
+
         # Skip if already exists
         if (not os.path.exists(runspectral_file)) or rewrite_gas:
 
@@ -91,14 +90,21 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
                     vol_lower = str(vol).lower()
                     rscatter_snames.append(vol_lower)
                     rscatter_sratio.append(atm.x_gas[vol][-1])
-            RayleighSpectrum.rayleigh_coeff_adder(species_list = rscatter_snames, 
-                                                mixing_ratio_list = rscatter_sratio, 
+            RayleighSpectrum.rayleigh_coeff_adder(species_list = rscatter_snames,
+                                                mixing_ratio_list = rscatter_sratio,
                                                 spectral_file_path=runspectral_file,
                                                 wavelength_dummy_file_path=dirs["output"]+'wavelength_band_file.txt'
                                                 )
         scatter_flag = " -r"
     else:
         scatter_flag = ""
+
+    # gas overlap
+    if not ( 2 <= atm.overlap_type <= 8):
+        raise ValueError("Invalid overlap choice (integer): value = %d"%atm.overlap_type)
+    overlap_flag = str(atm.overlap_type)
+    if overlap_flag == "8":
+        overlap_flag = "8 0"
 
     # If we didn't write a new spectral file above, do it now
     if not os.path.exists(runspectral_file):
@@ -121,10 +127,10 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
 
     fthis = basename+'.pstar'
     if check_cfg(fthis): nctools.ncout2d(   fthis, 0, 0, atm.ps, 'pstar', longname="Surface Pressure", units='PA')
-    
+
     fthis = basename+'.szen'
     if check_cfg(fthis): nctools.ncout2d(   fthis, 0, 0, float(atm.zenith_angle), 'szen', longname="Solar zenith angle", units='Degrees')
-    
+
     fthis = basename+'.stoa'
     toah = atm.instellation * (1.0 - atm.albedo_pl) * atm.inst_sf  # Values passed to socrates should not include cos(theta), since it's applied during the RT
     atm.toa_heating = toah * np.cos(atm.zenith_angle * np.pi / 180.0)
@@ -143,18 +149,18 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
 
     # Gases
     fthis = basename+'.q'
-    if check_gas(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  phys.molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg') 
+    if check_gas(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  phys.molar_mass['H2O'] / atm.mu * atm.x_gas["H2O"], 'q', longname="q", units='kg/kg')
 
     # Clouds
     if atm.do_cloud:
         fthis = basename+'.re'
-        if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.re, 're', longname="Effective Radius", units='M') 
+        if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.re, 're', longname="Effective Radius", units='M')
 
         fthis = basename+'.lwm'
-        if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.lwm, 'lwm', longname="Liquid Water Mass Fraction", units='GG-1') 
+        if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.lwm, 'lwm', longname="Liquid Water Mass Fraction", units='GG-1')
 
         fthis = basename+'.clfr'
-        if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.clfr, 'clfr', longname="Cloud Fraction", units='NONE') 
+        if check_tmp(fthis): nctools.ncout3d(   fthis, 0, 0,   atm.p,  atm.clfr, 'clfr', longname="Cloud Fraction", units='NONE')
 
     allowed_vols = {"CO2", "O3", "N2O", "CO", "CH4", "O2", "NO", "SO2", "NO2", "NH3", "HNO3", "N2", "H2", "He", "OCS"}
     for vol in atm.vol_list.keys():
@@ -164,21 +170,21 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
             if check_gas(fthis):
                 x_gas_this = phys.molar_mass[vol] / atm.mu * atm.x_gas[vol]
                 if np.amax(x_gas_this) > 1.0e-30:
-                    nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  x_gas_this, vol_lower, longname=vol, units='kg/kg') 
+                    nctools.ncout3d(basename+'.'+vol_lower, 0, 0, atm.p,  x_gas_this, vol_lower, longname=vol, units='kg/kg')
 
     # Call sequences for run SOCRATES + move data
     if atm.do_cloud:
-        seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C ", str(atm.cloud_scheme), " -K ", str(atm.cloud_representation), " -d ", str(atm.droplet_type), " -v ", str(atm.solver), " -u", scatter_flag, " -o"]
+        seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g "+overlap_flag, " -C ", str(atm.cloud_scheme), " -K ", str(atm.cloud_representation), " -d ", str(atm.droplet_type), " -v ", str(atm.solver), " -u", scatter_flag, " -o"]
         seq_sw_mv = ["fmove", basename,"currentsw"]
-        
-        seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C ", str(atm.cloud_scheme), " -K ", str(atm.cloud_representation), " -d ", str(atm.droplet_type), " -v ", str(atm.solver), " -u", scatter_flag, " -o"]
+
+        seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g "+overlap_flag, " -C ", str(atm.cloud_scheme), " -K ", str(atm.cloud_representation), " -d ", str(atm.droplet_type), " -v ", str(atm.solver), " -u", scatter_flag, " -o"]
         seq_lw_mv = ["fmove", basename,"currentlw"]
 
     else: # cloud flags require Block 10
-        seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g 2 -C 5 -u", scatter_flag]
+        seq_sw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -S -g "+overlap_flag, " -C 5 -u", scatter_flag]
         seq_sw_mv = ["fmove", basename,"currentsw"]
-        
-        seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g 2 -C 5 -u", scatter_flag]
+
+        seq_lw_ex = ["Cl_run_cdf","-B", basename,"-s", runspectral_file, "-R 1", str(atm.nbands), " -ch ", str(atm.nbands), " -I -g "+overlap_flag, " -C 5 -u", scatter_flag]
         seq_lw_mv = ["fmove", basename,"currentlw"]
 
     # Write namelist file?
@@ -205,12 +211,12 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
         if os.path.exists(fthis):
             os.remove(fthis)
         f90nml.write(nml,fthis)
-        
+
         seq_sw_ex.extend(["-N", fthis])
         seq_lw_ex.extend(["-N", fthis])
 
     # Socrates print to stdout at runtime?
-    if socrates_print == True:
+    if verbose:
         outhandle = None
         seq_sw_ex.extend(["-o"])
         seq_lw_ex.extend(["-o"])
@@ -228,7 +234,7 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     # Open netCDF files produced by SOCRATES
     ncfile1  = net.Dataset('currentsw.vflx')  # direct + diffuse
     ncfile2  = net.Dataset('currentsw.sflx')  # direct
-    ncfile3  = net.Dataset('currentsw.dflx')  # diffuse 
+    ncfile3  = net.Dataset('currentsw.dflx')  # diffuse
     ncfile4  = net.Dataset('currentsw.uflx')  # upward
     ncfile6  = net.Dataset('currentsw.hrts')  # heating rate
 
@@ -242,10 +248,10 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
 
     # Loop through netCDF variables and populate arrays
     vflxsw   = ncfile1.variables['vflx']  # SW downward flux (direct + diffuse)
-    uflxsw   = ncfile4.variables['uflx']  # SW upward flux 
+    uflxsw   = ncfile4.variables['uflx']  # SW upward flux
     hrtssw   = ncfile6.variables['hrts']  # SW heating rate (K/day)
     dflxlw   = ncfile7.variables['dflx']  # LW downward flux (diffuse)
-    uflxlw   = ncfile9.variables['uflx']  # LW upward flux 
+    uflxlw   = ncfile9.variables['uflx']  # LW upward flux
     hrtslw   = ncfile10.variables['hrts'] # LW heating rate (K/day)
     if atm.has_contfunc:
         cff  = ncfile11.variables['cff']  # Contribution function (channel, plev, lat, lon)
@@ -273,7 +279,7 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     atm.SW_spectral_flux_down = vflxsw[:,:,0,0]
 
     # Total up- and downward fluxes, (W/m^2)
-    atm.flux_up_total       = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0]) 
+    atm.flux_up_total       = np.squeeze(np.sum(uflxlw[:,:],axis=0)[:,0,0] + np.sum(uflxsw[:,:],axis=0)[:,0,0])
     atm.flux_down_total     = np.squeeze(np.sum(vflxsw[:,:],axis=0)[:,0,0] + np.sum(dflxlw[:,:],axis=0)[:,0,0])
 
     # Total net flux (W/m^2)
@@ -281,7 +287,7 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
 
     # Total net flux per band (W/m^2)
     atm.net_spectral_flux   = uflxlw[:,:,0,0] + uflxsw[:,:,0,0] - dflxlw[:,:,0,0] - vflxsw[:,:,0,0]
-    
+
     # Contribution function
     if atm.has_contfunc:
         atm.cff   = cff[:,:,0,0]
@@ -316,15 +322,15 @@ def radCompSoc(atm, dirs, recalc, rscatter=False,
     return atm
 
 # Sting sorting not based on natsorted package
-def natural_sort(l): 
-    convert = lambda text: int(text) if text.isdigit() else text.lower() 
-    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+def natural_sort(l):
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
     return sorted(l, key = alphanum_key)
 
 # Clean SOCRATES output files after run
 def CleanOutputDir( output_dir ):
 
-    types = ("current*.*", "profile.*") 
+    types = ("current*.*", "profile.*")
     files_to_delete = []
     for files in types:
         files_to_delete.extend(glob.glob(output_dir+"/"+files))
