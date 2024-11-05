@@ -9,7 +9,7 @@ log = logging.getLogger("fwl."+__name__)
 
 FWL_DATA_DIR = Path(os.environ.get('FWL_DATA', platformdirs.user_data_dir('fwl_data')))
 
-log.info(f'FWL data location: {FWL_DATA_DIR}')
+log.debug(f'FWL data location: {FWL_DATA_DIR}')
 
 basic_list = (
         "Dayspring/256",
