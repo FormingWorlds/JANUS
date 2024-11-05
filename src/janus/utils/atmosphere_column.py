@@ -116,6 +116,7 @@ class atmos:
 
         # Initialise other variables
         self.alpha_cloud 	= alpha_cloud 	    	# The fraction of condensate retained in the column
+        self.overlap_type   = 2         # (2: RO, 4: EE, 8: RORR)
 
         self.ts 			= T_surf		# Surface temperature, K
 
@@ -451,6 +452,8 @@ class atmos:
         var_sknd    = ds.createVariable("cond_skin_d"   ,'f4');  var_sknd.units = "m"      # Conductive skin thickness
         var_sknk    = ds.createVariable("cond_skin_k"   ,'f4');  var_sknk.units = "W m-1 K-1"    # Conductive skin thermal conductivity
         var_zok     = ds.createVariable("height_ok"     ,'S1'); # Hydrostatic integration is ok
+        var_overlap = ds.createVariable("overlap_type"  ,int)  # gas overlap method (integer - rad_pcf.f90)
+
 
         #     Store data
         var_tstar.assignValue(self.ts)
@@ -472,6 +475,7 @@ class atmos:
             var_zok[0] = 'n'
         else:
             var_zok[0] = 'y'
+        var_overlap.assignValue(self.overlap_type)
 
 
         # ----------------------
