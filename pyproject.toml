@@ -13,7 +13,7 @@ authors = [
     {name = "Ryan Boukrouche", email = "ryan.boukrouche@astro.su.se"},
     {name = "RJ Graham", email = "arejaygraham@uchicago.edu"},
     {name = "Harrison Nicholls", email = "harrison.nicholls@physics.ox.ac.uk"},
-    {name = "Hamish Innes", email = "hamish.innes@physics.ox.ac.uk"},
+    {name = "Hamish Innes", email = "hamish.innes@fu-berlin.de"},
     {name = "Laurent Soucasse", email = "l.soucasse@esciencecenter.nl"},
 ]
 license = {text = "Apache 2.0 License"}

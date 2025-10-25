@@ -5,11 +5,22 @@ repo_name: GitHub
 
 nav:
   - Home: index.md
-  - Getting started: getting_started.md
+  - Install: getting_started.md
   - Contributing: CONTRIBUTING.md
   - Code of Conduct: CODE_OF_CONDUCT.md
-  - 🔗 Source code: https://github.com/FormingWorlds/JANUS
-  - 🔗 Issues: https://github.com/FormingWorlds/JANUS/issues
+  - Source code: https://github.com/FormingWorlds/CALLIOPE
+  - Issues page: https://github.com/FormingWorlds/CALLIOPE/issues
+  - 🔗 PROTEUS: https://fwl-proteus.readthedocs.io/
+  - 🔗 CALLIOPE: https://fwl-calliope.readthedocs.io/
+  - 🔗 ZEPHYRUS: https://github.com/FormingWorlds/ZEPHYRUS/
+  - 🔗 MORS: https://fwl-mors.readthedocs.io/
+  - 🔗 AGNI: https://h-nicholls.space/AGNI/
+  - 🔗 LovePy: https://github.com/nichollsh/lovepy
+  - 🔗 VULCAN: https://github.com/FormingWorlds/VULCAN
+  - 🔗 Zalmoxis: https://zalmoxis.readthedocs.io/
+  - 🔗 Aragog: https://github.com/FormingWorlds/aragog
+  - 🔗 SPIDER: https://github.com/djbower/spider
+
 
 theme:
   name: material

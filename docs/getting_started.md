@@ -1,4 +1,4 @@
-# Getting started
+# Install & Getting Started
 
 JANUS contains a small CLI tool to help get set up with JANUS.
 
