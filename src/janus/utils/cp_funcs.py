@@ -12,7 +12,7 @@ import janus.utils.phys as phys
 # https://webbook.nist.gov/chemistry/
 # Choose cp functions
 
-def cpv( vol, tmp, cp_mode = "constant" ):
+def cpv( vol, tmp, cp_mode = "constant" ) -> float:
 
     
     # cp_mode = "T-dependent" # NIST Chemistry WebBook
