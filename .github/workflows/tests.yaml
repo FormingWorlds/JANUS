@@ -47,6 +47,7 @@ jobs:
           cd SOCRATES
           ./configure
           ./build_code
+          source set_rad_env
           cd ..
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -75,6 +76,7 @@ jobs:
         run: |
           export FWL_DATA="/home/runner/work/fwl_data"
           export RAD_DIR="/home/runner/work/JANUS/JANUS/SOCRATES"
+          source "$RAD_DIR/set_rad_env"
           coverage run -m pytest
 
       - name: Report coverage
