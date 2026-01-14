@@ -14,15 +14,15 @@ https://fwl-janus.readthedocs.io
 
 | Name  | Email address |
 | -     | -             |
-Tim Lichtenberg         | tim.lichtenberg[at]rug.nl |
-Harrison Nicholls       | harrison.nicholls[at]physics.ox.ac.uk |
-Laurent Soucasse        | l.soucasse[at]esciencecenter.nl |
-Stef Smeets             | s.smeets[at]esciencecenter.nl |
-Mark Hammond            | mark.hammond[at]physics.ox.ac.uk |
-RJ Graham               | arejaygraham[at]uchicago.edu |
-Raymond Pierrehumbert   | raymond.pierrehumbert[at]physics.ox.ac.uk |
-Ryan Boukrouche         | ryan.boukrouche[at]astro.su.se |
-Hamish Innes            | hamish.innes[at]fu-berlin.de |
+Tim Lichtenberg         | tim.lichtenberg@rug.nl |
+Harrison Nicholls       | harrison.nicholls@physics.ox.ac.uk |
+Laurent Soucasse        | l.soucasse@esciencecenter.nl |
+Stef Smeets             | s.smeets@esciencecenter.nl |
+Mark Hammond            | mark.hammond@physics.ox.ac.uk |
+RJ Graham               | arejaygraham@uchicago.edu |
+Raymond Pierrehumbert   | raymond.pierrehumbert@physics.ox.ac.uk |
+Ryan Boukrouche         | ryan.boukrouche@astro.su.se |
+Hamish Innes            | hamish.innes@fu-berlin.de |
 
 
 ### Repository structure
