@@ -13,6 +13,7 @@ radiation_code.lock
 ######
 *_lbl.nc
 *.png
+!docs/assets/*.png
 Tprofile.pdf
 .DS_Store
 .vscode
