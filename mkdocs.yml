@@ -1,5 +1,5 @@
 site_name: JANUS
-site_url: https://fwl-janus.readthedocs.io
+site_url: https://proteus-framework.org/JANUS/
 repo_url: https://github.com/FormingWorlds/JANUS
 repo_name: GitHub
 
@@ -8,19 +8,18 @@ nav:
   - Install: getting_started.md
   - Contributing: CONTRIBUTING.md
   - Code of Conduct: CODE_OF_CONDUCT.md
-  - Source code: https://github.com/FormingWorlds/CALLIOPE
-  - Issues page: https://github.com/FormingWorlds/CALLIOPE/issues
-  - 🔗 PROTEUS: https://fwl-proteus.readthedocs.io/
-  - 🔗 CALLIOPE: https://fwl-calliope.readthedocs.io/
-  - 🔗 ZEPHYRUS: https://github.com/FormingWorlds/ZEPHYRUS/
-  - 🔗 MORS: https://fwl-mors.readthedocs.io/
-  - 🔗 AGNI: https://h-nicholls.space/AGNI/
-  - 🔗 LovePy: https://github.com/nichollsh/lovepy
-  - 🔗 VULCAN: https://github.com/FormingWorlds/VULCAN
-  - 🔗 Zalmoxis: https://zalmoxis.readthedocs.io/
-  - 🔗 Aragog: https://github.com/FormingWorlds/aragog
-  - 🔗 SPIDER: https://github.com/djbower/spider
-
+  - Source code: https://github.com/FormingWorlds/JANUS
+  - Issues page: https://github.com/FormingWorlds/JANUS/issues
+  - 🔗 PROTEUS: https://proteus-framework.org/PROTEUS/
+  - 🔗 CALLIOPE: https://proteus-framework.org/CALLIOPE/
+  - 🔗 MORS: https://proteus-framework.org/MORS/
+  - 🔗 ZEPHYRUS: https://proteus-framework.org/ZEPHYRUS/
+  - 🔗 CALLIOPE: https://proteus-framework.org/CALLIOPE/
+  - 🔗 AGNI: https://h-nicholls.space/AGNI/dev/
+  - 🔗 Obliqua: https://proteus-framework.org/Obliqua/ 
+  - 🔗 VULCAN: https://proteus-framework.org/VULCAN/
+  - 🔗 Zalmoxis: https://proteus-framework.org/ZALMOXIS/
+  - 🔗 Aragog: https://proteus-framework.org/aragog/
 
 theme:
   name: material
