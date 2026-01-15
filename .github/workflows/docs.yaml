@@ -28,7 +28,7 @@ jobs:
       - run: pip install mkdocs-material markdown-include pymdown-extensions mkdocstrings  mkdocstrings-python
       - run: mkdocs gh-deploy --force --clean
 
-badge:
+  badge:
     runs-on: ubuntu-latest
     needs: deploy
     if: always()
@@ -44,20 +44,20 @@ badge:
 
       - name: Generate badge SVG
         run: |
-          mkdir -p assets
+          mkdir -p docs/assets
           if [ "${{ needs.deploy.result }}" = "success" ]; then
-            curl -fsSL "https://img.shields.io/badge/docs-passing-brightgreen.svg" -o assets/docs-badge.svg
+            curl -fsSL "https://img.shields.io/badge/docs-passing-brightgreen.svg" -o docs/assets/docs-badge.svg
           else
-            curl -fsSL "https://img.shields.io/badge/docs-failing-red.svg" -o assets/docs-badge.svg
+            curl -fsSL "https://img.shields.io/badge/docs-failing-red.svg" -o docs/assets/docs-badge.svg
           fi
 
       - name: Commit badge (if changed)
         run: |
-          if git diff --quiet -- assets/docs-badge.svg; then
+          if git diff --quiet -- docs/assets/docs-badge.svg; then
             echo "No badge changes."
             exit 0
           fi
 
-          git add assets/docs-badge.svg
+          git add docs/assets/docs-badge.svg
           git commit -m "chore: update docs badge"
           git push origin HEAD:${{ github.ref_name }}
