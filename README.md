@@ -1,4 +1,4 @@
-[![Docs](assets/docs-badge.svg)](https://proteus-framework.org/JANUS/)
+[![Docs](https://raw.githubusercontent.com/FormingWorlds/JANUS/main/docs/assets/docs-badge.svg)](https://proteus-framework.org/JANUS/)
 ![Coverage](https://gist.githubusercontent.com/stefsmeets/99391a66bb9229771504c3a4db611d05/raw/covbadge.svg)
 
 ## JANUS (1D convective atmosphere model)
