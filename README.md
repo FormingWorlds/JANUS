@@ -1,4 +1,4 @@
-[![Documentation Status](https://readthedocs.org/projects/fwl-janus/badge/?version=latest)](https://fwl-janus.readthedocs.io/en/latest/?badge=latest)
+[![Docs](https://raw.githubusercontent.com/FormingWorlds/JANUS/main/docs/assets/docs-badge.svg)](https://proteus-framework.org/JANUS/)
 ![Coverage](https://gist.githubusercontent.com/stefsmeets/99391a66bb9229771504c3a4db611d05/raw/covbadge.svg)
 
 ## JANUS (1D convective atmosphere model)
@@ -8,21 +8,21 @@ Generates a temperature profile using the generalised moist pseudoadiabat and a 
 Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
 ### Documentation
-https://fwl-janus.readthedocs.io
+https://proteus-framework.org/JANUS/
 
 ## Contributors
 
 | Name  | Email address |
 | -     | -             |
-Tim Lichtenberg         | tim.lichtenberg[at]rug.nl |
-Harrison Nicholls       | harrison.nicholls[at]physics.ox.ac.uk |
-Laurent Soucasse        | l.soucasse[at]esciencecenter.nl |
-Stef Smeets             | s.smeets[at]esciencecenter.nl |
-Mark Hammond            | mark.hammond[at]physics.ox.ac.uk |
-RJ Graham               | arejaygraham[at]uchicago.edu |
-Raymond Pierrehumbert   | raymond.pierrehumbert[at]physics.ox.ac.uk |
-Ryan Boukrouche         | ryan.boukrouche[at]astro.su.se |
-Hamish Innes            | hamish.innes[at]fu-berlin.de |
+Tim Lichtenberg         | tim.lichtenberg@rug.nl |
+Harrison Nicholls       | harrison.nicholls@physics.ox.ac.uk |
+Laurent Soucasse        | l.soucasse@esciencecenter.nl |
+Stef Smeets             | s.smeets@esciencecenter.nl |
+Mark Hammond            | mark.hammond@physics.ox.ac.uk |
+RJ Graham               | arejaygraham@uchicago.edu |
+Raymond Pierrehumbert   | raymond.pierrehumbert@physics.ox.ac.uk |
+Ryan Boukrouche         | ryan.boukrouche@astro.su.se |
+Hamish Innes            | hamish.innes@fu-berlin.de |
 
 
 ### Repository structure
