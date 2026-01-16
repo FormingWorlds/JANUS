@@ -8,7 +8,7 @@ Generates a temperature profile using the generalised moist pseudoadiabat and a 
 Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
 ### Documentation
-https://proteus-framework.org/JANUS/
+The documentation for JANUS can be found [here](https://proteus-framework.org/JANUS/).
 
 ## Contributors
 
