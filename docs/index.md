@@ -1,4 +1,5 @@
-![Docs](assets/docs-badge.svg)
+[![Documentation](https://github.com/FormingWorlds/JANUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/JANUS/)
+[![Tests](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
 ![Coverage](https://gist.githubusercontent.com/stefsmeets/99391a66bb9229771504c3a4db611d05/raw/covbadge.svg)
 
 ## JANUS (1D convective atmosphere model)
@@ -6,9 +7,6 @@
 Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.
 
 Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
-
-### Documentation
-https://proteus-framework.org/JANUS/
 
 ## Contributors
 
