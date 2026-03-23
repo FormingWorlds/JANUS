@@ -8,20 +8,6 @@ Generates a temperature profile using the generalised moist pseudoadiabat and a 
 
 Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
-## Contributors
-
-| Name  | Email address |
-| -     | -             |
-Tim Lichtenberg         | tim.lichtenberg@rug.nl |
-Harrison Nicholls       | harrison.nicholls@physics.ox.ac.uk |
-Laurent Soucasse        | l.soucasse@esciencecenter.nl |
-Stef Smeets             | s.smeets@esciencecenter.nl |
-Mark Hammond            | mark.hammond@physics.ox.ac.uk |
-RJ Graham               | arejaygraham@uchicago.edu |
-Raymond Pierrehumbert   | raymond.pierrehumbert@physics.ox.ac.uk |
-Ryan Boukrouche         | ryan.boukrouche@astro.su.se |
-Hamish Innes            | hamish.innes@fu-berlin.de |
-
 
 ### Repository structure
 * `README.md`           - This file
