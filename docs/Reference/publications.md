@@ -9,3 +9,5 @@
 - Graham, R. J., Lichtenberg, T., & Pierrehumbert, R. T. (2022). CO2 ocean bistability on terrestrial exoplanets. *Journal of Geophysical Research: Planets, 127(10)*, e2022JE007456. [https://doi.org/10.1029/2022JE007456](https://doi.org/10.1029/2022JE007456)
 
 - Nicholls, H., Lichtenberg, T., Bower, D. J., & Pierrehumbert, R. (2024). Magma ocean evolution at arbitrary redox state. *Journal of Geophysical Research: Planets, 129(12)*, e2024JE008576. [https://doi.org/10.1029/2024JE008576](https://doi.org/10.1029/2024JE008576)
+
+- Boer, I. D., Nicholls, H., & Lichtenberg, T. (2025). Absence of a runaway greenhouse limit on lava planets. The Astrophysical Journal, 987(2), 172. [https://doi.org/10.3847/1538-4357/add69f](https://doi.org/10.3847/1538-4357/add69f)
