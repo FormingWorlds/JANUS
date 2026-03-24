@@ -1,6 +1,6 @@
 # Installation
 
-This page describes a manual developer installation of JANUS and SOCRATES.
+This page describes a manual developer installation of JANUS and SOCRATES. JANUS contains a small CLI tool to help get set up with JANUS.
 
 !!! info "Prerequisites"
 	- `git`
@@ -58,7 +58,12 @@ source set_rad_env
 cd ..
 ```
 
-If you open a new shell later, re-source the SOCRATES environment before running JANUS workflows that depend on it.
+	If you install and compile [SOCRATES](https://github.com/nichollsh/SOCRATES) yourself,
+	you can override the path using the `SOCRATES` environment variable, e.g.
+
+	```console
+	RAD_DIR=/home/user/path/to/SOCRATES pytest
+	```
 
 ## 2. Install JANUS
 
@@ -97,4 +102,17 @@ You can inspect active JANUS environment paths with:
 
 ```console
 janus env
+```
+
+### `SOCRATES`
+
+
+
+### `FWL_DATA`
+
+Set this variable to modify where janus stores its stellar and spectral data. By default this is based on the [XDG specification](https://specifications.freedesktop.org/basedir-spec/latest/).
+You can override the path using the `FWL_DATA` environment variable, e.g.
+
+```console
+FWL_DATA=/home/user/path/to/fwl_data pytest
 ```
