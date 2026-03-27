@@ -12,6 +12,9 @@ nav:
   - How-to guides:
       - Installation: How-to/installation.md
 
+  - Tutorials:
+      - First run: Tutorials/first_run.md
+
   - Explanations:
       - Model overview: Explanations/model.md
 
@@ -44,6 +47,7 @@ nav:
       - 🔗 Atmodeller: https://atmodeller.readthedocs.io/en/latest/
       - 🔗 FastChem: https://newstrangeworlds.github.io/FastChem/
       - 🔗 PLATON: https://platon.readthedocs.io/en/latest/
+      - 🔗 SOCRATES: https://proteus-framework.org/SOCRATES/
 
 theme:
   name: material
