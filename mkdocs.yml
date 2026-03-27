@@ -85,6 +85,7 @@ theme:
 
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/footnotes.css
 
 markdown_extensions:
   - admonition
@@ -92,9 +93,12 @@ markdown_extensions:
   - markdown_include.include:
       base_path: docs
   - pymdownx.extra
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.arithmatex:
       generic: true
   - footnotes
+  - pymdownx.superfences 
   - md_in_html
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
