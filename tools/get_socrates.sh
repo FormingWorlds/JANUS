@@ -41,17 +41,34 @@ git clone "$uri" "$socpath"
 # ── Build ────────────────────────────────────────────────────────────────────
 cd "$socpath"
 
+logfile="$socpath/build.log"
 echo ""
-echo "Configuring SOCRATES"
-./configure
+echo "Build log: $logfile"
 
+# Configure — output to log only
 echo ""
-echo "Building SOCRATES"
-./build_code
+echo "Configuring SOCRATES..."
+./configure >> "$logfile" 2>&1
+
+# Build — full output goes to log, only actual errors printed to terminal.
+# Disable set -e around the pipe so grep non-matches don't trigger exit.
+echo "Building SOCRATES (this may take a few minutes)..."
+set +e
+./build_code 2>&1 | tee -a "$logfile" | grep -iE "error:|fatal error:|undefined reference|cannot find|ld returned" >&2
+build_exit=${PIPESTATUS[0]}
+set -e
+
+if [ "$build_exit" -ne 0 ]; then
+    echo ""
+    echo "Build failed (exit code $build_exit). See full log:"
+    echo "  $logfile"
+    exit "$build_exit"
+fi
 
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo ""
 echo "SOCRATES has been built in: $socpath"
+echo "Full build log: $logfile"
 echo ""
 echo "Add the following to your ~/.bashrc (or ~/.zshrc):"
 echo ""
