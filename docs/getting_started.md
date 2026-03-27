@@ -12,6 +12,8 @@ Here is the quickest path to getting started:
    → [Installation guide](How-to/installation.md)
 
 2. **Run your first workflow**  
+    Follow the first run tutorial. <br>
+    → [First run tutorial](Tutorials/first_run.md)
 
 ---
 
@@ -22,6 +24,10 @@ Here is the quickest path to getting started:
 -   :material-download: **Install**
 
     [Go to installation guide](How-to/installation.md)
+
+-   :material-rocket-launch: **Run JANUS**
+
+    [Go to first run](Tutorials/first_run.md)
 
 -   :material-book-open-variant: **Understand the model**
 
