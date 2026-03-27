@@ -1,39 +1,43 @@
 # Installation
 
-This page describes a manual developer installation of JANUS and SOCRATES. JANUS contains a small CLI tool to help get set up with JANUS.
+This page describes a manual developer installation of JANUS and SOCRATES.
+
+!!! note
+    The standard way of installing JANUS is within the PROTEUS Framework, as described in the [PROTEUS installation guide](https://proteus-framework.org/PROTEUS/How-to/installation.html#10-install-submodules-as-editable). Only use the guide below for a standalone installation of JANUS. 
 
 !!! info "Prerequisites"
-	- `git`
-	- Python 3.10+ (recommended: 3.11)
-	- a Fortran/C build toolchain (`gfortran`, `gcc`, `make`)
-	- NetCDF tools and NetCDF-Fortran development headers/libraries
-	- optional but recommended: Conda 
+    - `git`
+    - Python 3.10+ (recommended: 3.11)
+    - a Fortran/C build toolchain (`gfortran`, `gcc`, `make`)
+    - NetCDF tools and NetCDF-Fortran development headers/libraries
+    - optional but recommended: Conda
 
-	Typical installation commands:
+    Typical installation commands:
 
-	=== "Ubuntu / Debian"
+    === "Ubuntu / Debian"
 
-		```console
-		sudo apt install libnetcdff-dev gfortran
-		```
+        ```bash
+        sudo apt install libnetcdff-dev gfortran
+        ```
 
-	=== "Fedora / RedHat"
-		```console
-		sudo dnf install gcc gcc-gfortran gcc-c++ netcdf netcdf-fortran netcdf-fortran-devel \
-    	lapack lapack-devel lapack-static sundials-mpich openmpi openmpi-devel f2c f2c-libs
-		```
+    === "Fedora / RedHat"
 
-	=== "macOS (Homebrew)"
+        ```bash
+        sudo dnf install gcc gcc-gfortran gcc-c++ netcdf netcdf-fortran netcdf-fortran-devel \
+            lapack lapack-devel lapack-static
+        ```
 
-		```console
-		brew install git gcc netcdf netcdf-fortran
-		```
+    === "macOS (Homebrew)"
 
-	=== "macOS (MacPorts)"
+        ```bash
+        brew install git gcc netcdf netcdf-fortran
+        ```
 
-		```console
-		sudo port install netcdf-fortran +gcc8 wget gcc13 openmpi
-		```
+    === "macOS (MacPorts)"
+
+        ```bash
+        sudo port install netcdf-fortran +gcc8 wget gcc13
+        ```
 
 ## 0. Create a Conda environment [optional]
 
@@ -44,26 +48,32 @@ conda create -n janus python=3.11 -y
 conda activate janus
 ```
 
-If your system does not already provide NetCDF-Fortran development tools,
-install them before building SOCRATES as shown above.
-
 ## 1. Install SOCRATES
 
+JANUS uses the [SOCRATES](https://github.com/nichollsh/SOCRATES) radiative transfer
+code as an external dependency. A helper script is provided to clone and build it:
+
 ```console
-git clone git@github.com:nichollsh/SOCRATES.git
-cd SOCRATES
-./configure
-./build-code
-source set_rad_env
-cd ..
+bash tools/get_socrates.sh /path/to/socrates
 ```
 
-	If you install and compile [SOCRATES](https://github.com/nichollsh/SOCRATES) yourself,
-	you can override the path using the `SOCRATES` environment variable, e.g.
+This clones the repository, runs `./configure`, and compiles the code. Once done,
+add the following to your `~/.bashrc` (or `~/.zshrc`):
 
-	```console
-	RAD_DIR=/home/user/path/to/SOCRATES pytest
-	```
+```console
+export RAD_DIR=/path/to/socrates
+```
+
+!!! tip "Custom install path"
+    The script accepts an optional path argument. If omitted, SOCRATES is cloned
+    into a `socrates/` subdirectory of the current working directory.
+
+!!! tip "Running tests with a custom SOCRATES path"
+    You can override `RAD_DIR` for a single command without modifying your shell profile:
+
+    ```console
+    RAD_DIR=/path/to/socrates pytest
+    ```
 
 ## 2. Install JANUS
 
@@ -90,7 +100,7 @@ janus download spectral
 janus download stellar
 ```
 
-To download a specific spectral dataset (optionally with a band count):
+To download a specific spectral dataset with a given number of bands:
 
 ```console
 janus download spectral -n Frostflow -b 4096
@@ -98,21 +108,33 @@ janus download spectral -n Frostflow -b 4096
 
 ## 4. Verify installation
 
-You can inspect active JANUS environment paths with:
+Inspect active environment paths with:
 
 ```console
 janus env
 ```
 
-### `SOCRATES`
+This prints the resolved locations of `RAD_DIR` and `FWL_DATA`.
 
+---
 
+## Environment variables
+
+### `RAD_DIR`
+
+Points to the compiled SOCRATES directory. JANUS will not function without this.
+Set it in your shell profile as shown in step 1, or export it inline:
+
+```console
+export RAD_DIR=/path/to/socrates
+```
 
 ### `FWL_DATA`
 
-Set this variable to modify where janus stores its stellar and spectral data. By default this is based on the [XDG specification](https://specifications.freedesktop.org/basedir-spec/latest/).
-You can override the path using the `FWL_DATA` environment variable, e.g.
+Controls where JANUS stores downloaded spectral and stellar data. By default the
+location follows the [XDG base directory specification](https://specifications.freedesktop.org/basedir-spec/latest/).
+Override it with:
 
 ```console
-FWL_DATA=/home/user/path/to/fwl_data pytest
+export FWL_DATA=/path/to/fwl_data
 ```
