@@ -39,3 +39,6 @@ dist/
 
 # documentation site
 site/
+
+#socrates
+socrates/
