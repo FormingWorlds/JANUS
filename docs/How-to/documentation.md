@@ -43,7 +43,7 @@ http://127.0.0.1:8000
 
 ## Documentation structure
 
-Documentation source files are located in the [`docs`](https://github.com/FormingWorlds/PROTEUS/tree/main/docs) directory, and mostly follow the [Diátaxis](https://diataxis.fr/) approach of documentation. This means they are categorised into:
+Documentation source files are located in the [`docs`](https://github.com/FormingWorlds/JANUS/tree/main/docs) directory, and mostly follow the [Diátaxis](https://diataxis.fr/) approach of documentation. This means they are categorised into:
 
 - **Tutorials**: learning-oriented guides for new users, such as a first workflow tutorial.
 - **How-to guides**: task-oriented instructions, such as installation, configuration, or test development.
