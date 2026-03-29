@@ -10,7 +10,7 @@ JANUS is a 1D convective atmosphere model for rocky exoplanet and magma ocean at
 Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
 !!! info "PROTEUS framework"
-    JANUS is the prescribed convective atmoshere model integrated into the PROTEUS framework,  a modular Python framework that simulates the coupled evolution of the atmospheres and interiors of rocky planets and exoplanets. The documentation for PROTEUS can be found [here](https://proteus-framework.org/PROTEUS). 
+    JANUS is the prescribed convective atmosphere model integrated into the PROTEUS framework,  a modular Python framework that simulates the coupled evolution of the atmospheres and interiors of rocky planets and exoplanets. The documentation for PROTEUS can be found [here](https://proteus-framework.org/PROTEUS). 
 
 If you plan to contribute to JANUS, please read our [Code of Conduct](Community/CODE_OF_CONDUCT.md) and [contributing guidelines](Community/CONTRIBUTING.md).
 If you are running into problems, please do not hesitate to raise an [Issue](https://github.com/FormingWorlds/JANUS/issues).
