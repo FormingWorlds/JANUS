@@ -50,7 +50,7 @@ conda activate janus
 
 ## 1. Install SOCRATES
 
-JANUS uses the [SOCRATES](https://github.com/nichollsh/SOCRATES) radiative transfer
+JANUS uses the [SOCRATES](https://github.com/FormingWorlds/SOCRATES) radiative transfer
 code as an external dependency. A helper script is provided to clone and build it:
 
 ```console
