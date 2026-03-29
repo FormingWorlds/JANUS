@@ -30,8 +30,33 @@ fi
 
 # ── Clone ────────────────────────────────────────────────────────────────────
 if [ -d "$socpath" ]; then
-    echo "Directory $socpath already exists — removing it"
-    rm -rf "$socpath"
+    # Basic safety guard against catastrophic deletions.
+    if [ "$socpath" = "/" ] || [ "$socpath" = "$HOME" ]; then
+        echo "Refusing to remove dangerous path: $socpath"
+        echo "Please choose a dedicated installation directory for SOCRATES."
+        exit 1
+    fi
+
+    # Only auto-delete if this looks like an existing SOCRATES clone.
+    if git -C "$socpath" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        origin_url="$(git -C "$socpath" remote get-url origin 2>/dev/null || echo "")"
+        if [ "$origin_url" = "https://github.com/FormingWorlds/SOCRATES.git" ] || \
+           [ "$origin_url" = "git@github.com:FormingWorlds/SOCRATES.git" ]; then
+            echo "Existing SOCRATES checkout detected at $socpath — removing it"
+            rm -rf "$socpath"
+        else
+            echo "Directory $socpath already exists and is a git repository,"
+            echo "but its 'origin' remote is '$origin_url', not the SOCRATES repository."
+            echo "Refusing to delete it automatically."
+            echo "Please remove it manually or choose a different installation directory."
+            exit 1
+        fi
+    else
+        echo "Directory $socpath already exists but is not a SOCRATES git checkout."
+        echo "Refusing to delete it automatically."
+        echo "Please remove it manually or choose a different installation directory."
+        exit 1
+    fi
 fi
 
 echo "Cloning SOCRATES"
