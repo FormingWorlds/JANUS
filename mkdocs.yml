@@ -126,7 +126,7 @@ extra:
       name: Zalmoxis on PyPI
     - icon: fontawesome/brands/github
       link: https://github.com/FormingWorlds/JANUS
-      name: Zalmoxis on GitHub
+      name: JANUS on GitHub
 
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
