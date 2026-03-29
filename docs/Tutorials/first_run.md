@@ -6,7 +6,7 @@ temperature for a pure steam atmosphere, validated against four published
 datasets.
 
 !!! info "Prerequisites"
-    Complete the [installation](installation.md) steps first. You will also need
+    Complete the [installation](../How-to/installation.md) steps first. You will also need
     the `mors` stellar evolution package and `toml`:
 
     ```bash
