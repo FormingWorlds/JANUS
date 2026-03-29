@@ -2,59 +2,19 @@
 [![Tests](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
 ![Coverage](https://gist.githubusercontent.com/stefsmeets/99391a66bb9229771504c3a4db611d05/raw/covbadge.svg)
 
-## JANUS (1D convective atmosphere model)
+# JANUS (1D convective atmosphere model)
 
-Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.
+
+JANUS is a 1D convective atmosphere model for rocky exoplanet and magma ocean atmospheres. Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using [SOCRATES](https://github.com/FormingWorlds/SOCRATES).
 
 Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
-## Contributors
+!!! info "PROTEUS framework"
+    JANUS is the prescribed convective atmosphere model integrated into the PROTEUS framework,  a modular Python framework that simulates the coupled evolution of the atmospheres and interiors of rocky planets and exoplanets. The documentation for PROTEUS can be found [here](https://proteus-framework.org/PROTEUS). 
 
-| Name  | Email address |
-| -     | -             |
-Tim Lichtenberg         | tim.lichtenberg@rug.nl |
-Harrison Nicholls       | harrison.nicholls@physics.ox.ac.uk |
-Laurent Soucasse        | l.soucasse@esciencecenter.nl |
-Stef Smeets             | s.smeets@esciencecenter.nl |
-Mark Hammond            | mark.hammond@physics.ox.ac.uk |
-RJ Graham               | arejaygraham@uchicago.edu |
-Raymond Pierrehumbert   | raymond.pierrehumbert@physics.ox.ac.uk |
-Ryan Boukrouche         | ryan.boukrouche@astro.su.se |
-Hamish Innes            | hamish.innes@fu-berlin.de |
+If you plan to contribute to JANUS, please read our [Code of Conduct](Community/CODE_OF_CONDUCT.md) and [contributing guidelines](Community/CONTRIBUTING.md).
+If you are running into problems, please do not hesitate to raise an [Issue](https://github.com/FormingWorlds/JANUS/issues).
 
+## License
 
-### Repository structure
-* `README.md`           - This file
-* `src/janus/data/`     - Janus data files
-* `src/janus/modules/`  - Utility python scripts
-* `src/janus/utils/`    - Utility python scripts
-* `examples/`           - Typical use scripts
-* `tools/`              - Useful tools
-
-### Developer installation instructions
-1. Download and install Socrates
-```console
-git clone git@github.com:nichollsh/SOCRATES.git
-cd SOCRATES
-./configure
-./build-code
-source set_rad_env
-cd ..
-```
-2. Download and install Janus
-```console
-git clone git@github.com:FormingWorlds/JANUS.git
-cd JANUS
-pip install -e .
-```
-3. Download data from the [OSF repository](https://osf.io/vehxg/)
-    * Set the environment variable FWL_DATA to define where the spectral data files will be stored
-        * `export FWL_DATA=...`
-    * Run the following commands to download all basic data
-        * `janus download spectral`
-        * `janus download stellar`
-    * Alternatively, you can specify which spectral data you want to download, and optionally the number of bands
-        * `janus download spectral -n Frostflow -b 4096`
-
-### Run instructions
-In the examples folder you can find python scripts showing typical usecases/workflows of atmosphere modelling with Janus.
+See [the included license](https://github.com/FormingWorlds/JANUS/blob/main/LICENSE.md).

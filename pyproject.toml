@@ -55,6 +55,7 @@ develop = [
   "pytest"
 ]
 docs = [
+    "zensical",
     "markdown-include",
     "mkdocs",
     "mkdocs-material",

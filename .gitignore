@@ -37,4 +37,8 @@ dist/
 .pytest_cache
 .ruff_cache
 
+# documentation site
+site/
 
+#socrates
+socrates/

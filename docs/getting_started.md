@@ -1,54 +1,48 @@
-# Install & Getting Started
+# Getting started
 
-JANUS contains a small CLI tool to help get set up with JANUS.
+!!! note "Usage within the PROTEUS framework"
+    JANUS is most commonly installed and used as integrated into the PROTEUS framework. Understand how to use PROTEUS [here](https://proteus-framework.org/PROTEUS). 
 
-## Install SOCRATES
+## Quick path
 
-Download and install SOCRATES:
+Here is the quickest path to getting started:
 
-```console
-janus download socrates
-```
+1. **Install JANUS**  
+   Follow the installation steps and download necessary data. <br>
+   → [Installation guide](How-to/installation.md)
 
-Make sure you have the netcdf fortran libraries installed:
+2. **Run your first workflow**  
+    Follow the first run tutorial. <br>
+    → [First run tutorial](Tutorials/first_run.md)
 
-```
-sudo apt install libnetcdff-dev netcdf-bin
-```
+---
 
-## Download data
+## What do you want to do?
 
-Download spectral and stellar data:
+<div class="grid cards" markdown>
 
-```console
-janus download spectral
-janus download stellar
-```
+-   :material-download: **Install**
 
-## Environment variables
+    [Go to installation guide](How-to/installation.md)
 
-To see all environment variables and locations, use:
+-   :material-rocket-launch: **Run JANUS**
 
-```console
-janus env
-```
+    [Go to first run](Tutorials/first_run.md)
 
-### `SOCRATES`
+-   :material-book-open-variant: **Understand the model**
 
-By default, SOCRATES is installed to the default location based on the [XDG specification](https://specifications.freedesktop.org/basedir-spec/latest/).
+    [Go to model overview](Explanations/model.md)
 
-If you install and compile [SOCRATES](https://github.com/nichollsh/SOCRATES) yourself,
-you can override the path using the `SOCRATES` environment variable, e.g.
+-   :material-github: **Contribute / browse code**
 
-```console
-RAD_DIR=/home/user/path/to/SOCRATES pytest
-```
+    [Go to source code](https://github.com/FormingWorlds/JANUS)
 
-### `FWL_DATA`
+-   :material-bug: **Raise an issue**
 
-Set this variable to modify where janus stores its stellar and spectral data. By default this is based on the [XDG specification](https://specifications.freedesktop.org/basedir-spec/latest/).
-You can override the path using the `FWL_DATA` environment variable, e.g.
+    [Go to issues](https://github.com/FormingWorlds/JANUS/issues)
 
-```console
-FWL_DATA=/home/user/path/to/fwl_data pytest
-```
+-   :material-email: **Get in touch**
+
+    [Go to contact](Community/contact.md)
+
+</div>
