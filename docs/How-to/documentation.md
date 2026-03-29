@@ -15,7 +15,7 @@ The documentation source files live in the `docs/` directory of the repository.
 To build and preview the documentation locally, install the documentation dependencies and start the development server:
 
 ```bash
-pip install pip install zensical markdown-include pymdown-extensions mkdocstrings mkdocstrings-python
+pip install zensical markdown-include pymdown-extensions mkdocstrings mkdocstrings-python
 zensical serve
 ```
 
