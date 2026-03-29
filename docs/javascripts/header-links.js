@@ -9,11 +9,11 @@ function wire() {
     title.dataset.titleWired = "1";
     title.style.cursor = "pointer";
 
-    // always go to /Zalmoxis/ when hosted there, else "/" (mkdocs serve)
-    const href = location.href;
-    const docsHome = href.includes("/Zalmoxis/")
-      ? href.split("/Zalmoxis/")[0] + "/Zalmoxis/"
-      : location.origin + "/";
+    // derive docs home from the first path segment (e.g. "/JANUS/" or "/Zalmoxis/"), falling back to "/" (mkdocs serve)
+    const pathname = location.pathname || "/";
+    const pathSegments = pathname.split("/").filter(Boolean);
+    const basePath = pathSegments.length ? `/${pathSegments[0]}/` : "/";
+    const docsHome = location.origin + basePath;
 
     title.addEventListener("click", (e) => {
       if (e.target.closest("a, button, input, label")) return;
