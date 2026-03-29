@@ -125,7 +125,7 @@ extra:
       link: https://pypi.org/project/fwl-janus/
       name: Zalmoxis on PyPI
     - icon: fontawesome/brands/github
-      link: https://github.com/FormingWorlds/Zalmoxis
+      link: https://github.com/FormingWorlds/JANUS
       name: Zalmoxis on GitHub
 
 extra_javascript:
