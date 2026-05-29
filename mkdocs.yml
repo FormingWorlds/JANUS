@@ -47,9 +47,8 @@ nav:
       - 🔗 Zalmoxis: https://proteus-framework.org/Zalmoxis/
       - 🔗 Aragog: https://proteus-framework.org/aragog/
       - 🔗 SPIDER: https://proteus-framework.org/SPIDER/
-      - 🔗 Atmodeller: https://atmodeller.readthedocs.io/en/latest/
-      - 🔗 FastChem: https://newstrangeworlds.github.io/FastChem/
-      - 🔗 PLATON: https://platon.readthedocs.io/en/latest/
+      - 🔗 Atmodeller: https://github.com/FormingWorlds/Atmodeller/
+      - 🔗 FastChem: https://github.com/FormingWorlds/FastChem/
       - 🔗 SOCRATES: https://proteus-framework.org/SOCRATES/
 
 theme:
@@ -91,6 +90,7 @@ theme:
         name: Switch to light mode
 
 extra_css:
+  - stylesheets/proteus_theme.css
   - stylesheets/extra.css
   - stylesheets/footnotes.css
 
