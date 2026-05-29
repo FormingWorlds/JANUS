@@ -9,24 +9,11 @@ Generates a temperature profile using the generalised moist pseudoadiabat and a 
 Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
 ### Documentation
+
 The documentation for JANUS can be found [here](https://proteus-framework.org/JANUS/).
 
-## Contributors
-
-| Name  | Email address |
-| -     | -             |
-Tim Lichtenberg         | tim.lichtenberg@rug.nl |
-Harrison Nicholls       | harrison.nicholls@physics.ox.ac.uk |
-Laurent Soucasse        | l.soucasse@esciencecenter.nl |
-Stef Smeets             | s.smeets@esciencecenter.nl |
-Mark Hammond            | mark.hammond@physics.ox.ac.uk |
-RJ Graham               | arejaygraham@uchicago.edu |
-Raymond Pierrehumbert   | raymond.pierrehumbert@physics.ox.ac.uk |
-Ryan Boukrouche         | ryan.boukrouche@astro.su.se |
-Hamish Innes            | hamish.innes@fu-berlin.de |
-
-
 ### Repository structure
+
 * `README.md`           - This file
 * `src/janus/data/`     - Janus data files
 * `src/janus/modules/`  - Utility python scripts
@@ -34,30 +21,58 @@ Hamish Innes            | hamish.innes@fu-berlin.de |
 * `examples/`           - Typical use scripts
 * `tools/`              - Useful tools
 
-### Developer installation instructions
-1. Download and install Socrates
+### Installation
+
+> **Note:** The standard way of installing JANUS is within the PROTEUS Framework, as described in the [PROTEUS installation guide](https://proteus-framework.org/PROTEUS/How-to/installation.html#10-install-submodules-as-editable). The steps below are for a standalone developer installation only.
+
+**Prerequisites:** `git`, Python 3.10+ (3.11 recommended), a Fortran/C build toolchain (`gfortran`, `gcc`, `make`), and NetCDF tools with NetCDF-Fortran development headers. See [detailed installation instructions](https://proteus-framework.org/JANUS/How-to/installation.html) for more information.
+
+#### 0. Create a Conda environment (optional)
 ```console
-git clone git@github.com:nichollsh/SOCRATES.git
-cd SOCRATES
-./configure
-./build-code
-source set_rad_env
-cd ..
+conda create -n janus python=3.11 -y
+conda activate janus
 ```
-2. Download and install Janus
+
+#### 1. Install SOCRATES
+
+A helper script clones and builds [SOCRATES](https://github.com/FormingWorlds/SOCRATES):
+```console
+bash tools/get_socrates.sh /path/to/socrates
+```
+If the path argument is omitted, SOCRATES is cloned into a `socrates/` subdirectory of the current working directory. Once built, add the following to your `~/.bashrc` or `~/.zshrc`:
+```console
+export RAD_DIR=/path/to/socrates
+```
+
+#### 2. Install JANUS
 ```console
 git clone git@github.com:FormingWorlds/JANUS.git
 cd JANUS
 pip install -e .
 ```
-3. Download data from the [OSF repository](https://osf.io/vehxg/)
-    * Set the environment variable FWL_DATA to define where the spectral data files will be stored
-        * `export FWL_DATA=...`
-    * Run the following commands to download all basic data
-        * `janus download spectral`
-        * `janus download stellar`
-    * Alternatively, you can specify which spectral data you want to download, and optionally the number of bands
-        * `janus download spectral -n Frostflow -b 4096`
+
+#### 3. Download JANUS data
+
+Set `FWL_DATA` to define where spectral and stellar data are stored:
+```console
+export FWL_DATA=/path/to/fwl_data
+```
+Download the default datasets:
+```console
+janus download spectral
+janus download stellar
+```
+To download a specific spectral dataset with a given number of bands:
+```console
+janus download spectral -n Frostflow -b 4096
+```
+
+#### 4. Verify installation
+```console
+janus env
+```
+This prints the resolved locations of `RAD_DIR` and `FWL_DATA`.
 
 ### Run instructions
-In the examples folder you can find python scripts showing typical usecases/workflows of atmosphere modelling with Janus.
+
+In the `examples/` folder you can find Python scripts showing typical use cases and workflows for atmosphere modelling with JANUS.
