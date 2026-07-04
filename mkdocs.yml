@@ -19,6 +19,7 @@ nav:
 
   - Explanations:
       - Model overview: Explanations/model.md
+      - Testing suite: Explanations/testing.md
 
   - Reference:
       - Publications: Reference/publications.md
