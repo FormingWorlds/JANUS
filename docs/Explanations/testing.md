@@ -1,9 +1,10 @@
 # Testing suite
 
-[![codecov](https://img.shields.io/codecov/c/github/FormingWorlds/JANUS?label=coverage&logo=codecov&color=brightgreen)](https://app.codecov.io/gh/FormingWorlds/JANUS)
-[![Unit Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/tests.yaml?branch=main&label=Unit%20Tests&color=brightgreen)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
-[![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/nightly.yml?branch=main&label=Integration%20Tests&color=brightgreen)](https://github.com/FormingWorlds/JANUS/actions/workflows/nightly.yml)
-[![tests](https://img.shields.io/endpoint?url=https://proteus-framework.org/JANUS/badges/tests-total.json)](https://proteus-framework.org/testing)
+[![tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-total.json)](https://proteus-framework.org/validation)
+[![unit tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-unit.json)](https://proteus-framework.org/validation)
+[![integration tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-integration.json)](https://proteus-framework.org/validation)
+[![Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/tests.yaml?branch=main&label=CI)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
+[![coverage](https://codecov.io/gh/FormingWorlds/JANUS/branch/main/graph/badge.svg)](https://app.codecov.io/gh/FormingWorlds/JANUS)
 
 Tests verify that the code does what was written; physical correctness is judged by data, not by tests.
 The suite catches regressions in the saturation-vapour-pressure relations, the Planck emission, the hydrostatic height integration, the heat-capacity fits, the moist and dry adiabats, and the coupled radiative-convective solve, but it cannot certify that those formulae match nature.
@@ -37,7 +38,7 @@ Every test in the suite carries exactly one tier marker, applied at module level
 | `slow` | Long parameter sweeps and full physics validation. | up to an hour | Nightly only |
 | `skip` | Placeholder, deliberately disabled. | n/a | Never |
 
-Live counts per tier are shown by the `tests` badge at the top of this page (the total) and by `pytest -m <tier> --collect-only -q` locally.
+Live counts are shown by the `tests`, `unit tests`, and `integration tests` badges at the top of this page and by `pytest -m <tier> --collect-only -q` locally.
 
 Tests without a tier marker are invisible to CI.
 The PR gate runs `pytest -m "(unit or smoke) and not skip"`; the nightly runs everything in `(unit or smoke or integration or slow) and not skip`.
@@ -184,14 +185,16 @@ python tools/check_test_quality.py --reference-pinned-status
 
 ## Public-facing badges versus internal taxonomy
 
-Public-facing badges (README, project website) collapse `smoke + integration + slow` into a single `Integration Tests` category, because a four-way taxonomy is confusing to non-developer readers.
-The four-marker internal scheme remains for CI granularity: the PR gate runs `(unit or smoke)`, the nightly runs everything, and the test-count badge fetches the JSON files written into the documentation site during the docs deploy.
+The three test-count badges collapse the four-marker scheme into the two categories a non-developer reader cares about: the mocked `unit` tests that run on every pull request, and the `integration` tests (`smoke`, `integration`, and `slow` counted together) that run the real SOCRATES pipeline nightly.
+The `tests` badge shows the combined total.
+The four-marker scheme remains underneath for CI granularity: the PR gate runs `(unit or smoke)` and the nightly runs everything.
 
 ## Badge system
 
-The documentation deploy (`.github/workflows/docs.yaml`) regenerates three JSON files, `tests-{total,unit,integration}.json`, from `pytest --collect-only` and writes them into the published site under `badges/`.
-Shields.io fetches them live from the site via the endpoint URL embedded in the test-count badge.
-The counts refresh on every documentation build, so they track the suite without running it.
+The three badge JSON files (`tests-{total,unit,integration}.json`) live at the root of the repository's `badges` branch in the shields.io endpoint schema.
+The `Refresh test count badges` workflow (`.github/workflows/publish-test-badges.yml`) regenerates them from `pytest --collect-only` whenever the test suite or source changes on `main`, then commits them to the `badges` branch; shields.io fetches them live by raw URL.
+Publishing to a dedicated branch keeps the generated files off `main`, where direct pushes need review.
+The same files back the module's row on the central [PROTEUS validation page](https://proteus-framework.org/validation).
 
 ## Coverage gates
 

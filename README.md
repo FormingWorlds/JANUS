@@ -1,9 +1,9 @@
 [![Documentation](https://github.com/FormingWorlds/JANUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/JANUS/)
 [![Tests](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
-[![codecov](https://img.shields.io/codecov/c/github/FormingWorlds/JANUS?label=coverage&logo=codecov)](https://app.codecov.io/gh/FormingWorlds/JANUS)
-[![tests](https://img.shields.io/endpoint?url=https://proteus-framework.org/JANUS/badges/tests-total.json)](https://proteus-framework.org/testing)
-[![unit tests](https://img.shields.io/endpoint?url=https://proteus-framework.org/JANUS/badges/tests-unit.json)](https://proteus-framework.org/testing)
-[![integration tests](https://img.shields.io/endpoint?url=https://proteus-framework.org/JANUS/badges/tests-integration.json)](https://proteus-framework.org/testing)
+[![tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-total.json)](https://proteus-framework.org/validation)
+[![unit tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-unit.json)](https://proteus-framework.org/validation)
+[![integration tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-integration.json)](https://proteus-framework.org/validation)
+[![coverage](https://codecov.io/gh/FormingWorlds/JANUS/branch/main/graph/badge.svg)](https://app.codecov.io/gh/FormingWorlds/JANUS)
 
 ## JANUS (1D convective atmosphere model)
 
