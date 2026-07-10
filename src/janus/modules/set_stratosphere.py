@@ -69,10 +69,17 @@ def set_stratosphere(atm):
                 atm.p_vol[vol][idx]  = atm.x_gas[vol][trpp_idx] * atm.p[idx]
                 
 
-            # Renormalize cp w/ molar concentration
-            atm.cp[idx]   += (atm.x_gas[vol][idx] + atm.x_cond[vol][idx]) * ga.cpv(vol, atm.tmp[idx]) / (atm.xd[idx] + atm.xv[idx] + atm.xc[idx]) # w/ cond
+            # Accumulate cp over the gas phase and retained condensate, matching
+            # the tropospheric definition (condensate carries cp_cond weighted by
+            # alpha_cloud), so cp stays continuous across the tropopause
+            atm.cp[idx]   += atm.x_gas[vol][idx] * ga.cpv(vol, atm.tmp[idx]) + atm.x_cond[vol][idx] * ga.cp_cond(vol, atm.tmp[idx]) * atm.alpha_cloud
 
-            # Renormalise mu with updated x_gas values 
-            atm.mu[idx] += phys.molar_mass[vol] * atm.x_gas[vol][idx]
+            # Accumulate mean molar mass over the volatile partial pressures
+            atm.mu[idx]   += phys.molar_mass[vol] * atm.p_vol[vol][idx]
+
+        # Normalize cp by the gas-phase molar concentration and mu by the total
+        # pressure, applied once to the whole-column sum
+        atm.cp[idx]   = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
+        atm.mu[idx]   = atm.mu[idx] / atm.p[idx]
 
     return atm
