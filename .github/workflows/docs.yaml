@@ -16,12 +16,52 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/configure-pages@v5
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
+
+      - name: Setup system
+        run: |
+          sudo apt-get update
+          sudo apt-get install libnetcdff-dev netcdf-bin
+
+      - name: Get SOCRATES
+        uses: actions/checkout@v4
+        with:
+          repository: 'nichollsh/SOCRATES'
+          path: 'SOCRATES'
+
+      - uses: actions/cache@v4
+        id: cache-socrates
+        with:
+          path: |
+            SOCRATES/bin
+            SOCRATES/sbin
+            SOCRATES/set_rad_env
+          key: socrates-${{ hashFiles('SOCRATES/version') }}
+
+      - name: Build SOCRATES
+        if: steps.cache-socrates.outputs.cache-hit != 'true'
+        run: |
+          export LD_LIBRARY_PATH=""
+          cd SOCRATES
+          ./configure
+          ./build_code
+          source set_rad_env
+          cd ..
+
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
+
       - run: pip install zensical markdown-include pymdown-extensions mkdocstrings mkdocstrings-python
-      - run: zensical build --clean 
+      - run: zensical build --clean
+
+      - name: Add test-count badges to the site
+        run: |
+          pip install .[develop]
+          export RAD_DIR="$GITHUB_WORKSPACE/SOCRATES"
+          source "$RAD_DIR/set_rad_env"
+          python tools/generate_test_badges.py --out site/badges/
+
       - uses: actions/upload-pages-artifact@v4
         with:
           path: site

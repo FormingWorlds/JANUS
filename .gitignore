@@ -29,8 +29,12 @@ src/janus/data/spectral_files/sp_b318_HITRAN_a16_2203/temp
 src/janus/data/spectral_files/sp_b318_HITRAN_a16_2203
 
 output/
+output_files/
 utils/*.ipynb*
 .coverage
+.coverage.*
+coverage.xml
+htmlcov/
 build/
 fwl_data*/
 dist/

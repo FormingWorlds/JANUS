@@ -1,0 +1,100 @@
+name: JANUS nightly
+
+on:
+  schedule:
+    # 03:00 UTC daily.
+    - cron: '0 3 * * *'
+  # Manual trigger for ad-hoc runs via
+  # ``gh workflow run "JANUS nightly" -r <branch>``.
+  workflow_dispatch:
+
+# Least-privilege token: only read access to the repo contents.
+# Coverage upload uses the CODECOV_TOKEN secret directly, not the
+# default GITHUB_TOKEN.
+permissions:
+  contents: read
+
+# Nightly: full test suite (unit + smoke + integration + slow) with
+# coverage instrumentation. The PR gate runs only the unit + smoke
+# tiers; the integration and slow tiers run real multi-timestep
+# SOCRATES solves. Coverage is reported to the Codecov dashboard via
+# codecov-action.
+jobs:
+  nightly:
+    name: JANUS-nightly (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup system
+        run: |
+          sudo apt-get update
+          sudo apt-get install libnetcdff-dev netcdf-bin
+
+      - name: Get SOCRATES
+        uses: actions/checkout@v4
+        with:
+          repository: 'nichollsh/SOCRATES'
+          path: 'SOCRATES'
+
+      - uses: actions/cache@v4
+        id: cache-socrates
+        with:
+          path: |
+            SOCRATES/bin
+            SOCRATES/sbin
+            SOCRATES/set_rad_env
+          key: socrates-${{ hashFiles('SOCRATES/version') }}
+
+      - name: Build SOCRATES
+        if: steps.cache-socrates.outputs.cache-hit != 'true'
+        run: |
+          export LD_LIBRARY_PATH=""
+          cd SOCRATES
+          ./configure
+          ./build_code
+          source set_rad_env
+          cd ..
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install JANUS
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[develop]
+
+      - uses: actions/cache@v4
+        id: cache-fwl-data
+        with:
+          path: /home/runner/work/fwl_data
+          key: fwl-data-1
+
+      - name: Run unit + smoke + integration + slow tests with coverage
+        run: |
+          export FWL_DATA="/home/runner/work/fwl_data"
+          export RAD_DIR="/home/runner/work/JANUS/JANUS/SOCRATES"
+          source "$RAD_DIR/set_rad_env"
+          FULL_FAIL_UNDER=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['coverage']['report']['fail_under'])")
+          echo "Full gate fail_under: ${FULL_FAIL_UNDER}%"
+          pytest -m "(unit or smoke or integration or slow) and not skip" \
+            --cov=janus \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=${FULL_FAIL_UNDER}
+
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: FormingWorlds/JANUS
+          files: coverage.xml
+          flags: nightly
+          fail_ci_if_error: false

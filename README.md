@@ -1,6 +1,9 @@
 [![Documentation](https://github.com/FormingWorlds/JANUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/JANUS/)
 [![Tests](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
-![Coverage](https://gist.githubusercontent.com/stefsmeets/99391a66bb9229771504c3a4db611d05/raw/covbadge.svg)
+[![codecov](https://img.shields.io/codecov/c/github/FormingWorlds/JANUS?label=coverage&logo=codecov)](https://app.codecov.io/gh/FormingWorlds/JANUS)
+[![tests](https://img.shields.io/endpoint?url=https://proteus-framework.org/JANUS/badges/tests-total.json)](https://proteus-framework.org/testing)
+[![unit tests](https://img.shields.io/endpoint?url=https://proteus-framework.org/JANUS/badges/tests-unit.json)](https://proteus-framework.org/testing)
+[![integration tests](https://img.shields.io/endpoint?url=https://proteus-framework.org/JANUS/badges/tests-integration.json)](https://proteus-framework.org/testing)
 
 ## JANUS (1D convective atmosphere model)
 
