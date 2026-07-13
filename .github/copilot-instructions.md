@@ -28,7 +28,7 @@ PROTEUS is a coupled atmosphere-interior framework with a modular architecture:
 
 - **[PROTEUS](https://github.com/FormingWorlds/PROTEUS)** (main repository): Core coupling framework and orchestration
 - **[AGNI](https://github.com/nichollsh/AGNI)**: Radiative-convective atmospheric energy module (Julia)
-- **[SOCRATES](https://github.com/nichollsh/SOCRATES)**: Spectral radiative transfer code (Fortran)
+- **[SOCRATES](https://github.com/FormingWorlds/SOCRATES)**: Spectral radiative transfer code (Fortran)
 - **[CALLIOPE](https://github.com/FormingWorlds/CALLIOPE)**: Volatile in-/outgassing and thermodynamics module (Python)
 - **[JANUS](https://github.com/FormingWorlds/JANUS)**: 1D convective atmosphere module (Python)
 - **[MORS](https://github.com/FormingWorlds/MORS)**: Stellar evolution module (Python)

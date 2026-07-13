@@ -55,7 +55,7 @@ jobs:
         # checkout without a build is enough to count the tests.
         uses: actions/checkout@v4
         with:
-          repository: 'nichollsh/SOCRATES'
+          repository: 'FormingWorlds/SOCRATES'
           path: 'SOCRATES'
 
       - name: Regenerate badge JSON files
