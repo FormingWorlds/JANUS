@@ -359,9 +359,9 @@ class atmos:
             case "bar":
                 p_scalefactor = 1.0e-5
             case "dyne/cm2":
-                p_scalefactor = 1.0e5
+                p_scalefactor = 10.0
             case "atm":
-                p_scalefactor = 1.01325e5
+                p_scalefactor = 1.0 / 101325.0
             case _:
                 raise Exception("Unrecognised pressure unit '%s'"%punit)
 
