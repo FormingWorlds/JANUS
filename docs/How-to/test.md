@@ -1,90 +1,104 @@
-# Testing
+# Run and build tests
 
-JANUS uses [pytest](https://docs.pytest.org/) for its test suite. The tests
-verify physical correctness by comparing model output against known reference
-values, and check utility functions and constants.
+JANUS uses [pytest](https://docs.pytest.org/) for its test suite. Tests are
+sorted into four tiers by cost, verify physical invariants and pinned reference
+values, and mirror the source tree. This page covers running the suite and
+adding a new test. For the full contract (tiers, markers, coverage gates, the
+linter), see the [Testing suite](../Explanations/testing.md) overview.
 
 ## Prerequisites
 
-Install the test dependencies:
+Install the develop extras and make sure `RAD_DIR` and `FWL_DATA` are set:
 
 ```bash
-pip install pytest
-pip install -r examples/requirements.txt
-```
-
-Make sure `RAD_DIR` and `FWL_DATA` are set before running:
-
-```bash
-echo $RAD_DIR    # should point to your SOCRATES installation
+pip install -e ".[develop]"
+echo $RAD_DIR    # should point to your compiled SOCRATES tree
 echo $FWL_DATA   # should point to your data directory
 ```
+
+Even the mocked unit tests import `janus`, which resolves the SOCRATES
+environment at import time, so `RAD_DIR` must point to a built SOCRATES tree for
+collection to succeed. See the [installation guide](installation.md) for the
+SOCRATES build.
 
 ## Running the tests
 
 From the root of the JANUS repository:
 
 ```bash
-pytest tests/
+pytest -m "(unit or smoke) and not skip"    # what the PR checks run
+pytest -m unit                              # fast unit tests only
+pytest -m smoke                             # real SOCRATES, low resolution, one step
+pytest -m integration                       # full pipeline coupling (nightly)
+pytest -m slow                              # full physics validation (nightly)
+pytest -m "not skip"                        # everything that should ever run
 ```
 
-To run a specific test file:
+Run a single file or a single test:
 
 ```bash
-pytest tests/test_runaway_greenhouse.py
-pytest tests/test_instellation.py
-pytest tests/test_constants.py
-pytest tests/test_code.py
+pytest tests/utils/test_phys.py
+pytest tests/modules/test_dry_adiabat_setup.py::test_dry_adiabat_conserves_potential_temperature
 ```
 
-To run with verbose output:
+With coverage:
 
 ```bash
-pytest tests/ -v
+pytest --cov=janus --cov-report=term -m "not skip"
+pytest --cov=janus --cov-report=html -m "not skip"   # writes htmlcov/
 ```
 
-## What the tests check
+## How the tests are organised
 
-### `test_runaway_greenhouse.py`
+Tiers are selected by a module-level marker at the top of every test file:
 
-Runs the full JANUS pipeline at three surface temperatures for a pure H₂O
-atmosphere at 0.3 AU and checks the OLR against reference values to a relative
-tolerance of 1 × 10⁻⁵:
+```python
+import pytest
 
-| T_surf (K) | Expected OLR (W m⁻²) | Regime |
+pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
+```
+
+| Tier | Runs | Timeout |
 |---|---|---|
-| 200 | 90.73 | Sub-runaway |
-| 1705 | 278.88 | Simpson–Nakajima plateau |
-| 2800 | 6581.74 | Post-runaway |
+| `unit` | Python logic, SOCRATES and file I/O mocked | 30 s |
+| `smoke` | real SOCRATES binary, one step, low resolution | 60 s |
+| `integration` | full `RadConvEqm` / `MCPA_CBL` pipeline | 300 s |
+| `slow` | long sweeps and full validation | 3600 s |
 
-Uses `RadConvEqm()` with `cp_dry=False`, `trppD=False`, `rscatter=False`.
+New per-source tests mirror the source path: `src/janus/<subdir>/<file>.py` maps
+to `tests/<subdir>/test_<file>.py`. The cross-cutting files
+(`tests/test_constants.py`, `tests/test_code.py`) and the pipeline files
+(`tests/test_runaway_greenhouse.py`, `tests/test_instellation.py`) are the
+documented exceptions.
 
-### `test_instellation.py`
+## Adding a test
 
-Runs `MCPA_CBL()` — the coupled boundary layer solver — at two orbital
-distances (0.3 AU and 1.4 AU) using `config_instellation.toml` and checks
-five output quantities against reference values:
+1. Create `tests/<subdir>/test_<file>.py` and give it the module-level
+   `pytestmark` for its tier.
+2. Write a file-level docstring naming the source under test, and a function-level
+   docstring for every test naming the physical scenario it checks.
+3. On a physics source, assert at least one physical invariant (conservation or
+   balance, positivity or boundedness, monotonicity or symmetry, or a pinned
+   numeric value with a discrimination guard) and tag the test
+   `@pytest.mark.physics_invariant`.
+4. Give each physics source at least one `@pytest.mark.reference_pinned` test that
+   pins against a published benchmark, an analytical limit, or an independent code
+   path, and record the anchor on a `docs/Validation/<file>.md` page. The existing
+   pages under [Validation anchors](../Validation/phys.md) are the template.
+5. Never compare floats with `==`; use `pytest.approx(value, rel=...)` or
+   `np.testing.assert_allclose`. On a pinned value, add a follow-up assertion
+   showing the most plausible wrong formula would differ by more than the
+   tolerance.
+6. If the file imports an optional dependency (`hypothesis`, `mors`), call
+   `pytest.importorskip('<name>')` at the top of the module before importing it.
 
+## Local checks before opening a PR
+
+```bash
+ruff check --fix src/ tests/ && ruff format src/ tests/
+bash tools/validate_test_structure.sh          # module-level marker validator
+python tools/check_test_quality.py --check      # anti-happy-path linter (blocking)
+python tools/check_test_quality.py --reference-pinned-status
 ```
-(SW_flux_down[0], LW_flux_up[0], net_flux[0], ts, trppT)
-```
 
-Unlike the runaway greenhouse test this uses `rscatter=True` and
-`setTropopauseTemperature()` (dynamic skin-temperature tropopause).
-
-### `test_constants.py`
-
-Checks physical constants and utility functions:
-
-- `gravity()` decreases with radius as expected
-- `Earth` planet constants match database values (`g = 9.798`, `albedo = 0.306`, `Tsbar = 288.0`)
-- `cpv()` returns finite, positive heat capacities for H₂O, CO₂, N₂, H₂, CH₄, O₂
-
-### `test_code.py`
-
-Checks utility code and the CLI:
-
-- `setup_logger()` sets the correct log level and handler count; raises `ValueError` for invalid levels
-- `natural_sort()` correctly sorts filenames with embedded numbers
-- `janus env` CLI command exits successfully and prints `RAD_DIR`
-
+The same steps run in `.github/workflows/tests.yaml` on every pull request.

@@ -7,18 +7,37 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
   workflow_dispatch:
+
+# Push and PR CI: unit + smoke tiers only, ubuntu-latest across the
+# Python 3.11 / 3.12 / 3.13 matrix (jobs run in parallel, so each stays
+# within the <10 min per-job budget). The integration and slow tiers run
+# real multi-timestep SOCRATES solves and live in the scheduled nightly
+# workflow `nightly.yml` instead. Coverage measurement is canonical in
+# nightly; the Codecov dashboard updates from nightly's upload step.
+
+permissions:
+  contents: read
 
 jobs:
   test:
-
+    name: JANUS-check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         python-version: ['3.11', '3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup system
         run: |
@@ -28,7 +47,7 @@ jobs:
       - name: Get SOCRATES
         uses: actions/checkout@v4
         with:
-          repository: 'nichollsh/SOCRATES'
+          repository: 'FormingWorlds/SOCRATES'
           path: 'SOCRATES'
 
       - uses: actions/cache@v4
@@ -64,6 +83,7 @@ jobs:
       - name: Build JANUS
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
         run: |
+          python -m pip install --upgrade pip
           python -m pip install -e .[develop]
 
       - uses: actions/cache@v4
@@ -72,34 +92,98 @@ jobs:
           path: /home/runner/work/fwl_data
           key: fwl-data-1
 
-      - name: Test with pytest
+      - name: Validate test markers
+        run: bash tools/validate_test_structure.sh
+
+      - name: Run test-quality lint
+        run: python tools/check_test_quality.py --check
+
+      - name: Pre-flight fail_under ratchet check
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+        run: |
+          # Reject PRs that lower [tool.coverage.report] fail_under
+          # below the 90% PROTEUS-ecosystem ceiling. The floor is
+          # min(base, 90.0): a one-time ratchet down to the ceiling
+          # is allowed, but any drop below 90 is blocked so the gate
+          # cannot be weakened to land an under-tested change.
+          git fetch --no-tags --depth=1 origin "$BASE_REF" || true
+          python - <<'PY'
+          import os
+          import pathlib
+          import subprocess
+          import sys
+          import tomllib
+
+          base_ref = os.environ.get('BASE_REF', 'main')
+          out = subprocess.run(
+              ['git', 'show', f'origin/{base_ref}:pyproject.toml'],
+              capture_output=True,
+              text=True,
+              check=False,
+          )
+          if out.returncode != 0:
+              print(f'Could not read pyproject.toml from origin/{base_ref}; skipping check.')
+              sys.exit(0)
+
+          base = tomllib.loads(out.stdout)
+          head = tomllib.loads(pathlib.Path('pyproject.toml').read_text())
+
+          def fail_under(d):
+              try:
+                  return float(d['tool']['coverage']['report']['fail_under'])
+              except KeyError:
+                  return None
+
+          base_v = fail_under(base)
+          head_v = fail_under(head)
+          print(f'fail_under: base={base_v} head={head_v}')
+
+          # Base has no [tool.coverage.report].fail_under: nothing to
+          # ratchet against. The first PR that introduces the gate is
+          # allowed regardless of head_v.
+          if base_v is None:
+              print(
+                  f'origin/{base_ref} has no [tool.coverage.report].fail_under; '
+                  'no ratchet to enforce. PASS.'
+              )
+              sys.exit(0)
+
+          # Head removed the gate that base had: that is a decrease.
+          if head_v is None:
+              print(
+                  f'ERROR: head removed [tool.coverage.report].fail_under '
+                  f'(base had {base_v}). The gate is one-way only.'
+              )
+              sys.exit(1)
+
+          ECOSYSTEM_CEILING = 90.0
+          floor = min(base_v, ECOSYSTEM_CEILING)
+          if head_v < floor:
+              print(
+                  f'ERROR: fail_under {head_v} < floor {floor} '
+                  f'(base={base_v}, ceiling={ECOSYSTEM_CEILING}). '
+                  'The gate may ratchet down to the 90% ecosystem ceiling '
+                  'but not below.'
+              )
+              sys.exit(1)
+          if head_v > ECOSYSTEM_CEILING:
+              print(
+                  f'ERROR: fail_under {head_v} exceeds the '
+                  f'{ECOSYSTEM_CEILING}% ecosystem ceiling. The gate may '
+                  f'not be raised above 90%.'
+              )
+              sys.exit(1)
+          print(f'OK: fail_under {head_v} within [{floor}, {ECOSYSTEM_CEILING}].')
+          PY
+
+      - name: Run unit + smoke tests
         run: |
           export FWL_DATA="/home/runner/work/fwl_data"
           export RAD_DIR="/home/runner/work/JANUS/JANUS/SOCRATES"
           source "$RAD_DIR/set_rad_env"
-          coverage run -m pytest
-
-      - name: Report coverage
-        run: |
-          coverage json
-          export TOTAL=$(python -c "import json;print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")
-          echo "total=$TOTAL" >> $GITHUB_ENV
-          echo "Total coverage: ${TOTAL}%"
-          echo "### Total coverage: ${TOTAL}%" >> $GITHUB_STEP_SUMMARY
-          echo $'\n```' >> $GITHUB_STEP_SUMMARY
-          coverage report >> $GITHUB_STEP_SUMMARY
-          echo $'\n```' >> $GITHUB_STEP_SUMMARY
-          coverage report
-
-      - name: Make coverage badge
-        if: ${{ github.ref == 'refs/heads/master' && matrix.python-version == '3.13' }}
-        uses: schneegans/dynamic-badges-action@v1.7.0
-        with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: 99391a66bb9229771504c3a4db611d05
-          filename: covbadge.svg
-          label: Coverage
-          message: ${{ env.total }}%
-          minColorRange: 50
-          maxColorRange: 90
-          valColorRange: ${{ env.total }}
+          FAST_FAIL_UNDER=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['janus']['coverage_fast']['fail_under'])")
+          echo "Fast gate fail_under: ${FAST_FAIL_UNDER}%"
+          pytest -m "(unit or smoke) and not skip and not slow and not integration" \
+            --cov=janus \
+            --cov-fail-under=${FAST_FAIL_UNDER}

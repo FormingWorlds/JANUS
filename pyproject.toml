@@ -12,7 +12,7 @@ authors = [
     {name = "Mark Hammond", email = "mark.hammond@physics.ox.ac.uk"},
     {name = "Ryan Boukrouche", email = "ryan.boukrouche@astro.su.se"},
     {name = "RJ Graham", email = "arejaygraham@uchicago.edu"},
-    {name = "Harrison Nicholls", email = "harrison.nicholls@physics.ox.ac.uk"},
+    {name = "Harrison Nicholls", email = "harrison.nicholls@ast.cam.ac.uk"},
     {name = "Hamish Innes", email = "hamish.innes@fu-berlin.de"},
     {name = "Laurent Soucasse", email = "l.soucasse@esciencecenter.nl"},
 ]
@@ -52,7 +52,11 @@ develop = [
   "bump-my-version",
   "coverage[toml]",
   'fwl-mors',
-  "pytest"
+  "pytest",
+  "pytest-cov",
+  "pytest-timeout",
+  "ruff",
+  "tomlkit",
 ]
 docs = [
     "zensical",
@@ -78,8 +82,46 @@ include-package-data = true
 branch = true
 source = ["janus"]
 
+[tool.coverage.report]
+# Full-suite gate (unit + smoke + integration + slow), enforced nightly.
+# Ratchets upward toward the 90% PROTEUS-ecosystem ceiling via
+# tools/update_coverage_threshold.py; never lowered manually.
+fail_under = 20.0
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.janus.coverage_fast]
+# Fast PR gate (unit + smoke only). Ratchets upward toward the 90%
+# ecosystem ceiling; see tools/update_coverage_threshold.py.
+fail_under = 20.0
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--strict-markers"
+markers = [
+    "unit: fast tests with heavy physics mocked (< 100 ms each; every PR)",
+    "smoke: real binaries, one timestep, low resolution (< 30 s each; every PR)",
+    "integration: multi-module coupling (minutes; nightly only)",
+    "slow: full physics validation (up to hours; nightly only)",
+    "physics_invariant: asserts a conservation, positivity, monotonicity, or pinned-value invariant",
+    "reference_pinned: pins behaviour against a published benchmark, analytical limit, or cross-implementation check",
+]
+
+[tool.ruff]
+line-length = 96
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "I", "UP"]
+
+[tool.ruff.format]
+quote-style = "single"
 
 [tool.bumpversion]
 # https://callowayproject.github.io/bump-my-version/howtos/calver/

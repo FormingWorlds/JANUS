@@ -6,6 +6,8 @@ log = logging.getLogger("fwl."+__name__)
 
 
 def gravity( m, r ):
+    if r <= 0.0:
+        raise ValueError("gravity() requires a positive radius r (m)")
     g = phys.G*m/r**2
     return g
 

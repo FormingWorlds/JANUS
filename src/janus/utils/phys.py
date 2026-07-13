@@ -28,20 +28,20 @@ import janus.utils.water_tables as wt
 
 #-------------Basic physical constants-------------------
 #
-#The following five are the most accurate 1986 values 
+# Fundamental physical constants (CODATA recommended / SI-defined values)
 #
-h = 6.626075540e-34    #Planck's constant
+h = 6.62607015e-34     #Planck's constant
 c = 2.99792458e8       #Speed of light
-k =1.38065812e-23      #Boltzman thermodynamic constant
-sigma = 5.67051196e-8  #Stefan-Boltzman constant
-G = 6.67428e-11        #Gravitational constant (2006 measurements)
+k = 1.380649e-23       #Boltzmann constant
+sigma = 5.670374419e-8 #Stefan-Boltzmann constant
+G = 6.67430e-11        #Gravitational constant
 #
 
 #-----------Thermodynamic constants------------
 #Following will come out in J/(deg kmol), so
 #that dividing Rstar by molecular weight gives
 #gas constant appropriate for mks units
-N_avogadro = 6.022136736e23  #Avogadro's number
+N_avogadro = 6.02214076e23   #Avogadro's number
 Rstar = 1000.*k*N_avogadro   #Universal gas constant
 #
 
@@ -232,7 +232,7 @@ H2O.rho_liquid_TriplePoint = 9.998700e+02
 H2O.rho_solid = 9.170000e+02
 H2O.cp = 1.847000e+03
 H2O.gamma = 1.331000e+00
-H2O.MolecularWeight = 1.800000e+01
+H2O.MolecularWeight = 1.801528e+01
 H2O.name = 'Water' 
 H2O.formula = 'H2O' 
 H2O.L_vaporization=2.493000e+06
@@ -252,7 +252,7 @@ CH4.rho_liquid_TriplePoint = None
 CH4.rho_solid = 5.093000e+02
 CH4.cp = 2.195000e+03
 CH4.gamma = 1.305000e+00
-CH4.MolecularWeight = 1.600000e+01
+CH4.MolecularWeight = 1.604000e+01
 CH4.name = 'Methane' 
 CH4.formula = 'CH4' 
 CH4.L_vaporization=5.360000e+05
@@ -272,7 +272,7 @@ CO2.rho_liquid_TriplePoint = 1.110000e+03
 CO2.rho_solid = 1.562000e+03
 CO2.cp = 8.200000e+02
 CO2.gamma = 1.294000e+00
-CO2.MolecularWeight = 4.400000e+01
+CO2.MolecularWeight = 4.401000e+01
 CO2.name = 'Carbon Dioxide' 
 CO2.formula = 'CO2' 
 CO2.L_vaporization=3.970000e+05
@@ -291,7 +291,7 @@ CO.rho_liquid_BoilingPoint = None
 CO.rho_liquid_TriplePoint = None
 CO.rho_solid = None
 CO.cp = 1.04000e+03
-CO.gamma = 50.241546e+00
+CO.gamma = 1.400000e+00
 CO.MolecularWeight = 2.800970e+01
 CO.name = 'Carbon Monoxide' 
 CO.formula = 'CO' 
@@ -332,7 +332,7 @@ O2.rho_liquid_TriplePoint = 1.307000e+03
 O2.rho_solid = 1.351000e+03
 O2.cp = 9.160000e+02
 O2.gamma = 1.393000e+00
-O2.MolecularWeight = 3.200000e+01
+O2.MolecularWeight = 3.199900e+01
 O2.name = 'Oxygen' 
 O2.formula = 'O2' 
 O2.L_vaporization=2.420000e+05
@@ -372,7 +372,7 @@ H2.rho_liquid_TriplePoint = None
 H2.rho_solid = 8.800000e+01
 H2.cp = 1.423000e+04
 H2.gamma = 1.384000e+00
-H2.MolecularWeight = 2.015680e+00 # original: 2.000000e+00
+H2.MolecularWeight = 2.015880e+00
 H2.name = 'Hydrogen' 
 H2.formula = 'H2' 
 H2.L_vaporization=4.540000e+05
@@ -459,9 +459,11 @@ for gas1 in gases:
 #Planck function (of frequency)
 
 def B(nu,T):
+    if nu <= 0.:             #Rayleigh-Jeans limit: B -> 0 as nu -> 0
+        return 0.
     u = min(h*nu/(k*T),500.) #To prevent overflow
     return (2.*h*nu**3/c**2)/(math.exp(u)-1.)
-  
+
 #
 """ Inefficient, better to integrate than to sum
 def B(nu,T):
@@ -599,6 +601,7 @@ class satvps_function:
                 self.iceFlag = 'switch'
             self.M = Gas_or_T0.MolecularWeight
         else:
+            self.gas = None
             self.L = LatentHeat
             self.M = MolecularWeight
             self.T0 = Gas_or_T0
@@ -606,7 +609,7 @@ class satvps_function:
 
     def __call__(self,T, water_lookup=False):
         #Decide which latent heat to use
-        if self.gas == 'H2O' and water_lookup:
+        if self.gas is not None and self.gas.formula == 'H2O' and water_lookup:
             # Water special case -- use IAPWS steam tables in water_tables.py
             if T > wt.T_tp:
                 return wt.lookup('psat', T)

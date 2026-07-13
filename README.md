@@ -1,78 +1,88 @@
-[![Documentation](https://github.com/FormingWorlds/JANUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/JANUS/)
-[![Tests](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
-![Coverage](https://gist.githubusercontent.com/stefsmeets/99391a66bb9229771504c3a4db611d05/raw/covbadge.svg)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Docs](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/docs.yaml?branch=main&label=Docs)](https://proteus-framework.org/JANUS/)
+[![codecov](https://img.shields.io/codecov/c/github/FormingWorlds/JANUS?label=coverage&logo=codecov)](https://app.codecov.io/gh/FormingWorlds/JANUS)
+[![Unit Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/tests.yaml?branch=main&label=Unit%20Tests)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
+[![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/nightly.yml?branch=main&label=Integration%20Tests)](https://github.com/FormingWorlds/JANUS/actions/workflows/nightly.yml)
 
-## JANUS (1D convective atmosphere model)
+[![total tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-total.json)](https://proteus-framework.org/validation)
+[![unit tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-unit.json)](https://proteus-framework.org/validation)
+[![integration tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-integration.json)](https://proteus-framework.org/validation)
 
-Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using SOCRATES.
+# JANUS
 
-Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
+**JANUS** is the 1D convective-radiative atmosphere module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. It builds the vertical temperature-pressure structure of a rocky-planet or magma-ocean atmosphere and computes its radiative fluxes.
 
-### Documentation
+Given a surface temperature and pressure, a set of volatile partial pressures, the instellation, and a spectral file, JANUS constructs the profile along a generalised multi-species moist pseudoadiabat capped by a prescribed stratosphere, then evaluates the shortwave, longwave, and net fluxes with [SOCRATES](https://github.com/FormingWorlds/SOCRATES). It returns the temperature-pressure profile, the tropopause temperature, and the top-of-atmosphere and surface fluxes. Within PROTEUS it is called each step through the `atmos_clim` interface; it is also usable standalone for atmosphere-structure studies.
 
-The documentation for JANUS can be found [here](https://proteus-framework.org/JANUS/).
+Named for [Janus](https://en.wikipedia.org/wiki/Janus), the two-faced Roman god of transitions and doorways. Pronounced *jan-us*: *Jan* as in "january", *us* as in the collective pronoun.
 
-### Repository structure
+## Atmosphere model
 
-* `README.md`           - This file
-* `src/janus/data/`     - Janus data files
-* `src/janus/modules/`  - Utility python scripts
-* `src/janus/utils/`    - Utility python scripts
-* `examples/`           - Typical use scripts
-* `tools/`              - Useful tools
+- **Generalised moist pseudoadiabat.** The troposphere follows the multi-species pseudoadiabat of Graham et al. (2021), which lets several volatiles condense together, capped by a prescribed stratosphere above a diagnosed tropopause.
+- **Radiative transfer.** Shortwave, longwave, and net fluxes are computed with the SOCRATES correlated-k code over a user-selected spectral file and stellar spectrum.
+- **Two entry points.** `RadConvEqm` sets the atmosphere to a temperature profile along the general adiabat, while `MCPA_CBL` builds the multiple-condensible pseudoadiabat and steps the surface temperature to conserve energy across a conductive boundary layer.
 
-### Installation
+## Documentation
 
-> **Note:** The standard way of installing JANUS is within the PROTEUS Framework, as described in the [PROTEUS installation guide](https://proteus-framework.org/PROTEUS/How-to/installation.html#10-install-submodules-as-editable). The steps below are for a standalone developer installation only.
+Full documentation is at **[proteus-framework.org/JANUS](https://proteus-framework.org/JANUS/)**, including:
 
-**Prerequisites:** `git`, Python 3.10+ (3.11 recommended), a Fortran/C build toolchain (`gfortran`, `gcc`, `make`), and NetCDF tools with NetCDF-Fortran development headers. See [detailed installation instructions](https://proteus-framework.org/JANUS/How-to/installation.html) for more information.
+- [Getting started](https://proteus-framework.org/JANUS/getting_started.html): installation and the quickest path to a first run.
+- [Tutorial](https://proteus-framework.org/JANUS/Tutorials/first_run.html): a first atmosphere-structure calculation.
+- [How-to guides](https://proteus-framework.org/JANUS/How-to/installation.html): install, run the tests, build the documentation.
+- [Explanations](https://proteus-framework.org/JANUS/Explanations/model.html): model overview and the testing suite.
+- [Validation anchors](https://proteus-framework.org/JANUS/Validation/phys.html): the per-source reference-pinned test inventory.
+- [Publications](https://proteus-framework.org/JANUS/Reference/publications.html): the papers that developed and applied JANUS.
 
-#### 0. Create a Conda environment (optional)
+## Installation
+
+> **Note:** The standard way of installing JANUS is within the PROTEUS framework, as described in the [PROTEUS installation guide](https://proteus-framework.org/PROTEUS/How-to/installation.html#10-install-submodules-as-editable). The steps below are for a standalone installation.
+
+JANUS has one compiled dependency, [SOCRATES](https://github.com/FormingWorlds/SOCRATES), which a helper script clones and builds. **Prerequisites:** `git`, Python 3.10+, a Fortran/C build toolchain (`gfortran`, `gcc`, `make`), and NetCDF tools with NetCDF-Fortran development headers.
+
 ```console
-conda create -n janus python=3.11 -y
-conda activate janus
-```
-
-#### 1. Install SOCRATES
-
-A helper script clones and builds [SOCRATES](https://github.com/FormingWorlds/SOCRATES):
-```console
-bash tools/get_socrates.sh /path/to/socrates
-```
-If the path argument is omitted, SOCRATES is cloned into a `socrates/` subdirectory of the current working directory. Once built, add the following to your `~/.bashrc` or `~/.zshrc`:
-```console
-export RAD_DIR=/path/to/socrates
-```
-
-#### 2. Install JANUS
-```console
-git clone git@github.com:FormingWorlds/JANUS.git
+git clone https://github.com/FormingWorlds/JANUS.git
 cd JANUS
-pip install -e .
-```
 
-#### 3. Download JANUS data
+# 1. Build SOCRATES and point RAD_DIR at it (omit the path to use ./socrates)
+bash tools/get_socrates.sh /path/to/socrates
+export RAD_DIR=/path/to/socrates
 
-Set `FWL_DATA` to define where spectral and stellar data are stored:
-```console
+# 2. Install JANUS (add ,docs for a local documentation build)
+pip install -e .[develop]
+
+# 3. Point FWL_DATA at a data directory and download spectral + stellar data
 export FWL_DATA=/path/to/fwl_data
-```
-Download the default datasets:
-```console
 janus download spectral
 janus download stellar
 ```
-To download a specific spectral dataset with a given number of bands:
-```console
-janus download spectral -n Frostflow -b 4096
+
+`janus env` prints the resolved locations of `RAD_DIR` and `FWL_DATA`. The `docs` extra pulls in [Zensical](https://zensical.org/) so you can build this documentation locally with `zensical serve`.
+
+## Quick start
+
+The two entry points are importable directly from `janus.modules`:
+
+```python
+from janus.modules import RadConvEqm, MCPA_CBL
 ```
 
-#### 4. Verify installation
+The `examples/` folder holds runnable scripts that set up an atmosphere, prepare a spectral file, and solve for the profile and fluxes:
+
 ```console
-janus env
+python examples/demo_runaway_greenhouse.py   # runaway-greenhouse OLR curve
+python examples/demo_instellation.py         # profile vs instellation
 ```
-This prints the resolved locations of `RAD_DIR` and `FWL_DATA`.
 
-### Run instructions
+See the [first-run tutorial](https://proteus-framework.org/JANUS/Tutorials/first_run.html) for the full walkthrough.
 
-In the `examples/` folder you can find Python scripts showing typical use cases and workflows for atmosphere modelling with JANUS.
+## Citation
+
+If you use JANUS in published work, please cite the methods papers below. The full reference list is on the [Publications page](https://proteus-framework.org/JANUS/Reference/publications.html).
+
+- Graham, R.J., Lichtenberg, T., Boukrouche, R., & Pierrehumbert, R.T. (2021). *A multispecies pseudoadiabat for simulating condensable-rich exoplanet atmospheres.* **PSJ** 2, 207. [\[DOI\]](https://doi.org/10.3847/PSJ/ac214c)
+- Lichtenberg, T., Bower, D.J., Hammond, M., Boukrouche, R., Sanan, P., Tsai, S.-M., & Pierrehumbert, R.T. (2021). *Vertically resolved magma ocean-protoatmosphere evolution.* **JGR Planets** 126, e2020JE006711. [\[DOI\]](https://doi.org/10.1029/2020JE006711)
+- Boukrouche, R., Lichtenberg, T., & Pierrehumbert, R.T. (2021). *Beyond runaway: initiation of the post-runaway greenhouse state on rocky exoplanets.* **ApJ** 919, 130. [\[DOI\]](https://doi.org/10.3847/1538-4357/ac1345)
+
+## License
+
+[Apache License 2.0](LICENSE.md). JANUS is part of the [PROTEUS framework](https://proteus-framework.org/).

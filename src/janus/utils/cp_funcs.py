@@ -267,8 +267,10 @@ def cp_cond( vol, tmp, cp_mode='T-dependent'):
         
         # https://www.osti.gov/etdeweb/servlets/purl/20599211; KAERI Liquid Hydrogen Properties
         case "H2":
-            if cp_mode != 'constant':  
-                t = tmp
+            if cp_mode != 'constant':
+                # Clamp to the liquid-hydrogen fit window (triple point to
+                # critical point); outside it the cubic turns negative.
+                t = min(max(tmp, 13.8), 33.0)
             else:
                 t = 10.
             specific_heat_mass_units=14.43877-1.691*t + 0.10687*t**2-0.00174*t**3#J/g/K

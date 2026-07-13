@@ -11,7 +11,7 @@ nav:
 
   - How-to guides:
       - Installation: How-to/installation.md
-      - Run tests: How-to/test.md
+      - Run and build tests: How-to/test.md
       - Build documentation: How-to/documentation.md
 
   - Tutorials:
@@ -20,6 +20,15 @@ nav:
   - Explanations:
       - Model overview: Explanations/model.md
       - Testing suite: Explanations/testing.md
+
+  - Validation anchors:
+      - Saturation and Planck (phys.py): Validation/phys.md
+      - Height and gravity (height.py): Validation/height.md
+      - Heat capacity (cp_funcs.py): Validation/cp_funcs.md
+      - Surface emission (spectral_planck_surface.py): Validation/spectral_planck_surface.md
+      - Moist adjustment (moist_adjustment_H2O.py): Validation/moist_adjustment_H2O.md
+      - Dry adiabat (dry_adiabat_setup.py): Validation/dry_adiabat_setup.md
+      - Pipeline solve (solve_pt.py): Validation/solve_pt.md
 
   - Reference:
       - Publications: Reference/publications.md

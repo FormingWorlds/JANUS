@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   refresh-badges:
-    name: Regenerate tests-total.json
+    name: Regenerate test count badges
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -55,7 +55,7 @@ jobs:
         # checkout without a build is enough to count the tests.
         uses: actions/checkout@v4
         with:
-          repository: 'nichollsh/SOCRATES'
+          repository: 'FormingWorlds/SOCRATES'
           path: 'SOCRATES'
 
       - name: Regenerate badge JSON files
@@ -93,7 +93,7 @@ jobs:
           from pathlib import Path
 
           payload = Path(sys.argv[1])
-          expected = ('tests-total.json',)
+          expected = ('tests-total.json', 'tests-unit.json', 'tests-integration.json')
           for name in expected:
               path = payload / name
               if not path.is_file():

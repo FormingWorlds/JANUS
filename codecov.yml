@@ -1,0 +1,19 @@
+# Codecov configuration for JANUS.
+# Coverage is uploaded from the nightly workflow (`nightly.yml`) with the
+# `nightly` flag. The project status tracks the ratcheting coverage against
+# its own base; the patch status holds new/changed lines to 80%.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: 80%
+        threshold: 1%
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
