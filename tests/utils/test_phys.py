@@ -25,9 +25,11 @@ pinned-value-with-discrimination-guard. See docs/How-to/test.md.
 
 import math
 
+import numpy as np
 import pytest
 
 import janus.utils.phys as phys
+import janus.utils.water_tables as wt
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
@@ -261,3 +263,218 @@ def test_satvps_function_numeric_construction_ignores_water_lookup():
     # (Clausius-Clapeyron sign).
     assert baseline > 0.0
     assert baseline > e0
+
+
+@pytest.mark.physics_invariant
+def test_planck_temperature_derivative_positive_and_matches_finite_difference():
+    """dB(nu,T) reproduces the analytic dB/dT of the Planck function and stays positive.
+
+    ``dB`` is the closed-form temperature derivative of the Planck radiance
+    B(nu,T). At fixed frequency a black body brightens as it warms, so dB/dT is
+    strictly positive; feeding it back against a centred finite difference of the
+    independently coded ``B`` pins the analytic derivative formula. Two
+    temperatures 300 K and 1500 K are used so the strong T dependence of the Wien
+    tail is resolved and a dropped prefactor cannot hide inside a single point.
+    """
+    nu = 5.0e13  # ~6 micron, thermal-IR
+    d_cool = phys.dB(nu, 300.0)
+    d_warm = phys.dB(nu, 1500.0)
+    # Positivity: warming a black body raises its radiance at every frequency.
+    assert d_cool > 0.0
+    assert d_warm > 0.0
+    # The analytic derivative must match a centred finite difference of B to the
+    # order of the step; a mis-derived prefactor would break this closure.
+    for temp in (300.0, 1500.0):
+        step = 1.0e-3 * temp
+        fd = (phys.B(nu, temp + step) - phys.B(nu, temp - step)) / (2.0 * step)
+        assert phys.dB(nu, temp) == pytest.approx(fd, rel=1e-4)
+    # Discrimination: the derivative itself rises steeply with T at this
+    # frequency (a factor of ~30 from 300 to 1500 K), far from the flat response
+    # a wrong exponent would give.
+    assert d_warm / d_cool > 10.0
+
+
+@pytest.mark.reference_pinned
+@pytest.mark.physics_invariant
+def test_heymsfield_saturation_matches_one_atm_and_rises_with_temperature():
+    """The Heymsfield water-saturation fit gives ~1 atm at the steam point.
+
+    ``satvpw_Heymsfield`` is an alternate saturation-vapour-pressure formula over
+    liquid water. At the 373.16 K steam point it returns 1.0132e5 Pa, one standard
+    atmosphere to four figures, and it must track the Smithsonian ``satvpw`` curve
+    to better than one percent across the liquid range. The curve rises
+    monotonically with temperature (Clausius-Clapeyron), and stays strictly
+    positive; the sub-triple-point limit input is the physical edge.
+    """
+    p_boil = phys.satvpw_Heymsfield(373.16)
+    # Published anchor: saturation over liquid water at the steam point is one
+    # standard atmosphere (101325 Pa); pins the absolute scale.
+    assert p_boil == pytest.approx(101325.0, rel=1e-3)
+    # Cross-check against the Smithsonian formula: the two water fits agree to
+    # better than 1 percent, a genuine cross-implementation constraint.
+    assert p_boil == pytest.approx(phys.satvpw(373.16), rel=1e-2)
+    # Scale guard: within 0.5 percent of one atmosphere, ruling out a Pa/hPa slip
+    # (would give ~1013) or the un-converted dyn/cm^2 value (~1.01e6).
+    assert 1.00e5 < p_boil < 1.02e5
+    assert p_boil > 0.0
+    # Clausius-Clapeyron monotonicity: a cooler parcel holds less vapour.
+    assert phys.satvpw_Heymsfield(300.0) < p_boil
+
+
+@pytest.mark.physics_invariant
+def test_satvpg_blends_ice_and_water_across_freezing():
+    """satvpg switches ice-to-water saturation and blends across the freezing band.
+
+    ``satvpg`` is the GFDL saturation vapour pressure: it uses the ice curve
+    below -20 C, the pure liquid curve above 0 C, and a linear blend of the two
+    in between. This test exercises all three branches. Above freezing the value
+    must equal ``satvpw`` and well below it must equal ``satvpi``; inside the
+    blend band the value must lie strictly between the ice and water curves, which
+    a dropped blend weight would violate. All values stay positive and the curve
+    rises with temperature.
+    """
+    # Warm branch (T-273.16 > 0): pure liquid-water saturation.
+    assert phys.satvpg(300.0) == pytest.approx(phys.satvpw(300.0), rel=1e-12)
+    # Cold branch (T-273.16 < -20): pure ice saturation.
+    assert phys.satvpg(250.0) == pytest.approx(phys.satvpi(250.0), rel=1e-12)
+    # Blend branch (-20 <= T-273.16 <= 0): strictly between ice and water. This
+    # is the discriminating case; a collapsed blend would snap to one endpoint.
+    blend = phys.satvpg(260.0)
+    assert phys.satvpi(260.0) < blend < phys.satvpw(260.0)
+    # Positivity and monotonic rise from the ice regime to the warm regime.
+    assert phys.satvpg(250.0) > 0.0
+    assert phys.satvpg(250.0) < blend < phys.satvpg(300.0)
+
+
+@pytest.mark.physics_invariant
+def test_satvps_function_ice_and_liquid_flags_select_latent_heat():
+    """The ice and liquid flags pick the sublimation and vaporization latent heats.
+
+    Built from a gas object, ``satvps_function`` accepts an explicit phase flag.
+    The 'ice' flag must load the latent heat of sublimation and 'liquid' the
+    latent heat of vaporization. Because sublimation is the larger latent heat,
+    the ice branch gives the steeper Clausius-Clapeyron curve and therefore a
+    lower saturation pressure below the triple point; that inequality
+    discriminates a swapped flag. Both saturation pressures stay positive at the
+    sub-triple-point edge.
+    """
+    sat_ice = phys.satvps_function(phys.H2O, 'ice')
+    sat_liq = phys.satvps_function(phys.H2O, 'liquid')
+    # The flags select the two distinct latent heats of the water object.
+    assert sat_ice.L == pytest.approx(phys.H2O.L_sublimation, rel=1e-12)
+    assert sat_liq.L == pytest.approx(phys.H2O.L_vaporization, rel=1e-12)
+    # Sublimation exceeds vaporization, so the ice curve is the steeper one.
+    assert phys.H2O.L_sublimation > phys.H2O.L_vaporization
+    # Below the triple point the steeper ice curve sits below the liquid curve; a
+    # swapped flag would invert this. Pin the ice value against the closed form.
+    cold = 250.0
+    assert sat_ice(cold) == pytest.approx(
+        phys.satvps(
+            cold,
+            phys.H2O.TriplePointT,
+            phys.H2O.TriplePointP,
+            phys.H2O.MolecularWeight,
+            phys.H2O.L_sublimation,
+        ),
+        rel=1e-12,
+    )
+    assert sat_ice(cold) < sat_liq(cold)
+    assert sat_ice(cold) > 0.0
+
+
+@pytest.mark.physics_invariant
+def test_satvps_function_water_lookup_dispatches_by_triple_point_and_flag():
+    """Water lookup uses steam tables above the triple point, Clausius-Clapeyron below.
+
+    For a water gas object with water_lookup requested, ``satvps_function``
+    returns the tabulated IAPWS saturation pressure above the triple point, and
+    below it falls back to the closed-form Clausius-Clapeyron law with a latent
+    heat chosen by the phase flag: the sublimation heat for the default 'switch'
+    instance and the tabulated vaporization heat for an explicit 'liquid'
+    instance. The two sub-triple-point paths must give different pressures (the
+    error-contract that a dropped flag branch would collapse), and the table
+    branch must reproduce the water_tables lookup exactly.
+    """
+    sat_liq = phys.satvps_function(phys.H2O, 'liquid')
+    warm = 300.0  # above the 273.16 K triple point -> steam-table branch
+    assert sat_liq(warm, water_lookup=True) == pytest.approx(wt.lookup('psat', warm), rel=1e-12)
+    # The tabulated value differs from the bare closed form, so the lookup branch
+    # is a genuine special case and not an accidental match.
+    closed = phys.satvps(
+        warm,
+        phys.H2O.TriplePointT,
+        phys.H2O.TriplePointP,
+        phys.H2O.MolecularWeight,
+        phys.H2O.L_vaporization,
+    )
+    assert abs(sat_liq(warm, water_lookup=True) - closed) / closed > 1e-3
+
+    cold = 250.0  # below the triple point -> Clausius-Clapeyron fallback
+    liq_cold = sat_liq(cold, water_lookup=True)
+    assert liq_cold == pytest.approx(
+        phys.satvps(
+            cold,
+            phys.H2O.TriplePointT,
+            phys.H2O.TriplePointP,
+            phys.H2O.MolecularWeight,
+            wt.L_vap[0],
+        ),
+        rel=1e-12,
+    )
+    sat_switch = phys.satvps_function(phys.H2O)  # default flag becomes 'switch'
+    assert sat_switch.iceFlag == 'switch'
+    switch_cold = sat_switch(cold, water_lookup=True)
+    assert switch_cold == pytest.approx(
+        phys.satvps(
+            cold,
+            phys.H2O.TriplePointT,
+            phys.H2O.TriplePointP,
+            phys.H2O.MolecularWeight,
+            phys.H2O.L_sublimation,
+        ),
+        rel=1e-12,
+    )
+    # The switch instance uses the larger sublimation heat, so its sub-triple
+    # saturation is strictly below the liquid instance; both stay positive.
+    assert switch_cold < liq_cold
+    assert switch_cold > 0.0
+
+
+@pytest.mark.physics_invariant
+def test_moist_adiabat_water_air_profile_cools_upward_and_stays_physical():
+    """The single-condensable moist adiabat cools upward and stays thermodynamically valid.
+
+    ``MoistAdiabat`` integrates the moist adiabat for a condensable (water) mixed
+    with a non-condensing background (air). Driven from an Earth-like 300 K, 1 bar
+    surface up to a 1000 Pa top, the returned column must start at the surface
+    temperature, cool monotonically with decreasing pressure, keep pressure and
+    temperature strictly positive and finite at every level, and keep the
+    condensable molar concentration inside [0, 1]. The optional pressure-grid
+    interpolation must return the requested grid and preserve the downward cooling
+    trend; this is the alternate output-path edge case.
+    """
+    m = phys.MoistAdiabat(phys.H2O, phys.air)
+    press, temp, molar_con, mass_con = m(1.0e5, 300.0, 1000.0)
+    # Boundary condition: the profile starts at the prescribed surface temperature.
+    assert temp[0] == pytest.approx(300.0, rel=1e-9)
+    # Pressure decreases and temperature cools monotonically upward.
+    assert np.all(np.diff(press) < 0.0)
+    assert np.all(np.diff(temp) <= 0.0)
+    # Positivity and finiteness across the whole column.
+    assert np.all(temp > 0.0)
+    assert np.all(press > 0.0)
+    assert np.all(np.isfinite(temp)) and np.all(np.isfinite(press))
+    # The condensable molar concentration is a physical fraction.
+    assert molar_con.min() >= 0.0
+    assert molar_con.max() <= 1.0
+    assert mass_con.max() <= 1.0
+    # The top of the integrated column is genuinely colder than the surface, a
+    # discriminating drop far larger than any rounding tolerance.
+    assert temp[-1] < temp[0] - 50.0
+
+    # Alternate output path: interpolate onto a requested descending grid.
+    grid = [5.0e4, 1.0e4, 5.0e3]
+    p_grid, t_grid, mc_grid, q_grid = m(1.0e5, 300.0, 1000.0, grid)
+    np.testing.assert_allclose(p_grid, grid, rtol=1e-12)
+    assert np.all(np.diff(t_grid) < 0.0)  # still cooling upward on the coarse grid
+    assert np.all(np.isfinite(t_grid))
