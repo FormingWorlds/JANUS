@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-janus"
-version = "24.11.05"
+version = "26.07.13"
 description = "Temperature structure generator for planetory atmospheres."
 readme = "README.md"
 authors = [
