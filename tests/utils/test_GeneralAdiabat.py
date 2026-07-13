@@ -248,11 +248,12 @@ def test_tdew_water_at_one_atmosphere_near_boiling_point():
 
     Independent of the internal reference-pressure round trip, the water dew point
     at standard atmospheric pressure (101325 Pa) must fall near the 373.15 K
-    boiling point of water. The tolerance is rel=5e-3 because ga.Tdew assumes a
-    single constant latent heat across the 273 to 373 K span, so it recovers about
-    373.5 K rather than exactly 373.15 K, a 0.1% offset from the constant-latent-
-    heat approximation. A subsaturated pressure yields a strictly cooler dew point,
-    fixing the monotonic direction.
+    boiling point of water. The tolerance is rel=5e-3 because ga.Tdew anchors
+    water at (373.15 K, 1e5 Pa) rather than at the true 1 atm saturation pressure
+    of 101325 Pa, so evaluating at 101325 Pa returns about 373.5 K; the 0.09%
+    offset is set entirely by that 1e5-versus-101325 Pa reference choice and is
+    independent of the latent-heat model. A subsaturated pressure yields a
+    strictly cooler dew point, fixing the monotonic direction.
     """
     t_boil = ga.Tdew('H2O', 101325.0)
     assert t_boil == pytest.approx(373.15, rel=5e-3)
