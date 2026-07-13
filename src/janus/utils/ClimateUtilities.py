@@ -1,17 +1,17 @@
-#Edits and updates 6/2018:
+# Edits and updates 6/2018:
 #    *Replaced print with print function, imported from __future__
 #    *Deprecated Ngl graphics
 #    *Removed Numeric import
 #    *Changed functions with variable positional arguments to use __code__
 #     attribute instead of func_code
-#Edits and updates 10/2018:
+# Edits and updates 10/2018:
 #    *Gave interp a __code__.co_argcount attribute so it can
 #     be accepted by utilities that count arguments this way
 #       (There is probably a better way to handle this. How to
 #        count arguments for a callable object?)
 #    *Removed all references to Numeric and Numeric.Float
 
-#ToDo:  *Check for right column length in setitem and addCurve
+# ToDo:  *Check for right column length in setitem and addCurve
 #
 #       *Implement show,hide for curves (in X() and Y())
 #       *Implement missing data coding .
@@ -28,39 +28,38 @@
 #        Could provide "links" to find script that produced a given
 #        figure in the text.  Alternately, we could just
 #        define directory strings like WorkbookDatasets here in
-#        ClimateUtilities 
+#        ClimateUtilities
 #
 #
 
-#For Python 2/3 compatibility
-from __future__ import print_function
+# For Python 2/3 compatibility
 
-#-----------------------------------------------
+# -----------------------------------------------
 #
-#Import array package
+# Import array package
 #
-#------------------------------------------------
+# ------------------------------------------------
 import numpy
 
-#-----------------------------------------------------
-#Import graphics utilities
+# -----------------------------------------------------
+# Import graphics utilities
 #
-#First try to import ClimateGraphicsMPL. which contains the
-#implementation of the plotting commands using MatPlotLib as a driver.
-#use other graphics drivers. If MatPlotLib is not found a
-#dummy graphics stub module is imported, which allows the courseware
-#to be run without the user needing to explicitly comment out
-#the plot calls in the Chapter Scripts.
+# First try to import ClimateGraphicsMPL. which contains the
+# implementation of the plotting commands using MatPlotLib as a driver.
+# use other graphics drivers. If MatPlotLib is not found a
+# dummy graphics stub module is imported, which allows the courseware
+# to be run without the user needing to explicitly comment out
+# the plot calls in the Chapter Scripts.
 #
-#Formerly, PyNgl was supported as an alternate graphics driver,
-#but MatPlotLib has become easy enough to install that PyNgl 
-#support has been dropped, though for those using PyNgl it
-#is not hard to adapt ClimateGraphicsMPL to use PyNgl instead
-#------------------------------------------------------
+# Formerly, PyNgl was supported as an alternate graphics driver,
+# but MatPlotLib has become easy enough to install that PyNgl
+# support has been dropped, though for those using PyNgl it
+# is not hard to adapt ClimateGraphicsMPL to use PyNgl instead
+# ------------------------------------------------------
+from janus.utils.ClimateGraphicsMPL import *  # Try importing MatPlotLib
 
-from janus.utils.ClimateGraphicsMPL import * #Try importing MatPlotLib
+# Section 1: -----Data handling utilities-------------------------------
 
-#Section 1: -----Data handling utilities-------------------------------
 
 # ToDo: Put documentation on use of Curve object here!
 #
@@ -77,149 +76,151 @@ from janus.utils.ClimateGraphicsMPL import * #Try importing MatPlotLib
 #
 class Curve:
     def __init__(self):
-         self.Xid = None # id of data to be considered as X
-         self.data = {} # Dictionary of data columns
-         self.label = {} #Data column label dictionary
-         self.scatter = {} #Marker for making a curve a scatter plot
-                           #i.e. suppress line drawing and plot symbol
-         self.idList = [] #Keeps track of original order of data
-         self.NumCurves = 0
-         self.description = None # A string providing general information
-         self.PlotTitle = '' # Title of the plot
-         self.switchXY = 0 # Switches X and Y axes for plotting
-         self.reverseX = 0 # Reverses X axis for plotting
-         self.reverseY = 0 # Reverses Y axis for plotting
-         self.XlogAxis = 0 # Use logarithmic axis for X
-         self.YlogAxis = 0 # Use logarithmic axis for Y
-         self.Xlabel = '' #X axis label
-         self.Ylabel = '' #Y axis label
-         #
-         # Colors and line titles
-         #
+        self.Xid = None  # id of data to be considered as X
+        self.data = {}  # Dictionary of data columns
+        self.label = {}  # Data column label dictionary
+        self.scatter = {}  # Marker for making a curve a scatter plot
+        # i.e. suppress line drawing and plot symbol
+        self.idList = []  # Keeps track of original order of data
+        self.NumCurves = 0
+        self.description = None  # A string providing general information
+        self.PlotTitle = ''  # Title of the plot
+        self.switchXY = 0  # Switches X and Y axes for plotting
+        self.reverseX = 0  # Reverses X axis for plotting
+        self.reverseY = 0  # Reverses Y axis for plotting
+        self.XlogAxis = 0  # Use logarithmic axis for X
+        self.YlogAxis = 0  # Use logarithmic axis for Y
+        self.Xlabel = ''  # X axis label
+        self.Ylabel = ''  # Y axis label
+        #
+        # Colors and line titles
+        #
+
     #
-    #Install a new curve in the data set, optionally with a variable name and label
-    #Any 1D indexable object can be installed here:a numpy array, a Masked Array,
-    #a Masked Variable (as in cdms) or an ordinary list. 
-    def addCurve(self,data,id = '',label = ''):
+    # Install a new curve in the data set, optionally with a variable name and label
+    # Any 1D indexable object can be installed here:a numpy array, a Masked Array,
+    # a Masked Variable (as in cdms) or an ordinary list.
+    def addCurve(self, data, id='', label=''):
         self.NumCurves += 1
         if len(id) == 0:
-            id = 'v%d'%(self.NumCurves-1)
-        #Transform data from list to a numpy array here
+            id = 'v%d' % (self.NumCurves - 1)
+        # Transform data from list to a numpy array here
         if type(data) == type([]):
             data = numpy.array(data)
         self.data[id] = data
         if self.Xid == None:
-            self.Xid = id   #Sets the default id for the X variable
-        self.idList.append(id) #Keep track of order in which columns added
+            self.Xid = id  # Sets the default id for the X variable
+        self.idList.append(id)  # Keep track of order in which columns added
         self.label[id] = label
         self.scatter[id] = False
-        #ToDo: Add checking for consistent lengths, type, etc. of what's being added
+        # ToDo: Add checking for consistent lengths, type, etc. of what's being added
+
     def listVariables(self):
         return self.idList
-    def __getitem__(self,id):
+
+    def __getitem__(self, id):
         return self.data[id]
-    def __setitem__(self,id,data):
+
+    def __setitem__(self, id, data):
         try:
             n = len(data[:])
         except:
-            print("Object on RHS is not indexable")
+            print('Object on RHS is not indexable')
             return None
-        #Transform data from list to a numpy array here
+        # Transform data from list to a numpy array here
         if type(data) == type([]):
             data = numpy.array(data)
         if id in self.data.keys():
             self.data[id] = data
         else:
-            self.addCurve(data,id)
-    
-    #Method to return numpy abcissa array for plotting.
+            self.addCurve(data, id)
+
+    # Method to return numpy abcissa array for plotting.
     def X(self):
-        #Use of cross section lets us get data from any indexed object
-        #However, since Masked variables and Masked Arrays yield
-        #their same types as cross sections, we have to check
-        #explicitly for a _data component.
+        # Use of cross section lets us get data from any indexed object
+        # However, since Masked variables and Masked Arrays yield
+        # their same types as cross sections, we have to check
+        # explicitly for a _data component.
         #
-        #This method is used mainly for generating arrays used in plotting,
-        #and should be streamlined at some point. 
+        # This method is used mainly for generating arrays used in plotting,
+        # and should be streamlined at some point.
         temp = self.data[self.Xid][:]
-        if hasattr(temp,'_data'):
+        if hasattr(temp, '_data'):
             temp = temp._data[:]
-        return numpy.array(temp,numpy.float)
-    
-    #Method to return numpy ordinate array for plotting
+        return numpy.array(temp, float)
+
+    # Method to return numpy ordinate array for plotting
     def Y(self):
-        #Use of cross section lets us get data from any indexed object
+        # Use of cross section lets us get data from any indexed object
         outArray = []
         for id in self.idList:
             if not (id == self.Xid):
-              column = self.data[id]
-              if hasattr(column,'_data'):
-                outArray.append(column._data[:]) #Deals with masked arrays and variables
-              else:
-                outArray.append(column[:])
-        return numpy.array(outArray,numpy.float)
+                column = self.data[id]
+                if hasattr(column, '_data'):
+                    outArray.append(column._data[:])  # Deals with masked arrays and variables
+                else:
+                    outArray.append(column[:])
+        return numpy.array(outArray, float)
 
-    #Dumps curve to a tab-delimited ascii file with column header
-    def dump(self,fileName = 'out.txt'):
-        outfile = open(fileName,'w')
+    # Dumps curve to a tab-delimited ascii file with column header
+    def dump(self, fileName='out.txt'):
+        outfile = open(fileName, 'w')
         # Write out the data description if it is available.
         if not (self.description == None):
             if not self.description[-1] == '\n':
-                self.description += '\n' #Put in a newline if needed
+                self.description += '\n'  # Put in a newline if needed
             outfile.write(self.description)
-        header = ""
-        fmt = ""
+        header = ''
+        fmt = ''
         ids = self.idList
         for id in ids:
-            header += id+'\t'
+            header += id + '\t'
             fmt += '%e\t'
-        header = header[0:-1]+'\n'  # Replaces last tab with a newline.
+        header = header[0:-1] + '\n'  # Replaces last tab with a newline.
         fmt = fmt[0:-1] + '\n'
         outfile.write(header)
         for i in range(len(self.data[ids[0]])):
             out = tuple([(self.data[id])[i] for id in ids])
-            outfile.write(fmt%out)
+            outfile.write(fmt % out)
         outfile.close()
 
-    #Extracts a subset of the data and returns it as a new Curve.
-    #This is useful if you only want to plot some of the columns.
-    #The input argument dataList is a list of column names
-    def extract(self,dataList):
+    # Extracts a subset of the data and returns it as a new Curve.
+    # This is useful if you only want to plot some of the columns.
+    # The input argument dataList is a list of column names
+    def extract(self, dataList):
         c = Curve()
         for dataName in dataList:
-            c.addCurve(self[dataName],dataName)
+            c.addCurve(self[dataName], dataName)
         return c
-            
-            
-            
-            
+
+
 # Scans a list of lines, locates data lines
 # and size, splits of column headers and
 # splits off general information text.
 #
-#A header can optionally be specified as input.
-#The delimiter need not be specified if the file
-#uses any whitespace character (including tabs) as
-#column delimiters. Commas are not whitespace characters,
-#and so need to be specified if they are used.
+# A header can optionally be specified as input.
+# The delimiter need not be specified if the file
+# uses any whitespace character (including tabs) as
+# column delimiters. Commas are not whitespace characters,
+# and so need to be specified if they are used.
 #
-#ToDo:
+# ToDo:
 #       *Implement missing data coding (with default '-').
 #            self.setMissingDataCode(code) (char or numpy)
 #            possibly translate, check and force consistency
 #       *Replace optional positional arguments with keyword arguments
-def scan(buff,inHeader=None,delimiter = None):
+def scan(buff, inHeader=None, delimiter=None):
     if inHeader == None:
         inHeader = []
-    #First delete blank lines
+    # First delete blank lines
     buff = clean(buff)
     #
-    #Now look for patterns that indicate data lines
-    #     
-    startDataLine,endDataLine = findData(buff)
+    # Now look for patterns that indicate data lines
+    #
+    startDataLine, endDataLine = findData(buff)
     # Found number of items. Now read in the data
     #
-    #Read in the first line. Is it a header?
+    # Read in the first line. Is it a header?
     header = []
     if delimiter == None:
         line = buff[startDataLine].split()
@@ -231,7 +232,7 @@ def scan(buff,inHeader=None,delimiter = None):
     except:
         header = line
     if len(header) == 0:
-        header = ['V%d'%i for i in range(len(line))]
+        header = ['V%d' % i for i in range(len(line))]
         istart = 0
     else:
         istart = 1
@@ -243,50 +244,52 @@ def scan(buff,inHeader=None,delimiter = None):
     # Read in the rest of the lines
     #
     varlist = [[] for i in range(len(header))]
-    for line in buff[(startDataLine+istart):endDataLine]:
+    for line in buff[(startDataLine + istart) : endDataLine]:
         if delimiter == None:
             items = line.split()
         else:
             items = line.split(delimiter)
         try:
-         for i in range(len(varlist)):
-            varlist[i].append(float(items[i]))
+            for i in range(len(varlist)):
+                varlist[i].append(float(items[i]))
         except:
             print(items)
     vardict = {}
     for name in header:
         vardict[name] = varlist[header.index(name)]
-    return vardict,header #header is returned so we can keep cols in orig order
+    return vardict, header  # header is returned so we can keep cols in orig order
 
-#Eliminates blank lines
+
+# Eliminates blank lines
 def clean(buff):
     buff = [line.strip() for line in buff]
-    while(1):
-      try:
-         buff.remove('')
-      except:
-         break
+    while 1:
+        try:
+            buff.remove('')
+        except:
+            break
     return buff
+
 
 def findData(buff):
     runStarts = []
-    for i in range(len(buff)-1):
-        dn = abs(len(buff[i].split())-len(buff[i+1].split()))
-        if not dn==0:
-             runStarts.append(i+1)
+    for i in range(len(buff) - 1):
+        dn = abs(len(buff[i].split()) - len(buff[i + 1].split()))
+        if not dn == 0:
+            runStarts.append(i + 1)
     runStarts.append(len(buff))
-    #Find index of run with max length
+    # Find index of run with max length
     nmax = -1
-    for i in range(len(runStarts)-1):
-        n = runStarts[i+1]-runStarts[i]
+    for i in range(len(runStarts) - 1):
+        n = runStarts[i + 1] - runStarts[i]
         if n > nmax:
             nmax = n
             imax = runStarts[i]
-    #Deal with case where entire file is one run
+    # Deal with case where entire file is one run
     if nmax == -1:
         nmax = len(buff)
         imax = 0
-    return imax,imax+nmax
+    return imax, imax + nmax
 
 
 #
@@ -294,77 +297,77 @@ def findData(buff):
 # The input header is a list of names of the variables in each
 # columns, which can be input optionally, mainly to deal with
 # the case in which this information is not in the file being read
-import string
-def readTable(filename,inHeader = None,delimiter = None):
+def readTable(filename, inHeader=None, delimiter=None):
     f = open(filename)
     buff = f.readlines()
-    data,header = scan(buff,inHeader,delimiter)
+    data, header = scan(buff, inHeader, delimiter)
     c = Curve()
     for key in header:
-        c.addCurve(data[key],key)
+        c.addCurve(data[key], key)
     return c
 
-    
-    
-    
-#==============================================
-#---Section 2: Math utilities-------------------------------------------
-#==============================================
 
-#A dummy class useful for passing parameters.
-#Just make an instance, then add new members
-#at will.
+# ==============================================
+# ---Section 2: Math utilities-------------------------------------------
+# ==============================================
+
+
+# A dummy class useful for passing parameters.
+# Just make an instance, then add new members
+# at will.
 class Dummy:
     pass
 
-#---Polynomial interpolation and extrapolation (adapted
-#from Numerical Recipes.
+
+# ---Polynomial interpolation and extrapolation (adapted
+# from Numerical Recipes.
 #
-#It's used in Romberg extrapolation, but could be useful
-#for polynomial OLR fits and so forth as well. Also
-#needs online documentation
-def polint(xa,ya,x):
+# It's used in Romberg extrapolation, but could be useful
+# for polynomial OLR fits and so forth as well. Also
+# needs online documentation
+def polint(xa, ya, x):
     n = len(xa)
     if not (len(xa) == len(ya)):
-            print("Input x and y arrays must be same length")
-            return "Error"
-        #Set up auxiliary arrays
-    c = numpy.zeros(n,numpy.float)
-    d = numpy.zeros(n,numpy.float)
+        print('Input x and y arrays must be same length')
+        return 'Error'
+    # Set up auxiliary arrays
+    c = numpy.zeros(n, float)
+    d = numpy.zeros(n, float)
     c[:] = ya[:]
     d[:] = ya[:]
-    #Find closest table entry
+    # Find closest table entry
     ns = 0
-    diff = abs(xa[0]-x)
+    diff = abs(xa[0] - x)
     for i in range(n):
-            difft = abs(xa[i]-x)
-            if difft < diff:
-                diff = difft
-                ns = i
-    y=ya[ns]
-    for m in range(1,n): 
-        for i in range(n-m):
-            ho=xa[i]-x
-            hp=xa[i+m]-x
-            w=c[i+1]-d[i]
-            c[i] = ho*w/(ho-hp)
-            d[i] = hp*w/(ho-hp)
-        if 2*ns < (n-m):
+        difft = abs(xa[i] - x)
+        if difft < diff:
+            diff = difft
+            ns = i
+    y = ya[ns]
+    for m in range(1, n):
+        for i in range(n - m):
+            ho = xa[i] - x
+            hp = xa[i + m] - x
+            w = c[i + 1] - d[i]
+            c[i] = ho * w / (ho - hp)
+            d[i] = hp * w / (ho - hp)
+        if 2 * ns < (n - m):
             dy = c[ns]
         else:
             ns -= 1
             dy = d[ns]
         y += dy
-        #You can also return dy as an error estimate. Here 
-        #to keep things simple, we just return y.
+        # You can also return dy as an error estimate. Here
+        # to keep things simple, we just return y.
     return y
 
-#---------------------------------------------------------
+
+# ---------------------------------------------------------
 #         Class for doing polynomial interpolation
 #         from a table, using polint
-#---------------------------------------------------------
+# ---------------------------------------------------------
 #
-#Usage:
+# Usage:
 #         Let xa be a list of independent variable
 #         values and ya be a list of the corresponding
 #         dependent variable values. Then, to create a function
@@ -381,145 +384,153 @@ def polint(xa,ya,x):
 #
 #                     f = interp(xa,ya,8)
 #         will use the 8 nearest neighbors (if they are available)
-#------------------------------------------------------------
+# ------------------------------------------------------------
 class interp:
-    def __init__(self,xa,ya,n=4):
+    def __init__(self, xa, ya, n=4):
         self.xa = numpy.array(xa)
         self.ya = numpy.array(ya)
         self.n = n
         self.__code__ = Dummy()
-        self.__code__.co_argcount = 1#Gives it a function-like argcount
-    def __call__(self,x):
-        #Find the closes index to x
+        self.__code__.co_argcount = 1  # Gives it a function-like argcount
+
+    def __call__(self, x):
+        # Find the closes index to x
         if self.xa[0] < self.xa[-1]:
-            i = numpy.searchsorted(self.xa,x)
+            i = numpy.searchsorted(self.xa, x)
         else:
-            i = numpy.searchsorted(-self.xa,-x)
-        i1 = max(i-self.n,0)
-        i2 = min(i+self.n,len(self.xa))
-        return polint(self.xa[i1:i2],self.ya[i1:i2],x)
+            i = numpy.searchsorted(-self.xa, -x)
+        i1 = max(i - self.n, 0)
+        i2 = min(i + self.n, len(self.xa))
+        return polint(self.xa[i1:i2], self.ya[i1:i2], x)
 
 
-#----Quadrature (definite integral) by Romberg extrapolation.
-#**ToDo: Add documentation and help string
+# ----Quadrature (definite integral) by Romberg extrapolation.
+# **ToDo: Add documentation and help string
 
-#Before developing a general quadrature class, we'll
-#implement a class which efficiently carries out trapezoidal rule
-#integration with iterative refinement
+
+# Before developing a general quadrature class, we'll
+# implement a class which efficiently carries out trapezoidal rule
+# integration with iterative refinement
 class BetterTrap:
-    def __init__(self,f,params,interval,nstart):
+    def __init__(self, f, params, interval, nstart):
         self.f = f
         self.n = nstart
         self.interval = interval
         self.params = params
         self.integral = self.dumbTrap(nstart)
-    def dumbTrap(self,n):
+
+    def dumbTrap(self, n):
         a = self.interval[0]
         b = self.interval[1]
-        dx = (b-a)/n
-        sum = dx*(self.f(a,self.params)+self.f(b,self.params))/2.
-        for i in range(1,n):
-            x = a+i*dx
-            sum = sum + self.f(x,self.params)*dx
+        dx = (b - a) / n
+        sum = dx * (self.f(a, self.params) + self.f(b, self.params)) / 2.0
+        for i in range(1, n):
+            x = a + i * dx
+            sum = sum + self.f(x, self.params) * dx
         return sum
+
     def refine(self):
-        #Compute the sum of f(x) at the
-        #midpoints between the existing intervals.
-        #To get the refinement of the trapezoidal
-        #rule sum we just add this to half the
-        #previous result
-        sum = 0.
+        # Compute the sum of f(x) at the
+        # midpoints between the existing intervals.
+        # To get the refinement of the trapezoidal
+        # rule sum we just add this to half the
+        # previous result
+        sum = 0.0
         a = self.interval[0]
         b = self.interval[1]
-        dx = (b-a)/self.n
-        #Remember: n is the number of subintervals,
-        #not the number of endpoints. Therefore we
-        #have one midpoint per subinterval. Keeping that
-        #in mind helps us get the range of i right in
-        #the following loop
+        dx = (b - a) / self.n
+        # Remember: n is the number of subintervals,
+        # not the number of endpoints. Therefore we
+        # have one midpoint per subinterval. Keeping that
+        # in mind helps us get the range of i right in
+        # the following loop
         for i in range(self.n):
-            sum = sum + self.f(a+(i+.5)*dx,self.params)*(dx/2.)
-        #The old trapezoidal sum was multiplied by
-        #the old dx.  To get its correct contribution
-        #to the refined sum, we must multiply it by .5,
-        #because the new dx is half the old dx
-        self.integral = .5*self.integral + sum
+            sum = sum + self.f(a + (i + 0.5) * dx, self.params) * (dx / 2.0)
+        # The old trapezoidal sum was multiplied by
+        # the old dx.  To get its correct contribution
+        # to the refined sum, we must multiply it by .5,
+        # because the new dx is half the old dx
+        self.integral = 0.5 * self.integral + sum
         #
-        #Update the number of intervals
-        self.n = 2*self.n
+        # Update the number of intervals
+        self.n = 2 * self.n
 
 
-#Here I define a class called
-#romberg, which assists in carrying out evaluation of
-#integrals using romberg extrapolation. It assumes polint has
-#been imported
+# Here I define a class called
+# romberg, which assists in carrying out evaluation of
+# integrals using romberg extrapolation. It assumes polint has
+# been imported
+
 
 class romberg:
-    def __init__(self,f,nstart=4):
+    def __init__(self, f, nstart=4):
         self.nstart = nstart
         self.trap = None
         #
-        #-------------------------------------------------
-        #This snippit of code allows the user to leave the
-        #parameter argument out of the definition of f
-        #if it isn't needed
+        # -------------------------------------------------
+        # This snippit of code allows the user to leave the
+        # parameter argument out of the definition of f
+        # if it isn't needed
         #
         self.fin = f
-        #Find the number of arguments of f and append a
-        #parameter argument if there isn't any.
+        # Find the number of arguments of f and append a
+        # parameter argument if there isn't any.
         nargs = f.__code__.co_argcount
         if nargs == 2:
             self.f = f
-        elif nargs ==1:
-            def f1(x,param):
+        elif nargs == 1:
+
+            def f1(x, param):
                 return self.fin(x)
+
             self.f = f1
         else:
-            name = f.func_name
-            print('Error: %s has wrong number of arguments'%name)
-        #-----------------------------------------------------
+            name = f.__name__
+            print('Error: %s has wrong number of arguments' % name)
+        # -----------------------------------------------------
         #
-        #We keep lists of all our results, for doing
-        #Romberg extrapolation. These are re-initialized
-        #after each call
+        # We keep lists of all our results, for doing
+        # Romberg extrapolation. These are re-initialized
+        # after each call
         self.nList = []
         self.integralList = []
+
     def refine(self):
         self.trap.refine()
         self.integralList.append(self.trap.integral)
         self.nList.append(self.trap.n)
-        dx = [1./(n*n) for n in self.nList]
-        return polint(dx,self.integralList,0.)
+        dx = [1.0 / (n * n) for n in self.nList]
+        return polint(dx, self.integralList, 0.0)
+
     #
-    #Use a __call__ method to return the result. The
-    #__call__ method takes the interval of integration
-    #as its mandatory first argument,takes an optional
-    #parameter argument as its second argument, and
-    #an optional keyword argument specifying the accuracy
-    #desired.
-    #**ToDo: Introduce trick to allow parameter argument of
-    #integrand to be optional, as in Integrator.  Also, make
-    #tolerance into a keyword argument
+    # Use a __call__ method to return the result. The
+    # __call__ method takes the interval of integration
+    # as its mandatory first argument,takes an optional
+    # parameter argument as its second argument, and
+    # an optional keyword argument specifying the accuracy
+    # desired.
+    # **ToDo: Introduce trick to allow parameter argument of
+    # integrand to be optional, as in Integrator.  Also, make
+    # tolerance into a keyword argument
     #
-    def __call__(self,interval,params=None,tolerance=1.e-6):
+    def __call__(self, interval, params=None, tolerance=1.0e-6):
         self.nList = []
         self.integralList = []
-        #Make a trapezoidal rule integrator
-        self.trap = BetterTrap(self.f,params,interval,self.nstart)
+        # Make a trapezoidal rule integrator
+        self.trap = BetterTrap(self.f, params, interval, self.nstart)
         self.nList.append(self.nstart)
         self.integralList.append(self.trap.integral)
         #
-        #Refine initial evaluation until 
+        # Refine initial evaluation until
         oldval = self.refine()
         newval = self.refine()
-        while abs(oldval-newval)>tolerance:
-            oldval,newval = newval,self.refine()
+        while abs(oldval - newval) > tolerance:
+            oldval, newval = newval, self.refine()
         return newval
-        
-        
 
-#-------Runge-Kutta ODE integrator
-#**ToDo:
+
+# -------Runge-Kutta ODE integrator
+# **ToDo:
 #      * Implement a reset() method which resets to initial conditions.
 #         Useful for doing problem over multiple times with different
 #         parameters.
@@ -544,183 +555,187 @@ class romberg:
 #
 #      * Make the integrator object callable. The call can return
 #        a list of results for all the intermediate steps, or optionally
-#        just the final value.  
+#        just the final value.
 class integrator:
-  '''
-  Runge-Kutta integrator, for 1D or multidimensional problems
-  
-  Usage:
-  
-  First you define a function that returns the
-  derivative(s), given the independent and dependent
-  variables as arguments. The independent variable (think
-  of time) is always a scalar. The dependent variable (think
-  of the x and y coordinates of a planet) can be either a scalar
-  or a 1D array, according to the problem. For the
-  multidimensional case, this integrator will work with any
-  kind of array that behaves like a numpy array, i.e. supports
-  arithmetic operations. It will not work with plain Python lists.
-  The derivative function should return an array of derivatives, in
-  the multidimensional case. The derivative function can have any name.
-  
-  The derivative function can optionally have a third argument, to provide
-  for passing parameters (e.g. the radius of the Earth) to the
-  function.  The "parameter" argument, if present, can be any Python
-  entity whatsoever. If you need to pass multiple constants, or
-  even tables or functions, to your derivative function, you can
-  stuff them all into a list or a Python object.
-  
-  
-  Example:
-  In the 1D case, to solve the equation
-                  dz/dt = -a*t*t/(1.+z*z)
-  in which z is the dependent variable and t is the
-  independent variable, your derivative function would  be
-    def g(t,z):
-       return -a*t*t/(1.+z*z)
-  
-  treating the parameter a as a global, or perhaps
-    def g(t,z,params):
-       return -params.a*t*t/(params.b+z*z)
-  
-  while in a 2D case, your function might look like:
-    def g(t,z):
-      return numpy.array([-z[1],z[0]])
-  
-  or perhaps something like:
-    def g(t,z):
-      return t*numpy.sin(z)
-  
-  or even
-    def g(t,z,params):
-      return numpy.matrixmultiply(params(t),z)
-      
-  where params(t) in this case is a function returning
-  a numpy square matrix of the right dimension to multiply z.
-  
-  BIG WARNING:  Note that all the examples which return a
-  numpy array return a NEW INSTANCE (i.e. copy) of an
-  array.  If you try to set up a global array and re-use
-  it to return your results from g, you will really be
-  just returning a REFERENCE to the same array each time,
-  and each call will change the value of all the previous
-  results. This will mess up the computation of intermediate
-  results in the Runge-Kutta step. An example of the sort of thing
-  that will NOT work is:
-    zprime = numpy.zeros(2,numpy.float)
-    def g(t,z,params):
-      zprime[0] = z[1]
-      zprime[1] = -z[0]
-      return zprime
-  Try it out. This defines the harmonic oscillator, and a plot
-  of the orbit should give a circle. However, it doesn't  The problem
-  reference/value distinction.  The right way to define the function
-  would be
-    def g(t,z):
-      return numpy.array([z[1],-z[0]])
-  Try this one. It should work properly now. Note that any arithmetic
-  performed on numpy array objects returns a new instance of an Array
-  object. Hence, a function definition like 
-    def g(t,z):
-      return t*z*z+1.
-  will work fine.
-  
-  Once you have defined the derivitave function, 
-  you then proceed as follows.
-  
-  First c reate an integrator instance:
-    int_g = integrator(g,0.,start,.01)
-  
-  where "0." in the argument list is the initial value
-  for the independent variable, "start" is the initial
-  value for the dependent variable, and ".01" is the
-  step size. You then use the integrator as follows:
-  
-    int_g.setParams(myParams)
-    while int_g.x < 500:
-       print(int_g.next())
-  
-  The call to setParams is optional. Just use it if your
-  function makes use of a parameter object. The next() method
-  accepts the integration increment (e.g. dx) as an optional
-  argument. This is in case you want to change the step size,
-  which you can do at any time.  The integrator continues
-  using the most recent step size it knows.
-  
-  Each call to int_g.next returns a list, the first of whose
-  elements is the new value of the independent variable, and
-  the second of whose elements is a scalar or array giving
-  the value of the dependent variable(s) at the incremented
-  independent variable. 
-  
-  '''
-  def __init__(self, derivs,xstart,ystart,dx=None):
-    self.derivsin = derivs
-    #
-    #The following block checks to see if the derivs
-    #function has a parameter argument specified, and
-    #writes a new function with a dummy parameter argument
-    #appended if necessary. This allows the user to leave
-    #out the parameter argument from the function definition,
-    #if it isn't needed.
-    nargs = derivs.__code__.co_argcount
-    if nargs == 3:
-        self.derivs = derivs
-    elif nargs == 2:
-        def derivs1(x,y,param):
-            return self.derivsin(x,y)
-        self.derivs = derivs1
-    else:
-        name = derivs.func_name
-        print('Error: %s has wrong number of arguments'%name)
-    #
-    #
-    self.x = xstart
-    #The next statement is a cheap trick to initialize
-    #y with a copy of ystart, which works whether y is
-    #a regular scalar or a numpy array.  
-    self.y = 0.+ ystart
-    self.dx = dx #Can instead be set with the first call to next()
-    self.params = None
-  #Sets the parameters for the integrator (optional).
-  #The argument can be any Python entity at all. It is
-  #up to the user to make sure the derivative function can
-  #make use of it.
-  def setParams(self,params):
-      self.params = params
-  #Computes next step.  Optionally, takes the increment
-  #in the independent variable as an argument.  The
-  #increment can be changed at any time, and the most
-  #recently used value is remembered, as a default
-  def next(self,dx = None):
-     if not (dx == None):
-         self.dx = dx
-     h = self.dx
-     hh=h*0.5;
-     h6=h/6.0;
-     xh=self.x+hh;
-     dydx = self.derivs(self.x,self.y,self.params)
-     yt = self.y+hh*dydx
-     dyt = self.derivs(xh,yt,self.params)
-     yt =self.y+hh*dyt
-     dym = self.derivs(xh,yt,self.params)
-     yt =self.y+h*dym
-     dym += dyt
-     dyt = self.derivs(self.x+h,yt,self.params)
-     self.y += h6*(dydx+dyt+2.0*dym)
-     self.x += h
-     return self.x,self.y
+    """
+    Runge-Kutta integrator, for 1D or multidimensional problems
+
+    Usage:
+
+    First you define a function that returns the
+    derivative(s), given the independent and dependent
+    variables as arguments. The independent variable (think
+    of time) is always a scalar. The dependent variable (think
+    of the x and y coordinates of a planet) can be either a scalar
+    or a 1D array, according to the problem. For the
+    multidimensional case, this integrator will work with any
+    kind of array that behaves like a numpy array, i.e. supports
+    arithmetic operations. It will not work with plain Python lists.
+    The derivative function should return an array of derivatives, in
+    the multidimensional case. The derivative function can have any name.
+
+    The derivative function can optionally have a third argument, to provide
+    for passing parameters (e.g. the radius of the Earth) to the
+    function.  The "parameter" argument, if present, can be any Python
+    entity whatsoever. If you need to pass multiple constants, or
+    even tables or functions, to your derivative function, you can
+    stuff them all into a list or a Python object.
 
 
+    Example:
+    In the 1D case, to solve the equation
+                    dz/dt = -a*t*t/(1.+z*z)
+    in which z is the dependent variable and t is the
+    independent variable, your derivative function would  be
+      def g(t,z):
+         return -a*t*t/(1.+z*z)
 
-#**ToDo:  
+    treating the parameter a as a global, or perhaps
+      def g(t,z,params):
+         return -params.a*t*t/(params.b+z*z)
+
+    while in a 2D case, your function might look like:
+      def g(t,z):
+        return numpy.array([-z[1],z[0]])
+
+    or perhaps something like:
+      def g(t,z):
+        return t*numpy.sin(z)
+
+    or even
+      def g(t,z,params):
+        return numpy.matrixmultiply(params(t),z)
+
+    where params(t) in this case is a function returning
+    a numpy square matrix of the right dimension to multiply z.
+
+    BIG WARNING:  Note that all the examples which return a
+    numpy array return a NEW INSTANCE (i.e. copy) of an
+    array.  If you try to set up a global array and re-use
+    it to return your results from g, you will really be
+    just returning a REFERENCE to the same array each time,
+    and each call will change the value of all the previous
+    results. This will mess up the computation of intermediate
+    results in the Runge-Kutta step. An example of the sort of thing
+    that will NOT work is:
+      zprime = numpy.zeros(2,numpy.float)
+      def g(t,z,params):
+        zprime[0] = z[1]
+        zprime[1] = -z[0]
+        return zprime
+    Try it out. This defines the harmonic oscillator, and a plot
+    of the orbit should give a circle. However, it doesn't  The problem
+    reference/value distinction.  The right way to define the function
+    would be
+      def g(t,z):
+        return numpy.array([z[1],-z[0]])
+    Try this one. It should work properly now. Note that any arithmetic
+    performed on numpy array objects returns a new instance of an Array
+    object. Hence, a function definition like
+      def g(t,z):
+        return t*z*z+1.
+    will work fine.
+
+    Once you have defined the derivitave function,
+    you then proceed as follows.
+
+    First c reate an integrator instance:
+      int_g = integrator(g,0.,start,.01)
+
+    where "0." in the argument list is the initial value
+    for the independent variable, "start" is the initial
+    value for the dependent variable, and ".01" is the
+    step size. You then use the integrator as follows:
+
+      int_g.setParams(myParams)
+      while int_g.x < 500:
+         print(int_g.next())
+
+    The call to setParams is optional. Just use it if your
+    function makes use of a parameter object. The next() method
+    accepts the integration increment (e.g. dx) as an optional
+    argument. This is in case you want to change the step size,
+    which you can do at any time.  The integrator continues
+    using the most recent step size it knows.
+
+    Each call to int_g.next returns a list, the first of whose
+    elements is the new value of the independent variable, and
+    the second of whose elements is a scalar or array giving
+    the value of the dependent variable(s) at the incremented
+    independent variable.
+
+    """
+
+    def __init__(self, derivs, xstart, ystart, dx=None):
+        self.derivsin = derivs
+        #
+        # The following block checks to see if the derivs
+        # function has a parameter argument specified, and
+        # writes a new function with a dummy parameter argument
+        # appended if necessary. This allows the user to leave
+        # out the parameter argument from the function definition,
+        # if it isn't needed.
+        nargs = derivs.__code__.co_argcount
+        if nargs == 3:
+            self.derivs = derivs
+        elif nargs == 2:
+
+            def derivs1(x, y, param):
+                return self.derivsin(x, y)
+
+            self.derivs = derivs1
+        else:
+            name = derivs.__name__
+            print('Error: %s has wrong number of arguments' % name)
+        #
+        #
+        self.x = xstart
+        # The next statement is a cheap trick to initialize
+        # y with a copy of ystart, which works whether y is
+        # a regular scalar or a numpy array.
+        self.y = 0.0 + ystart
+        self.dx = dx  # Can instead be set with the first call to next()
+        self.params = None
+
+    # Sets the parameters for the integrator (optional).
+    # The argument can be any Python entity at all. It is
+    # up to the user to make sure the derivative function can
+    # make use of it.
+    def setParams(self, params):
+        self.params = params
+
+    # Computes next step.  Optionally, takes the increment
+    # in the independent variable as an argument.  The
+    # increment can be changed at any time, and the most
+    # recently used value is remembered, as a default
+    def next(self, dx=None):
+        if not (dx == None):
+            self.dx = dx
+        h = self.dx
+        hh = h * 0.5
+        h6 = h / 6.0
+        xh = self.x + hh
+        dydx = self.derivs(self.x, self.y, self.params)
+        yt = self.y + hh * dydx
+        dyt = self.derivs(xh, yt, self.params)
+        yt = self.y + hh * dyt
+        dym = self.derivs(xh, yt, self.params)
+        yt = self.y + h * dym
+        dym += dyt
+        dyt = self.derivs(self.x + h, yt, self.params)
+        self.y += h6 * (dydx + dyt + 2.0 * dym)
+        self.x += h
+        return self.x, self.y
+
+
+# **ToDo:
 #
 #         Store the previous solution for use as the next guess(?)
 #
 #        Handle arithmetic exceptions in the iteration loop
-#  
+#
 class newtSolve:
-    '''
+    """
     Newton method solver for function of 1 variable
     A class implementing Newton's method for solving f(x) = 0.
 
@@ -743,7 +758,7 @@ class newtSolve:
     the derivative function by invoking solver.deriv(x)
     As for f, fp can be optionally defined with a parameter
     argument if you need it. The same parameter object is
-    passed to f and fp. 
+    passed to f and fp.
 
     Use solver.setParams(value) to set the parameter object
     Alternately, the parameter argument can be passed as
@@ -766,7 +781,7 @@ class newtSolve:
               return x*x - 1.
           roots = newtSolve(g)
           roots(2.)
-         
+
          Example 2, Function with parameters:
           def g(x,constants):
               return constants.a*x*x - constants.b
@@ -792,83 +807,88 @@ class newtSolve:
           guesses = roots.scan([-2.,2.],100)
           for guess in guesses:
               print roots(guess)
-    '''
-    def __init__(self,f,fprime = None):
+    """
+
+    def __init__(self, f, fprime=None):
         self.fin = f
-        #Find the number of arguments of f and append a
-        #parameter argument if there isn't any.
-        nargs = f.__code__ .co_argcount
+        # Find the number of arguments of f and append a
+        # parameter argument if there isn't any.
+        nargs = f.__code__.co_argcount
         if nargs == 2:
             self.f = f
-        elif nargs ==1:
-            def f1(x,param):
+        elif nargs == 1:
+
+            def f1(x, param):
                 return self.fin(x)
+
             self.f = f1
         else:
-            name = f.func_name
-            print('Error: %s has wrong number of arguments'%name)
-        self.eps = 1.e-6
-        def deriv(x,params):
-            return (self.f(x+self.eps,params)- self.f(x-self.eps,params))/(2.*self.eps)
+            name = f.__name__
+            print('Error: %s has wrong number of arguments' % name)
+        self.eps = 1.0e-6
+
+        def deriv(x, params):
+            return (self.f(x + self.eps, params) - self.f(x - self.eps, params)) / (
+                2.0 * self.eps
+            )
+
         if fprime == None:
-            self.deriv = deriv 
+            self.deriv = deriv
         else:
-            #A derivative function was explicitly specified
-            #Check if it has a parameter argument
+            # A derivative function was explicitly specified
+            # Check if it has a parameter argument
             nargs = fprime.__code__.co_argcount
             if nargs == 2:
-                self.deriv = fprime #Has a parameter argument
+                self.deriv = fprime  # Has a parameter argument
             elif nargs == 1:
                 self.fprimein = fprime
-                def fprime1(x,param):
+
+                def fprime1(x, param):
                     return self.fprimein(x)
+
                 self.deriv = fprime1
             else:
-                name = fprime.func_name
-                print('Error: %s has wrong number of arguments'%name)
-        self.tolerance = 1.e-6
+                name = fprime.__name__
+                print('Error: %s has wrong number of arguments' % name)
+        self.tolerance = 1.0e-6
         self.nmax = 100
         self.params = None
-    def __call__(self,xGuess,params = None):
+
+    def __call__(self, xGuess, params=None):
         if not (params == None):
             self.setParams(params)
         x = xGuess
         for i in range(self.nmax):
-            dx = (self.f(x,self.params)/self.deriv(x,self.params))
+            dx = self.f(x, self.params) / self.deriv(x, self.params)
             x = x - dx
             if abs(dx) < self.tolerance:
                 return x
         return 'No Convergence'
-    def setParams(self,params):
-        #**ToDo: Check if f1 has a parameter argument
-        #defined, and complain if it doesn't
+
+    def setParams(self, params):
+        # **ToDo: Check if f1 has a parameter argument
+        # defined, and complain if it doesn't
         self.params = params
-    def scan(self,interval,n=10):
-        #Finds initial guesses to roots in a specified
-        #interval, subdivided into n subintervals.
-        #e.g. if the instance is called "solver"
-        #solver.scan([0.,1.],100) generates a list
-        #of guesses between 0. and 1., with a resolution
-        #of .01. The larger n is, the less is the chance that
-        #a root will be missed, but the longer the search
-        #will take.  If n isn't specified, the default value is 10
+
+    def scan(self, interval, n=10):
+        # Finds initial guesses to roots in a specified
+        # interval, subdivided into n subintervals.
+        # e.g. if the instance is called "solver"
+        # solver.scan([0.,1.],100) generates a list
+        # of guesses between 0. and 1., with a resolution
+        # of .01. The larger n is, the less is the chance that
+        # a root will be missed, but the longer the search
+        # will take.  If n isn't specified, the default value is 10
         #
-        #ToDo: Replace this with a bisection search, allowing user
-        #to specify the maximum number of distinct guesses that
-        #need to be found.
+        # ToDo: Replace this with a bisection search, allowing user
+        # to specify the maximum number of distinct guesses that
+        # need to be found.
         guessList = []
-        dx = (interval[1]-interval[0])/(n-1)
-        flast = self.f(interval[0],self.params)
-        for x in [interval[0]+ i*dx for i in range(1,n)]:
-            fnow = self.f(x,self.params)
-            if ((fnow >= 0.)&(flast <=0.)) or ((fnow <= 0.)&(flast >=0.)):
+        dx = (interval[1] - interval[0]) / (n - 1)
+        flast = self.f(interval[0], self.params)
+        for x in [interval[0] + i * dx for i in range(1, n)]:
+            fnow = self.f(x, self.params)
+            if ((fnow >= 0.0) & (flast <= 0.0)) or ((fnow <= 0.0) & (flast >= 0.0)):
                 guessList.append(x)
             flast = fnow
         return guessList
-
-
-
-
-
-    
-         

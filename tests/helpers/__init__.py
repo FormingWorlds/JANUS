@@ -5,6 +5,7 @@ from pathlib import Path
 
 import mors
 import toml
+
 from janus.utils import (
     DownloadSpectralFiles,
     DownloadStellarSpectra,
@@ -12,7 +13,6 @@ from janus.utils import (
     StellarSpectrum,
     atmos,
 )
-
 from janus.utils.data import FWL_DATA_DIR
 
 DATA_DRC = files('janus') / 'data' / 'tests'
@@ -45,7 +45,7 @@ def get_spectrum_data(drc):
     StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
 
     StellarSpectrum.InsertStellarSpectrum(
-        str(FWL_DATA_DIR / 'spectral_files'/'Oak'/'318'/'Oak.sf'),
+        str(FWL_DATA_DIR / 'spectral_files' / 'Oak' / '318' / 'Oak.sf'),
         socstar,
         drc,
     )

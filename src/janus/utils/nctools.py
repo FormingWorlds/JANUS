@@ -219,7 +219,7 @@ def ncout_opt_prop(file, lon, lat, p, bands, absp, scat, phf):
             for j in np.arange(n_lat):
                 scat_vals[:, :, j, i] = scat
     elif (nvals == n_lon * n_lat * levels * bands):
-        scat_vals = absp.reshape(bands, levels, n_lat, n_lon)
+        scat_vals = scat.reshape(bands, levels, n_lat, n_lon)
     else:
         raise RuntimeError(' Error in ncout_opt_prop: scat arrays dont match'
                            , nvals, n_lon * n_lat * levels * bands)
@@ -230,14 +230,13 @@ def ncout_opt_prop(file, lon, lat, p, bands, absp, scat, phf):
                    levels, n_lat, n_lon)
         phf_vals += np.sum(phf)
     elif (nvals == levels*bands):
-        phf.reshape(levels, bands)
-        temp = np.zeros(n_lon * n_lat * levels * bands).reshape(bands, levels,
-                        n_lat, n_lon)
+        phf_vals = np.zeros(n_lon * n_lat * levels * bands).reshape(bands, 1,
+                   levels, n_lat, n_lon)
         for i in np.arange(n_lon):
             for j in np.arange(n_lat):
-                temp[:, :, j, i] = phf
+                phf_vals[:, 0, :, j, i] = phf
     elif (nvals == n_lon * n_lat * levels * bands):
-        phf_vals = absp.reshape(bands, 1, levels, n_lat, n_lon)
+        phf_vals = phf.reshape(bands, 1, levels, n_lat, n_lon)
     else:
         raise RuntimeError(' Error in ncout_opt_prop: phf arrays dont match'
                            , nvals, n_lon * n_lat * levels * bands)
@@ -264,63 +263,6 @@ def ncout_opt_prop(file, lon, lat, p, bands, absp, scat, phf):
               , 'M-1', 'scattering')
     write_var(ncdf_file, phf_vals, 'phf', 'f4', ('band', 'mom', 'plev', 'lat',
               'lon'), 'none', 'phase function')
-
-    ncdf_file.close()
-
-#-------------------------------------------------------------------------------
-
-def ncout_view(file, lon, lat, direction, level, pol, azim, rlev):
-
-# Program to create netCDF ".view" files.
-
-    n_lon = np.size(lon)
-    n_lat = np.size(lat)
-    n_dir  = np.size(direction)
-    n_lvl  = np.size(level)
-    n_pol  = np.size(pol)
-    n_azm  = np.size(azim)
-    n_rlv  = np.size(rlev)
-
-    if (n_pol == 1):
-        pols = np.zeros(n_lon * n_lat * n_dir).reshape(n_dir, n_lat, n_lon)
-        pols += np.sum(pol)
-    elif (n_pol == n_lon * n_lat * n_dir):
-        pols = pol
-    else:
-        raise RuntimeError(' Error in ncout_view: arrays dont match'
-                           , n_pol, n_lon * n_lat * n_dir)
-
-    if (n_azm == 1):
-        azims = np.zeros(n_lon*n_lat*n_dir).reshape(n_dir, n_lat, n_lon)
-        azims += np.sum(azim)
-    elif (n_azm == n_lon * n_lat * n_dir):
-        azims = azim
-    else:
-        raise RuntimeError(' Error in ncout_view: arrays dont match'
-                           , n_azm, n_lon * n_lat * n_dir)
-
-    if (n_rlv == 1):
-        rlevs = np.zeros(n_lvl)
-        rlevs += np.sum(rlev)
-    elif (n_rlv == n_lvl):
-        rlevs = rlev
-    else:
-        raise RuntimeError(' Error in ncout_view: arrays dont match'
-                           , n_rlv, n_lvl)
-
-    ncdf_file = create_cdf(file)
-
-    write_dim(ncdf_file, n_lon, lon, 'lon', 'f4', 'lon', 'degree', 'LONGITUDE')
-    write_dim(ncdf_file, n_lat, lat, 'lat', 'f4', 'lat', 'degree', 'LATITUDE')
-    write_dim(ncdf_file, levels, p, 'level', 'i2', 'level', 'None', 'LEVEL')
-    write_dim(ncdf_file, n_dir, direction, 'direction', 'i2', 'direction', 'None', 'MOMENT')
-
-    write_var(ncdf_file, pols, 'pol', 'f4', ('direction', 'lat', 'lon')
-              , 'degree', 'POLAR VIEWING ANGLE')
-    write_var(ncdf_file, azims, 'azim', 'f4', ('direction', 'lat', 'lon')
-              , 'degree', 'AZIMUTHAL VIEWING ANGLE')
-    write_var(ncdf_file, rlevs, 'rlev', 'f4', ('level')
-              , 'None', 'VIEWING LEVEL')
 
     ncdf_file.close()
 

@@ -86,7 +86,7 @@ source = ["janus"]
 # Full-suite gate (unit + smoke + integration + slow), enforced nightly.
 # Ratchets upward toward the 90% PROTEUS-ecosystem ceiling via
 # tools/update_coverage_threshold.py; never lowered manually.
-fail_under = 20.0
+fail_under = 90.0
 show_missing = true
 exclude_lines = [
     "pragma: no cover",
@@ -99,7 +99,7 @@ exclude_lines = [
 [tool.janus.coverage_fast]
 # Fast PR gate (unit + smoke only). Ratchets upward toward the 90%
 # ecosystem ceiling; see tools/update_coverage_threshold.py.
-fail_under = 20.0
+fail_under = 90.0
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

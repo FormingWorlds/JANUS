@@ -168,3 +168,39 @@ def test_dew_point_target_matches_clausius_clapeyron_reference():
     dt_conv = moist_adj(atm, conv_timescale=tau)
     target_triple = t_cold + dt_conv[1] * tau  # reconstructed relaxation target
     assert target_triple == pytest.approx(273.15, abs=0.1)
+
+
+@pytest.mark.physics_invariant
+def test_moist_adjustment_skips_dry_levels_and_completes_single_pass():
+    """moist_adj skips near-vacuum H2O levels and runs a full non-breaking pass.
+
+    A level whose H2O partial pressure is below 1e-10 Pa carries no condensable,
+    so both the downward and the upward sweep must skip it rather than call the
+    dew-point inversion on a vanishing pressure. With the number of passes set to
+    one and a genuinely supersaturated interior, the sweep performs an adjustment
+    and therefore does not take the early-exit break, exercising the full single
+    pass to completion. The dry top level (index 0) must be left exactly at its
+    original temperature, the discriminating check that the skip fired.
+    """
+    press = np.logspace(5, 3, 4)
+    # Index 0 is dry (partial pressure below the 1e-10 Pa floor); the interior
+    # levels hold water and sit below their local dew point (cold column).
+    pp_h2o = np.array([0.0, 100.0, 200.0, 300.0])
+    t_cold = 120.0
+    tau = 1000.0
+    atm = SimpleNamespace(
+        p=press.copy(),
+        tmp=np.full(4, t_cold),
+        vol_list={'H2O': 1.0},
+        p_vol={'H2O': pp_h2o.copy()},
+    )
+    dt_conv = moist_adj(atm, conv_timescale=tau, nb_convsteps=1)
+    assert dt_conv.shape == (4,)
+    # The dry level carries no water, so it receives exactly zero tendency.
+    assert dt_conv[0] == pytest.approx(0.0, abs=1e-30)
+    # The wet interior levels the downward sweep reaches (indices 1 and 2) are
+    # relaxed toward their local dew point, so their tendency is strictly warming.
+    tdew_interior = np.array([ga.Tdew('H2O', float(pp_h2o[i])) for i in (1, 2)])
+    expected = (tdew_interior - t_cold) / tau
+    np.testing.assert_allclose(dt_conv[1:3], expected, rtol=1e-9)
+    assert np.all(dt_conv[1:3] > 0.0)
