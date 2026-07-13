@@ -1,12 +1,8 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Docs](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/docs.yaml?branch=main&label=Docs)](https://proteus-framework.org/JANUS/)
-[![codecov](https://img.shields.io/codecov/c/github/FormingWorlds/JANUS?label=coverage&logo=codecov)](https://app.codecov.io/gh/FormingWorlds/JANUS)
+[![codecov](https://img.shields.io/codecov/c/github/FormingWorlds/JANUS/main?label=coverage&logo=codecov)](https://app.codecov.io/gh/FormingWorlds/JANUS)
 [![Unit Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/tests.yaml?branch=main&label=Unit%20Tests)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
 [![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/nightly.yml?branch=main&label=Integration%20Tests)](https://github.com/FormingWorlds/JANUS/actions/workflows/nightly.yml)
-
-[![total tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-total.json)](https://proteus-framework.org/validation)
-[![unit tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-unit.json)](https://proteus-framework.org/validation)
-[![integration tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/FormingWorlds/JANUS/badges/tests-integration.json)](https://proteus-framework.org/validation)
 
 # JANUS
 
