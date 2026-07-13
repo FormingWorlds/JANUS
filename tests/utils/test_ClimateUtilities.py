@@ -132,7 +132,6 @@ class TestCurveContainer:
         assert nl_lines[0] == 'metadata'
         assert nl_lines[1].split('\t') == ['x', 'y']
 
-    @pytest.mark.physics_invariant
     def test_X_Y_plain_columns_return_plotting_arrays(self):
         """X returns the abscissa column and Y returns the remaining columns
         stacked, both as float arrays with the column count and order kept."""
@@ -148,7 +147,6 @@ class TestCurveContainer:
         numpy.testing.assert_allclose(y[0], [10.0, 20.0, 30.0], rtol=1e-12)
         numpy.testing.assert_allclose(y[1], [100.0, 200.0, 300.0], rtol=1e-12)
 
-    @pytest.mark.physics_invariant
     def test_X_Y_masked_columns_use_data_attribute(self):
         """Masked-array columns expose a ``_data`` attribute; X and Y unwrap it
         to return the underlying numeric values as a plain array."""

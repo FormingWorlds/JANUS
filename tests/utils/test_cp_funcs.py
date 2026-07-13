@@ -377,26 +377,32 @@ def test_condensate_hydrogen_constant_mode_uses_fixed_evaluation_temperature():
     assert cp_tdep > cp_const + 5.0
 
 
-# Saturated-liquid condensate endpoints from the NIST WebBook fluid tables;
-# (species, below_triple_T, triple_cp, triple_T, above_critical_T, critical_cp).
+# Saturated-liquid condensate endpoints from the NIST WebBook fluid tables plus
+# a strictly-in-window interpolation temperature. ``mid_t`` sits strictly
+# between the first (triple_t) and last (crit_t) table temperatures read from
+# the source ``temp_array`` for each species, so the interpolation is genuine
+# rather than clamped: (species, below_triple_T, triple_cp, triple_T, mid_T,
+# above_critical_T, critical_cp). Source fit windows (first, last) in K:
+# H2O (274, 646), CO2 (217, 302), N2 (64, 124), CH4 (91, 190), CO (69, 132),
+# NH3 (196, 405).
 _CONDENSATE_TABLE = [
-    ('H2O', 270.0, 75.97, 274.0, 700.0, 3685.6),
-    ('CO2', 210.0, 86.0, 217.0, 310.0, 694.8),
-    ('N2', 50.0, 56.07, 64.0, 200.0, 271.2),
-    ('CH4', 80.0, 54.05, 91.0, 250.0, 1508.2),
-    ('CO', 60.0, 60.33, 69.0, 200.0, 672.65),
-    ('NH3', 180.0, 71.61, 196.0, 500.0, 5907.5),
+    ('H2O', 270.0, 75.97, 274.0, 480.0, 700.0, 3685.6),
+    ('CO2', 210.0, 86.0, 217.0, 260.0, 310.0, 694.8),
+    ('N2', 50.0, 56.07, 64.0, 100.0, 200.0, 271.2),
+    ('CH4', 80.0, 54.05, 91.0, 150.0, 250.0, 1508.2),
+    ('CO', 60.0, 60.33, 69.0, 110.0, 200.0, 672.65),
+    ('NH3', 180.0, 71.61, 196.0, 300.0, 500.0, 5907.5),
 ]
 
 
 @pytest.mark.physics_invariant
 @pytest.mark.parametrize(
-    'vol,cold_t,triple_cp,triple_t,hot_t,crit_cp',
+    'vol,cold_t,triple_cp,triple_t,mid_t,hot_t,crit_cp',
     _CONDENSATE_TABLE,
     ids=['water', 'co2', 'nitrogen', 'methane', 'carbon-monoxide', 'ammonia'],
 )
 def test_condensate_temperature_dependent_clamps_and_diverges(
-    vol, cold_t, triple_cp, triple_t, hot_t, crit_cp
+    vol, cold_t, triple_cp, triple_t, mid_t, hot_t, crit_cp
 ):
     """T-dependent ``cp_cond`` clamps to the table ends and diverges near it.
 
@@ -424,22 +430,26 @@ def test_condensate_temperature_dependent_clamps_and_diverges(
     # triple-point value, and both are positive.
     assert cp_hot > 2.0 * cp_cold
     assert cp_cold > 0.0
-    # Mid-window interpolation stays bounded between the extremes and positive.
-    cp_mid = float(cp_funcs.cp_cond(vol, 0.5 * (triple_t + hot_t), 'T-dependent'))
-    assert cp_cold <= cp_mid <= cp_hot
+    # Genuine mid-window interpolation: ``mid_t`` is strictly inside the fit
+    # window, so the interpolated value is strictly between the clamped floor
+    # and ceiling (not equal to either, which a clamped midpoint would give).
+    cp_mid = float(cp_funcs.cp_cond(vol, mid_t, 'T-dependent'))
+    assert cp_cold < cp_mid < cp_hot
 
 
-@pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_condensate_oxygen_returns_liquid_reference_value():
-    """Liquid-oxygen ``cp_cond`` returns the Giauque and Johnston 1929 value.
+def test_condensate_oxygen_returns_source_approximate_constant():
+    """Liquid-oxygen ``cp_cond`` returns the source's fixed approximate constant.
 
-    The liquid-oxygen branch returns a single literature molar heat capacity,
-    4.184 * 10 = 41.84 J/mol/K (Giauque and Johnston 1929), independent of both
-    temperature and mode. Requesting different temperatures and both modes must
-    return the same positive value; a mode-dependent or temperature-dependent
-    result would signal a regression that added spurious dispatch to this
-    branch.
+    The liquid-oxygen branch returns a single hard-coded value, 4.184 * 10 =
+    41.84 J/mol/K (10 cal/mol/K), independent of both temperature and mode.
+    This is an approximate constant that sits below tabulated saturated-liquid
+    oxygen heat capacities (near 90 K the real value is about 54 J/mol/K), so
+    the numeric pin is a regression guard: any future correction to the source
+    constant is meant to be visible here rather than pass silently. Requesting
+    different temperatures and both modes must return the same positive value;
+    a mode-dependent or temperature-dependent result would signal a regression
+    that added spurious dispatch to this branch.
     """
     cp_cold = cp_funcs.cp_cond('O2', 60.0, 'T-dependent')
     cp_warm = cp_funcs.cp_cond('O2', 150.0, 'constant')

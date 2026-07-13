@@ -55,6 +55,38 @@ _TDEW_REF = {
     'CO2': 253.0,  # p > p_triple branch anchor
 }
 
+# Off-anchor dew points for the discriminating pin. Each value is the closed-form
+# constant-latent-heat inverse of the saturation curve evaluated at a pressure
+# displaced from the reference, where the log term no longer vanishes so the
+# result depends on the latent heat:
+#     T = Tref / (1 - (Tref R_gas / L_molar) ln(p_eval / pref))
+# with p_eval = pref * factor, pref = p_sat(vol, Tref) (1e5 Pa for He, the source
+# constant), and L_molar = L_vaporization * MolecularWeight * 1e-3 (J/mol). The
+# factors are below unity (subsaturated, cooler dew point) except CO2, whose
+# factor exceeds unity to keep p_eval above the CO2 triple pressure (5.11e5 Pa)
+# and inside the vaporization branch. Values recomputed from phys constants.
+_TDEW_OFFANCHOR = {
+    'CH4': (0.1, 111.399349),
+    'CO': (0.1, 75.816804),
+    'N2': (0.1, 75.055833),
+    'O2': (0.1, 94.406766),
+    'O3': (0.1, 132.245793),
+    'H2': (0.1, 15.596977),
+    'NH3': (0.1, 230.468641),
+    'CO2': (3.0, 291.564932),
+    'He': (0.1, 2.116015),
+}
+
+
+def _tdew_closed_form(tref, l_molar, pref, p):
+    """Constant-latent-heat dew point inverse, reimplemented from the source form.
+
+    Independent of ga.Tdew: mirrors Tref / (1 - (Tref R / L) ln(p / pref)) with the
+    molar gas constant and a molar latent heat so the source can be pinned against
+    a formula the test computes itself.
+    """
+    return tref / (1.0 - (tref * phys.R_gas / l_molar) * math.log(p / pref))
+
 
 def _make_atm(vol_mixing, T_surf=300.0, P_surf=1.0e5, P_top=1.0e4, req_levels=15):
     """Construct a bare atmosphere with synthetic (empty) band edges, no data I/O."""
@@ -162,15 +194,18 @@ def test_p_sat_triple_point_identity(vol):
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
 @pytest.mark.parametrize('vol', list(_TDEW_REF.keys()) + ['He'])
-def test_tdew_round_trip_recovers_reference_temperature(vol):
-    """Tdew is the closed-form inverse of the saturation curve at the anchor.
+def test_tdew_round_trip_and_offanchor_pin(vol):
+    """Tdew recovers the anchor exactly and pins the latent heat off-anchor.
 
-    Each volatile's dew point is defined so that Tdew(vol, p_sat(vol, Tref)) = Tref,
-    the analytical inverse identity of the constant-latent-heat Clausius-Clapeyron
-    relation. Feeding the reference saturation pressure back through Tdew must
-    recover the anchor temperature to machine precision. Helium uses the source's
-    fixed 1e5 Pa reference. A pressure well above the anchor yields a strictly
-    warmer dew point, so the identity is not degenerate.
+    At the reference pressure p_sat(vol, Tref) the exponential collapses, so the
+    dew point returns the anchor temperature exactly; this identity holds for any
+    latent heat and only fixes the reference point. To pin the latent heat itself
+    the dew point is then evaluated off-anchor, where the log term is nonzero and
+    the result depends on L. The source is checked against the constant-L inverse
+    reimplemented in the test from the published constants and against a hardcoded
+    literal, and a doubled latent heat is shown to move the result well outside
+    tolerance, so the off-anchor pin is not degenerate. Helium uses the source's
+    fixed 1e5 Pa reference.
     """
     if vol == 'He':
         tref = 4.22
@@ -178,11 +213,52 @@ def test_tdew_round_trip_recovers_reference_temperature(vol):
     else:
         tref = _TDEW_REF[vol]
         pref = ga.p_sat(vol, tref)
+
+    # Anchor identity: insensitive to L, fixes only the reference temperature.
     val = ga.Tdew(vol, pref)
     assert val == pytest.approx(tref, rel=1e-9)
     assert val > 0.0
-    # Monotonic discrimination: a higher pressure raises the dew point.
-    assert ga.Tdew(vol, pref * 1.5) > val
+
+    # Off-anchor discriminating pin. Reimplement the constant-L inverse
+    # independently, then pin the source against it and the hardcoded literal.
+    g = getattr(phys, vol)
+    l_molar = g.L_vaporization * g.MolecularWeight * 1e-3  # J/mol
+    factor, expected_literal = _TDEW_OFFANCHOR[vol]
+    p_eval = pref * factor
+    expected = _tdew_closed_form(tref, l_molar, pref, p_eval)
+    off = ga.Tdew(vol, p_eval)
+    assert off == pytest.approx(expected, rel=1e-9)
+    assert off == pytest.approx(expected_literal, rel=1e-5)
+    # Direction: below the reference pressure the dew point is cooler than the
+    # anchor; the single supersaturated case (CO2, factor > 1) is warmer.
+    if factor < 1.0:
+        assert off < tref
+    else:
+        assert off > tref
+    # Latent-heat guard: doubling L shifts the recovered dew point by several K,
+    # far past the pin tolerance, so this point genuinely constrains L.
+    wrong_double_l = _tdew_closed_form(tref, 2.0 * l_molar, pref, p_eval)
+    assert abs(off - wrong_double_l) > 0.5
+
+
+@pytest.mark.reference_pinned
+@pytest.mark.physics_invariant
+def test_tdew_water_at_one_atmosphere_near_boiling_point():
+    """Water dew point at 1 atm sits near the 373.15 K boiling point.
+
+    Independent of the internal reference-pressure round trip, the water dew point
+    at standard atmospheric pressure (101325 Pa) must fall near the 373.15 K
+    boiling point of water. The tolerance is rel=5e-3 because ga.Tdew assumes a
+    single constant latent heat across the 273 to 373 K span, so it recovers about
+    373.5 K rather than exactly 373.15 K, a 0.1% offset from the constant-latent-
+    heat approximation. A subsaturated pressure yields a strictly cooler dew point,
+    fixing the monotonic direction.
+    """
+    t_boil = ga.Tdew('H2O', 101325.0)
+    assert t_boil == pytest.approx(373.15, rel=5e-3)
+    assert t_boil > 273.15
+    # Below 1 atm the dew point is cooler.
+    assert ga.Tdew('H2O', 5.0e4) < t_boil
 
 
 @pytest.mark.physics_invariant
@@ -525,7 +601,6 @@ def test_general_adiabat_profile_monotone_and_bounded():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.physics_invariant
 def test_plot_adiabats_renders_labelled_axes(tmp_path, monkeypatch):
     """The diagnostic figure carries labelled axes and one line set per species.
 

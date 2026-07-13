@@ -59,9 +59,15 @@ def _make_atm_inp(t_surf=1000.0):
 
 
 def _fake_moist(atm_in, dirs, standalone, trppD, rscatter=False):
-    """Mock moist-adiabat solve: attach plausible fluxes with a top/bottom contrast."""
+    """Mock moist-adiabat solve: attach plausible fluxes with a strong top/bottom contrast.
+
+    The net flux runs +200 W/m^2 at the top to -200 W/m^2 at the base. Against the
+    skin flux 200*(3000 - Ts), the top end balances at Ts = 2999 K and the bottom
+    end at Ts = 3001 K, so the two boundary-condition roots are 2 K apart, far
+    beyond the 0.1 K pin tolerance used below.
+    """
     n = atm_in.nlev_save
-    atm_in.net_flux = np.linspace(50.0, -30.0, n)  # W/m^2, sign flips top to bottom
+    atm_in.net_flux = np.linspace(200.0, -200.0, n)  # W/m^2, sign flips top to bottom
     atm_in.LW_flux_up = np.linspace(280.0, 240.0, n)  # W/m^2 outgoing longwave
     return atm_in
 
@@ -131,21 +137,29 @@ def test_mcpa_cbl_secant_solves_toa_energy_balance():
 
     With the top-of-atmosphere boundary condition and the secant method, MCPA_CBL
     steps the surface temperature until the conductive-lid skin flux matches the
-    atmospheric net flux. The default disabled surface guess triggers the second
-    initial guess at 0.8*T_magma. The returned surface temperature must lie inside
-    the configured [minT, maxT] window, be strictly positive, and sit near the
-    analytic root of the linear residual used by the mock.
+    top-of-column net flux. The default disabled surface guess triggers the second
+    initial guess at 0.8*T_magma. The residual must balance against the top net
+    flux (+200 W/m^2), giving Ts = 2999 K, which is 2 K from the surface-BC root
+    (3001 K) and so discriminates the boundary-condition branch. The returned
+    surface temperature lies inside [minT, maxT] and is strictly positive.
     """
     atm_inp = _make_atm_inp()
     with patch(
         'janus.modules.solve_pt.compute_moist_adiabat', side_effect=_fake_moist
     ) as moist:
         atm = solve_pt.MCPA_CBL({}, atm_inp, trppD=False, rscatter=False, atm_bc=0)
-    # Skin flux 200*(3000 - Ts) balances the top net flux of 50 W/m^2 at ~2999.75 K.
-    assert atm.ts == pytest.approx(2999.75, abs=1.0)
+    # Skin flux 200*(3000 - Ts) balances the top net flux +200 W/m^2 at 2999 K; the
+    # surface-BC root 3001 K is 2 K away, 20x the 0.1 K tolerance, so this pin
+    # discriminates the top-of-atmosphere branch from the surface branch.
+    assert atm.ts == pytest.approx(2999.0, abs=0.1)
     assert atm_inp.minT <= atm.ts <= atm_inp.maxT  # bounded to the allowed window
     assert atm.ts > 0.0
-    assert moist.call_count >= 2  # at least the residual evaluations plus the final solve
+    # The residual balanced the skin flux against the TOP of the column: the
+    # reconstructed skin flux at the solution matches net_flux[0], not net_flux[-1].
+    skin = atm.skin_k / atm.skin_d * (atm.tmp_magma - atm.ts)
+    assert skin == pytest.approx(atm.net_flux[0], abs=1.0)
+    assert abs(skin - atm.net_flux[-1]) > 100.0  # not the bottom flux
+    assert moist.call_count >= 2  # residual evaluations plus the final solve
 
 
 @pytest.mark.physics_invariant
@@ -153,17 +167,23 @@ def test_mcpa_cbl_surface_boundary_condition_uses_bottom_flux():
     """MCPA_CBL with the surface boundary condition reads the bottom-of-column net flux.
 
     Selecting the surface boundary condition makes both the residual and the final
-    diagnostic use the bottom-of-column net flux rather than the top. With the
-    mock's bottom flux of -30 W/m^2 the balance shifts, giving a slightly higher
-    surface temperature; the returned state carries that bottom net flux and stays
-    inside the allowed temperature window.
+    diagnostic use the bottom-of-column net flux rather than the top. The residual
+    balances against the bottom net flux (-200 W/m^2), giving Ts = 3001 K, which is
+    2 K from the top-of-atmosphere root (2999 K); the reconstructed skin flux at the
+    solution matches the bottom net flux and not the top, so the assertion depends on
+    which end fed the residual.
     """
     atm_inp = _make_atm_inp()
     with patch('janus.modules.solve_pt.compute_moist_adiabat', side_effect=_fake_moist):
         atm = solve_pt.MCPA_CBL({}, atm_inp, trppD=False, rscatter=False, atm_bc=1)
-    # Skin flux 200*(3000 - Ts) balances the bottom net flux of -30 W/m^2 at ~3000.15 K.
-    assert atm.ts == pytest.approx(3000.15, abs=1.0)
-    assert atm.net_flux[-1] == pytest.approx(-30.0, rel=1e-9)  # bottom flux threaded through
+    # Skin flux 200*(3000 - Ts) balances the bottom net flux -200 W/m^2 at 3001 K; the
+    # TOA root 2999 K is 2 K away, 20x the 0.1 K tolerance.
+    assert atm.ts == pytest.approx(3001.0, abs=0.1)
+    # The residual balanced the skin flux against the BOTTOM of the column: the
+    # reconstructed skin flux at the solution matches net_flux[-1], not net_flux[0].
+    skin = atm.skin_k / atm.skin_d * (atm.tmp_magma - atm.ts)
+    assert skin == pytest.approx(atm.net_flux[-1], abs=1.0)
+    assert abs(skin - atm.net_flux[0]) > 100.0  # not the top flux
     assert atm_inp.minT <= atm.ts <= atm_inp.maxT
 
 
@@ -200,7 +220,7 @@ def test_mcpa_cbl_brentq_method_brackets_solution():
             {}, atm_inp, trppD=False, rscatter=False, atm_bc=0, T_surf_max=5000.0, method=1
         )
     assert 800.0 < atm.ts < 5000.0  # inside the brentq bracket
-    assert atm.ts == pytest.approx(2999.75, abs=1.0)
+    assert atm.ts == pytest.approx(2999.0, abs=0.1)
 
 
 def test_mcpa_cbl_invalid_method_raises():

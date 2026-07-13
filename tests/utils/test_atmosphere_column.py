@@ -327,10 +327,14 @@ def test_set_tropopause_temperature_radiative_skin():
     atm = _make_atmos()
     atm.instellation = 1361.0
     atm.setTropopauseTemperature()
-    t_eqm = (atm.instellation * atm.inst_sf * (1.0 - atm.albedo_pl) / phys.sigma) ** 0.25
-    assert atm.trppT == pytest.approx(t_eqm * 0.5**0.25, rel=1e-12)
+    # Hand-derived pin, independent of the source formula:
+    # T_eqm = (1361 * 0.375 * (1 - 0.175) / 5.670374e-8)**0.25 ~ 293.5 K,
+    # radiative skin trppT = T_eqm * 0.5**0.25 ~ 246.8 K.
+    assert atm.trppT == pytest.approx(246.8, rel=1e-3)
     assert atm.trppT > 0.0
-    assert atm.trppT < t_eqm  # radiative skin is cooler than equilibrium
+    # The 0.5**0.25 skin factor keeps trppT well below the ~293.5 K equilibrium;
+    # a dropped skin scaling would land near 293.5 K, far outside 1e-3.
+    assert atm.trppT < 293.5
     # Limit case: no instellation -> no skin temperature.
     atm.instellation = 0.0
     atm.setTropopauseTemperature()
@@ -343,24 +347,32 @@ def test_set_tropopause_temperature_radiative_skin():
 
 
 def test_write_pt_applies_pressure_unit_scaling(tmp_path):
-    """write_PT scales pressure by the requested unit and descends in pressure.
+    """write_PT converts pressure into each supported unit and descends in P.
 
     write_PT saves a two-column pressure/temperature table with the pressure
-    converted to the requested unit and the rows reversed. The bar (1e-5) and
-    dyne/cm2 (1e5) conversions sit ten orders of magnitude apart, so a wrong
-    scale factor for either is far outside tolerance. The temperature column is
+    converted to the requested unit and the rows reversed. The expected values
+    are derived from the physical unit definitions, independent of the source
+    constants: a 1.0e5 Pa surface must read back as 1.0 bar (1 bar = 1e5 Pa),
+    1.0e6 dyne/cm2 (1 Pa = 10 dyne/cm2), and 0.98692 atm (1 atm = 101325 Pa).
+    The dyne/cm2 and atm rows sit orders of magnitude apart, so an inverted or
+    dropped conversion is far outside tolerance. The temperature column is
     unit-invariant and must round-trip unchanged.
     """
     atm = _make_atmos()
-    atm.p = np.array([1.0e5, 5.0e4, 1.0e4])  # Pa, descending
+    atm.p = np.array([1.0e5, 1.0e4, 1.0e3])  # Pa, descending
     atm.tmp = np.array([1000.0, 600.0, 300.0])  # K
-    scales = {'Pa': 1.0, 'bar': 1.0e-5, 'dyne/cm2': 1.0e5, 'atm': 1.01325e5}
-    for unit, factor in scales.items():
+    # Independently derived from the unit definitions, NOT the source factors.
+    expected = {
+        'Pa': np.array([1.0e5, 1.0e4, 1.0e3]),
+        'bar': np.array([1.0, 0.1, 0.01]),  # 1 bar = 1e5 Pa
+        'dyne/cm2': np.array([1.0e6, 1.0e5, 1.0e4]),  # 1 Pa = 10 dyne/cm2
+        'atm': np.array([0.98692, 0.098692, 0.0098692]),  # 1 atm = 101325 Pa
+    }
+    for unit, exp_p in expected.items():
         fpath = tmp_path / f'pt_{unit.replace("/", "_")}.tsv'
         atm.write_PT(filename=str(fpath), punit=unit)
         data = np.loadtxt(str(fpath), skiprows=2)
-        expected_p = (atm.p * factor)[::-1]  # source multiplies Pa by the scale factor
-        np.testing.assert_allclose(data[:, 0], expected_p, rtol=1e-4)
+        np.testing.assert_allclose(data[:, 0], exp_p[::-1], rtol=1e-4)
         np.testing.assert_allclose(data[:, 1], atm.tmp[::-1], rtol=1e-6)
 
 

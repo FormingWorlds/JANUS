@@ -54,9 +54,10 @@ def test_spectral_band_default_and_group_help():
     assert result.exit_code == 0
     mock_spec.assert_called_once_with(fname=None, nband=256)
 
-    # A bare group prints its usage and exits with the click no-args code.
+    # A bare group prints its usage and exits non-zero; the exact code
+    # differs across click releases, so only the sign is pinned.
     result = runner.invoke(cli, ['download'])
-    assert result.exit_code == 2
+    assert result.exit_code != 0
     for sub in ('spectral', 'stellar', 'socrates'):
         assert sub in result.output
 
@@ -70,10 +71,15 @@ def test_env_reports_locations_and_bad_option_fails():
     """
     runner = CliRunner()
 
+    from janus.socrates import SOCRATES_DIR
+    from janus.utils.data import FWL_DATA_DIR
+
     result = runner.invoke(cli, ['env'])
     assert result.exit_code == 0
-    assert 'RAD_DIR location:' in result.output
-    assert 'FWL_DATA location:' in result.output
+    # Pin the resolved paths themselves, not the label prose, so a reworded
+    # echo string cannot hide a wrong location.
+    assert str(SOCRATES_DIR) in result.output
+    assert str(FWL_DATA_DIR) in result.output
 
     with patch('janus.utils.data.DownloadSpectralFiles') as mock_spec:
         result = runner.invoke(cli, ['download', 'spectral', '--bogus'])

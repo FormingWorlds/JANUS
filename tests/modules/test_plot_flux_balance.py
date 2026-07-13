@@ -53,7 +53,6 @@ def captured_ax(monkeypatch):
     plt.close('all')
 
 
-@pytest.mark.physics_invariant
 def test_plot_fluxes_draws_signed_fluxes_against_pressure(tmp_path, captured_ax):
     """Upward fluxes plot as given and downward fluxes are negated.
 

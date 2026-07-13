@@ -29,7 +29,8 @@ def test_setup_logger_levels_and_idempotency():
 
     Calling the factory twice must leave exactly one stream handler; an
     invalid level string is the documented error contract and must raise
-    before any handler is touched.
+    without attaching a new handler (the factory clears the old handlers
+    first, so a raise leaves the logger handler-free until reconfigured).
     """
     lg = setup_logger('DEBUG')
     assert lg.level == logging.DEBUG
@@ -42,6 +43,9 @@ def test_setup_logger_levels_and_idempotency():
 
     with pytest.raises(ValueError, match='Invalid log level'):
         setup_logger('LOUD')
+    # The factory clears handlers before validating, so the failed call
+    # leaves the logger handler-free until reconfigured.
+    assert len(lg2.handlers) == 0
 
 
 def test_excepthook_routes_exceptions_through_logger(monkeypatch, caplog):

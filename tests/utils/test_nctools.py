@@ -3,9 +3,8 @@
 nctools.py writes SOCRATES-compatible netCDF input files: surface-albedo
 weight files (``ncout_surf``, ``ncout_spectral_surf``), 2D and 3D
 pressure-level field files (``ncout2d``, ``ncout3d``), prescribed
-optical-property files (``ncout_opt_prop``), the ``.view`` writer
-(``ncout_view``), and the low-level ``write_dim`` / ``write_var`` /
-``create_cdf`` helpers. This file exercises:
+optical-property files (``ncout_opt_prop``), and the low-level
+``write_dim`` / ``write_var`` / ``create_cdf`` helpers. This file exercises:
 
 * Round-trip integrity: values, dimension sizes, and unit/title attributes
   survive a write-then-read cycle.
@@ -395,13 +394,15 @@ def test_ncout3d_per_level_column_tiled_across_grid(tmp_path):
 
 
 def test_ncout_opt_prop_full_field_writes_and_sorts(tmp_path):
-    """ncout_opt_prop writes full absorption/scattering fields and a scalar phf.
+    """ncout_opt_prop writes distinct absorption and scattering fields and phf.
 
     Full (band * level * lat * lon) absorption and scattering arrays are placed
     directly on the grid, a scalar phase function is broadcast, and an unsorted
-    pressure axis is reordered to ascend. The stored fields must be finite and
-    within the input range, the phase function uniform at the scalar value (the
-    broadcast edge case), and the pressure axis ascending after the sort.
+    pressure axis is reordered to ascend. The scattering field must round-trip
+    the scattering input (reordered with the pressure axis) and must be distinct
+    from the absorption field, which discriminates a scat-stores-absp copy. The
+    phase function is uniform at the scalar value (the broadcast edge case) and
+    the pressure axis ascends after the sort.
     """
     lon = np.array([0.0, 120.0])
     lat = np.array([0.0])
@@ -409,15 +410,22 @@ def test_ncout_opt_prop_full_field_writes_and_sorts(tmp_path):
     bands = 2
     levels = p.size
     size = lon.size * lat.size * levels * bands
+    # Disjoint value ranges so a field storing the wrong source is unmistakable.
     absp = np.linspace(1.0, 2.0, size)
-    scat = np.linspace(0.1, 0.2, size)
+    scat = np.linspace(10.0, 20.0, size)
     fpath = tmp_path / 'field.op_soot'
     nctools.ncout_opt_prop(str(fpath), lon, lat, p, bands, absp, scat, 0.5)
     with Dataset(str(fpath)) as ds:
         abs_field = np.asarray(ds['abs'][:])
+        scat_field = np.asarray(ds['scat'][:])
         assert abs_field.shape == (bands, levels, 1, 2)
-        assert np.all(np.isfinite(abs_field))
-        assert abs_field.min() >= 1.0 - 1e-9 and abs_field.max() <= 2.0 + 1e-9
+        assert np.all(np.isfinite(scat_field))
+        # Scattering round-trips its own input, reordered onto the sorted levels.
+        order = np.argsort(p)
+        expected_scat = scat.reshape(bands, levels, lat.size, lon.size)[:, order, :, :]
+        np.testing.assert_allclose(scat_field, expected_scat, rtol=1e-6)
+        # Scattering is not a copy of absorption (the copy-paste bug).
+        assert not np.allclose(scat_field, abs_field)
         np.testing.assert_allclose(np.asarray(ds['phf'][:]), 0.5, rtol=1e-6)
         plev = np.asarray(ds['plev'][:])
         assert np.all(np.diff(plev) > 0.0)
@@ -447,28 +455,34 @@ def test_ncout_opt_prop_per_band_level_arrays(tmp_path):
 
 
 def test_ncout_opt_prop_full_phase_function(tmp_path):
-    """ncout_opt_prop accepts a full-size phase-function array.
+    """ncout_opt_prop stores a full-size phase-function array by value.
 
     A phase function sized (lon * lat * level * band) exercises the full-field
     branch of the phf dispatch, which reshapes onto the (band, moment, level,
-    lat, lon) grid. The stored phase function must have that five-dimensional
-    shape with a single moment and stay finite.
+    lat, lon) grid. With an already-sorted pressure axis (the edge case that
+    skips the reorder) the stored phase function must match the input array
+    reshaped onto that grid, which discriminates a phf-stores-absp copy, and
+    carry a single moment axis.
     """
     lon = np.array([0.0, 120.0])
     lat = np.array([0.0])
-    p = np.array([1.0e3, 1.0e4, 1.0e5])
+    p = np.array([1.0e3, 1.0e4, 1.0e5])  # already ascending: no reorder
     bands = 2
     levels = p.size
     size = lon.size * lat.size * levels * bands
+    # Phase function in a range disjoint from absorption so a copy is caught.
     absp = np.linspace(1.0, 2.0, size)
-    scat = np.linspace(0.1, 0.2, size)
-    phf = np.linspace(0.0, 1.0, size)
+    scat = np.linspace(10.0, 20.0, size)
+    phf = np.linspace(100.0, 200.0, size)
     fpath = tmp_path / 'fullphf.op_soot'
     nctools.ncout_opt_prop(str(fpath), lon, lat, p, bands, absp, scat, phf)
     with Dataset(str(fpath)) as ds:
         phf_field = np.asarray(ds['phf'][:])
         assert phf_field.shape == (bands, 1, levels, 1, 2)
-        assert np.all(np.isfinite(phf_field))
+        expected_phf = phf.reshape(bands, 1, levels, lat.size, lon.size)
+        np.testing.assert_allclose(phf_field, expected_phf, rtol=1e-6)
+        # The stored phase function is not a copy of the absorption field.
+        assert not np.allclose(phf_field.ravel(), np.asarray(ds['abs'][:]).ravel())
 
 
 def test_ncout_opt_prop_rejects_mismatched_arrays(tmp_path):
@@ -500,68 +514,27 @@ def test_ncout_opt_prop_rejects_mismatched_arrays(tmp_path):
         )
 
 
-# ---------------------------------------------------------------------------
-# ncout_view
-# ---------------------------------------------------------------------------
+def test_ncout_opt_prop_per_band_phase_function(tmp_path):
+    """ncout_opt_prop tiles a per-(band, level) phase function across the grid.
 
-
-def test_ncout_view_reaches_undefined_level_axis(tmp_path):
-    """ncout_view processes its viewing angles but cannot write the level axis.
-
-    ncout_view broadcasts scalar polar/azimuth/level angles (and, in the array
-    form, stores them directly), then attempts to write a 'level' dimension.
-    That write references an undefined level count, so a fully valid call
-    reaches it and raises NameError. Both the scalar-input path and the
-    array-input path (the edge case exercising the exact-size branches) hit the
-    same undefined-axis failure.
+    When the phase function is given as a (band, level) array it is replicated
+    over every (lat, lon) cell on the single moment axis. With an already-sorted
+    pressure axis (the edge case that skips the reorder) the tiled column at
+    (lat0, lon0) must equal the input per-band-level phase function, and a
+    second horizontal point must hold the identical column.
     """
     lon = np.array([0.0, 120.0])
     lat = np.array([0.0])
-    with pytest.raises(NameError, match='levels'):
-        nctools.ncout_view(
-            str(tmp_path / 'scalar.view'), lon, lat, np.array([1]), np.array([1]), 0.5, 0.5, 0.5
-        )
-    # Array-sized polar/azimuth/level inputs take the exact-size branches and
-    # still reach the same undefined level axis.
-    direction = np.array([1, 2])
-    level = np.array([1, 2])
-    n_full = lon.size * lat.size * direction.size
-    with pytest.raises(NameError, match='levels'):
-        nctools.ncout_view(
-            str(tmp_path / 'array.view'),
-            lon,
-            lat,
-            direction,
-            level,
-            np.zeros(n_full),
-            np.zeros(n_full),
-            np.zeros(2),
-        )
-
-
-def test_ncout_view_rejects_mismatched_angles(tmp_path):
-    """ncout_view raises when a viewing-angle array matches no expected size.
-
-    Each of the polar, azimuth, and viewing-level arrays must be a scalar or
-    match its expected length. A polar array of an intermediate length raises
-    first; with a scalar polar angle, a mis-sized azimuth array raises; with
-    both scalar, a mis-sized viewing-level array raises. Each guard reports the
-    ncout_view size mismatch.
-    """
-    lon = np.array([0.0, 120.0])
-    lat = np.array([0.0])
-    direction = np.array([1])
-    level = np.array([1, 2])
-    base = str(tmp_path / 'bad.view')
-    with pytest.raises(RuntimeError, match='ncout_view'):
-        nctools.ncout_view(
-            base, lon, lat, direction, level, np.arange(3, dtype=float), 0.5, 0.5
-        )
-    with pytest.raises(RuntimeError, match='ncout_view'):
-        nctools.ncout_view(
-            base, lon, lat, direction, level, 0.5, np.arange(3, dtype=float), 0.5
-        )
-    with pytest.raises(RuntimeError, match='ncout_view'):
-        nctools.ncout_view(
-            base, lon, lat, direction, level, 0.5, 0.5, np.arange(5, dtype=float)
-        )
+    p = np.array([1.0e3, 1.0e4, 1.0e5])  # already ascending
+    bands = 2
+    levels = p.size
+    absp = np.arange(bands * levels, dtype=float).reshape(bands, levels)
+    scat = (np.arange(bands * levels, dtype=float) + 100.0).reshape(bands, levels)
+    phf = (np.arange(bands * levels, dtype=float) + 500.0).reshape(bands, levels)
+    fpath = tmp_path / 'perbandphf.op_soot'
+    nctools.ncout_opt_prop(str(fpath), lon, lat, p, bands, absp, scat, phf)
+    with Dataset(str(fpath)) as ds:
+        phf_field = np.asarray(ds['phf'][:])
+        assert phf_field.shape == (bands, 1, levels, 1, 2)
+        np.testing.assert_allclose(phf_field[:, 0, :, 0, 0], phf, rtol=1e-6)
+        np.testing.assert_allclose(phf_field[:, 0, :, 0, 1], phf, rtol=1e-6)

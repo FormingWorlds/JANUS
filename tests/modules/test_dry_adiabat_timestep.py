@@ -223,3 +223,34 @@ def test_radiation_failure_breaks_loop_without_corrupting_profile():
 
     assert mocks['rad'].call_count == 1  # failed on the first radiation call
     np.testing.assert_array_equal(out.tmp, tmp0)  # profile untouched by the failed step
+
+
+def test_clear_sky_call_performs_no_radiative_stepping():
+    """Document a known defect: a clear-sky call runs no radiation and no stepping.
+
+    In this deprecated module the radiative increment is computed only inside the
+    cloud branch, so a clear-sky atmosphere (clouds off, no surface stepping) never
+    assigns it. Applying the increment then raises an internal NameError that the
+    bare except swallows, breaking the loop on the first pass. Radiation is never
+    run and the temperature profile is returned unchanged. This records the current
+    behavior, not a designed contract: radiation should not depend on the cloud
+    flag.
+    """
+    tmp0 = np.array([200.0, 220.0, 240.0, 260.0, 280.0])
+    atm_dry = SimpleNamespace(tmp=tmp0.copy(), ts=300.0, dt=0.5)
+    atm_ga = SimpleNamespace(tmp=np.zeros(N), do_cloud=False)  # clear sky
+
+    def rad(atm, dirs, recalc=False, rscatter=False):
+        atm.net_heating = np.full(N, 5.0)
+        atm.LW_flux_up = np.full(N, 300.0)
+        return atm
+
+    with ExitStack() as stack:
+        mocks = _install(stack, atm_ga, atm_dry, rad)
+        out = compute_dry_adiabat(SimpleNamespace(), dirs={}, standalone=False)
+
+    # The radiative solve sits inside the cloud branch, so a clear-sky call skips it.
+    assert mocks['rad'].call_count == 0
+    # The dry adjustment is never reached; the profile is returned untouched.
+    assert mocks['dryadj'].call_count == 0
+    np.testing.assert_array_equal(out.tmp, tmp0)

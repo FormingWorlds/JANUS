@@ -8,6 +8,9 @@ pressure meets the saturation curve. This file exercises:
   curves already coincide at the surface, so the LCL is the surface itself.
 * The monotonic relationship between dryness and LCL altitude: a drier parcel
   reaches saturation only higher up, at a lower pressure.
+* The multiple-crossing tie-break: with more than one crossing the routine returns
+  the lowest-altitude (last-index) one, which the pinned test records despite the
+  source comment naming it the "first occurrence".
 * The no-intersection error contract, where no level is within tolerance and the
   routine reports the failure and returns None.
 
@@ -55,21 +58,44 @@ def test_drier_parcel_reaches_its_lifting_condensation_level_higher_up():
     """A drier parcel condenses at a lower pressure (higher altitude) than a moist one.
 
     The LCL rises as a parcel dries out: with less water it must be lifted and
-    cooled further before it saturates. Comparing a surface-saturated parcel with
-    a drier parcel whose partial pressure only meets the saturation curve aloft,
-    the drier parcel's LCL must sit at a strictly lower index and lower pressure.
+    cooled further before it saturates. Both parcels here have a single unambiguous
+    crossing of the saturation curve (the moist one at the surface, index 3; the
+    drier one aloft, index 1), so the comparison is not confounded by the tie-break
+    rule. The drier parcel's LCL must sit at a strictly lower index and lower
+    pressure.
     """
-    partial_moist = np.array([5.0e3, 5.0e3, 5.0e3, 8.0e4])
-    partial_dry = np.array([1.0e2, 1.0e3, 5.0e3, 5.0e3])
+    # Each parcel touches the saturation curve at exactly one level.
+    partial_moist = np.array([5.0e3, 5.0e3, 5.0e3, 8.0e4])  # single crossing at surface idx 3
+    partial_dry = np.array([5.0e3, 1.0e3, 5.0e3, 5.0e3])  # single crossing aloft at idx 1
     idx_moist, _ = find_intersection(P_SAT, partial_moist, tolerance=1.0)
     idx_dry, val_dry = find_intersection(P_SAT, partial_dry, tolerance=1.0)
     # Drier air saturates higher up: lower index, lower pressure.
-    assert idx_dry < idx_moist
+    assert idx_dry == 1 and idx_moist == 3  # single, unambiguous crossings
     assert PRESSURE[idx_dry] < PRESSURE[idx_moist]
     # The drier LCL pressure is well below the surface value, not a rounding-scale
     # difference; pin the recovered saturation pressure there.
     assert val_dry == pytest.approx(P_SAT[idx_dry], rel=1e-12)
     assert val_dry > 0.0
+
+
+def test_multiple_crossings_return_the_lowest_level_crossing():
+    """With two crossings the routine returns the lowest-altitude (last-index) one.
+
+    A parcel can meet the saturation curve at more than one level. The source scans
+    the whole column and returns the highest-index (lowest-altitude, closest to the
+    surface) crossing: it takes ``intersection_indices[-1]``. Note that the inline
+    source comment and the ``first_intersection_index`` variable name say "first
+    occurrence", which contradicts the actual last-index behavior pinned here. This
+    test fixes the observed behavior so a later change to the tie-break is caught.
+    """
+    # Partial pressure meets the saturation curve at index 0 and index 2.
+    partial_two = np.array([1.0e2, 5.0e3, 2.0e4, 5.0e3])
+    idx, value = find_intersection(P_SAT, partial_two, tolerance=1.0)
+    # The returned crossing is the last index (2), not the first (0).
+    assert idx == 2
+    assert idx != 0  # discriminates the actual behavior from the "first occurrence" comment
+    # The value is the saturation pressure at that lower level, pinned exactly.
+    assert value == pytest.approx(P_SAT[2], rel=1e-12)
 
 
 def test_no_condensation_level_reports_failure_and_returns_none(caplog):
