@@ -1,9 +1,3 @@
----
-title: JANUS
-hide:
-  - navigation
----
-
 # JANUS
 
 [![Documentation](https://github.com/FormingWorlds/JANUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/JANUS/)
