@@ -21,7 +21,7 @@ nav:
       - Model overview: Explanations/model.md
       - Testing suite: Explanations/testing.md
 
-  - Validation anchors:
+  - Validation:
       - Saturation and Planck (phys.py): Validation/phys.md
       - Height and gravity (height.py): Validation/height.md
       - Heat capacity (cp_funcs.py): Validation/cp_funcs.md

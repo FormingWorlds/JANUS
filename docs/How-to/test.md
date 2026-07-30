@@ -84,7 +84,7 @@ documented exceptions.
 4. Give each physics source at least one `@pytest.mark.reference_pinned` test that
    pins against a published benchmark, an analytical limit, or an independent code
    path, and record the anchor on a `docs/Validation/<file>.md` page. The existing
-   pages under [Validation anchors](../Validation/phys.md) are the template.
+   pages under [Validation](../Validation/phys.md) are the template.
 5. Never compare floats with `==`; use `pytest.approx(value, rel=...)` or
    `np.testing.assert_allclose`. On a pinned value, add a follow-up assertion
    showing the most plausible wrong formula would differ by more than the
