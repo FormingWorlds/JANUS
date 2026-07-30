@@ -1,8 +1,10 @@
 # JANUS
 
-[![Documentation](https://github.com/FormingWorlds/JANUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/JANUS/)
-[![Tests](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
-![Coverage](https://gist.githubusercontent.com/stefsmeets/99391a66bb9229771504c3a4db611d05/raw/covbadge.svg)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Docs](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/docs.yaml?branch=main&label=Docs)](https://proteus-framework.org/JANUS/)
+[![Coverage](https://img.shields.io/codecov/c/github/FormingWorlds/JANUS?label=coverage&logo=codecov)](https://app.codecov.io/gh/FormingWorlds/JANUS)
+[![Unit Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/tests.yaml?branch=main&label=Unit%20Tests)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
+[![Integration Tests](https://img.shields.io/github/actions/workflow/status/FormingWorlds/JANUS/nightly.yml?branch=main&label=Integration%20Tests)](https://github.com/FormingWorlds/JANUS/actions/workflows/nightly.yml)
 
 **JANUS** is the prescribed-convective atmosphere module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. It is a 1D convective atmosphere model for rocky exoplanet and magma ocean atmospheres, generating a temperature profile from the generalised moist pseudoadiabat and a prescribed stratosphere, and computing radiative fluxes with [SOCRATES](https://github.com/FormingWorlds/SOCRATES).
 
