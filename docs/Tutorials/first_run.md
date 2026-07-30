@@ -88,5 +88,5 @@ python examples/demo_instellation.py
   how it shifts the radiation limit
 - Change `mean_distance` in the config located at [src/janus/data/tests/config_runaway](https://github.com/FormingWorlds/JANUS/blob/main/src/janus/data/tests/config_runaway.toml) to move the planet closer or further
   from its star
-- See the [physical model overview](Explanations/model.md) for the equations
+- See the [physical model overview](../Explanations/model.md) for the equations
   behind the pseudoadiabat and radiative transfer

@@ -26,7 +26,7 @@ Full documentation is at **[proteus-framework.org/JANUS](https://proteus-framewo
 - [Tutorial](https://proteus-framework.org/JANUS/Tutorials/first_run.html): a first atmosphere-structure calculation.
 - [How-to guides](https://proteus-framework.org/JANUS/How-to/installation.html): install, run the tests, build the documentation.
 - [Explanations](https://proteus-framework.org/JANUS/Explanations/model.html): model overview and the testing suite.
-- [Validation anchors](https://proteus-framework.org/JANUS/Validation/phys.html): the per-source reference-pinned test inventory.
+- [Validation](https://proteus-framework.org/JANUS/Validation/phys.html): the per-source reference-pinned test inventory.
 - [Publications](https://proteus-framework.org/JANUS/Reference/publications.html): the papers that developed and applied JANUS.
 
 ## Installation
