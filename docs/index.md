@@ -1,11 +1,10 @@
+# JANUS
+
 [![Documentation](https://github.com/FormingWorlds/JANUS/actions/workflows/docs.yaml/badge.svg)](https://proteus-framework.org/JANUS/)
 [![Tests](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/FormingWorlds/JANUS/actions/workflows/tests.yaml)
 ![Coverage](https://gist.githubusercontent.com/stefsmeets/99391a66bb9229771504c3a4db611d05/raw/covbadge.svg)
 
-# JANUS (1D convective atmosphere model)
-
-
-JANUS is a 1D convective atmosphere model for rocky exoplanet and magma ocean atmospheres. Generates a temperature profile using the generalised moist pseudoadiabat and a prescribed stratosphere. Calculates radiative fluxes using [SOCRATES](https://github.com/FormingWorlds/SOCRATES).
+**JANUS** is the prescribed-convective atmosphere module of the [PROTEUS](https://proteus-framework.org/PROTEUS) coupled atmosphere-interior evolution framework. It is a 1D convective atmosphere model for rocky exoplanet and magma ocean atmospheres, generating a temperature profile from the generalised moist pseudoadiabat and a prescribed stratosphere, and computing radiative fluxes with [SOCRATES](https://github.com/FormingWorlds/SOCRATES).
 
 Pronounced *jan-us*. *Jan* as in "january", and *us* as in the collective pronoun.
 
