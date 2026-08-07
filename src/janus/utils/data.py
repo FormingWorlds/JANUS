@@ -52,6 +52,9 @@ def DownloadStellarSpectra():
     """
     Download stellar spectra
     """
+    # This pin sits outside the manifest the nightly cache key hashes, and the
+    # download is skipped whenever the folder is already there. Changing it
+    # therefore serves the cached spectra until that cache is cleared by hand.
     #project ID of the stellar spectra on OSF
     project_id = '8r2sw'
     folder_name = 'Named'
@@ -78,6 +81,9 @@ def DownloadSpectralFiles(fname: str="",nband: int=256):
         - nband (optional) :    number of band = 16, 48, 256, 4096
                                 (only relevant for Dayspring, Frostflow and Honeyside)
     """
+    # This pin sits outside the manifest the nightly cache key hashes, and each
+    # folder is skipped whenever it is already there. Changing it therefore
+    # serves the cached spectral files until that cache is cleared by hand.
     #project ID of the spectral files on OSF
     project_id = 'vehxg'
 

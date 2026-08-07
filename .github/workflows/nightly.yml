@@ -70,11 +70,36 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .[develop]
 
+      # The key carries the directory fwl-io resolves for every dataset the
+      # installed fwl-mors declares, plus the checksums its registry pins, so it
+      # moves exactly when that data moves. actions/cache writes only on an
+      # exact-key miss, so a key that never changes is never rewritten and the
+      # tree it holds cannot follow the data.
+      - name: Resolve the data cache key
+        id: cachekey
+        run: python tools/nightly_data_cache.py key
+
+      # The spectral files and stellar spectra are pinned by OSF project ids in
+      # src/janus/utils/data.py, which this key does not track. The prefix
+      # restore-key seeds a moved key from the previous tree, so they are not
+      # refetched alongside a re-pinned dataset.
       - uses: actions/cache@v4
         id: cache-fwl-data
         with:
           path: /home/runner/work/fwl_data
-          key: fwl-data-1
+          key: ${{ steps.cachekey.outputs.key }}
+          restore-keys: |
+            fwl-data-
+
+      # A tree restored on an exact key hit holds what that key was stored
+      # under, so anything short of the registry means the two have come apart.
+      # A prefix restore is expected to be incomplete and is not checked. Only
+      # the manifest-declared datasets are covered, which is what the key spans.
+      - name: Check the restored track data
+        if: steps.cache-fwl-data.outputs.cache-hit == 'true'
+        run: |
+          python tools/nightly_data_cache.py check \
+            --data-root /home/runner/work/fwl_data
 
       - name: Run unit + smoke + integration + slow tests with coverage
         run: |
