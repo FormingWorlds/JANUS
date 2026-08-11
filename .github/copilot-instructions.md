@@ -45,7 +45,7 @@ PROTEUS is a coupled atmosphere-interior framework with a modular architecture:
 
 **Distribution**: PyPI package `fwl-janus`; import package `janus`.
 
-**Target Runtime**: Python 3.11 to 3.13 on Linux / macOS (3.12 primary; CI runs the matrix 3.11, 3.12, 3.13).
+**Target Runtime**: Python 3.12 to 3.13 on Linux / macOS (3.12 primary; CI runs the matrix 3.12, 3.13).
 
 ## Build & Validation
 
@@ -53,7 +53,7 @@ PROTEUS is a coupled atmosphere-interior framework with a modular architecture:
 
 **Prerequisites**:
 
-1. Python 3.11 to 3.13 (via conda / miniforge or system).
+1. Python 3.12 to 3.13 (via conda / miniforge or system).
 2. A Fortran / C build toolchain (`gfortran`, `gcc`, `make`) and NetCDF-Fortran development headers, for SOCRATES.
 3. Git.
 
@@ -142,7 +142,7 @@ pre-commit install -f
 **CI runs on PRs** (`.github/workflows/tests.yaml`):
 
 1. **Build SOCRATES**: checkout and compile the Fortran radiative-transfer dependency (cached across runs).
-2. **Build JANUS**: `pip install -e .[develop]` across the Python 3.11 / 3.12 / 3.13 matrix.
+2. **Build JANUS**: `pip install -e .[develop]` across the Python 3.12 / 3.13 matrix.
 3. **Tests with coverage**: `coverage run -m pytest` with `RAD_DIR` and `FWL_DATA` exported.
 4. **Coverage report**: totals surfaced in the job summary.
 

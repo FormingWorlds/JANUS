@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 # Push and PR CI: unit + smoke tiers only, ubuntu-latest across the
-# Python 3.11 / 3.12 / 3.13 matrix (jobs run in parallel, so each stays
+# Python 3.12 / 3.13 matrix (jobs run in parallel, so each stays
 # within the <10 min per-job budget). The integration and slow tiers run
 # real multi-timestep SOCRATES solves and live in the scheduled nightly
 # workflow `nightly.yml` instead. Coverage measurement is canonical in
@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12', '3.13']
+        python-version: ['3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v4

@@ -33,7 +33,7 @@ Full documentation is at **[proteus-framework.org/JANUS](https://proteus-framewo
 
 > **Note:** The standard way of installing JANUS is within the PROTEUS framework, as described in the [PROTEUS installation guide](https://proteus-framework.org/PROTEUS/How-to/installation.html#10-install-submodules-as-editable). The steps below are for a standalone installation.
 
-JANUS has one compiled dependency, [SOCRATES](https://github.com/FormingWorlds/SOCRATES), which a helper script clones and builds. **Prerequisites:** `git`, Python 3.10+, a Fortran/C build toolchain (`gfortran`, `gcc`, `make`), and NetCDF tools with NetCDF-Fortran development headers.
+JANUS has one compiled dependency, [SOCRATES](https://github.com/FormingWorlds/SOCRATES), which a helper script clones and builds. **Prerequisites:** `git`, Python 3.12+, a Fortran/C build toolchain (`gfortran`, `gcc`, `make`), and NetCDF tools with NetCDF-Fortran development headers.
 
 ```console
 git clone https://github.com/FormingWorlds/JANUS.git

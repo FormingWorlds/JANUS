@@ -7,7 +7,7 @@ This page describes a manual developer installation of JANUS and SOCRATES.
 
 !!! info "Prerequisites"
     - `git`
-    - Python 3.10+ (recommended: 3.11)
+    - Python 3.12+ (recommended: 3.12)
     - a Fortran/C build toolchain (`gfortran`, `gcc`, `make`)
     - NetCDF tools and NetCDF-Fortran development headers/libraries
     - optional but recommended: Conda
@@ -44,7 +44,7 @@ This page describes a manual developer installation of JANUS and SOCRATES.
 Using a dedicated Conda environment helps avoid dependency conflicts.
 
 ```console
-conda create -n janus python=3.11 -y
+conda create -n janus python=3.12 -y
 conda activate janus
 ```
 
