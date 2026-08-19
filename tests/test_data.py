@@ -4,6 +4,7 @@ import time
 import pytest
 import requests
 
+import janus.utils.data as data_module
 from janus.utils.data import OSF_RETRY_ATTEMPTS, _osf_retry, download_folder
 
 _OSF_502 = "Response has status code 502 not (200,)"
@@ -143,3 +144,31 @@ def test_osf_retry_retries_network_error():
 
     assert result == 'ok'
     assert len(calls) == OSF_RETRY_ATTEMPTS
+
+
+def test_download_stellar_spectra_retries_project_and_storage_lookup(tmp_path, monkeypatch):
+    project_calls = []
+    storage_calls = []
+
+    class _FakeProject:
+        def storage(self, name):
+            storage_calls.append(1)
+            if len(storage_calls) < OSF_RETRY_ATTEMPTS:
+                raise RuntimeError(_OSF_502)
+            return object()
+
+    class _FakeOSF:
+        def project(self, project_id):
+            project_calls.append(1)
+            if len(project_calls) < OSF_RETRY_ATTEMPTS:
+                raise RuntimeError(_OSF_502)
+            return _FakeProject()
+
+    monkeypatch.setattr(data_module, 'OSF', lambda: _FakeOSF())
+    monkeypatch.setattr(data_module, 'GetFWLData', lambda: tmp_path)
+    monkeypatch.setattr(data_module, 'download_folder', lambda **kwargs: None)
+
+    data_module.DownloadStellarSpectra()
+
+    assert len(project_calls) == OSF_RETRY_ATTEMPTS
+    assert len(storage_calls) == OSF_RETRY_ATTEMPTS

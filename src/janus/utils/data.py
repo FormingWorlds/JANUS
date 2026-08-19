@@ -13,9 +13,11 @@ log = logging.getLogger("fwl."+__name__)
 OSF_RETRY_ATTEMPTS = 3
 OSF_RETRY_DELAYS = (15, 45)
 
-# osfclient has no exception hierarchy: it raises a plain RuntimeError with a
-# fixed "...status code {N}..." message for every non-200 response, transient
-# or not. Only retry the status codes that are actually worth retrying.
+# Most osfclient failures surface as a plain RuntimeError with a
+# "...status code {N}..." message, transient or not; a 401 instead raises
+# osfclient's own UnauthorizedException, which this module does not import
+# or match, so it is never treated as retryable. Only retry the status
+# codes that are actually worth retrying.
 _OSF_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 _OSF_STATUS_CODE_RE = re.compile(r'status code (\d+)')
 
@@ -28,8 +30,9 @@ def _osf_retry(func):
     Call `func`, retrying on a transient OSF failure (a 429/5xx RuntimeError
     from osfclient, or a network-level error while streaming a response)
     with a bounded backoff, so a flaky OSF response does not fail the
-    download outright. A non-transient RuntimeError (e.g. a 401/404) is
-    re-raised immediately rather than retried.
+    download outright. A non-transient RuntimeError (e.g. a 404, or a
+    RuntimeError whose message carries no status code) is re-raised
+    immediately rather than retried.
     """
     for attempt in range(OSF_RETRY_ATTEMPTS):
         try:
@@ -37,11 +40,13 @@ def _osf_retry(func):
         except RuntimeError as exc:
             if not _is_transient_osf_error(exc) or attempt == OSF_RETRY_ATTEMPTS - 1:
                 raise
-        except requests.exceptions.RequestException:
+            last_exc = exc
+        except requests.exceptions.RequestException as exc:
             if attempt == OSF_RETRY_ATTEMPTS - 1:
                 raise
+            last_exc = exc
         log.warning(f'OSF request failed (attempt {attempt + 1}/'
-                    f'{OSF_RETRY_ATTEMPTS}), retrying...')
+                    f'{OSF_RETRY_ATTEMPTS}): {last_exc!r}, retrying...')
         time.sleep(OSF_RETRY_DELAYS[min(attempt, len(OSF_RETRY_DELAYS) - 1)])
 
 FWL_DATA_DIR = Path(os.environ.get('FWL_DATA', platformdirs.user_data_dir('fwl_data')))
