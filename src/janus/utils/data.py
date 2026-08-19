@@ -1,11 +1,48 @@
 import os
+import re
+import time
 from pathlib import Path
 import logging
 
 import platformdirs
+import requests
 from osfclient.api import OSF
 
 log = logging.getLogger("fwl."+__name__)
+
+OSF_RETRY_ATTEMPTS = 3
+OSF_RETRY_DELAYS = (15, 45)
+
+# osfclient has no exception hierarchy: it raises a plain RuntimeError with a
+# fixed "...status code {N}..." message for every non-200 response, transient
+# or not. Only retry the status codes that are actually worth retrying.
+_OSF_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+_OSF_STATUS_CODE_RE = re.compile(r'status code (\d+)')
+
+def _is_transient_osf_error(exc: RuntimeError) -> bool:
+    match = _OSF_STATUS_CODE_RE.search(str(exc))
+    return bool(match) and int(match.group(1)) in _OSF_RETRYABLE_STATUS
+
+def _osf_retry(func):
+    """
+    Call `func`, retrying on a transient OSF failure (a 429/5xx RuntimeError
+    from osfclient, or a network-level error while streaming a response)
+    with a bounded backoff, so a flaky OSF response does not fail the
+    download outright. A non-transient RuntimeError (e.g. a 401/404) is
+    re-raised immediately rather than retried.
+    """
+    for attempt in range(OSF_RETRY_ATTEMPTS):
+        try:
+            return func()
+        except RuntimeError as exc:
+            if not _is_transient_osf_error(exc) or attempt == OSF_RETRY_ATTEMPTS - 1:
+                raise
+        except requests.exceptions.RequestException:
+            if attempt == OSF_RETRY_ATTEMPTS - 1:
+                raise
+        log.warning(f'OSF request failed (attempt {attempt + 1}/'
+                    f'{OSF_RETRY_ATTEMPTS}), retrying...')
+        time.sleep(OSF_RETRY_DELAYS[min(attempt, len(OSF_RETRY_DELAYS) - 1)])
 
 FWL_DATA_DIR = Path(os.environ.get('FWL_DATA', platformdirs.user_data_dir('fwl_data')))
 
@@ -29,7 +66,8 @@ def download_folder(*, storage, folders: list[str], data_dir: Path):
         - folders : folder names to download
         - data_dir : local repository where data are saved
     """
-    for file in storage.files:
+    files = _osf_retry(lambda: list(storage.files))
+    for file in files:
         for folder in folders:
             if not file.path[1:].startswith(folder):
                 continue
@@ -37,8 +75,12 @@ def download_folder(*, storage, folders: list[str], data_dir: Path):
             target = Path(data_dir, *parts)
             target.parent.mkdir(parents=True, exist_ok=True)
             log.info(f'Downloading {file.path}...')
-            with open(target, 'wb') as f:
-                file.write_to(f)
+
+            def _write(file=file, target=target):
+                with open(target, 'wb') as f:
+                    file.write_to(f)
+
+            _osf_retry(_write)
             break
 
 
@@ -57,8 +99,8 @@ def DownloadStellarSpectra():
     folder_name = 'Named'
 
     osf = OSF()
-    project = osf.project(project_id)
-    storage = project.storage('osfstorage')
+    project = _osf_retry(lambda: osf.project(project_id))
+    storage = _osf_retry(lambda: project.storage('osfstorage'))
 
     data_dir = GetFWLData() / "stellar_spectra"
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -87,8 +129,8 @@ def DownloadSpectralFiles(fname: str="",nband: int=256):
 
     #Link with OSF project repository
     osf = OSF()
-    project = osf.project(project_id)
-    storage = project.storage('osfstorage')
+    project = _osf_retry(lambda: osf.project(project_id))
+    storage = _osf_retry(lambda: project.storage('osfstorage'))
 
     #If no folder specified download all basic list
     if not fname:

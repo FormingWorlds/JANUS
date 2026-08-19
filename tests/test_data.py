@@ -1,0 +1,145 @@
+import re
+import time
+
+import pytest
+import requests
+
+from janus.utils.data import OSF_RETRY_ATTEMPTS, _osf_retry, download_folder
+
+_OSF_502 = "Response has status code 502 not (200,)"
+_OSF_404 = "Response has status code 404 not (200,)"
+
+
+class _FakeFile:
+    """File stub whose write_to() fails a fixed number of times before succeeding."""
+
+    def __init__(self, path, fail_times=0, content=b'file contents'):
+        self.path = path
+        self._fail_times = fail_times
+        self._content = content
+        self.calls = 0
+
+    def write_to(self, fileobj):
+        self.calls += 1
+        if self.calls <= self._fail_times:
+            raise RuntimeError(_OSF_502)
+        fileobj.write(self._content)
+
+
+class _FlakyStorage:
+    """Storage stub whose `.files` listing fails a fixed number of times before succeeding."""
+
+    def __init__(self, files, fail_times=0):
+        self._files = files
+        self._fail_times = fail_times
+        self.calls = 0
+
+    @property
+    def files(self):
+        self.calls += 1
+        if self.calls <= self._fail_times:
+            raise RuntimeError(_OSF_502)
+        return iter(self._files)
+
+
+class _PartialListingStorage:
+    """Storage stub whose `.files` is a fresh generator each access, like the
+    real (lazy, paginated) osfclient `Storage.files`. It fails partway
+    through iteration, not at access time, for a fixed number of accesses.
+    """
+
+    def __init__(self, files, fail_after, fail_times=0):
+        self._files = files
+        self._fail_after = fail_after
+        self._fail_times = fail_times
+        self.attempts = 0
+
+    @property
+    def files(self):
+        self.attempts += 1
+        will_fail = self.attempts <= self._fail_times
+
+        def _gen():
+            for i, f in enumerate(self._files):
+                if will_fail and i == self._fail_after:
+                    raise RuntimeError(_OSF_502)
+                yield f
+        return _gen()
+
+
+@pytest.fixture(autouse=True)
+def _no_sleep(monkeypatch):
+    # The retry helper sleeps between attempts; skip the real delay in tests.
+    monkeypatch.setattr(time, 'sleep', lambda seconds: None)
+
+
+def test_download_folder_retries_transient_listing_failure(tmp_path):
+    file = _FakeFile('/Oak/spectrum.sf')
+    storage = _FlakyStorage([file], fail_times=OSF_RETRY_ATTEMPTS - 1)
+
+    download_folder(storage=storage, folders=['Oak'], data_dir=tmp_path)
+
+    assert storage.calls == OSF_RETRY_ATTEMPTS
+    assert (tmp_path / 'Oak' / 'spectrum.sf').read_bytes() == b'file contents'
+
+
+def test_download_folder_retries_transient_write_failure(tmp_path):
+    file = _FakeFile('/Oak/spectrum.sf', fail_times=OSF_RETRY_ATTEMPTS - 1)
+    storage = _FlakyStorage([file])
+
+    download_folder(storage=storage, folders=['Oak'], data_dir=tmp_path)
+
+    assert file.calls == OSF_RETRY_ATTEMPTS
+    assert (tmp_path / 'Oak' / 'spectrum.sf').read_bytes() == b'file contents'
+
+
+def test_download_folder_gives_up_after_retry_budget(tmp_path):
+    storage = _FlakyStorage([], fail_times=OSF_RETRY_ATTEMPTS + 1)
+
+    with pytest.raises(RuntimeError, match=re.escape(_OSF_502)):
+        download_folder(storage=storage, folders=['Oak'], data_dir=tmp_path)
+
+    assert storage.calls == OSF_RETRY_ATTEMPTS
+
+
+def test_download_folder_retries_listing_failure_mid_iteration(tmp_path):
+    # The real osfclient Storage.files is a lazy, paginated generator that can
+    # fail partway through, not a property that fails before yielding
+    # anything. Confirm the retry-from-scratch on `list(storage.files)` still
+    # produces the complete, correct file set once a later attempt succeeds.
+    files = [_FakeFile('/Oak/a.sf'), _FakeFile('/Oak/b.sf'), _FakeFile('/Oak/c.sf')]
+    storage = _PartialListingStorage(files, fail_after=1, fail_times=OSF_RETRY_ATTEMPTS - 1)
+
+    download_folder(storage=storage, folders=['Oak'], data_dir=tmp_path)
+
+    assert storage.attempts == OSF_RETRY_ATTEMPTS
+    for name in ('a.sf', 'b.sf', 'c.sf'):
+        assert (tmp_path / 'Oak' / name).read_bytes() == b'file contents'
+
+
+def test_osf_retry_does_not_retry_non_transient_status():
+    calls = []
+
+    def _raise_404():
+        calls.append(1)
+        raise RuntimeError(_OSF_404)
+
+    with pytest.raises(RuntimeError, match=re.escape(_OSF_404)):
+        _osf_retry(_raise_404)
+
+    assert len(calls) == 1
+
+
+def test_osf_retry_retries_network_error():
+    calls = []
+
+    def _flaky():
+        calls.append(1)
+        if len(calls) < OSF_RETRY_ATTEMPTS:
+            raise requests.exceptions.ConnectionError("connection reset")
+        return 'ok'
+
+    result = _osf_retry(_flaky)
+
+    assert result == 'ok'
+    assert len(calls) == OSF_RETRY_ATTEMPTS
