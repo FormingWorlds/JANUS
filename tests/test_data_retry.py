@@ -1,3 +1,12 @@
+"""Tests for the OSF retry helper in src/janus/utils/data.py.
+
+Exercises `_osf_retry` and its use inside `download_folder` and
+`DownloadStellarSpectra` with the OSF client mocked: retrying a transient
+listing or write failure, giving up once the retry budget is spent, retrying
+a listing that fails partway through iteration, and not retrying a
+non-transient error. See docs/How-to/test.md.
+"""
+
 import re
 import time
 
@@ -7,8 +16,10 @@ import requests
 import janus.utils.data as data_module
 from janus.utils.data import OSF_RETRY_ATTEMPTS, _osf_retry, download_folder
 
-_OSF_502 = "Response has status code 502 not (200,)"
-_OSF_404 = "Response has status code 404 not (200,)"
+pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
+
+_OSF_502 = 'Response has status code 502 not (200,)'
+_OSF_404 = 'Response has status code 404 not (200,)'
 
 
 class _FakeFile:
@@ -65,6 +76,7 @@ class _PartialListingStorage:
                 if will_fail and i == self._fail_after:
                     raise RuntimeError(_OSF_502)
                 yield f
+
         return _gen()
 
 
@@ -75,6 +87,7 @@ def _no_sleep(monkeypatch):
 
 
 def test_download_folder_retries_transient_listing_failure(tmp_path):
+    """A transient failure listing storage.files is retried until it succeeds."""
     file = _FakeFile('/Oak/spectrum.sf')
     storage = _FlakyStorage([file], fail_times=OSF_RETRY_ATTEMPTS - 1)
 
@@ -85,6 +98,7 @@ def test_download_folder_retries_transient_listing_failure(tmp_path):
 
 
 def test_download_folder_retries_transient_write_failure(tmp_path):
+    """A transient failure writing a single file is retried until it succeeds."""
     file = _FakeFile('/Oak/spectrum.sf', fail_times=OSF_RETRY_ATTEMPTS - 1)
     storage = _FlakyStorage([file])
 
@@ -95,6 +109,7 @@ def test_download_folder_retries_transient_write_failure(tmp_path):
 
 
 def test_download_folder_gives_up_after_retry_budget(tmp_path):
+    """A failure that outlasts the retry budget propagates instead of looping forever."""
     storage = _FlakyStorage([], fail_times=OSF_RETRY_ATTEMPTS + 1)
 
     with pytest.raises(RuntimeError, match=re.escape(_OSF_502)):
@@ -104,10 +119,13 @@ def test_download_folder_gives_up_after_retry_budget(tmp_path):
 
 
 def test_download_folder_retries_listing_failure_mid_iteration(tmp_path):
-    # The real osfclient Storage.files is a lazy, paginated generator that can
-    # fail partway through, not a property that fails before yielding
-    # anything. Confirm the retry-from-scratch on `list(storage.files)` still
-    # produces the complete, correct file set once a later attempt succeeds.
+    """A listing that fails partway through iteration is retried from scratch.
+
+    The real osfclient Storage.files is a lazy, paginated generator that can
+    fail partway through, not a property that fails before yielding
+    anything. Confirm the retry-from-scratch on `list(storage.files)` still
+    produces the complete, correct file set once a later attempt succeeds.
+    """
     files = [_FakeFile('/Oak/a.sf'), _FakeFile('/Oak/b.sf'), _FakeFile('/Oak/c.sf')]
     storage = _PartialListingStorage(files, fail_after=1, fail_times=OSF_RETRY_ATTEMPTS - 1)
 
@@ -119,6 +137,7 @@ def test_download_folder_retries_listing_failure_mid_iteration(tmp_path):
 
 
 def test_osf_retry_does_not_retry_non_transient_status():
+    """A 404 is not a transient status, so `_osf_retry` raises after one attempt."""
     calls = []
 
     def _raise_404():
@@ -132,12 +151,13 @@ def test_osf_retry_does_not_retry_non_transient_status():
 
 
 def test_osf_retry_retries_network_error():
+    """A connection error is retried until the call succeeds within budget."""
     calls = []
 
     def _flaky():
         calls.append(1)
         if len(calls) < OSF_RETRY_ATTEMPTS:
-            raise requests.exceptions.ConnectionError("connection reset")
+            raise requests.exceptions.ConnectionError('connection reset')
         return 'ok'
 
     result = _osf_retry(_flaky)
@@ -147,6 +167,7 @@ def test_osf_retry_retries_network_error():
 
 
 def test_download_stellar_spectra_retries_project_and_storage_lookup(tmp_path, monkeypatch):
+    """Transient failures resolving the OSF project or its storage are retried."""
     project_calls = []
     storage_calls = []
 
