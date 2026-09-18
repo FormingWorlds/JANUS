@@ -1,0 +1,116 @@
+name: Docs consistency check
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run the analysis without opening a PR/issue'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: docs-consistency-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Determine dry-run mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "dry_run=${{ github.event.inputs.dry_run }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run analysis
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: python .github/scripts/docs_consistency/analyze.py
+
+      - name: Upload analysis artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-consistency-analysis
+          path: analysis.json
+
+      - name: Triage findings and apply literal fixes
+        id: triage
+        run: python .github/scripts/docs_consistency/triage_and_apply.py
+
+      - name: Guard against edits outside docs/
+        run: |
+          changed=$(git diff --name-only)
+          bad=$(echo "$changed" | grep -v '^docs/' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Analysis attempted to modify files outside docs/: $bad"
+            git checkout -- .
+            exit 1
+          fi
+
+      - name: Ensure labels exist
+        if: steps.mode.outputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create docs-consistency --color 0e8a16 --description "Automated docs-vs-code consistency PRs" 2>/dev/null || true
+          gh label create docs-gaps --color fbca04 --description "Documentation gaps found by automated check" 2>/dev/null || true
+
+      - name: Open pull request
+        if: steps.triage.outputs.has_fixes == 'true' && steps.mode.outputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh pr list --label docs-consistency --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            echo "PR #$existing is already open and unreviewed — skipping this run's PR." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="docs-consistency/$(date +%Y-%m-%d)"
+          git checkout -b "$branch"
+          git add docs/
+          git commit -m "Automated docs consistency check: $(date +%Y-%m-%d)"
+          git push origin "$branch"
+          gh pr create --draft --label docs-consistency \
+            --title "Docs consistency check: $(date +%Y-%m-%d)" \
+            --body-file pr_body.md
+
+      - name: File or update gaps issue
+        if: steps.triage.outputs.has_gaps == 'true' && steps.mode.outputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh issue list --label docs-gaps --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file gap_issue_body.md
+          else
+            gh issue create --label docs-gaps \
+              --title "Documentation gaps found by automated check" \
+              --body-file gap_issue_body.md
+          fi
