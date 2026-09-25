@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Deterministic triage of analysis.json: verify quoted excerpts, apply literal doc fixes,
 and write pr_body.md / gap_issue_body.md for the workflow to use. Findings already reported
-in the open gaps issue (read from existing_issue.md) are left out of gap_issue_body.md. No LLM calls: everything
-is a plain string operation.
+in the open gaps issue (read from existing_issue.md) are left out of gap_issue_body.md.
+No LLM calls: everything is a plain string operation.
 """
 
 import hashlib
@@ -25,7 +25,7 @@ ALLOWED_SOURCE_FILES = set(SOURCE_FILES)
 LINE_PREFIX = re.compile(r'^\d+: ', flags=re.MULTILINE)
 
 # Hidden marker embedded in every finding posted to the issue, so later runs can tell which
-# findings were already reported. 
+# findings were already reported.
 FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} -->'
 FINGERPRINT_RE = re.compile(r'<!-- docs-consistency-fp: ([0-9a-f]{16}) -->')
 
@@ -54,8 +54,7 @@ def load_reported_fingerprints():
 
 
 def drop_reported(items, reported):
-    """Keep the (finding, detail) pairs not yet reported, adding kept ones to reported.
-    """
+    """Keep the (finding, detail) pairs not yet reported, adding kept ones to reported."""
     kept = []
     for f, detail in items:
         if f['fingerprint'] not in reported:
@@ -215,13 +214,15 @@ def main():
         pr_body_path.write_text(
             '## Documentation consistency check\n\n'
             f'Automated weekly check applied {len(applied)} fix(es) for inconsistenc{plural} '
-            'between `docs/Explanations/model.md` and the source code, ordered serious → minor. '
-            'Every claim below quotes the exact doc passage and code so it can be checked directly. '
-            'Please verify each one before merging. Fixes are literal text replacements. '
-            'Inconsistencies without an applicable fix are filed in the `docs-gaps` issue instead.\n\n'
+            'between `docs/Explanations/model.md` and the source code, ordered serious → '
+            'minor. Every claim below quotes the exact doc passage and code so it can be '
+            'checked directly. Please verify each one before merging. Fixes are literal text '
+            'replacements. Inconsistencies without an applicable fix are filed in the '
+            '`docs-gaps` issue instead.\n\n'
             '## Checklist\n\n'
             '- [ ] I have verified each finding below against the actual doc and code\n'
-            '- [ ] I have reviewed (and corrected if needed) every applied fix\n\n'
+            '- [ ] I have reviewed (and corrected if needed) every applied fix\n'
+            '- [ ] I have marked this PR ready for review, which starts CI\n\n'
             '## Findings\n\n' + '\n'.join(render_finding(f) for f in applied)
         )
     else:
@@ -237,32 +238,38 @@ def main():
     unapplied = drop_reported(unapplied, reported)
     gaps = [f for f, _ in drop_reported([(f, None) for f in gaps], reported)]
     unverified = drop_reported(unverified, reported)
-    duplicates = len(issue_bound) - already_reported - len(unapplied) - len(gaps) - len(unverified)
+    kept = len(unapplied) + len(gaps) + len(unverified)
+    duplicates = len(issue_bound) - already_reported - kept
 
     issue_body_path = REPO_ROOT / 'gap_issue_body.md'
     issue_lines = []
     if unapplied:
         issue_lines += [
             '## Inconsistencies needing a manual edit\n',
-            'Automated weekly check found doc passages that contradict the source code but could not '
-            'be fixed automatically. Each finding states why its fix was not applied.\n',
+            'Automated weekly check found doc passages that contradict the source code but '
+            'could not be fixed automatically. Each finding states why its fix was not '
+            'applied.\n',
         ]
         issue_lines += [
-            render_finding(f, fix_status=reason, with_fingerprint=True) for f, reason in unapplied
+            render_finding(f, fix_status=reason, with_fingerprint=True)
+            for f, reason in unapplied
         ]
     if gaps:
         issue_lines += [
             '## Documentation gaps\n',
-            'Automated weekly check found source-code behaviour with no corresponding documentation. '
-            'These are not auto-fixed — writing new model-description prose needs a human who can vouch '
-            'for the physics.\n',
+            'Automated weekly check found source-code behaviour with no corresponding '
+            'documentation. These are not auto-fixed — writing new model-description prose '
+            'needs a human who can vouch for the physics.\n',
         ]
-        issue_lines += [render_finding(f, fix_status='gap', with_fingerprint=True) for f in gaps]
+        issue_lines += [
+            render_finding(f, fix_status='gap', with_fingerprint=True) for f in gaps
+        ]
     if unverified:
         issue_lines += [
             '## Unverified findings\n',
-            'These findings quote doc or code text that does not occur verbatim in the named file. '
-            'These findings are suspect: check manually. None of their fixes were applied.\n',
+            'These findings quote doc or code text that does not occur verbatim in the named '
+            'file. These findings are suspect: check manually. None of their fixes were '
+            'applied.\n',
         ]
         issue_lines += [
             render_finding(
