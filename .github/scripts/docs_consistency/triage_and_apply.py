@@ -18,9 +18,9 @@ from analyze import DOC_FILES, SOURCE_FILES
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 SEVERITY_ORDER = {'serious': 0, 'minor': 1}
-# For dedupe: a finding already reported at this rank or higher is not posted again, so one
-# first filed as minor (or unrated) is reposted when a later run rates it serious.
-SEVERITY_RANK = {'serious': 2}
+# Dedupe: a finding already reported at this rank or higher is not posted again. Verified
+# outranks unverified, then serious outranks minor. Default (1): unverified minor/unrated.
+STATUS_RANK = {'serious': 4, 'minor': 3, 'none': 3, 'serious-unverified': 2}
 ALLOWED_DOC_FILES = set(DOC_FILES)
 ALLOWED_SOURCE_FILES = set(SOURCE_FILES)
 
@@ -30,7 +30,7 @@ LINE_PREFIX = re.compile(r'^\d+: ', flags=re.MULTILINE)
 
 # Hidden marker embedded in every finding posted to an issue
 FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} {} -->'
-FINGERPRINT_RE = re.compile(r'<!-- docs-consistency-fp: ([0-9a-f]{16})(?: ([a-z]+))? -->')
+FINGERPRINT_RE = re.compile(r'<!-- docs-consistency-fp: ([0-9a-f]{16})(?: ([a-z-]+))? -->')
 
 
 def load_findings():
@@ -56,16 +56,16 @@ def load_reported_fingerprints(existing_file):
     path = REPO_ROOT / existing_file
     reported = {}
     if path.exists():
-        for fp, severity in FINGERPRINT_RE.findall(path.read_text()):
-            reported[fp] = max(reported.get(fp, 0), SEVERITY_RANK.get(severity, 1))
+        for fp, status in FINGERPRINT_RE.findall(path.read_text()):
+            reported[fp] = max(reported.get(fp, 0), STATUS_RANK.get(status, 1))
     return reported
 
 
 def drop_reported(sections, existing_file):
     """Filter each section's (finding, detail) pairs down to those not yet in the issue.
 
-    A finding already in the issue at the same or a higher severity is skipped; one
-    reported before at a lower severity is kept (escalated). Sections are processed in
+    A finding already in the issue at the same or a higher rank is skipped; one
+    reported before at a lower rank is kept (escalated). Sections are processed in
     order and share one set, so a finding repeated within this run is kept only in the
     first section it appears in. Returns the filtered sections and the numbers already
     reported, duplicated within this run, and escalated.
@@ -79,7 +79,7 @@ def drop_reported(sections, existing_file):
             fp = f['fingerprint']
             if fp in reported:
                 duplicates += 1
-            elif previously.get(fp, 0) >= SEVERITY_RANK.get(f.get('severity'), 1):
+            elif previously.get(fp, 0) >= STATUS_RANK.get(f['status'], 1):
                 already += 1
             else:
                 escalated += fp in previously
@@ -97,8 +97,8 @@ def issue_body(sections, already_reported, escalated=0):
             lines += [heading, intro, *rendered]
     if lines and escalated:
         lines.append(
-            f'_{escalated} finding(s) above were reported before at a lower severity and are '
-            'reposted because this run rates them serious._\n'
+            f'_{escalated} finding(s) above were reported before as unverified or at a lower '
+            'severity, and are reposted because this run ranks them higher._\n'
         )
     if lines and already_reported:
         lines.append(
@@ -188,8 +188,7 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
         heading += f' — {finding["severity"]}'
     lines = [heading]
     if with_fingerprint:
-        severity = finding.get('severity') or 'none'
-        lines.append(FINGERPRINT_MARKER.format(finding['fingerprint'], severity))
+        lines.append(FINGERPRINT_MARKER.format(finding['fingerprint'], finding['status']))
     if problems:
         lines += [
             '',
@@ -239,6 +238,7 @@ def main():
     for f in findings:
         problems = verify_excerpts(f)
         f['fingerprint'] = fingerprint(f)
+        f['status'] = (f.get('severity') or 'none') + ('-unverified' if problems else '')
         if problems:
             unverified.append((f, problems))
         else:
