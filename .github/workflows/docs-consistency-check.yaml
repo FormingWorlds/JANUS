@@ -101,17 +101,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # fetch <label> <file>: write the open issue's body and comments to <file>,
-          # print its number (empty if there is no open issue with that label).
+          # fetch <label> <file>: write the bot's open issue and its bot comments to <file>
+          # (others could forge markers); print the issue number, or nothing.
           fetch() {
             : > "$2"
             local number
             number=$(gh api "repos/${{ github.repository }}/issues?labels=$1&state=open" \
-              --jq '[.[] | select(.pull_request | not)][0].number // empty')
+              --jq '[.[] | select((.pull_request | not) and .user.login == "github-actions[bot]")][0].number // empty')
             if [ -n "$number" ]; then
               gh api "repos/${{ github.repository }}/issues/$number" --jq '.body // ""' >> "$2"
               gh api --paginate "repos/${{ github.repository }}/issues/$number/comments" \
-                --jq '.[].body' >> "$2"
+                --jq '.[] | select(.user.login == "github-actions[bot]") | .body' >> "$2"
             fi
             echo "$number"
           }
