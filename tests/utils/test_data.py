@@ -343,7 +343,9 @@ def _write_archive_manifest(drc: Path, *, extract: bool) -> tuple[Path, bytes]:
     return manifest, tarball
 
 
-def test_fetch_extracts_an_archive_dataset_that_check_then_accepts(monkeypatch, tmp_path):
+def test_fetch_extracts_an_archive_dataset_that_check_then_accepts(
+    monkeypatch, tmp_path, capsys
+):
     """An archive dataset is fetched, unpacked, and checked by its members.
 
     fwl-io discards the archive once it is unpacked, so a check that looks for
@@ -378,7 +380,11 @@ def test_fetch_extracts_an_archive_dataset_that_check_then_accepts(monkeypatch, 
     # A member lost after extraction makes the tree incomplete again.
     (root / rel_dir / 'fs255_grid' / '0p2.dat').unlink()
     assert mod.check_restored(root) == [(rel_dir, 1, 2)]
+    capsys.readouterr()
     assert mod.main(['check', '--data-root', str(root)]) == 1
+    assert 'missing files the registry pins or unpacked archive members' in (
+        capsys.readouterr().err
+    )
 
 
 def test_fetch_and_check_fail_loudly(monkeypatch, tmp_path, capsys):
