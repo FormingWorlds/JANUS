@@ -36,7 +36,7 @@ SOURCE_FILES = [
 ]
 
 MODEL = os.environ.get('CLAUDE_MODEL', 'claude-opus-5-5')
-EFFORT  os.environ.get('CLAUDE_EFFORT', 'medium')  
+EFFORT = os.environ.get('CLAUDE_EFFORT', 'medium')
 
 # Tools the CLI could otherwise use; the doc and source text are already
 # inlined into the prompt below, so none of these are needed and disallowing
@@ -82,7 +82,10 @@ FINDINGS_SCHEMA = {
                         'properties': {
                             'old_text': {
                                 'type': 'string',
-                                'description': 'verbatim substring of doc_file to replace',
+                                'description': (
+                                    'verbatim substring of doc_excerpt that occurs exactly '
+                                    'once in doc_file'
+                                ),
                             },
                             'new_text': {'type': 'string', 'description': 'replacement text'},
                         },
@@ -112,9 +115,15 @@ def read_numbered(rel_path):
     return f'--- {rel_path} ---\n{numbered}'
 
 
+def read_plain(rel_path):
+    return f'--- {rel_path} ---\n{(REPO_ROOT / rel_path).read_text()}'
+
+
 def build_prompt():
     template = (SCRIPT_DIR / 'prompt_template.md').read_text()
-    docs_blob = '\n\n'.join(read_numbered(p) for p in DOC_FILES)
+    # Docs go in unnumbered: any prefix the model copied from a numbered listing 
+    # would make an true quote fail to match.
+    docs_blob = '\n\n'.join(read_plain(p) for p in DOC_FILES)
     source_blob = '\n\n'.join(read_numbered(p) for p in SOURCE_FILES)
     return template.replace('{{DOCS}}', docs_blob).replace('{{SOURCE}}', source_blob)
 
