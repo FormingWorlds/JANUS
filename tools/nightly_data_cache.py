@@ -26,8 +26,8 @@ consuming untracked, which is the failure worth avoiding.
 place, so a tree saved under the key holds all of it and no test
 downloads. ``check`` verifies that tree without the network: every
 registry file present with its pinned checksum, for an archive dataset
-every member its extraction recorded, and for the OSF data the files the
-tests open, the last two by name.
+every member its extraction recorded, by name, and for the OSF data the
+files the tests open with the sha256 pinned here.
 
 Both subcommands fail with a diagnostic rather than degrade: an empty or
 partial digest would collide with the workflow's restore-key prefix and
@@ -47,14 +47,22 @@ from pathlib import Path
 
 KEY_PREFIX = 'fwl-data-'
 
-# JANUS data on OSF that tests/helpers reads: folder, files the tests open, download call.
+# JANUS data on OSF that tests/helpers reads: folder, sha256 of each file the tests open
+# (as the OSF file metadata reports it), download call.
 OSF_DATA = (
     (
         'spectral_files/Oak',
-        ('318/Oak.sf', '318/Oak.sf_k'),
+        {
+            '318/Oak.sf': 'aa2133bac27d6bc9850b362596f2623e573594512b2bbd0238efe751efe8ae6b',
+            '318/Oak.sf_k': 'a78dced66965fdbdf7376bb30fb70fa8685de85b47aa0a13795d87fc04ba0764',
+        },
         lambda j: j.DownloadSpectralFiles('Oak'),
     ),
-    ('stellar_spectra/Named', ('sun.txt',), lambda j: j.DownloadStellarSpectra()),
+    (
+        'stellar_spectra/Named',
+        {'sun.txt': '50a5805c463495a8d311938d8d3121a4b3d19d69d88ca4bfece5c4ce4a59f836'},
+        lambda j: j.DownloadStellarSpectra(),
+    ),
 )
 JANUS_DATA_PY = Path(__file__).resolve().parents[1] / 'src' / 'janus' / 'utils' / 'data.py'
 
@@ -191,7 +199,7 @@ def resolve_key(data_root: Path | None = None) -> str:
 
     material.append('fwl-io\t' + '.'.join(__version__.split('.')[:2]))
     material.append('janus-osf\t' + hashlib.sha256(JANUS_DATA_PY.read_bytes()).hexdigest())
-    material += [f'osf\t{folder}\t{" ".join(files)}' for folder, files, _ in OSF_DATA]
+    material += [f'osf\t{folder}\t{sorted(files.items())}' for folder, files, _ in OSF_DATA]
     digest = hashlib.sha256('\n'.join(material).encode('utf-8')).hexdigest()
     return f'{KEY_PREFIX}{digest}'
 
@@ -209,9 +217,9 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int, str]]:
     list of tuple
         One ``(rel_dir, found, expected, state)`` per dataset. ``found``
         counts the files fwl-io reports sound, and ``state`` names what that
-        means: ``intact`` for a plain dataset, checked by checksum, and
-        ``present`` for the members of an archive dataset and for the OSF
-        files the tests open, checked by name. An archive dataset with no
+        means: ``intact`` for a plain dataset and for the OSF files the tests
+        open, checked by checksum, and ``present`` for the members of an
+        archive dataset, checked by name. An archive dataset with no
         extracted tree counts as its one archive, missing.
 
     Raises
@@ -227,9 +235,17 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int, str]]:
         state = 'intact' if ds.verifiable else 'present'
         report.append((f.rel_dir, sum(not c.faulty for c in ds.files), len(ds.files), state))
     for folder, files, _ in OSF_DATA:
-        found = sum((data_root / folder / name).is_file() for name in files)
-        report.append((folder, found, len(files), 'present'))
+        report.append((folder, _osf_intact(data_root / folder, files), len(files), 'intact'))
     return report
+
+
+def _osf_intact(folder: Path, files: dict[str, str]) -> int:
+    """Count the files below ``folder`` whose sha256 matches its pin."""
+    return sum(
+        (folder / name).is_file()
+        and hashlib.sha256((folder / name).read_bytes()).hexdigest() == digest
+        for name, digest in files.items()
+    )
 
 
 def _janus_data():
@@ -261,8 +277,8 @@ def fetch_all(data_root: Path) -> None:
     jdata.FWL_DATA_DIR = Path(data_root)
     for folder, files, download in OSF_DATA:
         path = Path(data_root) / folder
-        # The JANUS downloader skips a folder that exists, so a partial one is removed.
-        if path.exists() and not all((path / name).is_file() for name in files):
+        # The JANUS downloader skips an existing folder, so a partial or corrupt one is removed.
+        if path.exists() and _osf_intact(path, files) < len(files):
             shutil.rmtree(path)
         download(jdata)
         print(f'{folder}: fetched', file=sys.stderr)

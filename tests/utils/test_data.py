@@ -420,10 +420,17 @@ def test_fetch_downloads_the_osf_data_the_tests_read_and_check_counts_it(
     monkeypatch, tmp_path, capsys
 ):
     """The OSF spectral file and stellar spectra the tests open are fetched into the data
-    root and checked by name; a partial folder, which the JANUS downloader would skip, is
-    replaced, so no test has to download."""
+    root and checked by sha256; a partial or corrupt folder, which the JANUS downloader
+    would skip, is replaced, so no test has to download."""
+    import hashlib
+
     mod = _cache_module()
     import mors.data
+
+    pin = hashlib.sha256(b'x').hexdigest()
+    monkeypatch.setattr(
+        mod, 'OSF_DATA', tuple((d, dict.fromkeys(f, pin), c) for d, f, c in mod.OSF_DATA)
+    )
 
     jdata = mod._janus_data()
     monkeypatch.setattr(mod, '_janus_data', lambda: jdata)
@@ -432,8 +439,8 @@ def test_fetch_downloads_the_osf_data_the_tests_read_and_check_counts_it(
     monkeypatch.setattr(mod, '_fetchers', lambda root: [])
     root = tmp_path / 'fwl_data'
     assert mod.check_restored(root) == [
-        ('spectral_files/Oak', 0, 2, 'present'),
-        ('stellar_spectra/Named', 0, 1, 'present'),
+        ('spectral_files/Oak', 0, 2, 'intact'),
+        ('stellar_spectra/Named', 0, 1, 'intact'),
     ]
     partial = root / 'stellar_spectra' / 'Named'
     partial.mkdir(parents=True)
@@ -442,7 +449,8 @@ def test_fetch_downloads_the_osf_data_the_tests_read_and_check_counts_it(
     def _download(folder, files):
         def write():
             assert jdata.GetFWLData() == root
-            assert not (root / folder / 'stale.txt').exists()
+            if (root / folder).exists():  # as the JANUS downloader does
+                return
             for name in files:
                 (root / folder / name).parent.mkdir(parents=True, exist_ok=True)
                 (root / folder / name).write_text('x')
@@ -460,12 +468,17 @@ def test_fetch_downloads_the_osf_data_the_tests_read_and_check_counts_it(
     assert mod.main(['fetch', '--data-root', str(root)]) == 0
     assert [r[1:3] for r in mod.check_restored(root)] == [(2, 2), (1, 1)]
     assert mod.main(['check', '--data-root', str(root)]) == 0
+    (root / 'stellar_spectra' / 'Named' / 'sun.txt').write_text('truncated')
+    assert mod.main(['check', '--data-root', str(root)]) == 1
+    assert mod.main(['fetch', '--data-root', str(root)]) == 0
+    assert mod.main(['check', '--data-root', str(root)]) == 0
     (root / 'stellar_spectra' / 'Named' / 'sun.txt').unlink()
     assert mod.main(['check', '--data-root', str(root)]) == 1
 
 
 def test_key_moves_with_the_janus_downloader_source(monkeypatch, tmp_path):
-    """The OSF project ids live in janus.utils.data, so its source is part of the key."""
+    """The OSF project ids live in janus.utils.data, so its source is part of the key, as
+    are the pinned sha256 of the OSF files."""
     mod = _cache_module()
     import mors.data
 
@@ -475,8 +488,12 @@ def test_key_moves_with_the_janus_downloader_source(monkeypatch, tmp_path):
     source = tmp_path / 'data.py'
     source.write_text("project_id = 'other'\n")
     monkeypatch.setattr(mod, 'JANUS_DATA_PY', source)
-    assert mod.resolve_key() != before
-    assert mod.resolve_key() == mod.resolve_key()
+    moved = mod.resolve_key()
+    assert moved != before
+    assert mod.resolve_key() == moved
+    pins = tuple((d, dict.fromkeys(f, '0' * 64), c) for d, f, c in mod.OSF_DATA)
+    monkeypatch.setattr(mod, 'OSF_DATA', pins)
+    assert mod.resolve_key() != moved
 
 
 def test_key_and_osf_download_do_not_import_the_janus_package(monkeypatch, tmp_path):
