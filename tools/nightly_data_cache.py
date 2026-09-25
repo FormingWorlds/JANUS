@@ -257,8 +257,9 @@ def _cmd_check(args: argparse.Namespace) -> int:
 
     if incomplete:
         print(
-            'The data tree is missing files the registry pins, or holds them with '
-            'the wrong checksum, so it does not match its cache key. If it was '
+            'The data tree is missing registry files or unpacked archive members, '
+            'or holds a file with the wrong checksum, so it does not match its '
+            'cache key. If it was '
             'restored on an exact-key hit, delete that cache entry: an exact hit is '
             'never re-saved, so the next run can then store a complete tree.',
             file=sys.stderr,

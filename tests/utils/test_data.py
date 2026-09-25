@@ -143,7 +143,7 @@ def test_spectral_download_basic_list_skip_and_error(tmp_path, monkeypatch):
 def _cache_module():
     """Load tools/nightly_data_cache.py, skipping when its inputs are absent."""
     pytest.importorskip('mors')
-    pytest.importorskip('fwl_io')
+    pytest.importorskip('fwl_io', minversion='26.8.31')
     import importlib.util
 
     path = Path(__file__).parents[2] / 'tools' / 'nightly_data_cache.py'
@@ -386,19 +386,16 @@ def test_fetch_and_check_fail_loudly(monkeypatch, tmp_path, capsys):
     mod = _cache_module()
     import mors.data
 
-    drc = tmp_path / 'pins'
-    drc.mkdir()
-    manifest, _ = _write_archive_manifest(drc, extract=True)
+    manifest, _ = _write_archive_manifest(tmp_path, extract=True)
     monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
     monkeypatch.delenv('FWL_DATA_CACHE', raising=False)
     monkeypatch.setenv('FWL_IO_OFFLINE', '1')
-    root = tmp_path / 'fwl_data'
-    assert mod.main(['fetch', '--data-root', str(root)]) == 1
+    assert mod.main(['fetch', '--data-root', str(tmp_path)]) == 1
     assert 'error: fwl-io failed' in capsys.readouterr().err
 
     # A registry with no entries would be 0 of 0; fwl-io refuses it outright.
-    (drc / 'star.tracks.spada_2013.registry.txt').write_text('', encoding='utf-8')
-    assert mod.main(['check', '--data-root', str(root)]) == 1
+    (tmp_path / 'star.tracks.spada_2013.registry.txt').write_text('', encoding='utf-8')
+    assert mod.main(['check', '--data-root', str(tmp_path)]) == 1
     assert 'empty registry' in capsys.readouterr().err
 
 
