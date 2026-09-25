@@ -96,16 +96,12 @@ jobs:
       # ones the tests happen to fetch.
       - name: Fetch the track data the key covers
         if: steps.cache-fwl-data.outputs.cache-hit != 'true'
-        run: |
-          python tools/nightly_data_cache.py fetch \
-            --data-root /home/runner/work/fwl_data
+        run: python tools/nightly_data_cache.py fetch --data-root /home/runner/work/fwl_data
 
       # On an exact hit this checks the restored tree against its key; otherwise
       # it checks the tree about to be saved under it.
       - name: Check the track data
-        run: |
-          python tools/nightly_data_cache.py check \
-            --data-root /home/runner/work/fwl_data
+        run: python tools/nightly_data_cache.py check --data-root /home/runner/work/fwl_data
 
       - name: Run unit + smoke + integration + slow tests with coverage
         run: |

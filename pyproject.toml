@@ -51,6 +51,7 @@ homepage = "https://github.com/FormingWorlds/JANUS"
 develop = [
   "bump-my-version",
   "coverage[toml]",
+  'fwl-io>=26.8.31',
   'fwl-mors',
   "pytest",
   "pytest-cov",

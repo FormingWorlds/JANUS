@@ -8,7 +8,7 @@ Three subcommands, all used by ``.github/workflows/nightly.yml``::
     python tools/nightly_data_cache.py check
 
 ``key`` prints ``key=<value>`` for ``GITHUB_OUTPUT``. The value carries a
-digest of the Baraffe layout JANUS resolves through its ``fwl-mors``
+digest of the track-data layout JANUS resolves through its ``fwl-mors``
 dependency: for every dataset the installed manifest declares, the
 directory fwl-io places it in and the per-file checksums the registry
 pins, plus the archive kind of a dataset shipped as one archive. It
@@ -186,8 +186,9 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int]]:
     -------
     list of tuple
         One ``(rel_dir, found, expected)`` per dataset. ``found`` counts the
-        files fwl-io reports intact; an archive dataset with no extracted
-        tree counts as its one archive, missing.
+        files fwl-io reports intact, by checksum for a plain dataset and by
+        presence for the members of an archive dataset; an archive dataset
+        with no extracted tree counts as its one archive, missing.
 
     Raises
     ------
@@ -250,16 +251,16 @@ def _cmd_fetch(args: argparse.Namespace) -> int:
 def _cmd_check(args: argparse.Namespace) -> int:
     incomplete = False
     for rel_dir, found, expected in check_restored(_data_root(args)):
-        print(f'{rel_dir}: {found}/{expected} files present')
+        print(f'{rel_dir}: {found}/{expected} files intact')
         if found != expected:
             incomplete = True
 
     if incomplete:
         print(
             'The data tree is missing files the registry pins, or holds them with '
-            'the wrong checksum, so it does not match the key it is stored under. '
-            'An exact-key hit is never re-saved, so delete that cache entry to let '
-            'the next run store a complete tree.',
+            'the wrong checksum, so it does not match its cache key. If it was '
+            'restored on an exact-key hit, delete that cache entry: an exact hit is '
+            'never re-saved, so the next run can then store a complete tree.',
             file=sys.stderr,
         )
         return 1
@@ -290,9 +291,9 @@ def main(argv: list[str] | None = None) -> int:
         # Anything fwl-io raises reaches here. Name it rather than let a
         # traceback stand in for the diagnostic this script promises.
         print(
-            f'error: resolving the datasets through fwl-io failed: {exc!r}. '
-            'Check that the installed fwl-mors and fwl-io still expose the '
-            'manifest and fetcher this script reads.',
+            f'error: fwl-io failed: {exc!r}. Check that the upstream records are '
+            'reachable and that the installed fwl-mors and fwl-io still expose '
+            'the manifest, fetcher and check this script reads.',
             file=sys.stderr,
         )
         return 1

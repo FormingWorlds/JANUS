@@ -378,6 +378,28 @@ def test_fetch_extracts_an_archive_dataset_that_check_then_accepts(monkeypatch, 
     # A member lost after extraction makes the tree incomplete again.
     (root / rel_dir / 'fs255_grid' / '0p2.dat').unlink()
     assert mod.check_restored(root) == [(rel_dir, 1, 2)]
+    assert mod.main(['check', '--data-root', str(root)]) == 1
+
+
+def test_fetch_and_check_fail_loudly(monkeypatch, tmp_path, capsys):
+    """A failed download and an empty registry both stop the job with a diagnostic."""
+    mod = _cache_module()
+    import mors.data
+
+    drc = tmp_path / 'pins'
+    drc.mkdir()
+    manifest, _ = _write_archive_manifest(drc, extract=True)
+    monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
+    monkeypatch.delenv('FWL_DATA_CACHE', raising=False)
+    monkeypatch.setenv('FWL_IO_OFFLINE', '1')
+    root = tmp_path / 'fwl_data'
+    assert mod.main(['fetch', '--data-root', str(root)]) == 1
+    assert 'error: fwl-io failed' in capsys.readouterr().err
+
+    # A registry with no entries would be 0 of 0; fwl-io refuses it outright.
+    (drc / 'star.tracks.spada_2013.registry.txt').write_text('', encoding='utf-8')
+    assert mod.main(['check', '--data-root', str(root)]) == 1
+    assert 'empty registry' in capsys.readouterr().err
 
 
 def test_key_moves_with_the_archive_kind(monkeypatch, tmp_path):
