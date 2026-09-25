@@ -1,11 +1,7 @@
 """Tests for .github/scripts/docs_consistency/triage_and_apply.py.
 
 Runs the triage step on hand-written analysis.json files in a temporary repo tree and
-checks the contract the workflow relies on: only safe minor fixes are applied; every
-inconsistency that is not applied (serious, or minor without a safe fix) goes to the
-inconsistency issue, gaps to the gap issue, and unverified findings to the issue matching
-their type; and findings already in an open issue are not posted again unless their
-severity rose. See docs/How-to/test.md.
+checks the contract the workflow relies on. See docs/How-to/test.md.
 """
 
 import importlib
