@@ -81,11 +81,16 @@ jobs:
         with:
           name: docs-consistency-analysis
 
+      # Only the default branch may post; scheduled runs always run on it.
       - name: Determine dry-run mode
         id: mode
+        env:
+          ON_DEFAULT: ${{ github.ref_name == github.event.repository.default_branch }}
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
             echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          elif [ "$ON_DEFAULT" != "true" ]; then
+            echo "dry_run=true" >> "$GITHUB_OUTPUT"
           else
             echo "dry_run=${{ github.event.inputs.dry_run }}" >> "$GITHUB_OUTPUT"
           fi
