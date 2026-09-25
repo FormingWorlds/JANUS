@@ -1,26 +1,33 @@
 #!/usr/bin/env python3
 """Cache key and restore check for the FWL data tree the nightly caches.
 
-Two subcommands, both used by ``.github/workflows/nightly.yml``::
+Three subcommands, all used by ``.github/workflows/nightly.yml``::
 
     python tools/nightly_data_cache.py key
+    python tools/nightly_data_cache.py fetch
     python tools/nightly_data_cache.py check
 
 ``key`` prints ``key=<value>`` for ``GITHUB_OUTPUT``. The value carries a
-digest of the Baraffe layout JANUS resolves through its ``fwl-mors``
+digest of the track-data layout JANUS resolves through its ``fwl-mors``
 dependency: for every dataset the installed manifest declares, the
 directory fwl-io places it in and the per-file checksums the registry
-pins. It therefore moves when the data moves and stays put otherwise.
+pins, plus the archive kind of a dataset shipped as one archive and the
+fwl-io release (year.month) that lays out the tree. It also carries the
+source of ``janus.utils.data``, which pins the OSF projects of the
+spectral file and stellar spectra the tests read. It therefore moves
+when the data or its layout moves and stays put otherwise.
 
 Every declared dataset counts, not only the one JANUS fetches today. A
 dataset the manifest gains later costs at most one extra refetch, where
 narrowing the digest to a named subset would leave a dataset JANUS starts
 consuming untracked, which is the failure worth avoiding.
 
-``check`` verifies that every registry file is present in that resolved
-directory. The nightly runs it only on an exact-key cache hit, where a
-missing file means the restored tree does not match the key it was
-stored under.
+``fetch`` downloads every dataset the key covers that is not already in
+place, so a tree saved under the key holds all of it and no test
+downloads. ``check`` verifies that tree without the network: every
+registry file present with its pinned checksum, for an archive dataset
+every member its extraction recorded, by name, and for the OSF data the
+files the tests open with the sha256 pinned here.
 
 Both subcommands fail with a diagnostic rather than degrade: an empty or
 partial digest would collide with the workflow's restore-key prefix and
@@ -31,12 +38,33 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
 
 KEY_PREFIX = 'fwl-data-'
+
+# JANUS data on OSF that tests/helpers reads: folder, sha256 of each file the tests open
+# (as the OSF file metadata reports it), download call.
+OSF_DATA = (
+    (
+        'spectral_files/Oak',
+        {
+            '318/Oak.sf': 'aa2133bac27d6bc9850b362596f2623e573594512b2bbd0238efe751efe8ae6b',
+            '318/Oak.sf_k': 'a78dced66965fdbdf7376bb30fb70fa8685de85b47aa0a13795d87fc04ba0764',
+        },
+        lambda j: j.DownloadSpectralFiles('Oak'),
+    ),
+    (
+        'stellar_spectra/Named',
+        {'sun.txt': '50a5805c463495a8d311938d8d3121a4b3d19d69d88ca4bfece5c4ce4a59f836'},
+        lambda j: j.DownloadStellarSpectra(),
+    ),
+)
+JANUS_DATA_PY = Path(__file__).resolve().parents[1] / 'src' / 'janus' / 'utils' / 'data.py'
 
 
 class ResolutionError(RuntimeError):
@@ -122,6 +150,7 @@ def _fetchers(data_root: Path) -> list:
                 dataverse=ds.dataverse,
                 registry=ds.registry_path,
                 data_root=data_root,
+                extract=ds.extract,
             )
         )
     return built
@@ -155,6 +184,8 @@ def resolve_key(data_root: Path | None = None) -> str:
     material = []
     for f in _fetchers(data_root):
         material.append(f'dir\t{f.rel_dir}')
+        if f.extract:
+            material.append(f'extract\t{f.extract}')
         for name in sorted(f.registry):
             material.append(f'file\t{name}\t{f.registry[name]}')
 
@@ -164,12 +195,16 @@ def resolve_key(data_root: Path | None = None) -> str:
             'the bare restore-key prefix and the cached tree could never be '
             'rewritten.'
         )
+    from fwl_io import __version__
 
+    material.append('fwl-io\t' + '.'.join(__version__.split('.')[:2]))
+    material.append('janus-osf\t' + hashlib.sha256(JANUS_DATA_PY.read_bytes()).hexdigest())
+    material += [f'osf\t{folder}\t{sorted(files.items())}' for folder, files, _ in OSF_DATA]
     digest = hashlib.sha256('\n'.join(material).encode('utf-8')).hexdigest()
     return f'{KEY_PREFIX}{digest}'
 
 
-def check_restored(data_root: Path) -> list[tuple[str, int, int]]:
+def check_restored(data_root: Path) -> list[tuple[str, int, int, str]]:
     """Report how much of each dataset is present below ``data_root``.
 
     Parameters
@@ -180,19 +215,82 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int]]:
     Returns
     -------
     list of tuple
-        One ``(rel_dir, found, expected)`` per dataset.
+        One ``(rel_dir, found, expected, state)`` per dataset. ``found``
+        counts the files fwl-io reports sound, and ``state`` names what that
+        means: ``intact`` for a plain dataset and for the OSF files the tests
+        open, checked by checksum, and ``present`` for the members of an
+        archive dataset, checked by name. An archive dataset with no
+        extracted tree counts as its one archive, missing.
 
     Raises
     ------
     ResolutionError
         When the datasets cannot be resolved.
     """
+    from fwl_io import check_dataset
+
     report = []
     for f in _fetchers(data_root):
-        expected = sorted(f.registry)
-        found = sum(1 for name in expected if (f.target_dir / name).is_file())
-        report.append((f.rel_dir, found, len(expected)))
+        ds = check_dataset(f)
+        state = 'intact' if ds.verifiable else 'present'
+        report.append((f.rel_dir, sum(not c.faulty for c in ds.files), len(ds.files), state))
+    for folder, files, _ in OSF_DATA:
+        report.append((folder, _osf_intact(data_root / folder, files), len(files), 'intact'))
     return report
+
+
+def _osf_intact(folder: Path, files: dict[str, str]) -> int:
+    """Count the files below ``folder`` whose sha256 matches its pin."""
+    return sum(
+        (folder / name).is_file()
+        and hashlib.sha256((folder / name).read_bytes()).hexdigest() == digest
+        for name, digest in files.items()
+    )
+
+
+def _janus_data():
+    """Load ``janus/utils/data.py`` alone, since the janus package import needs SOCRATES."""
+    spec = importlib.util.spec_from_file_location('janus_osf_data', JANUS_DATA_PY)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def fetch_all(data_root: Path) -> None:
+    """Fetch every dataset the key covers into ``data_root``.
+
+    Parameters
+    ----------
+    data_root : Path
+        Root of the FWL data tree the nightly caches.
+
+    Raises
+    ------
+    ResolutionError
+        When the datasets cannot be resolved.
+    """
+    for f in _fetchers(data_root):
+        f.fetch_all()
+        print(f'{f.rel_dir}: fetched', file=sys.stderr)
+
+    jdata = _janus_data()
+    jdata.FWL_DATA_DIR = Path(data_root)
+    for folder, files, download in OSF_DATA:
+        path = Path(data_root) / folder
+        # The JANUS downloader skips an existing folder, so a partial or corrupt one is removed.
+        if path.exists() and _osf_intact(path, files) < len(files):
+            shutil.rmtree(path)
+        download(jdata)
+        print(f'{folder}: fetched', file=sys.stderr)
+
+
+def _data_root(args: argparse.Namespace) -> Path:
+    # Test the argument before it becomes a Path: Path('') is Path('.'), so a
+    # guard on the Path would pass and quietly use the working directory.
+    given = args.data_root or os.environ.get('FWL_DATA')
+    if not given:
+        raise ResolutionError('no data root: pass --data-root or set FWL_DATA.')
+    return Path(given)
 
 
 def _cmd_key(args: argparse.Namespace) -> int:
@@ -207,26 +305,25 @@ def _cmd_key(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_check(args: argparse.Namespace) -> int:
-    # Test the argument before it becomes a Path: Path('') is Path('.'), so a
-    # guard on the Path would pass and quietly check the working directory.
-    given = args.data_root or os.environ.get('FWL_DATA')
-    if not given:
-        raise ResolutionError('no data root to check: pass --data-root or set FWL_DATA.')
-    root = Path(given)
+def _cmd_fetch(args: argparse.Namespace) -> int:
+    fetch_all(_data_root(args))
+    return 0
 
+
+def _cmd_check(args: argparse.Namespace) -> int:
     incomplete = False
-    for rel_dir, found, expected in check_restored(root):
-        print(f'{rel_dir}: {found}/{expected} files present')
+    for rel_dir, found, expected, state in check_restored(_data_root(args)):
+        print(f'{rel_dir}: {found}/{expected} files {state}')
         if found != expected:
             incomplete = True
 
     if incomplete:
         print(
-            'The restored tree is missing files the registry pins, so it does not '
-            'match the key it was stored under and the nightly will refetch them '
-            'from a single upstream mirror. An exact-key hit is never re-saved, so '
-            'delete that cache entry to let the next run store a complete tree.',
+            'The data tree is missing files the registry pins or unpacked archive '
+            'members, or holds a file with the wrong checksum, so it does not match '
+            'its cache key. If it was restored on an exact-key hit, delete that '
+            'cache entry: an exact hit is never re-saved, so the next run can then '
+            'store a complete tree.',
             file=sys.stderr,
         )
         return 1
@@ -238,11 +335,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('key', help='print the cache key for the FWL data tree')
-    check = sub.add_parser('check', help='verify the restored tree against the registry')
-    check.add_argument('--data-root', default=None, help='defaults to FWL_DATA')
+    for name, text in (
+        ('fetch', 'fetch every dataset the key covers'),
+        ('check', 'verify the data tree against the registry'),
+    ):
+        sub.add_parser(name, help=text).add_argument(
+            '--data-root', default=None, help='defaults to FWL_DATA'
+        )
 
     args = parser.parse_args(argv)
-    handler = {'key': _cmd_key, 'check': _cmd_check}[args.command]
+    handler = {'key': _cmd_key, 'fetch': _cmd_fetch, 'check': _cmd_check}[args.command]
     try:
         return handler(args)
     except ResolutionError as exc:
@@ -252,9 +354,9 @@ def main(argv: list[str] | None = None) -> int:
         # Anything fwl-io raises reaches here. Name it rather than let a
         # traceback stand in for the diagnostic this script promises.
         print(
-            f'error: resolving the datasets through fwl-io failed: {exc!r}. '
-            'Check that the installed fwl-mors and fwl-io still expose the '
-            'manifest and fetcher this script reads.',
+            f'error: reading or fetching the data failed: {exc!r}. Check that Zenodo '
+            'and OSF are reachable and that the installed fwl-mors, fwl-io and janus '
+            'still expose the manifest, fetcher, check and downloaders this script reads.',
             file=sys.stderr,
         )
         return 1
