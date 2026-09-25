@@ -63,6 +63,22 @@ jobs:
           name: docs-consistency-analysis
           path: analysis.json
 
+      # make sure findings already reported in the gaps issue are not reported again, even if they are still present in the code/docs
+      - name: Fetch findings already reported in the gaps issue
+        id: existing_issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          : > existing_issue.md
+          number=$(gh api "repos/${{ github.repository }}/issues?labels=docs-gaps&state=open" \
+            --jq '[.[] | select(.pull_request | not)][0].number // empty')
+          if [ -n "$number" ]; then
+            gh api "repos/${{ github.repository }}/issues/$number" --jq '.body // ""' >> existing_issue.md
+            gh api --paginate "repos/${{ github.repository }}/issues/$number/comments" \
+              --jq '.[].body' >> existing_issue.md
+          fi
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
       - name: Triage findings and apply literal fixes
         id: triage
         run: python .github/scripts/docs_consistency/triage_and_apply.py
@@ -115,7 +131,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          existing=$(gh issue list --label docs-gaps --state open --json number --jq '.[0].number // empty')
+          existing="${{ steps.existing_issue.outputs.number }}"
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body-file gap_issue_body.md
           else
