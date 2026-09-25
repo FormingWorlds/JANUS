@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Deterministic triage of analysis.json: verify quoted excerpts, apply literal doc fixes,
-and write pr_body.md / gap_issue_body.md for the workflow to use. Findings already reported
-in the open gaps issue (read from existing_issue.md) are left out of gap_issue_body.md.
+and write pr_body.md, gap_issue_body.md and serious_issue_body.md for the workflow to use.
+Serious inconsistencies get their own issue, since they may point to a bug in the code.
 No LLM calls: everything is a plain string operation.
 """
 
@@ -47,20 +47,49 @@ def fingerprint(finding):
     return hashlib.sha256(key.encode()).hexdigest()[:16]
 
 
-def load_reported_fingerprints():
-    """Fingerprints found in the open issue's body and comments, as fetched by the workflow."""
-    path = REPO_ROOT / 'existing_issue.md'
+def load_reported_fingerprints(existing_file):
+    """Fingerprints in an open issue's body and comments, as fetched by the workflow."""
+    path = REPO_ROOT / existing_file
     return set(FINGERPRINT_RE.findall(path.read_text())) if path.exists() else set()
 
 
-def drop_reported(items, reported):
-    """Keep the (finding, detail) pairs not yet reported, adding kept ones to reported."""
-    kept = []
-    for f, detail in items:
-        if f['fingerprint'] not in reported:
-            reported.add(f['fingerprint'])
-            kept.append((f, detail))
-    return kept
+def drop_reported(sections, existing_file):
+    """Filter each section's (finding, detail) pairs down to those not yet in the issue.
+
+    Sections are processed in order and share one set, so a finding repeated within this
+    run is kept only in the first section it appears in. Returns the filtered sections,
+    the number already in the issue, and the number of within-run duplicates.
+    """
+    previously = load_reported_fingerprints(existing_file)
+    reported = set(previously)
+    filtered, already, duplicates = [], 0, 0
+    for items in sections:
+        kept = []
+        for f, detail in items:
+            fp = f['fingerprint']
+            if fp in previously:
+                already += 1
+            elif fp in reported:
+                duplicates += 1
+            else:
+                reported.add(fp)
+                kept.append((f, detail))
+        filtered.append(kept)
+    return filtered, already, duplicates
+
+
+def issue_body(sections, already_reported):
+    """Join (heading, intro, rendered findings) sections, skipping empty ones."""
+    lines = []
+    for heading, intro, rendered in sections:
+        if rendered:
+            lines += [heading, intro, *rendered]
+    if lines and already_reported:
+        lines.append(
+            f'_{already_reported} other finding(s) from this run were already reported in '
+            'this issue and are not repeated._\n'
+        )
+    return '\n'.join(lines)
 
 
 def verify_excerpts(finding):
@@ -106,7 +135,10 @@ def apply_fix(finding):
     old, new = fix['old_text'], fix['new_text']
     excerpt = finding.get('doc_excerpt') or ''
     count = text.count(old) if old else 0
-    if not old:
+    if finding.get('severity') != 'minor':
+        # A serious disagreement may be a bug in the code, not the doc
+        reason = 'not a minor finding: a human must decide whether the doc or the code is wrong'
+    elif not old:
         reason = 'old_text is empty'
     elif old == new:
         reason = 'old_text and new_text are identical'
@@ -200,11 +232,13 @@ def main():
     inconsistencies.sort(key=lambda f: SEVERITY_ORDER.get(f.get('severity'), 99))
     unverified.sort(key=lambda fp: SEVERITY_ORDER.get(fp[0].get('severity'), 99))
 
-    applied, unapplied = [], []
+    applied, serious, unapplied = [], [], []
     for f in inconsistencies:
         reason = apply_fix(f)
         if reason is None:
             applied.append(f)
+        elif f.get('severity') == 'serious':
+            serious.append((f, reason))
         else:
             unapplied.append((f, reason))
 
@@ -213,12 +247,13 @@ def main():
         plural = 'y' if len(applied) == 1 else 'ies'
         pr_body_path.write_text(
             '## Documentation consistency check\n\n'
-            f'Automated weekly check applied {len(applied)} fix(es) for inconsistenc{plural} '
-            'between `docs/Explanations/model.md` and the source code, ordered serious → '
-            'minor. Every claim below quotes the exact doc passage and code so it can be '
-            'checked directly. Please verify each one before merging. Fixes are literal text '
-            'replacements. Inconsistencies without an applicable fix are filed in the '
-            '`docs-gaps` issue instead.\n\n'
+            f'Automated weekly check applied {len(applied)} fix(es) for minor '
+            f'inconsistenc{plural} between `docs/Explanations/model.md` and the source code. '
+            'Every claim below quotes the exact doc passage and code so it can be checked '
+            'directly. Please verify each one before merging. Fixes are literal text '
+            'replacements. Serious inconsistencies are never auto-fixed, since the code may '
+            'be the side that is wrong. They are filed in the `docs-code-conflict` issue, '
+            'and other inconsistencies without an applicable fix in the `docs-gaps` issue.\n\n'
             '## Checklist\n\n'
             '- [ ] I have verified each finding below against the actual doc and code\n'
             '- [ ] I have reviewed (and corrected if needed) every applied fix\n'
@@ -230,70 +265,84 @@ def main():
             '## Documentation consistency check\n\nNo fixes applied this run.\n'
         )
 
-    # Only a verified finding claims a fingerprint before an unverified duplicate.
-    reported = load_reported_fingerprints()
-    issue_bound = [f for f in inconsistencies + gaps if f not in applied]
-    issue_bound += [f for f, _ in unverified]
-    already_reported = sum(f['fingerprint'] in reported for f in issue_bound)
-    unapplied = drop_reported(unapplied, reported)
-    gaps = [f for f, _ in drop_reported([(f, None) for f in gaps], reported)]
-    unverified = drop_reported(unverified, reported)
-    kept = len(unapplied) + len(gaps) + len(unverified)
-    duplicates = len(issue_bound) - already_reported - kept
+    # Each issue dedupes against its own posts, so a finding first filed as minor is still
+    # escalated if a later run rates it serious.
+    (serious,), serious_already, serious_dups = drop_reported(
+        [serious], 'existing_serious_issue.md'
+    )
+    # Verified findings come first, so they claim a fingerprint before an unverified copy.
+    (unapplied, gaps, unverified), gap_already, gap_dups = drop_reported(
+        [unapplied, [(f, None) for f in gaps], unverified], 'existing_issue.md'
+    )
+    gaps = [f for f, _ in gaps]
 
-    issue_body_path = REPO_ROOT / 'gap_issue_body.md'
-    issue_lines = []
-    if unapplied:
-        issue_lines += [
-            '## Inconsistencies needing a manual edit\n',
-            'Automated weekly check found doc passages that contradict the source code but '
-            'could not be fixed automatically. Each finding states why its fix was not '
-            'applied.\n',
-        ]
-        issue_lines += [
-            render_finding(f, fix_status=reason, with_fingerprint=True)
-            for f, reason in unapplied
-        ]
-    if gaps:
-        issue_lines += [
-            '## Documentation gaps\n',
-            'Automated weekly check found source-code behaviour with no corresponding '
-            'documentation. These are not auto-fixed — writing new model-description prose '
-            'needs a human who can vouch for the physics.\n',
-        ]
-        issue_lines += [
-            render_finding(f, fix_status='gap', with_fingerprint=True) for f in gaps
-        ]
-    if unverified:
-        issue_lines += [
-            '## Unverified findings\n',
-            'These findings quote doc or code text that does not occur verbatim in the named '
-            'file. These findings are suspect: check manually. None of their fixes were '
-            'applied.\n',
-        ]
-        issue_lines += [
-            render_finding(
-                f, fix_status='finding unverified', problems=problems, with_fingerprint=True
-            )
-            for f, problems in unverified
-        ]
-    if issue_lines and already_reported:
-        issue_lines.append(
-            f'_{already_reported} other finding(s) from this run were already reported in this '
-            'issue and are not repeated._\n'
-        )
-    issue_body_path.write_text('\n'.join(issue_lines))
+    serious_body = issue_body(
+        [
+            (
+                '## Serious inconsistencies\n',
+                'Automated weekly check found places where the doc and the code disagree in a '
+                'way that would change model output or physical interpretation. For each, '
+                'decide which side is correct, then fix the code or the doc.\n',
+                [
+                    render_finding(f, fix_status=reason, with_fingerprint=True)
+                    for f, reason in serious
+                ],
+            ),
+        ],
+        serious_already,
+    )
+    (REPO_ROOT / 'serious_issue_body.md').write_text(serious_body)
+
+    gap_body = issue_body(
+        [
+            (
+                '## Inconsistencies needing a manual edit\n',
+                'Automated weekly check found doc passages that contradict the source code '
+                'but could not be fixed automatically. Each finding states why its fix was '
+                'not applied.\n',
+                [
+                    render_finding(f, fix_status=reason, with_fingerprint=True)
+                    for f, reason in unapplied
+                ],
+            ),
+            (
+                '## Documentation gaps\n',
+                'Automated weekly check found source-code behaviour with no corresponding '
+                'documentation. These are not auto-fixed — writing new model-description '
+                'prose needs a human who can vouch for the physics.\n',
+                [render_finding(f, fix_status='gap', with_fingerprint=True) for f in gaps],
+            ),
+            (
+                '## Unverified findings\n',
+                'These findings quote doc or code text that does not occur verbatim in the '
+                'named file. These findings are suspect: check manually. None of their fixes '
+                'were applied.\n',
+                [
+                    render_finding(
+                        f,
+                        fix_status='finding unverified',
+                        problems=problems,
+                        with_fingerprint=True,
+                    )
+                    for f, problems in unverified
+                ],
+            ),
+        ],
+        gap_already,
+    )
+    (REPO_ROOT / 'gap_issue_body.md').write_text(gap_body)
 
     summary = (
         f'Docs consistency triage: {len(applied)} fix(es) applied, '
+        f'{len(serious)} serious inconsistenc(ies), '
         f'{len(unapplied)} inconsistenc(ies) need a manual edit, {len(gaps)} gap(s), '
         f'{len(unverified)} unverified finding(s)'
     )
     if unverified:
         summary += ' (' + ', '.join(f'`{f.get("id")}`' for f, _ in unverified) + ')'
     summary += (
-        f' newly filed; {already_reported} already reported, '
-        f'{duplicates} duplicate(s) within this run'
+        f' newly filed; {serious_already + gap_already} already reported, '
+        f'{serious_dups + gap_dups} duplicate(s) within this run'
     )
     print(summary)
     step_summary = os.environ.get('GITHUB_STEP_SUMMARY')
@@ -303,7 +352,8 @@ def main():
 
     results = {
         'has_fixes': 'true' if applied else 'false',
-        'has_issue_items': 'true' if issue_lines else 'false',
+        'has_serious_items': 'true' if serious_body else 'false',
+        'has_issue_items': 'true' if gap_body else 'false',
     }
     github_output = os.environ.get('GITHUB_OUTPUT')
     if github_output:
