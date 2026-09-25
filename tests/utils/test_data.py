@@ -233,8 +233,13 @@ def test_nightly_workflow_derives_its_key_and_keeps_a_restore_prefix():
     # including the OSF ones the key does not track.
     assert 'restore-keys:' in workflow
     assert f'\n            {mod.KEY_PREFIX}\n' in workflow
-    # The check only means something on an exact hit.
-    assert "if: steps.cache-fwl-data.outputs.cache-hit == 'true'" in workflow
+    # A tree about to be saved under a new key is fetched in full first, and
+    # the check covers every run, since a missed key saves at the end of it.
+    fetch = workflow.index('tools/nightly_data_cache.py fetch')
+    check = workflow.index('tools/nightly_data_cache.py check')
+    assert workflow.index("if: steps.cache-fwl-data.outputs.cache-hit != 'true'") < fetch
+    assert fetch < check < workflow.index('pytest -m')
+    assert 'cache-hit ==' not in workflow
 
 
 def test_cache_key_refuses_to_resolve_when_the_pins_are_missing(monkeypatch, tmp_path):
@@ -267,17 +272,25 @@ def test_cache_key_refuses_to_resolve_when_the_pins_are_missing(monkeypatch, tmp
 
 
 def test_restore_check_counts_registry_files_not_directories(monkeypatch, tmp_path):
-    """The restore check compares file counts against the registry, not existence.
+    """The restore check counts intact registry files, not directory existence.
 
     A directory that exists but is short of its registry is exactly what a
-    frozen cache looks like, so presence alone must not pass.
+    frozen cache looks like, so presence alone must not pass, and neither may
+    a file whose contents differ from its pinned checksum.
     """
+    import hashlib
+
     mod = _cache_module()
     import mors.data
 
     drc = tmp_path / 'pins'
     drc.mkdir()
-    manifest = _write_manifest(drc, record='15729114', checksum='a' * 32)
+    manifest = _write_manifest(drc, record='15729114', checksum=hashlib.md5(b'x').hexdigest())
+    registry = drc / 'star.tracks.baraffe_2015.registry.txt'
+    registry.write_text(
+        registry.read_text(encoding='utf-8').replace('b' * 32, hashlib.md5(b'y').hexdigest()),
+        encoding='utf-8',
+    )
     monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
 
     root = tmp_path / 'fwl_data'
@@ -292,9 +305,95 @@ def test_restore_check_counts_registry_files_not_directories(monkeypatch, tmp_pa
     assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 1, 2)]
     assert mod.main(['check', '--data-root', str(root)]) == 1
 
+    # Present with the wrong contents is not intact.
     (target / 'BHAC15-M0p015.txt').write_text('x', encoding='utf-8')
+    assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 1, 2)]
+    assert mod.main(['check', '--data-root', str(root)]) == 1
+
+    (target / 'BHAC15-M0p015.txt').write_text('y', encoding='utf-8')
     assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 2, 2)]
     assert mod.main(['check', '--data-root', str(root)]) == 0
+
+
+def _write_archive_manifest(drc: Path, *, extract: bool) -> tuple[Path, bytes]:
+    """Write a one-archive manifest and registry; return it and the tarball."""
+    import hashlib
+    import io
+    import tarfile
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode='w:gz') as tar:
+        for name, data in (('fs255_grid/0p1.dat', b'track-a'), ('fs255_grid/0p2.dat', b'b')):
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            tar.addfile(info, io.BytesIO(data))
+    tarball = buf.getvalue()
+    manifest = drc / 'mors_manifest.toml'
+    manifest.write_text(
+        '[star.tracks.spada_2013]\n'
+        'name = "Spada tracks"\n'
+        'zenodo = "10.5281/zenodo.15729101"\n'
+        + ('extract = "tar"\n' if extract else '')
+        + 'required_by = ["mors"]\n',
+        encoding='utf-8',
+    )
+    (drc / 'star.tracks.spada_2013.registry.txt').write_text(
+        f'fs255_grid.tar.gz md5:{hashlib.md5(tarball).hexdigest()}\n', encoding='utf-8'
+    )
+    return manifest, tarball
+
+
+def test_fetch_extracts_an_archive_dataset_that_check_then_accepts(monkeypatch, tmp_path):
+    """An archive dataset is fetched, unpacked, and checked by its members.
+
+    fwl-io discards the archive once it is unpacked, so a check that looks for
+    the archive by name fails on a complete tree. Fetching runs through the
+    fwl-io shared cache here, with the network switched off.
+    """
+    mod = _cache_module()
+    import mors.data
+
+    drc = tmp_path / 'pins'
+    drc.mkdir()
+    manifest, tarball = _write_archive_manifest(drc, extract=True)
+    monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
+    rel_dir = 'star/tracks/spada_2013/r15729101'
+    cache = tmp_path / 'cache'
+    (cache / rel_dir).mkdir(parents=True)
+    (cache / rel_dir / 'fs255_grid.tar.gz').write_bytes(tarball)
+    monkeypatch.setenv('FWL_DATA_CACHE', str(cache))
+    monkeypatch.setenv('FWL_IO_OFFLINE', '1')
+
+    root = tmp_path / 'fwl_data'
+    # Nothing fetched yet: one missing item, never zero of zero.
+    assert mod.check_restored(root) == [(rel_dir, 0, 1)]
+    assert mod.main(['check', '--data-root', str(root)]) == 1
+
+    assert mod.main(['fetch', '--data-root', str(root)]) == 0
+    assert (root / rel_dir / 'fs255_grid' / '0p1.dat').read_bytes() == b'track-a'
+    assert not (root / rel_dir / 'fs255_grid.tar.gz').exists()
+    assert mod.check_restored(root) == [(rel_dir, 2, 2)]
+    assert mod.main(['check', '--data-root', str(root)]) == 0
+
+    # A member lost after extraction makes the tree incomplete again.
+    (root / rel_dir / 'fs255_grid' / '0p2.dat').unlink()
+    assert mod.check_restored(root) == [(rel_dir, 1, 2)]
+
+
+def test_key_moves_with_the_archive_kind(monkeypatch, tmp_path):
+    """Unpacking a dataset changes its tree, so the key tracks the archive kind."""
+    mod = _cache_module()
+    import mors.data
+
+    keys = []
+    for extract in (True, False, True):
+        drc = tmp_path / f'pins-{len(keys)}'
+        drc.mkdir()
+        manifest, _ = _write_archive_manifest(drc, extract=extract)
+        monkeypatch.setattr(mors.data, 'manifest_path', lambda m=manifest: m, raising=True)
+        keys.append(mod.resolve_key())
+    assert keys[0] != keys[1]
+    assert keys[0] == keys[2]
 
 
 def test_key_command_writes_the_output_line_the_workflow_reads(monkeypatch, tmp_path):
@@ -366,6 +465,8 @@ def test_check_refuses_to_run_without_a_data_root(monkeypatch, capsys):
     with pytest.raises(mod.ResolutionError, match='no data root'):
         mod._cmd_check(SimpleNamespace(data_root=None))
     assert mod.main(['check']) == 1
+    # fetch must not download into the working directory either.
+    assert mod.main(['fetch']) == 1
     assert 'no data root' in capsys.readouterr().err
 
     # An empty string is the same case and must not fall through to the CWD.

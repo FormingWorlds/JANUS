@@ -91,12 +91,18 @@ jobs:
           restore-keys: |
             fwl-data-
 
-      # A tree restored on an exact key hit holds what that key was stored
-      # under, so anything short of the registry means the two have come apart.
-      # A prefix restore is expected to be incomplete and is not checked. Only
-      # the manifest-declared datasets are covered, which is what the key spans.
-      - name: Check the restored track data
-        if: steps.cache-fwl-data.outputs.cache-hit == 'true'
+      # Without an exact hit the tree is saved under this key at the end of the
+      # job, so it must first hold every dataset the key covers, not only the
+      # ones the tests happen to fetch.
+      - name: Fetch the track data the key covers
+        if: steps.cache-fwl-data.outputs.cache-hit != 'true'
+        run: |
+          python tools/nightly_data_cache.py fetch \
+            --data-root /home/runner/work/fwl_data
+
+      # On an exact hit this checks the restored tree against its key; otherwise
+      # it checks the tree about to be saved under it.
+      - name: Check the track data
         run: |
           python tools/nightly_data_cache.py check \
             --data-root /home/runner/work/fwl_data

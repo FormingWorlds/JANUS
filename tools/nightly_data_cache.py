@@ -1,26 +1,28 @@
 #!/usr/bin/env python3
 """Cache key and restore check for the FWL data tree the nightly caches.
 
-Two subcommands, both used by ``.github/workflows/nightly.yml``::
+Three subcommands, all used by ``.github/workflows/nightly.yml``::
 
     python tools/nightly_data_cache.py key
+    python tools/nightly_data_cache.py fetch
     python tools/nightly_data_cache.py check
 
 ``key`` prints ``key=<value>`` for ``GITHUB_OUTPUT``. The value carries a
 digest of the Baraffe layout JANUS resolves through its ``fwl-mors``
 dependency: for every dataset the installed manifest declares, the
 directory fwl-io places it in and the per-file checksums the registry
-pins. It therefore moves when the data moves and stays put otherwise.
+pins, plus the archive kind of a dataset shipped as one archive. It
+therefore moves when the data moves and stays put otherwise.
 
 Every declared dataset counts, not only the one JANUS fetches today. A
 dataset the manifest gains later costs at most one extra refetch, where
 narrowing the digest to a named subset would leave a dataset JANUS starts
 consuming untracked, which is the failure worth avoiding.
 
-``check`` verifies that every registry file is present in that resolved
-directory. The nightly runs it only on an exact-key cache hit, where a
-missing file means the restored tree does not match the key it was
-stored under.
+``fetch`` downloads every dataset the key covers, so a tree saved under
+the key holds all of it. ``check`` verifies that tree without the network:
+every registry file present with its pinned checksum, and for an archive
+dataset every member its extraction recorded.
 
 Both subcommands fail with a diagnostic rather than degrade: an empty or
 partial digest would collide with the workflow's restore-key prefix and
@@ -122,6 +124,7 @@ def _fetchers(data_root: Path) -> list:
                 dataverse=ds.dataverse,
                 registry=ds.registry_path,
                 data_root=data_root,
+                extract=ds.extract,
             )
         )
     return built
@@ -155,6 +158,8 @@ def resolve_key(data_root: Path | None = None) -> str:
     material = []
     for f in _fetchers(data_root):
         material.append(f'dir\t{f.rel_dir}')
+        if f.extract:
+            material.append(f'extract\t{f.extract}')
         for name in sorted(f.registry):
             material.append(f'file\t{name}\t{f.registry[name]}')
 
@@ -180,19 +185,49 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int]]:
     Returns
     -------
     list of tuple
-        One ``(rel_dir, found, expected)`` per dataset.
+        One ``(rel_dir, found, expected)`` per dataset. ``found`` counts the
+        files fwl-io reports intact; an archive dataset with no extracted
+        tree counts as its one archive, missing.
 
     Raises
     ------
     ResolutionError
         When the datasets cannot be resolved.
     """
+    from fwl_io import check_dataset
+
     report = []
     for f in _fetchers(data_root):
-        expected = sorted(f.registry)
-        found = sum(1 for name in expected if (f.target_dir / name).is_file())
-        report.append((f.rel_dir, found, len(expected)))
+        files = check_dataset(f).files
+        report.append((f.rel_dir, sum(not c.faulty for c in files), len(files)))
     return report
+
+
+def fetch_all(data_root: Path) -> None:
+    """Fetch every dataset the key covers into ``data_root``.
+
+    Parameters
+    ----------
+    data_root : Path
+        Root of the FWL data tree the nightly caches.
+
+    Raises
+    ------
+    ResolutionError
+        When the datasets cannot be resolved.
+    """
+    for f in _fetchers(data_root):
+        f.fetch_all()
+        print(f'{f.rel_dir}: fetched', file=sys.stderr)
+
+
+def _data_root(args: argparse.Namespace) -> Path:
+    # Test the argument before it becomes a Path: Path('') is Path('.'), so a
+    # guard on the Path would pass and quietly use the working directory.
+    given = args.data_root or os.environ.get('FWL_DATA')
+    if not given:
+        raise ResolutionError('no data root: pass --data-root or set FWL_DATA.')
+    return Path(given)
 
 
 def _cmd_key(args: argparse.Namespace) -> int:
@@ -207,26 +242,24 @@ def _cmd_key(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_check(args: argparse.Namespace) -> int:
-    # Test the argument before it becomes a Path: Path('') is Path('.'), so a
-    # guard on the Path would pass and quietly check the working directory.
-    given = args.data_root or os.environ.get('FWL_DATA')
-    if not given:
-        raise ResolutionError('no data root to check: pass --data-root or set FWL_DATA.')
-    root = Path(given)
+def _cmd_fetch(args: argparse.Namespace) -> int:
+    fetch_all(_data_root(args))
+    return 0
 
+
+def _cmd_check(args: argparse.Namespace) -> int:
     incomplete = False
-    for rel_dir, found, expected in check_restored(root):
+    for rel_dir, found, expected in check_restored(_data_root(args)):
         print(f'{rel_dir}: {found}/{expected} files present')
         if found != expected:
             incomplete = True
 
     if incomplete:
         print(
-            'The restored tree is missing files the registry pins, so it does not '
-            'match the key it was stored under and the nightly will refetch them '
-            'from a single upstream mirror. An exact-key hit is never re-saved, so '
-            'delete that cache entry to let the next run store a complete tree.',
+            'The data tree is missing files the registry pins, or holds them with '
+            'the wrong checksum, so it does not match the key it is stored under. '
+            'An exact-key hit is never re-saved, so delete that cache entry to let '
+            'the next run store a complete tree.',
             file=sys.stderr,
         )
         return 1
@@ -238,11 +271,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('key', help='print the cache key for the FWL data tree')
-    check = sub.add_parser('check', help='verify the restored tree against the registry')
-    check.add_argument('--data-root', default=None, help='defaults to FWL_DATA')
+    for name, text in (
+        ('fetch', 'fetch every dataset the key covers'),
+        ('check', 'verify the data tree against the registry'),
+    ):
+        sub.add_parser(name, help=text).add_argument(
+            '--data-root', default=None, help='defaults to FWL_DATA'
+        )
 
     args = parser.parse_args(argv)
-    handler = {'key': _cmd_key, 'check': _cmd_check}[args.command]
+    handler = {'key': _cmd_key, 'fetch': _cmd_fetch, 'check': _cmd_check}[args.command]
     try:
         return handler(args)
     except ResolutionError as exc:
