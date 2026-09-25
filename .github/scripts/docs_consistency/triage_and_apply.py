@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Deterministic triage of analysis.json: verify quoted excerpts, apply literal doc fixes,
-and write pr_body.md, gap_issue_body.md and serious_issue_body.md for the workflow to use.
-Serious inconsistencies get their own issue, since they may point to a bug in the code.
+and write pr_body.md, inconsistency_issue_body.md and gap_issue_body.md for the workflow to
+use. Inconsistencies that were not auto-fixed (serious ones, which may point to a bug in the
+code, and minor ones with no safe fix) go to one issue; documentation gaps to another.
 No LLM calls: everything is a plain string operation.
 """
 
@@ -17,6 +18,9 @@ from analyze import DOC_FILES, SOURCE_FILES
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 SEVERITY_ORDER = {'serious': 0, 'minor': 1}
+# For dedupe: a finding already reported at this rank or higher is not posted again, so one
+# first filed as minor (or unrated) is reposted when a later run rates it serious.
+SEVERITY_RANK = {'serious': 2}
 ALLOWED_DOC_FILES = set(DOC_FILES)
 ALLOWED_SOURCE_FILES = set(SOURCE_FILES)
 
@@ -24,10 +28,9 @@ ALLOWED_SOURCE_FILES = set(SOURCE_FILES)
 # may copy into code_excerpt. Strip.
 LINE_PREFIX = re.compile(r'^\d+: ', flags=re.MULTILINE)
 
-# Hidden marker embedded in every finding posted to the issue, so later runs can tell which
-# findings were already reported.
-FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} -->'
-FINGERPRINT_RE = re.compile(r'<!-- docs-consistency-fp: ([0-9a-f]{16}) -->')
+# Hidden marker embedded in every finding posted to an issue
+FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} {} -->'
+FINGERPRINT_RE = re.compile(r'<!-- docs-consistency-fp: ([0-9a-f]{16})(?: ([a-z]+))? -->')
 
 
 def load_findings():
@@ -48,42 +51,55 @@ def fingerprint(finding):
 
 
 def load_reported_fingerprints(existing_file):
-    """Fingerprints in an open issue's body and comments, as fetched by the workflow."""
+    """Map each fingerprint in an open issue (body and comments, as fetched by the
+    workflow) to the highest severity rank it was reported at."""
     path = REPO_ROOT / existing_file
-    return set(FINGERPRINT_RE.findall(path.read_text())) if path.exists() else set()
+    reported = {}
+    if path.exists():
+        for fp, severity in FINGERPRINT_RE.findall(path.read_text()):
+            reported[fp] = max(reported.get(fp, 0), SEVERITY_RANK.get(severity, 1))
+    return reported
 
 
 def drop_reported(sections, existing_file):
     """Filter each section's (finding, detail) pairs down to those not yet in the issue.
 
-    Sections are processed in order and share one set, so a finding repeated within this
-    run is kept only in the first section it appears in. Returns the filtered sections,
-    the number already in the issue, and the number of within-run duplicates.
+    A finding already in the issue at the same or a higher severity is skipped; one
+    reported before at a lower severity is kept (escalated). Sections are processed in
+    order and share one set, so a finding repeated within this run is kept only in the
+    first section it appears in. Returns the filtered sections and the numbers already
+    reported, duplicated within this run, and escalated.
     """
     previously = load_reported_fingerprints(existing_file)
-    reported = set(previously)
-    filtered, already, duplicates = [], 0, 0
+    reported = set()
+    filtered, already, duplicates, escalated = [], 0, 0, 0
     for items in sections:
         kept = []
         for f, detail in items:
             fp = f['fingerprint']
-            if fp in previously:
-                already += 1
-            elif fp in reported:
+            if fp in reported:
                 duplicates += 1
+            elif previously.get(fp, 0) >= SEVERITY_RANK.get(f.get('severity'), 1):
+                already += 1
             else:
+                escalated += fp in previously
                 reported.add(fp)
                 kept.append((f, detail))
         filtered.append(kept)
-    return filtered, already, duplicates
+    return filtered, already, duplicates, escalated
 
 
-def issue_body(sections, already_reported):
+def issue_body(sections, already_reported, escalated=0):
     """Join (heading, intro, rendered findings) sections, skipping empty ones."""
     lines = []
     for heading, intro, rendered in sections:
         if rendered:
             lines += [heading, intro, *rendered]
+    if lines and escalated:
+        lines.append(
+            f'_{escalated} finding(s) above were reported before at a lower severity and are '
+            'reposted because this run rates them serious._\n'
+        )
     if lines and already_reported:
         lines.append(
             f'_{already_reported} other finding(s) from this run were already reported in '
@@ -172,7 +188,8 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
         heading += f' — {finding["severity"]}'
     lines = [heading]
     if with_fingerprint:
-        lines.append(FINGERPRINT_MARKER.format(finding['fingerprint']))
+        severity = finding.get('severity') or 'none'
+        lines.append(FINGERPRINT_MARKER.format(finding['fingerprint'], severity))
     if problems:
         lines += [
             '',
@@ -232,7 +249,7 @@ def main():
     inconsistencies.sort(key=lambda f: SEVERITY_ORDER.get(f.get('severity'), 99))
     unverified.sort(key=lambda fp: SEVERITY_ORDER.get(fp[0].get('severity'), 99))
 
-    applied, serious, unapplied = [], [], []
+    applied, serious, minor = [], [], []
     for f in inconsistencies:
         reason = apply_fix(f)
         if reason is None:
@@ -240,7 +257,7 @@ def main():
         elif f.get('severity') == 'serious':
             serious.append((f, reason))
         else:
-            unapplied.append((f, reason))
+            minor.append((f, reason))
 
     pr_body_path = REPO_ROOT / 'pr_body.md'
     if applied:
@@ -252,8 +269,8 @@ def main():
             'Every claim below quotes the exact doc passage and code so it can be checked '
             'directly. Please verify each one before merging. Fixes are literal text '
             'replacements. Serious inconsistencies are never auto-fixed, since the code may '
-            'be the side that is wrong. They are filed in the `docs-code-conflict` issue, '
-            'and other inconsistencies without an applicable fix in the `docs-gaps` issue.\n\n'
+            'be the side that is wrong. They, and minor inconsistencies without an '
+            'applicable fix, are filed in the `docs-inconsistency` issue.\n\n'
             '## Checklist\n\n'
             '- [ ] I have verified each finding below against the actual doc and code\n'
             '- [ ] I have reviewed (and corrected if needed) every applied fix\n'
@@ -265,46 +282,70 @@ def main():
             '## Documentation consistency check\n\nNo fixes applied this run.\n'
         )
 
-    # Each issue dedupes against its own posts, so a finding first filed as minor is still
-    # escalated if a later run rates it serious.
-    (serious,), serious_already, serious_dups = drop_reported(
-        [serious], 'existing_serious_issue.md'
+    # Unverified findings go to the issue matching their type. Verified sections come
+    # first, so they claim a fingerprint before an unverified copy.
+    unverified_gaps = [(f, p) for f, p in unverified if f['type'] == 'gap']
+    unverified_inconsistencies = [(f, p) for f, p in unverified if f['type'] != 'gap']
+    (serious, minor, unverified_inconsistencies), inc_already, inc_dups, inc_escalated = (
+        drop_reported(
+            [serious, minor, unverified_inconsistencies],
+            'existing_inconsistency_issue.md',
+        )
     )
-    # Verified findings come first, so they claim a fingerprint before an unverified copy.
-    (unapplied, gaps, unverified), gap_already, gap_dups = drop_reported(
-        [unapplied, [(f, None) for f in gaps], unverified], 'existing_issue.md'
+    (gaps, unverified_gaps), gap_already, gap_dups, _ = drop_reported(
+        [[(f, None) for f in gaps], unverified_gaps], 'existing_gap_issue.md'
     )
     gaps = [f for f, _ in gaps]
+    unverified = unverified_inconsistencies + unverified_gaps
 
-    serious_body = issue_body(
+    def render_unverified(items):
+        return [
+            render_finding(
+                f, fix_status='finding unverified', problems=problems, with_fingerprint=True
+            )
+            for f, problems in items
+        ]
+
+    unverified_intro = (
+        'These findings quote doc or code text that does not occur verbatim in the named '
+        'file. These findings are suspect: check manually. None of their fixes were '
+        'applied.\n'
+    )
+    inconsistency_body = issue_body(
         [
             (
-                '## Serious inconsistencies\n',
-                'Automated weekly check found places where the doc and the code disagree in a '
-                'way that would change model output or physical interpretation. For each, '
-                'decide which side is correct, then fix the code or the doc.\n',
+                '## Serious: possible code bug\n',
+                'The doc and the code disagree in a way that would change model output or '
+                'physical interpretation. These are never auto-fixed: the code may be the '
+                'side that is wrong. For each, decide which side is correct, then fix the '
+                'code or the doc.\n',
                 [
                     render_finding(f, fix_status=reason, with_fingerprint=True)
                     for f, reason in serious
                 ],
             ),
+            (
+                '## Minor: needs a manual edit\n',
+                'The doc and the code disagree, but no safe literal fix could be applied. '
+                'Each finding states why its fix was not applied.\n',
+                [
+                    render_finding(f, fix_status=reason, with_fingerprint=True)
+                    for f, reason in minor
+                ],
+            ),
+            (
+                '## Unverified inconsistencies\n',
+                unverified_intro,
+                render_unverified(unverified_inconsistencies),
+            ),
         ],
-        serious_already,
+        inc_already,
+        inc_escalated,
     )
-    (REPO_ROOT / 'serious_issue_body.md').write_text(serious_body)
+    (REPO_ROOT / 'inconsistency_issue_body.md').write_text(inconsistency_body)
 
     gap_body = issue_body(
         [
-            (
-                '## Inconsistencies needing a manual edit\n',
-                'Automated weekly check found doc passages that contradict the source code '
-                'but could not be fixed automatically. Each finding states why its fix was '
-                'not applied.\n',
-                [
-                    render_finding(f, fix_status=reason, with_fingerprint=True)
-                    for f, reason in unapplied
-                ],
-            ),
             (
                 '## Documentation gaps\n',
                 'Automated weekly check found source-code behaviour with no corresponding '
@@ -312,21 +353,7 @@ def main():
                 'prose needs a human who can vouch for the physics.\n',
                 [render_finding(f, fix_status='gap', with_fingerprint=True) for f in gaps],
             ),
-            (
-                '## Unverified findings\n',
-                'These findings quote doc or code text that does not occur verbatim in the '
-                'named file. These findings are suspect: check manually. None of their fixes '
-                'were applied.\n',
-                [
-                    render_finding(
-                        f,
-                        fix_status='finding unverified',
-                        problems=problems,
-                        with_fingerprint=True,
-                    )
-                    for f, problems in unverified
-                ],
-            ),
+            ('## Unverified gaps\n', unverified_intro, render_unverified(unverified_gaps)),
         ],
         gap_already,
     )
@@ -335,14 +362,15 @@ def main():
     summary = (
         f'Docs consistency triage: {len(applied)} fix(es) applied, '
         f'{len(serious)} serious inconsistenc(ies), '
-        f'{len(unapplied)} inconsistenc(ies) need a manual edit, {len(gaps)} gap(s), '
+        f'{len(minor)} minor inconsistenc(ies) need a manual edit, {len(gaps)} gap(s), '
         f'{len(unverified)} unverified finding(s)'
     )
     if unverified:
         summary += ' (' + ', '.join(f'`{f.get("id")}`' for f, _ in unverified) + ')'
     summary += (
-        f' newly filed; {serious_already + gap_already} already reported, '
-        f'{serious_dups + gap_dups} duplicate(s) within this run'
+        f' newly filed ({inc_escalated} escalated to serious); '
+        f'{inc_already + gap_already} already reported, '
+        f'{inc_dups + gap_dups} duplicate(s) within this run'
     )
     print(summary)
     step_summary = os.environ.get('GITHUB_STEP_SUMMARY')
@@ -352,8 +380,8 @@ def main():
 
     results = {
         'has_fixes': 'true' if applied else 'false',
-        'has_serious_items': 'true' if serious_body else 'false',
-        'has_issue_items': 'true' if gap_body else 'false',
+        'has_inconsistency_items': 'true' if inconsistency_body else 'false',
+        'has_gap_items': 'true' if gap_body else 'false',
     }
     github_output = os.environ.get('GITHUB_OUTPUT')
     if github_output:
