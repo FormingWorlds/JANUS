@@ -70,19 +70,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .[develop]
 
-      # The key carries the directory fwl-io resolves for every dataset the
-      # installed fwl-mors declares, plus the checksums its registry pins, so it
-      # moves exactly when that data moves. actions/cache writes only on an
-      # exact-key miss, so a key that never changes is never rewritten and the
-      # tree it holds cannot follow the data.
+      # The key carries the directory and checksums of every dataset the installed
+      # fwl-mors declares and the JANUS downloader source that pins the OSF data the
+      # tests read. actions/cache writes only on an exact-key miss.
       - name: Resolve the data cache key
         id: cachekey
         run: python tools/nightly_data_cache.py key
 
-      # The spectral files and stellar spectra are pinned by OSF project ids in
-      # src/janus/utils/data.py, which this key does not track. The prefix
-      # restore-key seeds a moved key from the previous tree, so they are not
-      # refetched alongside a re-pinned dataset.
+      # A moved key starts from the previous tree, so unchanged data is not refetched.
       - uses: actions/cache@v4
         id: cache-fwl-data
         with:
@@ -91,14 +86,13 @@ jobs:
           restore-keys: |
             fwl-data-
 
-      # Every run: a tree saved under this key must hold every dataset it covers.
-      # On a complete tree fwl-io finds each file in place and downloads nothing,
-      # and a tree the installed fwl-io cannot read is rebuilt, not failed.
-      - name: Fetch the track data the key covers
+      # Every run, so no test downloads: a complete tree downloads nothing, and a
+      # partial or unreadable dataset is fetched again before the tree is saved.
+      - name: Fetch the data the key covers
         run: python tools/nightly_data_cache.py fetch --data-root /home/runner/work/fwl_data
 
       # Checks the tree the tests read and the one saved under this key.
-      - name: Check the track data
+      - name: Check the data
         run: python tools/nightly_data_cache.py check --data-root /home/runner/work/fwl_data
 
       - name: Run unit + smoke + integration + slow tests with coverage

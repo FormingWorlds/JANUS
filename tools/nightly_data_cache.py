@@ -12,7 +12,9 @@ digest of the track-data layout JANUS resolves through its ``fwl-mors``
 dependency: for every dataset the installed manifest declares, the
 directory fwl-io places it in and the per-file checksums the registry
 pins, plus the archive kind of a dataset shipped as one archive and the
-fwl-io release (year.month) that lays out the tree. It therefore moves
+fwl-io release (year.month) that lays out the tree. It also carries the
+source of ``janus.utils.data``, which pins the OSF projects of the
+spectral file and stellar spectra the tests read. It therefore moves
 when the data or its layout moves and stays put otherwise.
 
 Every declared dataset counts, not only the one JANUS fetches today. A
@@ -21,10 +23,11 @@ narrowing the digest to a named subset would leave a dataset JANUS starts
 consuming untracked, which is the failure worth avoiding.
 
 ``fetch`` downloads every dataset the key covers that is not already in
-place, so a tree saved under the key holds all of it. ``check`` verifies
-that tree without the network: every registry file present with its
-pinned checksum, and for an archive dataset every member its extraction
-recorded, by name.
+place, so a tree saved under the key holds all of it and no test
+downloads. ``check`` verifies that tree without the network: every
+registry file present with its pinned checksum, for an archive dataset
+every member its extraction recorded, and for the OSF data the files the
+tests open, the last two by name.
 
 Both subcommands fail with a diagnostic rather than degrade: an empty or
 partial digest would collide with the workflow's restore-key prefix and
@@ -35,12 +38,24 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
 
 KEY_PREFIX = 'fwl-data-'
+
+# JANUS data on OSF that tests/helpers reads: folder, files the tests open, download call.
+OSF_DATA = (
+    (
+        'spectral_files/Oak',
+        ('318/Oak.sf', '318/Oak.sf_k'),
+        lambda j: j.DownloadSpectralFiles('Oak'),
+    ),
+    ('stellar_spectra/Named', ('sun.txt',), lambda j: j.DownloadStellarSpectra()),
+)
 
 
 class ResolutionError(RuntimeError):
@@ -174,6 +189,9 @@ def resolve_key(data_root: Path | None = None) -> str:
     from fwl_io import __version__
 
     material.append('fwl-io\t' + '.'.join(__version__.split('.')[:2]))
+    source = Path(importlib.util.find_spec('janus.utils.data').origin).read_bytes()
+    material.append('janus-osf\t' + hashlib.sha256(source).hexdigest())
+    material += [f'osf\t{folder}\t{" ".join(files)}' for folder, files, _ in OSF_DATA]
     digest = hashlib.sha256('\n'.join(material).encode('utf-8')).hexdigest()
     return f'{KEY_PREFIX}{digest}'
 
@@ -192,9 +210,9 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int, str]]:
         One ``(rel_dir, found, expected, state)`` per dataset. ``found``
         counts the files fwl-io reports sound, and ``state`` names what that
         means: ``intact`` for a plain dataset, checked by checksum, and
-        ``present`` for the members of an archive dataset, checked by name.
-        An archive dataset with no extracted tree counts as its one archive,
-        missing.
+        ``present`` for the members of an archive dataset and for the OSF
+        files the tests open, checked by name. An archive dataset with no
+        extracted tree counts as its one archive, missing.
 
     Raises
     ------
@@ -208,6 +226,9 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int, str]]:
         ds = check_dataset(f)
         state = 'intact' if ds.verifiable else 'present'
         report.append((f.rel_dir, sum(not c.faulty for c in ds.files), len(ds.files), state))
+    for folder, files, _ in OSF_DATA:
+        found = sum((data_root / folder / name).is_file() for name in files)
+        report.append((folder, found, len(files), 'present'))
     return report
 
 
@@ -227,6 +248,17 @@ def fetch_all(data_root: Path) -> None:
     for f in _fetchers(data_root):
         f.fetch_all()
         print(f'{f.rel_dir}: fetched', file=sys.stderr)
+
+    import janus.utils.data as jdata
+
+    jdata.FWL_DATA_DIR = Path(data_root)
+    for folder, files, download in OSF_DATA:
+        path = Path(data_root) / folder
+        # The JANUS downloader skips a folder that exists, so a partial one is removed.
+        if path.exists() and not all((path / name).is_file() for name in files):
+            shutil.rmtree(path)
+        download(jdata)
+        print(f'{folder}: fetched', file=sys.stderr)
 
 
 def _data_root(args: argparse.Namespace) -> Path:
@@ -299,9 +331,9 @@ def main(argv: list[str] | None = None) -> int:
         # Anything fwl-io raises reaches here. Name it rather than let a
         # traceback stand in for the diagnostic this script promises.
         print(
-            f'error: fwl-io failed: {exc!r}. Check that the upstream records are '
-            'reachable and that the installed fwl-mors and fwl-io still expose '
-            'the manifest, fetcher and check this script reads.',
+            f'error: reading or fetching the data failed: {exc!r}. Check that Zenodo '
+            'and OSF are reachable and that the installed fwl-mors, fwl-io and janus '
+            'still expose the manifest, fetcher, check and downloaders this script reads.',
             file=sys.stderr,
         )
         return 1

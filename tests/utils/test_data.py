@@ -56,8 +56,9 @@ def test_stellar_spectra_download_skips_when_present(tmp_path, monkeypatch):
     """DownloadStellarSpectra downloads once and skips when data exist.
 
     The presence check is on the Named subfolder: absent means the folder
-    list is fetched, present means no OSF file is touched. The module-level
-    FWL_DATA_DIR constant is frozen at import, so it is patched directly.
+    list is fetched, present means OSF is not contacted at all, so a cached
+    tree needs no network. The module-level FWL_DATA_DIR constant is frozen at
+    import, so it is patched directly.
     """
     monkeypatch.setattr(jdata, 'FWL_DATA_DIR', tmp_path, raising=True)
     files = [_FakeFile('/Named/sun.txt')]
@@ -76,6 +77,7 @@ def test_stellar_spectra_download_skips_when_present(tmp_path, monkeypatch):
         )
         jdata.DownloadStellarSpectra()
     assert marker.read_bytes() == b'unchanged'
+    mock_osf.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -123,9 +125,11 @@ def test_spectral_download_basic_list_skip_and_error(tmp_path, monkeypatch):
     # All basic-list folders present: nothing to download.
     for folder in jdata.basic_list:
         (tmp_path / 'spectral_files' / folder).mkdir(parents=True)
-    with patch.object(jdata, 'OSF', MagicMock()):
+    with patch.object(jdata, 'OSF', MagicMock()) as mock_osf:
         jdata.DownloadSpectralFiles()
     assert called == []
+    # A cached tree needs no network: OSF is not contacted.
+    mock_osf.assert_not_called()
 
     # Empty name with one folder missing: exactly the missing one is fetched.
     (tmp_path / 'spectral_files' / 'Oak').rmdir()
@@ -285,6 +289,7 @@ def test_restore_check_counts_registry_files_not_directories(monkeypatch, tmp_pa
     import hashlib
 
     mod = _cache_module()
+    monkeypatch.setattr(mod, 'OSF_DATA', ())
     import mors.data
 
     drc = tmp_path / 'pins'
@@ -357,6 +362,7 @@ def test_fetch_extracts_an_archive_dataset_that_check_then_accepts(
     fwl-io shared cache here, with the network switched off.
     """
     mod = _cache_module()
+    monkeypatch.setattr(mod, 'OSF_DATA', ())
     import mors.data
 
     drc = tmp_path / 'pins'
@@ -401,12 +407,86 @@ def test_fetch_and_check_fail_loudly(monkeypatch, tmp_path, capsys):
     monkeypatch.delenv('FWL_DATA_CACHE', raising=False)
     monkeypatch.setenv('FWL_IO_OFFLINE', '1')
     assert mod.main(['fetch', '--data-root', str(tmp_path)]) == 1
-    assert 'error: fwl-io failed' in capsys.readouterr().err
+    assert 'error: reading or fetching the data failed' in capsys.readouterr().err
 
     # A registry with no entries would be 0 of 0; fwl-io refuses it outright.
     (tmp_path / 'star.tracks.spada_2013.registry.txt').write_text('', encoding='utf-8')
     assert mod.main(['check', '--data-root', str(tmp_path)]) == 1
     assert 'empty registry' in capsys.readouterr().err
+
+
+def test_fetch_downloads_the_osf_data_the_tests_read_and_check_counts_it(
+    monkeypatch, tmp_path, capsys
+):
+    """The OSF spectral file and stellar spectra the tests open are fetched into the data
+    root and checked by name; a partial folder, which the JANUS downloader would skip, is
+    replaced, so no test has to download."""
+    mod = _cache_module()
+    import mors.data
+
+    import janus.utils.data as jdata
+
+    manifest = _write_manifest(tmp_path, record='15729114', checksum='a' * 32)
+    monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
+    monkeypatch.setattr(mod, '_fetchers', lambda root: [])
+    root = tmp_path / 'fwl_data'
+    assert mod.check_restored(root) == [
+        ('spectral_files/Oak', 0, 2, 'present'),
+        ('stellar_spectra/Named', 0, 1, 'present'),
+    ]
+    partial = root / 'stellar_spectra' / 'Named'
+    partial.mkdir(parents=True)
+    (partial / 'stale.txt').write_text('x')
+
+    def _download(folder, files):
+        def write():
+            assert jdata.GetFWLData() == root
+            assert not (root / folder / 'stale.txt').exists()
+            for name in files:
+                (root / folder / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / folder / name).write_text('x')
+
+        return write
+
+    monkeypatch.setattr(
+        jdata,
+        'DownloadSpectralFiles',
+        lambda fname: _download('spectral_files/Oak', ('318/Oak.sf', '318/Oak.sf_k'))(),
+    )
+    monkeypatch.setattr(
+        jdata, 'DownloadStellarSpectra', _download('stellar_spectra/Named', ('sun.txt',))
+    )
+    assert mod.main(['fetch', '--data-root', str(root)]) == 0
+    assert [r[1:3] for r in mod.check_restored(root)] == [(2, 2), (1, 1)]
+    assert mod.main(['check', '--data-root', str(root)]) == 0
+    (root / 'stellar_spectra' / 'Named' / 'sun.txt').unlink()
+    assert mod.main(['check', '--data-root', str(root)]) == 1
+
+
+def test_key_moves_with_the_janus_downloader_source(monkeypatch, tmp_path):
+    """The OSF project ids live in janus.utils.data, so its source is part of the key."""
+    import importlib.util
+
+    mod = _cache_module()
+    import mors.data
+
+    manifest = _write_manifest(tmp_path, record='15729114', checksum='a' * 32)
+    monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
+    before = mod.resolve_key()
+    source = tmp_path / 'data.py'
+    source.write_text("project_id = 'other'\n")
+    real = importlib.util.find_spec
+    monkeypatch.setattr(
+        importlib.util,
+        'find_spec',
+        lambda name, *a: (
+            SimpleNamespace(origin=str(source))
+            if name == 'janus.utils.data'
+            else real(name, *a)
+        ),
+    )
+    assert mod.resolve_key() != before
+    assert mod.resolve_key() == mod.resolve_key()
 
 
 def test_key_moves_with_the_archive_kind(monkeypatch, tmp_path):

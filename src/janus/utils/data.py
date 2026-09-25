@@ -99,23 +99,23 @@ def DownloadStellarSpectra():
     """
     Download stellar spectra
     """
-    # This pin sits outside the manifest the nightly cache key hashes, and the
-    # download is skipped whenever the folder is already there. Changing it
-    # therefore serves the cached spectra until that cache is cleared by hand.
+    # The nightly cache key hashes this module, so a changed pin is refetched there.
+    # A folder already on disk is used as it is, without contacting OSF.
     #project ID of the stellar spectra on OSF
     project_id = '8r2sw'
     folder_name = 'Named'
+
+    data_dir = GetFWLData() / "stellar_spectra"
+    if (data_dir / folder_name).exists():
+        return
 
     osf = OSF()
     project = _osf_retry(lambda: osf.project(project_id))
     storage = _osf_retry(lambda: project.storage('osfstorage'))
 
-    data_dir = GetFWLData() / "stellar_spectra"
     data_dir.mkdir(parents=True, exist_ok=True)
-
-    if not (data_dir / folder_name).exists():
-        print(f"Downloading stellar spectra to {data_dir}")
-        download_folder(storage=storage, folders=[folder_name], data_dir=data_dir)
+    print(f"Downloading stellar spectra to {data_dir}")
+    download_folder(storage=storage, folders=[folder_name], data_dir=data_dir)
 
 
 def DownloadSpectralFiles(fname: str="",nband: int=256):
@@ -128,20 +128,14 @@ def DownloadSpectralFiles(fname: str="",nband: int=256):
         - nband (optional) :    number of band = 16, 48, 256, 4096
                                 (only relevant for Dayspring, Frostflow and Honeyside)
     """
-    # This pin sits outside the manifest the nightly cache key hashes, and each
-    # folder is skipped whenever it is already there. Changing it therefore
-    # serves the cached spectral files until that cache is cleared by hand.
+    # The nightly cache key hashes this module, so a changed pin is refetched there.
+    # Folders already on disk are used as they are, without contacting OSF.
     #project ID of the spectral files on OSF
     project_id = 'vehxg'
 
     #Create spectral file data repository if not existing
     data_dir = GetFWLData() / "spectral_files"
     data_dir.mkdir(parents=True, exist_ok=True)
-
-    #Link with OSF project repository
-    osf = OSF()
-    project = _osf_retry(lambda: osf.project(project_id))
-    storage = _osf_retry(lambda: project.storage('osfstorage'))
 
     #If no folder specified download all basic list
     if not fname:
@@ -154,7 +148,13 @@ def DownloadSpectralFiles(fname: str="",nband: int=256):
         raise ValueError(f"Unrecognised folder name: {fname}")
 
     folders = [folder for folder in folder_list if not (data_dir / folder).exists()]
+    if not folders:
+        return
 
-    if folders:
-        print(f"Downloading SOCRATES spectral files to {data_dir}")
-        download_folder(storage=storage, folders=folders, data_dir=data_dir)
+    #Link with OSF project repository
+    osf = OSF()
+    project = _osf_retry(lambda: osf.project(project_id))
+    storage = _osf_retry(lambda: project.storage('osfstorage'))
+
+    print(f"Downloading SOCRATES spectral files to {data_dir}")
+    download_folder(storage=storage, folders=folders, data_dir=data_dir)
