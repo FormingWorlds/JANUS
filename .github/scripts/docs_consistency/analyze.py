@@ -39,8 +39,9 @@ SOURCE_FILES = [
 MODEL = os.environ.get('CLAUDE_MODEL', 'claude-opus-5-5')
 EFFORT = os.environ.get('CLAUDE_EFFORT', 'medium')
 
-# The doc and source text are inlined into the prompt. The call gets no tools, 
-# no settings files and no MCP servers, and runs from an empty directory so no CLAUDE.md is seen.
+# The doc and source text are inlined into the prompt. The call gets no tools,
+# no settings files and no MCP servers, and runs from an empty directory so no
+# CLAUDE.md is seen.
 ISOLATION_FLAGS = ['--tools', '', '--setting-sources', '', '--strict-mcp-config']
 
 MAX_TURNS = 3
@@ -124,7 +125,7 @@ def read_plain(rel_path):
 
 def build_prompt():
     template = (SCRIPT_DIR / 'prompt_template.md').read_text()
-    # Docs go in unnumbered: any prefix the model copied from a numbered listing 
+    # Docs go in unnumbered: any prefix the model copied from a numbered listing
     # would make an true quote fail to match.
     docs_blob = '\n\n'.join(read_plain(p) for p in DOC_FILES)
     source_blob = '\n\n'.join(read_numbered(p) for p in SOURCE_FILES)
@@ -172,7 +173,8 @@ def main():
 
     if proc.returncode != 0:
         print(
-            f'claude CLI exited {proc.returncode}\nstdout:\n{proc.stdout}\nstderr:\n{proc.stderr}',
+            f'claude CLI exited {proc.returncode}\n'
+            f'stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}',
             file=sys.stderr,
         )
         sys.exit(1)
