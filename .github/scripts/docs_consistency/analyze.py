@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -38,10 +39,12 @@ SOURCE_FILES = [
 MODEL = os.environ.get('CLAUDE_MODEL', 'claude-opus-5-5')
 EFFORT = os.environ.get('CLAUDE_EFFORT', 'medium')
 
-# Tools the CLI could otherwise use; the doc and source text are already
-# inlined into the prompt below, so none of these are needed and disallowing
-# them keeps this call to a single read-only, side-effect-free turn.
-DISALLOWED_TOOLS = 'Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Read,Glob,Grep'
+# The doc and source text are inlined into the prompt. The call gets no tools, 
+# no settings files and no MCP servers, and runs from an empty directory so no CLAUDE.md is seen.
+ISOLATION_FLAGS = ['--tools', '', '--setting-sources', '', '--strict-mcp-config']
+
+MAX_TURNS = 3
+TIMEOUT_S = int(os.environ.get('CLAUDE_TIMEOUT_S', '1200'))
 
 FINDINGS_SCHEMA = {
     'type': 'object',
@@ -137,27 +140,35 @@ def main():
 
     # The prompt (docs + 15 source files inlined) can be well over argv's
     # OS-level size limit, so it goes in over stdin rather than as an argument.
-    proc = subprocess.run(
-        [
-            'claude',
-            '--print',
-            '--output-format',
-            'json',
-            '--json-schema',
-            json.dumps(FINDINGS_SCHEMA),
-            '--model',
-            MODEL,
-            '--effort',
-            EFFORT,
-            '--permission-mode',
-            'dontAsk',
-            '--disallowedTools',
-            DISALLOWED_TOOLS,
-        ],
-        input=prompt,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        with tempfile.TemporaryDirectory() as empty_dir:
+            proc = subprocess.run(
+                [
+                    'claude',
+                    '--print',
+                    '--output-format',
+                    'json',
+                    '--json-schema',
+                    json.dumps(FINDINGS_SCHEMA),
+                    '--model',
+                    MODEL,
+                    '--effort',
+                    EFFORT,
+                    '--max-turns',
+                    str(MAX_TURNS),
+                    '--permission-mode',
+                    'dontAsk',
+                    *ISOLATION_FLAGS,
+                ],
+                input=prompt,
+                capture_output=True,
+                text=True,
+                cwd=empty_dir,
+                timeout=TIMEOUT_S,
+            )
+    except subprocess.TimeoutExpired:
+        print(f'claude CLI did not finish within {TIMEOUT_S} s', file=sys.stderr)
+        sys.exit(1)
 
     if proc.returncode != 0:
         print(
