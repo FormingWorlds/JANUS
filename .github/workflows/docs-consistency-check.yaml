@@ -110,8 +110,8 @@ jobs:
             fi
             echo "$number"
           }
-          echo "number=$(fetch docs-gaps existing_issue.md)" >> "$GITHUB_OUTPUT"
-          echo "serious_number=$(fetch docs-code-conflict existing_serious_issue.md)" >> "$GITHUB_OUTPUT"
+          echo "inconsistency_number=$(fetch docs-inconsistency existing_inconsistency_issue.md)" >> "$GITHUB_OUTPUT"
+          echo "gap_number=$(fetch docs-gaps existing_gap_issue.md)" >> "$GITHUB_OUTPUT"
 
       - name: Triage findings and apply literal fixes
         id: triage
@@ -134,7 +134,7 @@ jobs:
         run: |
           gh label create docs-consistency --color 0e8a16 --description "Automated docs-vs-code consistency PRs" 2>/dev/null || true
           gh label create docs-gaps --color fbca04 --description "Documentation gaps found by automated check" 2>/dev/null || true
-          gh label create docs-code-conflict --color d73a4a --description "Serious doc/code disagreement; the code may be wrong" 2>/dev/null || true
+          gh label create docs-inconsistency --color d73a4a --description "Doc/code disagreements needing a human decision" 2>/dev/null || true
 
       # A PR opened with GITHUB_TOKEN does not trigger CI. It is opened as a draft, so CI starts when a reviewer marks it ready.
       - name: Open pull request
@@ -164,31 +164,32 @@ jobs:
             --title "Docs consistency check: $(date +%Y-%m-%d)" \
             --body-file pr_body.md
 
-      # Serious findings get their own issue: the code may be the side that is wrong.
-      - name: File or update serious inconsistencies issue
-        if: steps.triage.outputs.has_serious_items == 'true' && steps.mode.outputs.dry_run != 'true'
+      # Inconsistencies that were not auto-fixed: serious ones (the code may be wrong) and
+      # minor ones with no safe fix. Gaps go to a separate issue below.
+      - name: File or update inconsistencies issue
+        if: steps.triage.outputs.has_inconsistency_items == 'true' && steps.mode.outputs.dry_run != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          existing="${{ steps.existing_issue.outputs.serious_number }}"
+          existing="${{ steps.existing_issue.outputs.inconsistency_number }}"
           if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body-file serious_issue_body.md
+            gh issue comment "$existing" --body-file inconsistency_issue_body.md
           else
-            gh issue create --label docs-code-conflict \
-              --title "Serious doc/code inconsistencies found by automated check" \
-              --body-file serious_issue_body.md
+            gh issue create --label docs-inconsistency \
+              --title "Doc/code inconsistencies needing a human decision" \
+              --body-file inconsistency_issue_body.md
           fi
 
-      - name: File or update gaps and inconsistencies issue
-        if: steps.triage.outputs.has_issue_items == 'true' && steps.mode.outputs.dry_run != 'true'
+      - name: File or update gaps issue
+        if: steps.triage.outputs.has_gap_items == 'true' && steps.mode.outputs.dry_run != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          existing="${{ steps.existing_issue.outputs.number }}"
+          existing="${{ steps.existing_issue.outputs.gap_number }}"
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body-file gap_issue_body.md
           else
             gh issue create --label docs-gaps \
-              --title "Documentation gaps and inconsistencies found by automated check" \
+              --title "Documentation gaps found by automated check" \
               --body-file gap_issue_body.md
           fi
