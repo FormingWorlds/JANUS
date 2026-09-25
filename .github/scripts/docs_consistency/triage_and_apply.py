@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Deterministic triage of analysis.json: verify quoted excerpts, apply literal doc fixes,
-and write pr_body.md / gap_issue_body.md for the workflow to use. No LLM calls: everything
+and write pr_body.md / gap_issue_body.md for the workflow to use. Findings already reported
+in the open gaps issue (read from existing_issue.md) are left out of gap_issue_body.md. No LLM calls: everything
 is a plain string operation.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -22,9 +24,44 @@ ALLOWED_SOURCE_FILES = set(SOURCE_FILES)
 # may copy into code_excerpt. Strip.
 LINE_PREFIX = re.compile(r'^\d+: ', flags=re.MULTILINE)
 
+# Hidden marker embedded in every finding posted to the issue, so later runs can tell which
+# findings were already reported. 
+FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} -->'
+FINGERPRINT_RE = re.compile(r'<!-- docs-consistency-fp: ([0-9a-f]{16}) -->')
+
 
 def load_findings():
     return json.loads((REPO_ROOT / 'analysis.json').read_text())
+
+
+def fingerprint(finding):
+    """Hash of code_file plus the normalised code_excerpt, stable across runs.
+
+    Whitespace within each line is collapsed and blank lines dropped, so re-indenting the
+    quote or adding a trailing newline does not change the hash. Call after
+    verify_excerpts, which strips line-number prefixes from code_excerpt.
+    """
+    lines = (' '.join(line.split()) for line in finding['code_excerpt'].splitlines())
+    normalised = '\n'.join(line for line in lines if line)
+    key = f'{finding.get("code_file")}\n{normalised}'
+    return hashlib.sha256(key.encode()).hexdigest()[:16]
+
+
+def load_reported_fingerprints():
+    """Fingerprints found in the open issue's body and comments, as fetched by the workflow."""
+    path = REPO_ROOT / 'existing_issue.md'
+    return set(FINGERPRINT_RE.findall(path.read_text())) if path.exists() else set()
+
+
+def drop_reported(items, reported):
+    """Keep the (finding, detail) pairs not yet reported, adding kept ones to reported.
+    """
+    kept = []
+    for f, detail in items:
+        if f['fingerprint'] not in reported:
+            reported.add(f['fingerprint'])
+            kept.append((f, detail))
+    return kept
 
 
 def verify_excerpts(finding):
@@ -92,16 +129,19 @@ def apply_fix(finding):
     return reason
 
 
-def render_finding(finding, fix_status=None, problems=None):
+def render_finding(finding, fix_status=None, problems=None, with_fingerprint=False):
     """Render one finding as markdown.
 
     fix_status is None when the fix was applied, else the reason it was not.
     problems lists the excerpt checks the finding failed, if any.
+    with_fingerprint embeds the hidden dedupe marker (for issue posts).
     """
     heading = f'### `{finding["id"]}`'
     if finding.get('severity'):
         heading += f' — {finding["severity"]}'
     lines = [heading]
+    if with_fingerprint:
+        lines.append(FINGERPRINT_MARKER.format(finding['fingerprint']))
     if problems:
         lines += [
             '',
@@ -150,6 +190,7 @@ def main():
     verified, unverified = [], []
     for f in findings:
         problems = verify_excerpts(f)
+        f['fingerprint'] = fingerprint(f)
         if problems:
             unverified.append((f, problems))
         else:
@@ -188,6 +229,16 @@ def main():
             '## Documentation consistency check\n\nNo fixes applied this run.\n'
         )
 
+    # Only a verified finding claims a fingerprint before an unverified duplicate.
+    reported = load_reported_fingerprints()
+    issue_bound = [f for f in inconsistencies + gaps if f not in applied]
+    issue_bound += [f for f, _ in unverified]
+    already_reported = sum(f['fingerprint'] in reported for f in issue_bound)
+    unapplied = drop_reported(unapplied, reported)
+    gaps = [f for f, _ in drop_reported([(f, None) for f in gaps], reported)]
+    unverified = drop_reported(unverified, reported)
+    duplicates = len(issue_bound) - already_reported - len(unapplied) - len(gaps) - len(unverified)
+
     issue_body_path = REPO_ROOT / 'gap_issue_body.md'
     issue_lines = []
     if unapplied:
@@ -196,7 +247,9 @@ def main():
             'Automated weekly check found doc passages that contradict the source code but could not '
             'be fixed automatically. Each finding states why its fix was not applied.\n',
         ]
-        issue_lines += [render_finding(f, fix_status=reason) for f, reason in unapplied]
+        issue_lines += [
+            render_finding(f, fix_status=reason, with_fingerprint=True) for f, reason in unapplied
+        ]
     if gaps:
         issue_lines += [
             '## Documentation gaps\n',
@@ -204,7 +257,7 @@ def main():
             'These are not auto-fixed — writing new model-description prose needs a human who can vouch '
             'for the physics.\n',
         ]
-        issue_lines += [render_finding(f, fix_status='gap') for f in gaps]
+        issue_lines += [render_finding(f, fix_status='gap', with_fingerprint=True) for f in gaps]
     if unverified:
         issue_lines += [
             '## Unverified findings\n',
@@ -212,9 +265,16 @@ def main():
             'These findings are suspect: check manually. None of their fixes were applied.\n',
         ]
         issue_lines += [
-            render_finding(f, fix_status='finding unverified', problems=problems)
+            render_finding(
+                f, fix_status='finding unverified', problems=problems, with_fingerprint=True
+            )
             for f, problems in unverified
         ]
+    if issue_lines and already_reported:
+        issue_lines.append(
+            f'_{already_reported} other finding(s) from this run were already reported in this '
+            'issue and are not repeated._\n'
+        )
     issue_body_path.write_text('\n'.join(issue_lines))
 
     summary = (
@@ -223,7 +283,11 @@ def main():
         f'{len(unverified)} unverified finding(s)'
     )
     if unverified:
-        summary += ': ' + ', '.join(f'`{f.get("id")}`' for f, _ in unverified)
+        summary += ' (' + ', '.join(f'`{f.get("id")}`' for f, _ in unverified) + ')'
+    summary += (
+        f' newly filed; {already_reported} already reported, '
+        f'{duplicates} duplicate(s) within this run'
+    )
     print(summary)
     step_summary = os.environ.get('GITHUB_STEP_SUMMARY')
     if step_summary:
