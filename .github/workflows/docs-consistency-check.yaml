@@ -95,14 +95,18 @@ jobs:
           branch="docs-consistency/$(date +%Y-%m-%d)"
           git checkout -b "$branch"
           git add docs/
+          if git diff --cached --quiet; then
+            echo "No doc changes staged despite has_fixes=true; skipping PR." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           git commit -m "Automated docs consistency check: $(date +%Y-%m-%d)"
           git push origin "$branch"
           gh pr create --draft --label docs-consistency \
             --title "Docs consistency check: $(date +%Y-%m-%d)" \
             --body-file pr_body.md
 
-      - name: File or update gaps issue
-        if: steps.triage.outputs.has_gaps == 'true' && steps.mode.outputs.dry_run != 'true'
+      - name: File or update gaps and inconsistencies issue
+        if: steps.triage.outputs.has_issue_items == 'true' && steps.mode.outputs.dry_run != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -111,6 +115,6 @@ jobs:
             gh issue comment "$existing" --body-file gap_issue_body.md
           else
             gh issue create --label docs-gaps \
-              --title "Documentation gaps found by automated check" \
+              --title "Documentation gaps and inconsistencies found by automated check" \
               --body-file gap_issue_body.md
           fi
