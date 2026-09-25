@@ -11,21 +11,23 @@ on:
         default: true
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
 
 concurrency:
   group: docs-consistency-check
   cancel-in-progress: false
 
 jobs:
-  check:
+  analyze:
     runs-on: ubuntu-latest
     # Above analyze.py's 20 min CLI timeout (CLAUDE_TIMEOUT_S)
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -45,15 +47,6 @@ jobs:
           npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
           claude --version
 
-      - name: Determine dry-run mode
-        id: mode
-        run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "dry_run=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "dry_run=${{ github.event.inputs.dry_run }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Run analysis
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -65,7 +58,39 @@ jobs:
           name: docs-consistency-analysis
           path: analysis.json
 
-      # make sure findings already reported in the gaps issue are not reported again, even if they are still present in the code/docs
+  publish:
+    needs: analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download analysis artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docs-consistency-analysis
+
+      - name: Determine dry-run mode
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "dry_run=${{ github.event.inputs.dry_run }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # make sure findings already reported in the gaps issue are not reported again
       - name: Fetch findings already reported in the gaps issue
         id: existing_issue
         env:
@@ -85,13 +110,13 @@ jobs:
         id: triage
         run: python .github/scripts/docs_consistency/triage_and_apply.py
 
+      # Against HEAD so staged changes are caught too
       - name: Guard against edits outside docs/
         run: |
-          changed=$(git diff --name-only)
+          changed=$(git diff --name-only HEAD)
           bad=$(echo "$changed" | grep -v '^docs/' || true)
           if [ -n "$bad" ]; then
             echo "::error::Analysis attempted to modify files outside docs/: $bad"
-            git checkout -- .
             exit 1
           fi
 
@@ -103,6 +128,7 @@ jobs:
           gh label create docs-consistency --color 0e8a16 --description "Automated docs-vs-code consistency PRs" 2>/dev/null || true
           gh label create docs-gaps --color fbca04 --description "Documentation gaps found by automated check" 2>/dev/null || true
 
+      # A PR opened with GITHUB_TOKEN does not trigger CI. It is opened as a draft, so CI starts when a reviewer marks it ready.
       - name: Open pull request
         if: steps.triage.outputs.has_fixes == 'true' && steps.mode.outputs.dry_run != 'true'
         env:
@@ -123,6 +149,8 @@ jobs:
             exit 0
           fi
           git commit -m "Automated docs consistency check: $(date +%Y-%m-%d)"
+          # persist-credentials is off, so authenticate git for this push only.
+          gh auth setup-git
           git push origin "$branch"
           gh pr create --draft --label docs-consistency \
             --title "Docs consistency check: $(date +%Y-%m-%d)" \
