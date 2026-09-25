@@ -56,6 +56,7 @@ OSF_DATA = (
     ),
     ('stellar_spectra/Named', ('sun.txt',), lambda j: j.DownloadStellarSpectra()),
 )
+JANUS_DATA_PY = Path(__file__).resolve().parents[1] / 'src' / 'janus' / 'utils' / 'data.py'
 
 
 class ResolutionError(RuntimeError):
@@ -189,8 +190,7 @@ def resolve_key(data_root: Path | None = None) -> str:
     from fwl_io import __version__
 
     material.append('fwl-io\t' + '.'.join(__version__.split('.')[:2]))
-    source = Path(importlib.util.find_spec('janus.utils.data').origin).read_bytes()
-    material.append('janus-osf\t' + hashlib.sha256(source).hexdigest())
+    material.append('janus-osf\t' + hashlib.sha256(JANUS_DATA_PY.read_bytes()).hexdigest())
     material += [f'osf\t{folder}\t{" ".join(files)}' for folder, files, _ in OSF_DATA]
     digest = hashlib.sha256('\n'.join(material).encode('utf-8')).hexdigest()
     return f'{KEY_PREFIX}{digest}'
@@ -232,6 +232,14 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int, str]]:
     return report
 
 
+def _janus_data():
+    """Load ``janus/utils/data.py`` alone, since the janus package import needs SOCRATES."""
+    spec = importlib.util.spec_from_file_location('janus_osf_data', JANUS_DATA_PY)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def fetch_all(data_root: Path) -> None:
     """Fetch every dataset the key covers into ``data_root``.
 
@@ -249,8 +257,7 @@ def fetch_all(data_root: Path) -> None:
         f.fetch_all()
         print(f'{f.rel_dir}: fetched', file=sys.stderr)
 
-    import janus.utils.data as jdata
-
+    jdata = _janus_data()
     jdata.FWL_DATA_DIR = Path(data_root)
     for folder, files, download in OSF_DATA:
         path = Path(data_root) / folder

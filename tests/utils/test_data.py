@@ -7,6 +7,7 @@ selection per dataset name, and the unknown-name error contract.
 See docs/How-to/test.md.
 """
 
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -424,8 +425,8 @@ def test_fetch_downloads_the_osf_data_the_tests_read_and_check_counts_it(
     mod = _cache_module()
     import mors.data
 
-    import janus.utils.data as jdata
-
+    jdata = mod._janus_data()
+    monkeypatch.setattr(mod, '_janus_data', lambda: jdata)
     manifest = _write_manifest(tmp_path, record='15729114', checksum='a' * 32)
     monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
     monkeypatch.setattr(mod, '_fetchers', lambda root: [])
@@ -465,8 +466,6 @@ def test_fetch_downloads_the_osf_data_the_tests_read_and_check_counts_it(
 
 def test_key_moves_with_the_janus_downloader_source(monkeypatch, tmp_path):
     """The OSF project ids live in janus.utils.data, so its source is part of the key."""
-    import importlib.util
-
     mod = _cache_module()
     import mors.data
 
@@ -475,18 +474,26 @@ def test_key_moves_with_the_janus_downloader_source(monkeypatch, tmp_path):
     before = mod.resolve_key()
     source = tmp_path / 'data.py'
     source.write_text("project_id = 'other'\n")
-    real = importlib.util.find_spec
-    monkeypatch.setattr(
-        importlib.util,
-        'find_spec',
-        lambda name, *a: (
-            SimpleNamespace(origin=str(source))
-            if name == 'janus.utils.data'
-            else real(name, *a)
-        ),
-    )
+    monkeypatch.setattr(mod, 'JANUS_DATA_PY', source)
     assert mod.resolve_key() != before
     assert mod.resolve_key() == mod.resolve_key()
+
+
+def test_key_and_osf_download_do_not_import_the_janus_package(monkeypatch, tmp_path):
+    """The key and fetch steps run before SOCRATES is set up, and the janus package import
+    checks for SOCRATES, so both read the downloader module by path."""
+    mod = _cache_module()
+    import mors.data
+
+    manifest = _write_manifest(tmp_path, record='15729114', checksum='a' * 32)
+    monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
+    for name in [m for m in sys.modules if m == 'janus' or m.startswith('janus.')]:
+        monkeypatch.delitem(sys.modules, name)
+    monkeypatch.setitem(sys.modules, 'janus', None)
+    assert mod.resolve_key().startswith(mod.KEY_PREFIX)
+    jdata = mod._janus_data()
+    assert jdata.__file__ == str(mod.JANUS_DATA_PY)
+    assert callable(jdata.DownloadSpectralFiles) and callable(jdata.DownloadStellarSpectra)
 
 
 def test_key_moves_with_the_archive_kind(monkeypatch, tmp_path):
