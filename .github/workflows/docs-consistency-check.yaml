@@ -33,10 +33,15 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
+      # Pinned to a specific version to avoid breaking changes in the CLI.
       - name: Install Claude Code CLI
-        run: npm install -g @anthropic-ai/claude-code
+        env:
+          CLAUDE_CODE_VERSION: '2.1.282'
+        run: |
+          npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+          claude --version
 
       - name: Determine dry-run mode
         id: mode
