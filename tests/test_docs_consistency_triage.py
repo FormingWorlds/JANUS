@@ -1,13 +1,18 @@
 """Tests for .github/scripts/docs_consistency/triage_and_apply.py.
 
 Runs the triage step on hand-written analysis.json files in a temporary repo tree and
-checks the contract the workflow relies on. See docs/How-to/test.md.
+checks the contract the workflow relies on: only safe minor fixes are applied; every
+inconsistency that is not applied (serious, or minor without a safe fix) goes to the
+inconsistency issue, gaps to the gap issue, and unverified findings to the issue matching
+their type; and findings already in an open issue are not posted again unless their
+severity rose. See docs/How-to/test.md.
 """
 
 import importlib
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -31,6 +36,9 @@ DOC_TEXT = (
 )
 CODE_TEXT = 'def f(x):\n    y = 2 * x\n    return y\n\n\ndef g(z):\n    return z + 1\n'
 
+SAFE_FIX = {'old_text': 'moist lapse uses alpha=1', 'new_text': 'moist lapse uses alpha=5'}
+NOTHING = {'has_fixes': 'false', 'has_inconsistency_items': 'false', 'has_gap_items': 'false'}
+
 
 def finding(fid, **overrides):
     """A verified minor inconsistency on the moist passage, without a fix."""
@@ -49,6 +57,18 @@ def finding(fid, **overrides):
     return base
 
 
+def gap(fid, **overrides):
+    """A verified gap with no related doc passage."""
+    g = finding(fid, type='gap', doc_excerpt='', **overrides)
+    del g['severity']
+    return g
+
+
+def outputs(**changed):
+    """Expected workflow outputs: nothing to do, except the keys given."""
+    return {**NOTHING, **{k: 'true' for k, v in changed.items() if v}}
+
+
 @pytest.fixture
 def repo(tmp_path, monkeypatch):
     """Temporary repo tree holding one reviewed doc and one reviewed source file."""
@@ -64,22 +84,28 @@ def repo(tmp_path, monkeypatch):
 
 
 def run_triage(repo, findings):
-    """Run main() on the given findings; return (outputs, doc text, issue body, PR body)."""
+    """Run main() on the given findings and return its outputs and written files."""
     (repo / 'analysis.json').write_text(json.dumps(findings))
     (repo / 'github_output').write_text('')
     triage.main()
     lines = (repo / 'github_output').read_text().splitlines()
-    outputs = dict(line.split('=', 1) for line in lines)
-    return (
-        outputs,
-        (repo / DOC_FILE).read_text(),
-        (repo / 'gap_issue_body.md').read_text(),
-        (repo / 'pr_body.md').read_text(),
+    return SimpleNamespace(
+        outputs=dict(line.split('=', 1) for line in lines),
+        doc=(repo / DOC_FILE).read_text(),
+        inc=(repo / 'inconsistency_issue_body.md').read_text(),
+        gaps=(repo / 'gap_issue_body.md').read_text(),
+        pr=(repo / 'pr_body.md').read_text(),
     )
 
 
-def test_fixless_inconsistencies_open_no_pr_and_reach_the_issue(repo):
-    """Inconsistencies with no applicable fix leave has_fixes false and go to the issue."""
+def post(repo, name, body):
+    """Simulate the workflow posting body to the open issue: append it to its fetch file."""
+    path = repo / name
+    path.write_text((path.read_text() if path.exists() else '') + body)
+
+
+def test_fixless_inconsistencies_open_no_pr_and_reach_the_inconsistency_issue(repo):
+    """Minor inconsistencies with no applicable fix go to the inconsistency issue."""
     # Distinct code quotes: findings quoting the same code share a fingerprint and would
     # be merged into one issue entry.
     findings = [
@@ -90,16 +116,12 @@ def test_fixless_inconsistencies_open_no_pr_and_reach_the_issue(repo):
             suggested_fix={'old_text': 'beta=7', 'new_text': 'x'},
         ),
     ]
-    outputs, doc, issue, pr = run_triage(repo, findings)
-    assert outputs == {
-        'has_fixes': 'false',
-        'has_serious_items': 'false',
-        'has_issue_items': 'true',
-    }
-    assert doc == DOC_TEXT
-    assert '`no-fix`' in issue and '`fix-text-missing`' in issue
-    assert '## Inconsistencies needing a manual edit' in issue
-    assert 'No fixes applied' in pr
+    r = run_triage(repo, findings)
+    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert r.doc == DOC_TEXT
+    assert '`no-fix`' in r.inc and '`fix-text-missing`' in r.inc
+    assert '## Minor: needs a manual edit' in r.inc
+    assert r.gaps == '' and 'No fixes applied' in r.pr
 
 
 @pytest.mark.parametrize(
@@ -115,25 +137,20 @@ def test_fixless_inconsistencies_open_no_pr_and_reach_the_issue(repo):
 def test_unsafe_fix_is_not_applied(repo, old, new, reason):
     """A fix that could edit the wrong passage, or nothing, leaves the doc untouched."""
     fix = {'suggested_fix': {'old_text': old, 'new_text': new}}
-    outputs, doc, issue, _ = run_triage(repo, [finding('unsafe', **fix)])
-    assert doc == DOC_TEXT
-    assert outputs['has_fixes'] == 'false'
-    assert 'Suggested fix (not applied: ' in issue and reason in issue
+    r = run_triage(repo, [finding('unsafe', **fix)])
+    assert r.doc == DOC_TEXT
+    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert 'Suggested fix (not applied: ' in r.inc and reason in r.inc
 
 
 def test_unique_fix_edits_only_the_quoted_passage(repo):
     """A unique old_text inside the excerpt is replaced; the other alpha=1 is kept."""
-    fix = {'old_text': 'moist lapse uses alpha=1', 'new_text': 'moist lapse uses alpha=5'}
-    outputs, doc, issue, pr = run_triage(repo, [finding('good', suggested_fix=fix)])
-    assert outputs == {
-        'has_fixes': 'true',
-        'has_serious_items': 'false',
-        'has_issue_items': 'false',
-    }
-    assert 'The moist lapse uses alpha=5 too.' in doc
+    r = run_triage(repo, [finding('good', suggested_fix=SAFE_FIX)])
+    assert r.outputs == outputs(has_fixes=True)
+    assert 'The moist lapse uses alpha=5 too.' in r.doc
     # The dry section also contains alpha=1 and must be left alone.
-    assert 'The dry lapse uses alpha=1 here.' in doc
-    assert '`good`' in pr and issue == ''
+    assert 'The dry lapse uses alpha=1 here.' in r.doc
+    assert '`good`' in r.pr and r.inc == ''
 
 
 def test_second_fix_on_a_changed_passage_is_not_applied(repo):
@@ -146,71 +163,42 @@ def test_second_fix_on_a_changed_passage_is_not_applied(repo):
         code_excerpt='    return y',
         suggested_fix={'old_text': 'moist lapse', 'new_text': 'wet lapse'},
     )
-    outputs, doc, issue, _ = run_triage(repo, [first, second])
-    assert 'alpha=5 too' in doc and 'wet lapse' not in doc
-    assert outputs['has_fixes'] == 'true'
-    assert 'changed by an earlier fix' in issue
+    r = run_triage(repo, [first, second])
+    assert 'alpha=5 too' in r.doc and 'wet lapse' not in r.doc
+    assert r.outputs == outputs(has_fixes=True, has_inconsistency_items=True)
+    assert 'changed by an earlier fix' in r.inc
 
 
-def test_serious_inconsistency_goes_to_its_own_issue_unfixed(repo):
-    """A serious finding with a safe fix is not applied and is filed in the serious issue.
+def test_serious_inconsistency_is_filed_first_and_never_applied(repo):
+    """A serious finding with a safe fix is blocked and heads the inconsistency issue.
 
     A serious disagreement may be a bug in the code; rewriting the doc to match the code
-    would hide it, so it is kept apart from the gaps issue for a human to decide.
+    would hide it, so a human decides which side is wrong.
     """
-    fix = {'old_text': 'moist lapse uses alpha=1', 'new_text': 'moist lapse uses alpha=5'}
-    outputs, doc, issue, pr = run_triage(
-        repo, [finding('code-bug', severity='serious', suggested_fix=fix)]
+    r = run_triage(
+        repo,
+        [
+            finding('small', code_excerpt='    return y'),
+            finding('code-bug', severity='serious', suggested_fix=SAFE_FIX),
+        ],
     )
-    serious = (repo / 'serious_issue_body.md').read_text()
-    assert doc == DOC_TEXT
-    assert outputs == {
-        'has_fixes': 'false',
-        'has_serious_items': 'true',
-        'has_issue_items': 'false',
-    }
-    assert '## Serious inconsistencies' in serious and '`code-bug`' in serious
-    assert 'not a minor finding' in serious and 'docs-consistency-fp:' in serious
-    assert issue == '' and 'No fixes applied' in pr
+    assert r.doc == DOC_TEXT
+    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert 'not a minor finding' in r.inc and 'No fixes applied' in r.pr
+    # The serious section comes before the minor one, whatever the input order.
+    serious_at = r.inc.index('## Serious: possible code bug')
+    assert serious_at < r.inc.index('`code-bug`') < r.inc.index('## Minor: needs a manual edit')
+    assert r.inc.index('## Minor: needs a manual edit') < r.inc.index('`small`')
 
 
-def test_unrated_inconsistency_is_not_applied_and_stays_in_gaps_issue(repo):
-    """A finding without a severity is not auto-fixed, and is not treated as serious."""
-    fix = {'old_text': 'moist lapse uses alpha=1', 'new_text': 'moist lapse uses alpha=5'}
-    f = finding('unrated', suggested_fix=fix)
+def test_unrated_inconsistency_is_blocked_but_not_labelled_serious(repo):
+    """A finding without a severity is not auto-fixed and is filed under minor."""
+    f = finding('unrated', suggested_fix=SAFE_FIX)
     del f['severity']
-    outputs, doc, issue, _ = run_triage(repo, [f])
-    assert doc == DOC_TEXT
-    assert outputs['has_serious_items'] == 'false' and outputs['has_issue_items'] == 'true'
-    assert 'not a minor finding' in issue and '`unrated`' in issue
-
-
-def test_unverified_serious_finding_stays_in_gaps_issue(repo):
-    """A serious finding whose quotes do not match is filed as unverified, not as serious."""
-    f = finding('misquoted', severity='serious', code_excerpt='    y = 3 * x')
-    outputs, _, issue, _ = run_triage(repo, [f])
-    assert outputs['has_serious_items'] == 'false'
-    assert '## Unverified findings' in issue and '`misquoted`' in issue
-    assert (repo / 'serious_issue_body.md').read_text() == ''
-
-
-def test_serious_issue_dedupes_against_its_own_posts_only(repo):
-    """A serious finding is posted once; one first filed as minor is still escalated."""
-    # Week 1: filed as minor, so it lands in the gaps issue.
-    _, _, issue, _ = run_triage(repo, [finding('first-minor')])
-    (repo / 'existing_issue.md').write_text(issue)
-
-    # Week 2: same code, now rated serious: escalated to the serious issue.
-    outputs, _, issue, _ = run_triage(repo, [finding('now-serious', severity='serious')])
-    serious = (repo / 'serious_issue_body.md').read_text()
-    assert outputs['has_serious_items'] == 'true' and '`now-serious`' in serious
-    assert issue == ''
-    (repo / 'existing_serious_issue.md').write_text(serious)
-
-    # Week 3: still serious, renamed: not posted again.
-    outputs, _, _, _ = run_triage(repo, [finding('renamed', severity='serious')])
-    assert outputs['has_serious_items'] == 'false'
-    assert (repo / 'serious_issue_body.md').read_text() == ''
+    r = run_triage(repo, [f])
+    assert r.doc == DOC_TEXT
+    assert '## Serious' not in r.inc and '## Minor: needs a manual edit' in r.inc
+    assert 'not a minor finding' in r.inc and '`unrated`' in r.inc
 
 
 @pytest.mark.parametrize(
@@ -220,86 +208,115 @@ def test_serious_issue_dedupes_against_its_own_posts_only(repo):
         {'doc_excerpt': 'The model uses beta=7.'},
         {'code_file': '../../etc/passwd'},
         {'doc_excerpt': ''},
+        {'code_excerpt': '    y = 3 * x', 'severity': 'serious'},
     ],
-    ids=['invented-code-quote', 'invented-doc-quote', 'code-file-outside-list', 'no-doc-quote'],
+    ids=[
+        'invented-code-quote',
+        'invented-doc-quote',
+        'code-file-outside-list',
+        'no-doc-quote',
+        'serious-but-misquoted',
+    ],
 )
 def test_unmatched_quotes_are_filed_as_unverified_and_never_applied(repo, overrides):
-    """A finding whose quotes are not in the files is posted as unverified, never fixed."""
-    fix = {'old_text': 'moist lapse uses alpha=1', 'new_text': 'moist lapse uses alpha=5'}
-    outputs, doc, issue, _ = run_triage(repo, [finding('bad', suggested_fix=fix, **overrides)])
-    assert doc == DOC_TEXT
-    assert outputs == {
-        'has_fixes': 'false',
-        'has_serious_items': 'false',
-        'has_issue_items': 'true',
-    }
-    assert '## Unverified findings' in issue
-    assert 'not applied: finding unverified' in issue
+    """An inconsistency whose quotes are not in the files is unverified, never fixed."""
+    r = run_triage(repo, [finding('bad', suggested_fix=SAFE_FIX, **overrides)])
+    assert r.doc == DOC_TEXT
+    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert '## Unverified inconsistencies' in r.inc and '## Serious' not in r.inc
+    assert 'not applied: finding unverified' in r.inc and r.gaps == ''
+
+
+def test_findings_are_routed_to_the_issue_matching_their_type(repo):
+    """Gaps, verified or not, go to the gap issue; inconsistencies never do."""
+    r = run_triage(
+        repo,
+        [
+            gap('real-gap', code_excerpt='    return z + 1'),
+            gap('invented-gap', code_excerpt='no_such_call()'),
+            finding('inc'),
+        ],
+    )
+    assert r.outputs == outputs(has_inconsistency_items=True, has_gap_items=True)
+    assert '## Documentation gaps' in r.gaps and '## Unverified gaps' in r.gaps
+    assert '`real-gap`' in r.gaps and '`invented-gap`' in r.gaps and '`inc`' not in r.gaps
+    assert '`inc`' in r.inc and 'gap`' not in r.inc
 
 
 def test_line_number_prefixes_are_stripped_before_matching(repo):
     """A code quote copied with 'N: ' prefixes verifies, and is posted without them."""
     quoted = '2:     y = 2 * x\n3:     return y'
-    _, _, issue, _ = run_triage(repo, [finding('prefixed', code_excerpt=quoted)])
-    assert '## Unverified findings' not in issue
-    assert '    y = 2 * x\n    return y' in issue
-    assert '2:     y' not in issue
+    r = run_triage(repo, [finding('prefixed', code_excerpt=quoted)])
+    assert '## Unverified' not in r.inc
+    assert '    y = 2 * x\n    return y' in r.inc
+    assert '2:     y' not in r.inc
 
 
 def test_gap_may_have_an_empty_doc_excerpt(repo):
     """A gap with no related doc passage is filed as a gap, not as unverified."""
-    gap = finding('gap', type='gap', doc_excerpt='')
-    del gap['severity']
-    _, _, issue, _ = run_triage(repo, [gap])
-    assert '## Documentation gaps' in issue
-    assert '## Unverified findings' not in issue
-    assert '_no related passage_' in issue
+    r = run_triage(repo, [gap('gap')])
+    assert r.outputs == outputs(has_gap_items=True)
+    assert '## Documentation gaps' in r.gaps and '## Unverified' not in r.gaps
+    assert '_no related passage_' in r.gaps
 
 
 def test_already_reported_findings_are_not_posted_again(repo):
-    """Findings already in the open issue are skipped, even under new ids."""
-    first_run = [finding('a'), finding('b', type='gap', code_excerpt='    return z + 1')]
-    _, _, issue, _ = run_triage(repo, first_run)
-    assert issue.count('docs-consistency-fp:') == 2
-    (repo / 'existing_issue.md').write_text(issue)
+    """Findings already in the open issues are skipped, even under new ids."""
+    r = run_triage(repo, [finding('a'), gap('b', code_excerpt='    return z + 1')])
+    assert (
+        r.inc.count('docs-consistency-fp:') == 1 and r.gaps.count('docs-consistency-fp:') == 1
+    )
+    post(repo, 'existing_inconsistency_issue.md', r.inc)
+    post(repo, 'existing_gap_issue.md', r.gaps)
 
-    # Same content, renamed ids and reformatted quote, plus one new finding.
+    # Same content, renamed ids and reformatted quote, plus one new gap.
     second_run = [
         finding('a-renamed', code_excerpt='2:     y = 2 * x\n'),
-        finding('b-renamed', type='gap', code_excerpt='    return z + 1'),
-        finding('new', type='gap', code_excerpt='def g(z):'),
+        gap('b-renamed', code_excerpt='    return z + 1'),
+        gap('new', code_excerpt='def g(z):'),
     ]
-    outputs, _, issue, _ = run_triage(repo, second_run)
-    assert outputs['has_issue_items'] == 'true'
-    assert '`new`' in issue
-    assert '`a-renamed`' not in issue and '`b-renamed`' not in issue
-    assert '2 other finding(s) from this run were already reported' in issue
+    r = run_triage(repo, second_run)
+    assert r.outputs == outputs(has_gap_items=True)
+    assert '`new`' in r.gaps and '`b-renamed`' not in r.gaps and r.inc == ''
+    assert '1 other finding(s) from this run were already reported' in r.gaps
 
     # Nothing new at all: no issue post.
-    (repo / 'existing_issue.md').write_text((repo / 'existing_issue.md').read_text() + issue)
-    outputs, _, issue, _ = run_triage(repo, second_run)
-    assert outputs == {
-        'has_fixes': 'false',
-        'has_serious_items': 'false',
-        'has_issue_items': 'false',
-    }
-    assert issue == ''
+    post(repo, 'existing_gap_issue.md', r.gaps)
+    r = run_triage(repo, second_run)
+    assert r.outputs == NOTHING
+    assert r.inc == '' and r.gaps == ''
+
+
+def test_finding_is_reposted_only_when_its_severity_rises(repo):
+    """Minor then serious is reposted as an escalation; serious then minor is not."""
+    r = run_triage(repo, [finding('first-minor')])
+    assert '## Minor: needs a manual edit' in r.inc
+    post(repo, 'existing_inconsistency_issue.md', r.inc)
+
+    # Same code, now rated serious: reposted under the serious section.
+    r = run_triage(repo, [finding('now-serious', severity='serious')])
+    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert '## Serious: possible code bug' in r.inc and '`now-serious`' in r.inc
+    assert '1 finding(s) above were reported before at a lower severity' in r.inc
+    post(repo, 'existing_inconsistency_issue.md', r.inc)
+
+    # Serious again under a new id, or back to minor: not posted.
+    for severity in ('serious', 'minor'):
+        r = run_triage(repo, [finding('again', severity=severity)])
+        assert r.outputs == NOTHING, severity
+        assert r.inc == ''
 
 
 def test_duplicate_within_one_run_is_posted_once(repo):
     """Two findings quoting the same code in one run produce a single issue entry."""
-    _, _, issue, _ = run_triage(repo, [finding('one'), finding('two')])
-    assert issue.count('docs-consistency-fp:') == 1
-    assert 'already reported' not in issue
+    r = run_triage(repo, [finding('one'), finding('two')])
+    assert r.inc.count('docs-consistency-fp:') == 1
+    assert 'already reported' not in r.inc
 
 
 def test_empty_analysis_sets_no_outputs(repo):
-    """No findings: no PR, no issue post, and an empty issue body."""
-    outputs, doc, issue, _ = run_triage(repo, [])
-    assert outputs == {
-        'has_fixes': 'false',
-        'has_serious_items': 'false',
-        'has_issue_items': 'false',
-    }
-    assert doc == DOC_TEXT
-    assert issue == ''
+    """No findings: no PR, no issue posts, and empty issue bodies."""
+    r = run_triage(repo, [])
+    assert r.outputs == NOTHING
+    assert r.doc == DOC_TEXT
+    assert r.inc == '' and r.gaps == ''
