@@ -293,7 +293,7 @@ def test_finding_is_reposted_only_when_its_severity_rises(repo):
     r = run_triage(repo, [finding('now-serious', severity='serious')])
     assert r.outputs == outputs(has_inconsistency_items=True)
     assert '## Serious: possible code bug' in r.inc and '`now-serious`' in r.inc
-    assert '1 finding(s) above were reported before at a lower severity' in r.inc
+    assert '1 finding(s) above were reported before as unverified or at a lower' in r.inc
     post(repo, 'existing_inconsistency_issue.md', r.inc)
 
     # Serious again under a new id, or back to minor: not posted.
@@ -301,6 +301,23 @@ def test_finding_is_reposted_only_when_its_severity_rises(repo):
         r = run_triage(repo, [finding('again', severity=severity)])
         assert r.outputs == NOTHING, severity
         assert r.inc == ''
+
+
+def test_unverified_copy_does_not_hide_the_verified_finding(repo):
+    """A finding first posted as unverified is reposted once a later run verifies it."""
+    suspect = {'severity': 'serious', 'doc_excerpt': 'An invented doc quote.'}
+    r = run_triage(repo, [finding('suspect', **suspect)])
+    assert '## Unverified inconsistencies' in r.inc and 'serious-unverified -->' in r.inc
+    post(repo, 'existing_inconsistency_issue.md', r.inc)
+
+    # Same code quote, now verified: posted under the serious section.
+    r = run_triage(repo, [finding('verified', severity='serious')])
+    assert '## Serious: possible code bug' in r.inc and '`verified`' in r.inc
+    post(repo, 'existing_inconsistency_issue.md', r.inc)
+
+    # A suspect copy after the verified one is not posted again.
+    r = run_triage(repo, [finding('suspect-again', **suspect)])
+    assert r.outputs == NOTHING and r.inc == ''
 
 
 def test_duplicate_within_one_run_is_posted_once(repo):
