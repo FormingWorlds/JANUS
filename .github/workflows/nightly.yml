@@ -91,15 +91,13 @@ jobs:
           restore-keys: |
             fwl-data-
 
-      # Without an exact hit the tree is saved under this key at the end of the
-      # job, so it must first hold every dataset the key covers, not only the
-      # ones the tests happen to fetch.
+      # Every run: a tree saved under this key must hold every dataset it covers.
+      # On a complete tree fwl-io finds each file in place and downloads nothing,
+      # and a tree the installed fwl-io cannot read is rebuilt, not failed.
       - name: Fetch the track data the key covers
-        if: steps.cache-fwl-data.outputs.cache-hit != 'true'
         run: python tools/nightly_data_cache.py fetch --data-root /home/runner/work/fwl_data
 
-      # On an exact hit this checks the restored tree against its key; otherwise
-      # it checks the tree about to be saved under it.
+      # Checks the tree the tests read and the one saved under this key.
       - name: Check the track data
         run: python tools/nightly_data_cache.py check --data-root /home/runner/work/fwl_data
 

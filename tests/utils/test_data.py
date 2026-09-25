@@ -233,13 +233,17 @@ def test_nightly_workflow_derives_its_key_and_keeps_a_restore_prefix():
     # including the OSF ones the key does not track.
     assert 'restore-keys:' in workflow
     assert f'\n            {mod.KEY_PREFIX}\n' in workflow
-    # A tree about to be saved under a new key is fetched in full first, and
-    # the check covers every run, since a missed key saves at the end of it.
+    # Fetch and check run on every night, in that order, before the tests.
+    steps = workflow.split('      - name: ')
+    for command in ('nightly_data_cache.py fetch', 'nightly_data_cache.py check'):
+        (step,) = [s for s in steps if command in s]
+        assert '\n        if:' not in step
     fetch = workflow.index('tools/nightly_data_cache.py fetch')
-    check = workflow.index('tools/nightly_data_cache.py check')
-    assert workflow.index("if: steps.cache-fwl-data.outputs.cache-hit != 'true'") < fetch
-    assert fetch < check < workflow.index('pytest -m')
-    assert 'cache-hit ==' not in workflow
+    assert (
+        fetch
+        < workflow.index('tools/nightly_data_cache.py check')
+        < workflow.index('pytest -m')
+    )
 
 
 def test_cache_key_refuses_to_resolve_when_the_pins_are_missing(monkeypatch, tmp_path):
@@ -298,20 +302,20 @@ def test_restore_check_counts_registry_files_not_directories(monkeypatch, tmp_pa
     target.mkdir(parents=True)
 
     # An empty but existing directory is the frozen-cache case.
-    assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 0, 2)]
+    assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 0, 2, 'intact')]
     assert mod.main(['check', '--data-root', str(root)]) == 1
 
     (target / 'BHAC15-M0p010.txt').write_text('x', encoding='utf-8')
-    assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 1, 2)]
+    assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 1, 2, 'intact')]
     assert mod.main(['check', '--data-root', str(root)]) == 1
 
     # Present with the wrong contents is not intact.
     (target / 'BHAC15-M0p015.txt').write_text('x', encoding='utf-8')
-    assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 1, 2)]
+    assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 1, 2, 'intact')]
     assert mod.main(['check', '--data-root', str(root)]) == 1
 
     (target / 'BHAC15-M0p015.txt').write_text('y', encoding='utf-8')
-    assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 2, 2)]
+    assert mod.check_restored(root) == [('star/tracks/baraffe_2015/r15729114', 2, 2, 'intact')]
     assert mod.main(['check', '--data-root', str(root)]) == 0
 
 
@@ -368,18 +372,18 @@ def test_fetch_extracts_an_archive_dataset_that_check_then_accepts(
 
     root = tmp_path / 'fwl_data'
     # Nothing fetched yet: one missing item, never zero of zero.
-    assert mod.check_restored(root) == [(rel_dir, 0, 1)]
+    assert mod.check_restored(root) == [(rel_dir, 0, 1, 'present')]
     assert mod.main(['check', '--data-root', str(root)]) == 1
 
     assert mod.main(['fetch', '--data-root', str(root)]) == 0
     assert (root / rel_dir / 'fs255_grid' / '0p1.dat').read_bytes() == b'track-a'
     assert not (root / rel_dir / 'fs255_grid.tar.gz').exists()
-    assert mod.check_restored(root) == [(rel_dir, 2, 2)]
+    assert mod.check_restored(root) == [(rel_dir, 2, 2, 'present')]
     assert mod.main(['check', '--data-root', str(root)]) == 0
 
     # A member lost after extraction makes the tree incomplete again.
     (root / rel_dir / 'fs255_grid' / '0p2.dat').unlink()
-    assert mod.check_restored(root) == [(rel_dir, 1, 2)]
+    assert mod.check_restored(root) == [(rel_dir, 1, 2, 'present')]
     capsys.readouterr()
     assert mod.main(['check', '--data-root', str(root)]) == 1
     assert 'missing files the registry pins or unpacked archive members' in (
@@ -421,6 +425,22 @@ def test_key_moves_with_the_archive_kind(monkeypatch, tmp_path):
     assert keys[0] == keys[2]
 
 
+def test_key_moves_with_the_fwl_io_release_month(monkeypatch, tmp_path):
+    """A new fwl-io month can change the tree layout, so it moves the key; a patch does not."""
+    mod = _cache_module()
+    import fwl_io
+    import mors.data
+
+    manifest = _write_manifest(tmp_path, record='15729114', checksum='a' * 32)
+    monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
+    keys = {}
+    for version in ('26.9.23', '26.9.30', '26.10.1'):
+        monkeypatch.setattr(fwl_io, '__version__', version)
+        keys[version] = mod.resolve_key()
+    assert keys['26.9.23'] == keys['26.9.30']
+    assert keys['26.9.23'] != keys['26.10.1']
+
+
 def test_key_command_writes_the_output_line_the_workflow_reads(monkeypatch, tmp_path):
     """The key subcommand emits exactly the GITHUB_OUTPUT line the cache step consumes.
 
@@ -447,10 +467,10 @@ def test_key_command_writes_the_output_line_the_workflow_reads(monkeypatch, tmp_
 
 
 def test_key_is_independent_of_registry_and_manifest_ordering(monkeypatch, tmp_path):
-    """Reordering the registry lines leaves the key alone.
+    """Reordering the registry lines or the manifest tables leaves the key alone.
 
-    Registry order is not part of the data, so a re-sync that shuffles lines
-    must not cost a full refetch of a dataset with one upstream mirror.
+    Neither order is part of the data, so a re-sync that shuffles them must
+    not cost a full refetch of a dataset with one upstream mirror.
     """
     mod = _cache_module()
     import mors.data
@@ -476,6 +496,21 @@ def test_key_is_independent_of_registry_and_manifest_ordering(monkeypatch, tmp_p
     # Swapping which file carries which checksum IS a data change and must move it.
     swapped = f'BHAC15-M0p010.txt md5:{"b" * 32}\nBHAC15-M0p015.txt md5:{"a" * 32}\n'
     assert key_for(swapped, 'swapped') != key_for(first, 'forward-again')
+
+    # The order of the tables in the manifest is not part of the data either.
+    keys = []
+    for tag in ('baraffe-first', 'spada-first'):
+        drc = tmp_path / tag
+        drc.mkdir()
+        manifest = _write_manifest(drc, record='15729114', checksum='a' * 32)
+        baraffe = manifest.read_text(encoding='utf-8')
+        spada = _write_archive_manifest(drc, extract=True)[0].read_text(encoding='utf-8')
+        tables = (baraffe, spada) if tag == 'baraffe-first' else (spada, baraffe)
+        manifest.write_text('\n'.join(tables), encoding='utf-8')
+        monkeypatch.setattr(mors.data, 'manifest_path', lambda m=manifest: m, raising=True)
+        keys.append(mod.resolve_key())
+    assert keys[0] == keys[1]
+    assert keys[0] != key_for(first, 'baraffe-only')
 
 
 def test_check_refuses_to_run_without_a_data_root(monkeypatch, capsys):

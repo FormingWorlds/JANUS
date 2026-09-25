@@ -11,18 +11,20 @@ Three subcommands, all used by ``.github/workflows/nightly.yml``::
 digest of the track-data layout JANUS resolves through its ``fwl-mors``
 dependency: for every dataset the installed manifest declares, the
 directory fwl-io places it in and the per-file checksums the registry
-pins, plus the archive kind of a dataset shipped as one archive. It
-therefore moves when the data moves and stays put otherwise.
+pins, plus the archive kind of a dataset shipped as one archive and the
+fwl-io release (year.month) that lays out the tree. It therefore moves
+when the data or its layout moves and stays put otherwise.
 
 Every declared dataset counts, not only the one JANUS fetches today. A
 dataset the manifest gains later costs at most one extra refetch, where
 narrowing the digest to a named subset would leave a dataset JANUS starts
 consuming untracked, which is the failure worth avoiding.
 
-``fetch`` downloads every dataset the key covers, so a tree saved under
-the key holds all of it. ``check`` verifies that tree without the network:
-every registry file present with its pinned checksum, and for an archive
-dataset every member its extraction recorded.
+``fetch`` downloads every dataset the key covers that is not already in
+place, so a tree saved under the key holds all of it. ``check`` verifies
+that tree without the network: every registry file present with its
+pinned checksum, and for an archive dataset every member its extraction
+recorded, by name.
 
 Both subcommands fail with a diagnostic rather than degrade: an empty or
 partial digest would collide with the workflow's restore-key prefix and
@@ -169,12 +171,14 @@ def resolve_key(data_root: Path | None = None) -> str:
             'the bare restore-key prefix and the cached tree could never be '
             'rewritten.'
         )
+    from fwl_io import __version__
 
+    material.append('fwl-io\t' + '.'.join(__version__.split('.')[:2]))
     digest = hashlib.sha256('\n'.join(material).encode('utf-8')).hexdigest()
     return f'{KEY_PREFIX}{digest}'
 
 
-def check_restored(data_root: Path) -> list[tuple[str, int, int]]:
+def check_restored(data_root: Path) -> list[tuple[str, int, int, str]]:
     """Report how much of each dataset is present below ``data_root``.
 
     Parameters
@@ -185,10 +189,12 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int]]:
     Returns
     -------
     list of tuple
-        One ``(rel_dir, found, expected)`` per dataset. ``found`` counts the
-        files fwl-io reports intact, by checksum for a plain dataset and by
-        presence for the members of an archive dataset; an archive dataset
-        with no extracted tree counts as its one archive, missing.
+        One ``(rel_dir, found, expected, state)`` per dataset. ``found``
+        counts the files fwl-io reports sound, and ``state`` names what that
+        means: ``intact`` for a plain dataset, checked by checksum, and
+        ``present`` for the members of an archive dataset, checked by name.
+        An archive dataset with no extracted tree counts as its one archive,
+        missing.
 
     Raises
     ------
@@ -199,8 +205,9 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int]]:
 
     report = []
     for f in _fetchers(data_root):
-        files = check_dataset(f).files
-        report.append((f.rel_dir, sum(not c.faulty for c in files), len(files)))
+        ds = check_dataset(f)
+        state = 'intact' if ds.verifiable else 'present'
+        report.append((f.rel_dir, sum(not c.faulty for c in ds.files), len(ds.files), state))
     return report
 
 
@@ -250,8 +257,8 @@ def _cmd_fetch(args: argparse.Namespace) -> int:
 
 def _cmd_check(args: argparse.Namespace) -> int:
     incomplete = False
-    for rel_dir, found, expected in check_restored(_data_root(args)):
-        print(f'{rel_dir}: {found}/{expected} files intact')
+    for rel_dir, found, expected, state in check_restored(_data_root(args)):
+        print(f'{rel_dir}: {found}/{expected} files {state}')
         if found != expected:
             incomplete = True
 
