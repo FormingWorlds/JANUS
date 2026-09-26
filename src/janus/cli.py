@@ -9,7 +9,6 @@ def cli():
 @click.group()
 def download():
     """Download data and dependencies"""
-    pass
 
 
 @click.command()

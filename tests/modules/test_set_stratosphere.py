@@ -55,7 +55,7 @@ def _build_atm(trpp_idx, trpp_tmp=150.0, min_t=10.0):
         tmp=np.full(nlev, 260.0),
         tmpl=np.full(nlev + 1, 260.0),
         minT=min_t,
-        vol_list={v: 1.0 for v in VOLS},
+        vol_list=dict.fromkeys(VOLS, 1.0),
         x_cond={v: x_cond[v].copy() for v in VOLS},
         x_gas={v: x_gas[v].copy() for v in VOLS},
         p_vol={v: x_gas[v].copy() * press for v in VOLS},

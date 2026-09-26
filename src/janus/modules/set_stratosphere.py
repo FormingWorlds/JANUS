@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Jan 23 11:57:03 2023
 
-@authors: 
-Tim Lichtenberg (TL)    
+@authors:
+Tim Lichtenberg (TL)
 Ryan Boukrouche (RB)
 """
 
 import numpy as np
+
+import janus.utils.GeneralAdiabat as ga  # Moist adiabat with multiple condensibles
 import janus.utils.phys as phys
-import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-    
+
+
 def set_stratosphere(atm):
 
     trpp_idx = int(atm.trppidx)
@@ -25,61 +26,60 @@ def set_stratosphere(atm):
     for prs_idx, prs in enumerate(atm.p):
         if prs <= trpp_prs:
             atm.tmp[prs_idx] = trpp_tmp
-    atm.tmp = np.clip(atm.tmp,atm.minT,None)
+    atm.tmp = np.clip(atm.tmp, atm.minT, None)
 
     # Staggered nodes
     for prsl_idx, prls in enumerate(atm.pl):
         if prls <= trpp_prs:
             atm.tmpl[prsl_idx] = trpp_tmp
-    atm.tmpl = np.clip(atm.tmpl,atm.minT,None)
+    atm.tmpl = np.clip(atm.tmpl, atm.minT, None)
 
     # Set mixing ratios to same as tropopause
-    for idx in reversed(range(0, trpp_idx)):
-    
-        atm.cp[idx] = 0.
-        atm.mu[idx] = 0.
+    for idx in reversed(range(trpp_idx)):
+        atm.cp[idx] = 0.0
+        atm.mu[idx] = 0.0
 
         # Volatile abundances
         for vol in atm.vol_list.keys():
-        
             # Saturation vapor pressure
-            p_vol_sat     = ga.p_sat(vol, atm.tmp[idx], water_lookup=atm.water_lookup)
+            p_vol_sat = ga.p_sat(vol, atm.tmp[idx], water_lookup=atm.water_lookup)
 
             # If still condensible
             if atm.p[idx] > p_vol_sat:
+                cond_diff = atm.x_cond[vol][idx] - atm.x_cond[vol][trpp_idx]
 
-                cond_diff            = (atm.x_cond[vol][idx] - atm.x_cond[vol][trpp_idx])
-
-                atm.xc[idx]          -= cond_diff
-                atm.xv[idx]          += cond_diff
+                atm.xc[idx] -= cond_diff
+                atm.xv[idx] += cond_diff
 
                 atm.x_cond[vol][idx] = atm.x_cond[vol][trpp_idx]
-                atm.x_gas[vol][idx]  = atm.x_gas[vol][trpp_idx]
-                atm.p_vol[vol][idx]  = atm.x_gas[vol][idx] * atm.p[idx]
+                atm.x_gas[vol][idx] = atm.x_gas[vol][trpp_idx]
+                atm.p_vol[vol][idx] = atm.x_gas[vol][idx] * atm.p[idx]
 
             # If not anymore
             else:
-                atm.xc[idx]          -= atm.x_cond[vol][idx]
-                atm.x_gas[vol][idx]  = atm.x_gas[vol][trpp_idx]
-                atm.xd[idx]          += atm.x_gas[vol][idx] + atm.x_cond[vol][idx]
-                atm.xv[idx]          -= atm.x_gas[vol][idx]
+                atm.xc[idx] -= atm.x_cond[vol][idx]
+                atm.x_gas[vol][idx] = atm.x_gas[vol][trpp_idx]
+                atm.xd[idx] += atm.x_gas[vol][idx] + atm.x_cond[vol][idx]
+                atm.xv[idx] -= atm.x_gas[vol][idx]
 
-                atm.x_cond[vol][idx] = 0.
-                
-                atm.p_vol[vol][idx]  = atm.x_gas[vol][trpp_idx] * atm.p[idx]
-                
+                atm.x_cond[vol][idx] = 0.0
+
+                atm.p_vol[vol][idx] = atm.x_gas[vol][trpp_idx] * atm.p[idx]
 
             # Accumulate cp over the gas phase and retained condensate, matching
             # the tropospheric definition (condensate carries cp_cond weighted by
             # alpha_cloud), so cp stays continuous across the tropopause
-            atm.cp[idx]   += atm.x_gas[vol][idx] * ga.cpv(vol, atm.tmp[idx]) + atm.x_cond[vol][idx] * ga.cp_cond(vol, atm.tmp[idx]) * atm.alpha_cloud
+            atm.cp[idx] += (
+                atm.x_gas[vol][idx] * ga.cpv(vol, atm.tmp[idx])
+                + atm.x_cond[vol][idx] * ga.cp_cond(vol, atm.tmp[idx]) * atm.alpha_cloud
+            )
 
             # Accumulate mean molar mass over the volatile partial pressures
-            atm.mu[idx]   += phys.molar_mass[vol] * atm.p_vol[vol][idx]
+            atm.mu[idx] += phys.molar_mass[vol] * atm.p_vol[vol][idx]
 
         # Normalize cp by the gas-phase molar concentration and mu by the total
         # pressure, applied once to the whole-column sum
-        atm.cp[idx]   = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
-        atm.mu[idx]   = atm.mu[idx] / atm.p[idx]
+        atm.cp[idx] = atm.cp[idx] / (atm.xd[idx] + atm.xv[idx])
+        atm.mu[idx] = atm.mu[idx] / atm.p[idx]
 
     return atm

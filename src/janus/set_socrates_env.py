@@ -6,19 +6,13 @@ https://github.com/nichollsh/SOCRATES/blob/main/sbin/set_rad_env_tmp
 
 from __future__ import annotations
 
-from .socrates import SOCRATES_DIR
-
+import logging
 import os
 import sys
-import zipfile
-from pathlib import Path
-import logging
 
-import click
-import platformdirs
-import requests
+from .socrates import SOCRATES_DIR
 
-log = logging.getLogger("fwl."+__name__)
+log = logging.getLogger('fwl.' + __name__)
 
 if not SOCRATES_DIR.exists():
     raise RuntimeError(f'Cannot find SOCRATES in this location: {SOCRATES_DIR}')

@@ -1,58 +1,47 @@
-import numpy as np
-import janus.utils.GeneralAdiabat as ga # Moist adiabat with multiple condensibles
-import matplotlib.pyplot as plt
-import matplotlib
-from importlib.resources import files
-from janus.utils.socrates import radCompSoc
-import pandas as pd
-from scipy import interpolate
-import seaborn as sns
-import copy
 import os
 import pickle as pkl
+from importlib.resources import files
+
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+
+from janus.utils.socrates import radCompSoc
 
 ### Initial conditions
 
 # Planet age and orbit
-time = { "planet": 0., "star": 100e+6 } # yr,
+time = {'planet': 0.0, 'star': 100e6}  # yr,
 
 # Star age range, yr
-Tstar_range = [ 0.100e+9 ]          # yr , 4.567e+9
+Tstar_range = [0.100e9]  # yr , 4.567e+9
 
 # Star mass range, M_sun
-Mstar_range = [ 1.0, 0.1 ]
+Mstar_range = [1.0, 0.1]
 
 # Planet-star distance range, au
-distance_range = [ 1.0, 0.01 ]
+distance_range = [1.0, 0.01]
 
 # Surface pressure range (Pa)
-prs_range   = [ 1e+5 ]
+prs_range = [1e5]
 
 # Surface temperature range (K)
-tmp_range   = [ 1000 ]
+tmp_range = [1000]
 
 # Volatile molar concentrations: ! must sum to one !
-vol_list    = { 
-              "H2O" : .0, 
-              "CO2" : .0,
-              "H2"  : .0, 
-              "N2"  : .0,  
-              "CH4" : .0, 
-              "O2"  : .0, 
-              "CO"  : .0 
-            }
+vol_list = {'H2O': 0.0, 'CO2': 0.0, 'H2': 0.0, 'N2': 0.0, 'CH4': 0.0, 'O2': 0.0, 'CO': 0.0}
 
 # Set up plot
-fig, ax1 = plt.subplots(1, 1, figsize=(7,6))
-fig2, ax2 = plt.subplots(1, 1, figsize=(7,6))
-sns.set_style("ticks")
+fig, ax1 = plt.subplots(1, 1, figsize=(7, 6))
+fig2, ax2 = plt.subplots(1, 1, figsize=(7, 6))
+sns.set_style('ticks')
 sns.despine()
 
-ls_list = [ "-", "--", ":", "-." ]
-lw      = 2.0
+ls_list = ['-', '--', ':', '-.']
+lw = 2.0
 col_idx = 4
 
-# Font sizes 
+# Font sizes
 fs_l = 16
 fs_m = 14
 fs_s = 12
@@ -62,24 +51,21 @@ legendA2_handles = []
 # legendB1_handles = []
 # legendB2_handles = []
 
-dirs = {
-        "janus": str(files("janus"))+"/",
-        "output": os.path.abspath(os.getcwd())+"/output/"
-        }
+dirs = {'janus': str(files('janus')) + '/', 'output': os.path.abspath(os.getcwd()) + '/output/'}
 
 # Define pkl file
 
-atm_file = dirs["output"]+"0_atm.pkl"
+atm_file = dirs['output'] + '0_atm.pkl'
 
 # Read pickle file
-atm_file_stream = open(atm_file,'rb')
+atm_file_stream = open(atm_file, 'rb')
 atm = pkl.load(atm_file_stream)
 atm_file_stream.close()
 
 ##### PLOT A
 
 # # Loop through volatiles, options: "H2O", "CO2", "H2", "N2", "CH4", "CO", "O2"
-# for vol_idx, vol in enumerate(reversed([ "H2O", "CO2", "CH4" ])): 
+# for vol_idx, vol in enumerate(reversed([ "H2O", "CO2", "CH4" ])):
 
 #     # Set current volatile to 1, others to zero
 #     for vol1 in vol_list.keys():
@@ -102,20 +88,20 @@ atm = radCompSoc(atm, dirs, recalc=False, calc_cf=True)
 
 # print(vol, "@", round(P_surf)/1e+5, "bar,", T_surf, "K")
 
-            # if prs_idx == 0:
-            #     l1, = ax1.plot(atm.band_centres,atm.net_spectral_flux[:,0]/atm.band_widths, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol]) 
-            #     legendA1_handles.append(l1)
-            # else:
-            #     l1, = ax1.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw) 
-            
+# if prs_idx == 0:
+#     l1, = ax1.plot(atm.band_centres,atm.net_spectral_flux[:,0]/atm.band_widths, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw, label=ga.vol_latex[vol])
+#     legendA1_handles.append(l1)
+# else:
+#     l1, = ax1.plot(atm.band_centres,atm.LW_spectral_flux_up[:,0]/atm.band_widths, color=ga.vol_colors[vol][col_idx], ls=ls_list[prs_idx], lw=lw)
+
 print(np.shape(atm.cff))
 # print(atm.cff)
-ax2.semilogy(atm.cff/np.sum(atm.cff), atm.p) # , label=ga.vol_latex[vol]
+ax2.semilogy(atm.cff / np.sum(atm.cff), atm.p)  # , label=ga.vol_latex[vol]
 
-            # # Add settings legend
-            # if vol_idx == 0: 
-            #     l2, = ax1.plot(atm.band_centres,SocRadConv.surf_Planck_nu(atm)/atm.band_widths, color=ga.vol_colors["qgray"], ls=ls_list[prs_idx], label=r'T$_\mathrm{s}$ = '+str(round(atm.ts))+' K\nP$_\mathrm{s}$ = '+str(round(P_surf/1e+5))+' bar')
-            #     legendA2_handles.append(l2)
+# # Add settings legend
+# if vol_idx == 0:
+#     l2, = ax1.plot(atm.band_centres,SocRadConv.surf_Planck_nu(atm)/atm.band_widths, color=ga.vol_colors["qgray"], ls=ls_list[prs_idx], label=r'T$_\mathrm{s}$ = '+str(round(atm.ts))+' K\nP$_\mathrm{s}$ = '+str(round(P_surf/1e+5))+' bar')
+#     legendA2_handles.append(l2)
 
 # # Overplot blackbody
 # l1a, = ax1.plot(atm.band_centres,SocRadConv.surf_Planck_nu(atm)/atm.band_widths, color=ga.vol_colors["qgray"], lw=lw, ls="--", label=r'Blackbody')
@@ -145,9 +131,8 @@ ax2.semilogy(atm.cff/np.sum(atm.cff), atm.p) # , label=ga.vol_latex[vol]
 
 
 # plot cff
-ax2.set_ylim(np.max(atm.p),np.min(atm.p))
+ax2.set_ylim(np.max(atm.p), np.min(atm.p))
 plt.legend()
 ax2.set_ylabel('Pressure (Pa)')
 ax2.set_xlabel('CFF')
-plt.savefig(dirs["output"]+'/cff.pdf')
-
+plt.savefig(dirs['output'] + '/cff.pdf')

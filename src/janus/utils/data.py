@@ -1,14 +1,14 @@
+import logging
 import os
 import re
 import time
 from pathlib import Path
-import logging
 
 import platformdirs
 import requests
 from osfclient.api import OSF
 
-log = logging.getLogger("fwl."+__name__)
+log = logging.getLogger('fwl.' + __name__)
 
 OSF_RETRY_ATTEMPTS = 3
 OSF_RETRY_DELAYS = (15, 45)
@@ -21,9 +21,11 @@ OSF_RETRY_DELAYS = (15, 45)
 _OSF_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 _OSF_STATUS_CODE_RE = re.compile(r'status code (\d+)')
 
+
 def _is_transient_osf_error(exc: RuntimeError) -> bool:
     match = _OSF_STATUS_CODE_RE.search(str(exc))
     return bool(match) and int(match.group(1)) in _OSF_RETRYABLE_STATUS
+
 
 def _osf_retry(func):
     """
@@ -45,22 +47,26 @@ def _osf_retry(func):
             if attempt == OSF_RETRY_ATTEMPTS - 1:
                 raise
             last_exc = exc
-        log.warning(f'OSF request failed (attempt {attempt + 1}/'
-                    f'{OSF_RETRY_ATTEMPTS}): {last_exc!r}, retrying...')
+        log.warning(
+            f'OSF request failed (attempt {attempt + 1}/'
+            f'{OSF_RETRY_ATTEMPTS}): {last_exc!r}, retrying...'
+        )
         time.sleep(OSF_RETRY_DELAYS[min(attempt, len(OSF_RETRY_DELAYS) - 1)])
+
 
 FWL_DATA_DIR = Path(os.environ.get('FWL_DATA', platformdirs.user_data_dir('fwl_data')))
 
 log.debug(f'FWL data location: {FWL_DATA_DIR}')
 
 basic_list = (
-        "Dayspring/256",
-        "Frostflow/256",
-        "Legacy",
-        "Mallard",
-        "Oak",
-        "Reach",
-        )
+    'Dayspring/256',
+    'Frostflow/256',
+    'Legacy',
+    'Mallard',
+    'Oak',
+    'Reach',
+)
+
 
 def download_folder(*, storage, folders: list[str], data_dir: Path):
     """
@@ -95,17 +101,18 @@ def GetFWLData() -> Path:
     """
     return FWL_DATA_DIR.absolute()
 
+
 def DownloadStellarSpectra():
     """
     Download stellar spectra
     """
     # The nightly cache key hashes this module, so a changed pin is refetched there.
     # A folder already on disk is used as it is, without contacting OSF.
-    #project ID of the stellar spectra on OSF
+    # project ID of the stellar spectra on OSF
     project_id = '8r2sw'
     folder_name = 'Named'
 
-    data_dir = GetFWLData() / "stellar_spectra"
+    data_dir = GetFWLData() / 'stellar_spectra'
     if (data_dir / folder_name).exists():
         return
 
@@ -114,11 +121,11 @@ def DownloadStellarSpectra():
     storage = _osf_retry(lambda: project.storage('osfstorage'))
 
     data_dir.mkdir(parents=True, exist_ok=True)
-    print(f"Downloading stellar spectra to {data_dir}")
+    print(f'Downloading stellar spectra to {data_dir}')
     download_folder(storage=storage, folders=[folder_name], data_dir=data_dir)
 
 
-def DownloadSpectralFiles(fname: str="",nband: int=256):
+def DownloadSpectralFiles(fname: str = '', nband: int = 256):
     """
     Download spectral files data
 
@@ -130,31 +137,31 @@ def DownloadSpectralFiles(fname: str="",nband: int=256):
     """
     # The nightly cache key hashes this module, so a changed pin is refetched there.
     # Folders already on disk are used as they are, without contacting OSF.
-    #project ID of the spectral files on OSF
+    # project ID of the spectral files on OSF
     project_id = 'vehxg'
 
-    #Create spectral file data repository if not existing
-    data_dir = GetFWLData() / "spectral_files"
+    # Create spectral file data repository if not existing
+    data_dir = GetFWLData() / 'spectral_files'
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    #If no folder specified download all basic list
+    # If no folder specified download all basic list
     if not fname:
         folder_list = basic_list
-    elif fname in ("Dayspring", "Frostflow", "Honeyside"):
-        folder_list = [fname + "/" + str(nband)]
-    elif fname in ("Kynesgrove","Legacy","Mallard","Oak","Reach","stellar_spectra"):
+    elif fname in ('Dayspring', 'Frostflow', 'Honeyside'):
+        folder_list = [fname + '/' + str(nband)]
+    elif fname in ('Kynesgrove', 'Legacy', 'Mallard', 'Oak', 'Reach', 'stellar_spectra'):
         folder_list = [fname]
     else:
-        raise ValueError(f"Unrecognised folder name: {fname}")
+        raise ValueError(f'Unrecognised folder name: {fname}')
 
     folders = [folder for folder in folder_list if not (data_dir / folder).exists()]
     if not folders:
         return
 
-    #Link with OSF project repository
+    # Link with OSF project repository
     osf = OSF()
     project = _osf_retry(lambda: osf.project(project_id))
     storage = _osf_retry(lambda: project.storage('osfstorage'))
 
-    print(f"Downloading SOCRATES spectral files to {data_dir}")
+    print(f'Downloading SOCRATES spectral files to {data_dir}')
     download_folder(storage=storage, folders=folders, data_dir=data_dir)
