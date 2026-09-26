@@ -44,7 +44,7 @@ try:
     mpl.rcParams['interactive'] = True
     #
     import pylab as pl
-except:
+except Exception:
     print('matplotlib not found on your system')
 
 

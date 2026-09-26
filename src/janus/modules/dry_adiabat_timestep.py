@@ -150,7 +150,7 @@ def compute_dry_adiabat(
                     print('Timestepping break ->', end=' ')
                     print('dOLR/step =', dOLR_dry, 'W/m^2, dTglobal_dry =', dTglobal_dry)
                 break  # break here
-        except:
+        except Exception:
             if standalone == True:
                 print('Socrates cannot be executed properly, T profile:', atm_dry.tmp)
             break  # break here

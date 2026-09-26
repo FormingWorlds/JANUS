@@ -93,8 +93,8 @@ def band_integrator(species_list, molar_mixing_ratio_list, wavelength1_list, wav
 
 # This is the function that adds  Rayleigh coefficients to spectral files
 def rayleigh_coeff_adder(
-    species_list=['co2'],
-    mixing_ratio_list=[1.0],
+    species_list=('co2',),
+    mixing_ratio_list=(1.0,),
     spectral_file_path='./spectral_files/sp_b318_HITRAN_a16_RS/sp_b318_HITRAN_a16',
     wavelength_dummy_file_path='./spectral_files/sp_b318_HITRAN_a16_RS/wavelength_band_file.txt',
 ):

@@ -35,7 +35,7 @@ if __name__ == '__main__':
     log.info('Start')
 
     # Set up dirs
-    if os.environ.get('RAD_DIR') == None:
+    if os.environ.get('RAD_DIR') is None:
         raise Exception(
             'Socrates environment variables not set! Have you installed Socrates and sourced set_rad_env?'
         )

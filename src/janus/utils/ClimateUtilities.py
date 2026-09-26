@@ -108,7 +108,7 @@ class Curve:
         if type(data) is list:
             data = numpy.array(data)
         self.data[id] = data
-        if self.Xid == None:
+        if self.Xid is None:
             self.Xid = id  # Sets the default id for the X variable
         self.idList.append(id)  # Keep track of order in which columns added
         self.label[id] = label
@@ -123,8 +123,8 @@ class Curve:
 
     def __setitem__(self, id, data):
         try:
-            n = len(data[:])
-        except:
+            len(data[:])
+        except Exception:
             print('Object on RHS is not indexable')
             return None
         # Transform data from list to a numpy array here
@@ -166,7 +166,7 @@ class Curve:
     def dump(self, fileName='out.txt'):
         outfile = open(fileName, 'w')
         # Write out the data description if it is available.
-        if not (self.description == None):
+        if self.description is not None:
             if not self.description[-1] == '\n':
                 self.description += '\n'  # Put in a newline if needed
             outfile.write(self.description)
@@ -210,7 +210,7 @@ class Curve:
 #            possibly translate, check and force consistency
 #       *Replace optional positional arguments with keyword arguments
 def scan(buff, inHeader=None, delimiter=None):
-    if inHeader == None:
+    if inHeader is None:
         inHeader = []
     # First delete blank lines
     buff = clean(buff)
@@ -222,14 +222,14 @@ def scan(buff, inHeader=None, delimiter=None):
     #
     # Read in the first line. Is it a header?
     header = []
-    if delimiter == None:
+    if delimiter is None:
         line = buff[startDataLine].split()
     else:
         line = buff[startDataLine].split(delimiter)
     #
     try:
-        slask = float(line[0])
-    except:
+        float(line[0])
+    except Exception:
         header = line
     if len(header) == 0:
         header = [f'V{i}' for i in range(len(line))]
@@ -245,14 +245,14 @@ def scan(buff, inHeader=None, delimiter=None):
     #
     varlist = [[] for i in range(len(header))]
     for line in buff[(startDataLine + istart) : endDataLine]:
-        if delimiter == None:
+        if delimiter is None:
             items = line.split()
         else:
             items = line.split(delimiter)
         try:
             for i in range(len(varlist)):
                 varlist[i].append(float(items[i]))
-        except:
+        except Exception:
             print(items)
     vardict = {}
     for name in header:
@@ -266,7 +266,7 @@ def clean(buff):
     while 1:
         try:
             buff.remove('')
-        except:
+        except Exception:
             break
     return buff
 
@@ -709,7 +709,7 @@ class integrator:
     # increment can be changed at any time, and the most
     # recently used value is remembered, as a default
     def next(self, dx=None):
-        if not (dx == None):
+        if dx is not None:
             self.dx = dx
         h = self.dx
         hh = h * 0.5
@@ -832,7 +832,7 @@ class newtSolve:
                 2.0 * self.eps
             )
 
-        if fprime == None:
+        if fprime is None:
             self.deriv = deriv
         else:
             # A derivative function was explicitly specified
@@ -855,7 +855,7 @@ class newtSolve:
         self.params = None
 
     def __call__(self, xGuess, params=None):
-        if not (params == None):
+        if not (params == None):  # noqa: E711
             self.setParams(params)
         x = xGuess
         for _i in range(self.nmax):

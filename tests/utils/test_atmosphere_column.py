@@ -47,15 +47,15 @@ R_EARTH = 6.371e6
 
 def _make_atmos(**overrides):
     """Build a valid ``atmos`` object with Earth-like defaults for testing."""
-    kwargs = dict(
-        T_surf=1200.0,
-        P_surf=1.0e5,
-        P_top=1.0,
-        pl_radius=R_EARTH,
-        pl_mass=M_EARTH,
-        band_edges=BAND_EDGES,
-        vol_mixing=dict(VOL_MIXING),
-    )
+    kwargs = {
+        'T_surf': 1200.0,
+        'P_surf': 1.0e5,
+        'P_top': 1.0,
+        'pl_radius': R_EARTH,
+        'pl_mass': M_EARTH,
+        'band_edges': BAND_EDGES,
+        'vol_mixing': dict(VOL_MIXING),
+    }
     kwargs.update(overrides)
     return atmos(**kwargs)
 

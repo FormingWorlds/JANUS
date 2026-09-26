@@ -728,7 +728,7 @@ class MoistAdiabat:
         # self.ptop = 1000. #Default top of atmosphere
         self.step = -0.05  # Default step size for integration
 
-    def __call__(self, ps, Ts, ptop, pgrid=[]):
+    def __call__(self, ps, Ts, ptop, pgrid=()):
         # Initial conditions
         step = self.step  # Step size for integration
         # ptop = self.ptop #Where to stop integration

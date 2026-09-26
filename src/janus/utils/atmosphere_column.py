@@ -24,8 +24,8 @@ class atmos:
         pl_radius: float,
         pl_mass: float,
         band_edges: list,
-        vol_mixing: dict = {},
-        vol_partial: dict = {},
+        vol_mixing: dict | None = None,
+        vol_partial: dict | None = None,
         req_levels: int = 100,
         water_lookup: bool = False,
         alpha_cloud: float = 0.0,
@@ -95,6 +95,8 @@ class atmos:
         """
 
         # Parse volatiles
+        vol_mixing = vol_mixing or {}
+        vol_partial = vol_partial or {}
         if (len(vol_mixing) == 0) and (len(vol_partial) == 0):
             raise Exception(
                 'Either vol_mixing OR vol_partial must be passed to atmos.__init__ function!\nNeither were.'
@@ -297,7 +299,11 @@ class atmos:
     # New contructor based on toml file
     @classmethod
     def from_file(
-        atm, file: str, band_edges: list, vol_mixing: dict = {}, vol_partial: dict = {}
+        atm,
+        file: str,
+        band_edges: list,
+        vol_mixing: dict | None = None,
+        vol_partial: dict | None = None,
     ):
 
         with open(file) as f:
