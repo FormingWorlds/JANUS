@@ -241,6 +241,30 @@ def test_fix_never_writes_outside_the_reviewed_doc_files(repo):
     assert readme.read_text() == DOC_TEXT
 
 
+def test_backticks_in_quotes_and_fixes_keep_their_blocks_intact(repo):
+    """Backticks and ``` fences in a fix or code quote stay inside their own blocks."""
+    (repo / DOC_FILE).write_text(DOC_TEXT + 'Set `ts` in the config.\n')
+    (repo / CODE_FILE).write_text(CODE_TEXT + '"""Example:\n```\nf(1)\n```\n"""\n')
+    fix = {'old_text': 'Set `ts` in', 'new_text': 'Set `trppT` and\n`ts` in'}
+    r = run_triage(
+        repo,
+        [
+            finding(
+                'ticks',
+                severity='serious',
+                doc_excerpt='Set `ts` in the config.',
+                code_excerpt='```\nf(1)\n```',
+                suggested_fix=fix,
+            )
+        ],
+    )
+    # The quote's own ``` lines sit inside the four-backtick fence.
+    assert '````\n```\nf(1)\n```\n````' in r.inc
+    # A multi-line fix is one diff block, one -/+ line per source line, backticks intact.
+    assert '````diff\n- Set `ts` in\n+ Set `trppT` and\n+ `ts` in\n````' in r.inc
+    assert '- old:' not in r.inc and r.inc.count('````') == 4
+
+
 def test_findings_are_routed_to_the_issue_matching_their_type(repo):
     """Gaps, verified or not, go to the gap issue; inconsistencies never do."""
     r = run_triage(

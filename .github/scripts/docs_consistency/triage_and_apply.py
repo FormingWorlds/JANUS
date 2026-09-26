@@ -211,9 +211,9 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
     lines += [
         '',
         f'**Code** (`{finding["code_file"]}`, {finding["code_lines"]}):',
-        '```',
+        '````',
         finding['code_excerpt'],
-        '```',
+        '````',
     ]
     fix = finding.get('suggested_fix')
     if fix:
@@ -224,8 +224,10 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
         lines += [
             '',
             f'**{label}**',
-            f'- old: `{fix["old_text"]}`',
-            f'- new: `{fix["new_text"]}`',
+            '````diff',
+            *(f'- {line}' for line in fix['old_text'].splitlines()),
+            *(f'+ {line}' for line in fix['new_text'].splitlines()),
+            '````',
         ]
     elif finding['type'] == 'inconsistency':
         lines += ['', '_No safe literal fix suggested — needs a manual edit._']
