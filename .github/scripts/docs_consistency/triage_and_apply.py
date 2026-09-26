@@ -161,6 +161,8 @@ def apply_fix(finding):
         reason = 'old_text is empty'
     elif old == new:
         reason = 'old_text and new_text are identical'
+    elif any(new.count(d) > old.count(d) for d in '—–'):
+        reason = 'new_text adds an em- or en-dash, which the docs do not allow'
     elif old not in excerpt:
         reason = 'old_text does not lie inside doc_excerpt'
     elif excerpt not in text:

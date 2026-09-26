@@ -127,8 +127,17 @@ def test_fixless_inconsistencies_open_no_pr_and_reach_the_inconsistency_issue(re
         ('gamma=3', 'gamma=3', 'identical'),
         ('gamma=3', 'gamma=4', 'does not lie inside doc_excerpt'),
         ('', 'x', 'old_text is empty'),
+        ('alpha=1 too', 'alpha=5 — too', 'adds an em- or en-dash'),
+        ('alpha=1 too', 'alpha=5–6 too', 'adds an em- or en-dash'),
     ],
-    ids=['old-text-not-unique', 'no-op-fix', 'fix-outside-excerpt', 'empty-old-text'],
+    ids=[
+        'old-text-not-unique',
+        'no-op-fix',
+        'fix-outside-excerpt',
+        'empty-old-text',
+        'adds-em-dash',
+        'adds-en-dash',
+    ],
 )
 def test_unsafe_fix_is_not_applied(repo, old, new, reason):
     """A fix that could edit the wrong passage, or nothing, leaves the doc untouched."""
@@ -147,6 +156,19 @@ def test_unique_fix_edits_only_the_quoted_passage(repo):
     # The dry section also contains alpha=1 and must be left alone.
     assert 'The dry lapse uses alpha=1 here.' in r.doc
     assert '`good`' in r.pr and r.inc == ''
+
+
+def test_fix_may_keep_a_dash_already_in_the_doc(repo):
+    """A fix that keeps an existing en-dash (as in Stefan–Boltzmann) is still applied."""
+    line = 'Uses the Stefan–Boltzmann law at T_s.'
+    (repo / DOC_FILE).write_text(DOC_TEXT + line + '\n')
+    fix = {
+        'old_text': 'Stefan–Boltzmann law at T_s',
+        'new_text': 'Stefan–Boltzmann law at T_eff',
+    }
+    r = run_triage(repo, [finding('keep-dash', doc_excerpt=line, suggested_fix=fix)])
+    assert r.outputs == outputs(has_fixes=True)
+    assert 'Uses the Stefan–Boltzmann law at T_eff.' in r.doc and r.inc == ''
 
 
 def test_second_fix_on_a_changed_passage_is_not_applied(repo):
