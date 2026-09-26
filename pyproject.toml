@@ -119,7 +119,8 @@ line-length = 96
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["F", "E", "W", "I", "UP"]
+select = ["F", "E", "W", "I", "UP", "B", "C4", "PIE", "NPY"]
+ignore = ["E501"]  # Line too long
 
 [tool.ruff.format]
 quote-style = "single"
