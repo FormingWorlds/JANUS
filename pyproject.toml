@@ -120,7 +120,27 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["F", "E", "W", "I", "UP", "B", "C4", "PIE", "NPY"]
-ignore = ["E501"]  # Line too long
+ignore = [
+    "E501",  # Line too long
+    "E712",  # == True and == False: not the same as truthiness for np.bool_ or values like 2
+    "E741",  # Ambiguous variable name
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Legacy modules that import with a wildcard and export re-exports.
+"src/janus/utils/{ClimateUtilities,GeneralAdiabat,phys,__init__}.py" = ["F403", "F405"]
+"**/__init__.py" = ["F401"]
+# The matplotlib backend, logger or sys.path is set up before these imports.
+"examples/*.py" = ["E402"]
+"tools/plotting_tools/*.py" = ["E402"]
+"src/janus/modules/{compute_moist_adiabat,solve_pt}.py" = ["E402"]
+"src/janus/utils/{GeneralAdiabat,socrates}.py" = ["E402"]
+# Lambda assignments in legacy code.
+"src/janus/modules/plot_emission_spectrum.py" = ["E731"]
+"src/janus/utils/socrates.py" = ["E731"]
+# Unused fit coefficients kept as data.
+"src/janus/utils/cp_funcs.py" = ["F841"]
+"tools/plotting_tools/plot_cp_functions.py" = ["F841"]
 
 [tool.ruff.format]
 quote-style = "single"
