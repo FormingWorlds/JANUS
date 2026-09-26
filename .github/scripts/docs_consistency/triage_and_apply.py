@@ -145,6 +145,9 @@ def apply_fix(finding):
     fix = finding.get('suggested_fix')
     if not fix:
         return 'no safe literal fix suggested'
+    # Re-check the allowlist here
+    if finding['doc_file'] not in ALLOWED_DOC_FILES:
+        return 'doc_file is not one of the reviewed doc files'
     doc_path = REPO_ROOT / finding['doc_file']
     # Re-read each time: an earlier fix in this run may have changed the file.
     text = doc_path.read_text()

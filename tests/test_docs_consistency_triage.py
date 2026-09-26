@@ -223,6 +223,24 @@ def test_unmatched_quotes_are_filed_as_unverified_and_never_applied(repo, overri
     assert 'not applied: finding unverified' in r.inc and r.gaps == ''
 
 
+def test_fix_never_writes_outside_the_reviewed_doc_files(repo):
+    """A fix aimed at another file is refused, even when the text there would match.
+
+    The README holds the same text as the doc, so only the doc-file allowlist stops the
+    write; the path also goes through '..' while staying inside the repo.
+    """
+    readme = repo / 'README.md'
+    readme.write_text(DOC_TEXT)
+    stray = finding('stray', suggested_fix=SAFE_FIX, doc_file='docs/../README.md')
+    r = run_triage(repo, [stray])
+    assert readme.read_text() == DOC_TEXT and r.doc == DOC_TEXT
+    assert '## Unverified inconsistencies' in r.inc
+    assert 'is not one of the reviewed doc files' in r.inc
+    # apply_fix refuses on its own too, without relying on the verification step.
+    assert triage.apply_fix(stray) == 'doc_file is not one of the reviewed doc files'
+    assert readme.read_text() == DOC_TEXT
+
+
 def test_findings_are_routed_to_the_issue_matching_their_type(repo):
     """Gaps, verified or not, go to the gap issue; inconsistencies never do."""
     r = run_triage(
