@@ -92,7 +92,7 @@ def find_tropopause(atm_moist, dynamic: bool, verbose=True):
 
     # Temperature criterion
     else:
-        log.debug('TROPOPAUSE SET BY CONTANT VALUE OF %.2f K' % atm_moist.trppT)
+        log.debug(f'TROPOPAUSE SET BY CONTANT VALUE OF {atm_moist.trppT:.2f} K')
 
         # Tropopause is triggered
         if np.any(atm_moist.tmpl <= atm_moist.trppT) or np.any(

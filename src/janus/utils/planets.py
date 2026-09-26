@@ -29,7 +29,7 @@ class Planet:
     # __repr__ object prints out a help string when help is
     # invoked on the planet object or the planet name is typed
     def __repr__(self):
-        line1 = 'This planet object contains information on %s\n' % self.name
+        line1 = f'This planet object contains information on {self.name}\n'
         line2 = 'Type "help(Planet)" for more information\n'
         return line1 + line2
 

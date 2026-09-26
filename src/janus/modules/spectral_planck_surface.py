@@ -11,9 +11,6 @@ import numpy as np
 
 
 def surf_Planck_nu(atm):
-    h = 6.63e-34
-    c = 3.0e8
-    kb = 1.38e-23
     B = np.zeros(len(atm.band_centres))
     c1 = 1.191042e-5
     c2 = 1.4387752

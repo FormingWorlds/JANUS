@@ -62,7 +62,7 @@ def _install(stack, atm_ga, atm_dry, rad_side, moist_side=None, boundary_side=No
             dat, 'simple_boundary_tend', side_effect=boundary_side or _default_boundary
         )
     )
-    return dict(rad=rad, dryadj=dryadj, cloud=cloud, moist=moist, boundary=boundary)
+    return {'rad': rad, 'dryadj': dryadj, 'cloud': cloud, 'moist': moist, 'boundary': boundary}
 
 
 @pytest.mark.physics_invariant

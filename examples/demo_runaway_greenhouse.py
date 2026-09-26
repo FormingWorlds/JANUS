@@ -97,7 +97,7 @@ if __name__ == '__main__':
     Ts_arr = np.linspace(200, 2800, 20)
     OLR_arr = []
     for i in range(20):
-        log.info('T_surf = %d K' % Ts_arr[i])
+        log.info(f'T_surf = {int(Ts_arr[i])} K')
         atmos.setSurfaceTemperature(atm, Ts_arr[i])
 
         _, atm_moist = RadConvEqm(

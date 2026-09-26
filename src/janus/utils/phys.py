@@ -168,7 +168,7 @@ class gas:
     # a help string when the user types the name
     # of a gas object
     def __repr__(self):
-        firstline = 'This gas object contains thermodynamic data on %s\n' % self.formula
+        firstline = f'This gas object contains thermodynamic data on {self.formula}\n'
         secondline = 'Type "help(gas)" for more information\n'
         return firstline + secondline
 

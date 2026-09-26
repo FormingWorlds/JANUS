@@ -18,7 +18,7 @@ lines = old.readlines()
 sample = str(lines[10]).split()  # use line 0 as a sample of the data
 pitch = int(len(sample[0]) + 1)
 if pitch < 8:
-    raise Exception("Could not parse file '%s'" % kfile)
+    raise Exception(f"Could not parse file '{kfile}'")
 
 # Remove temp file if it already exists
 temp_file = 'temp_k_clean'

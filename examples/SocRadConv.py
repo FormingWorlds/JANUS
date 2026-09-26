@@ -114,7 +114,7 @@ if __name__ == '__main__':
         mors.DownloadEvolutionTracks('Baraffe')
         baraffe = mors.BaraffeTrack(star_mass)
         atm.instellation = baraffe.BaraffeSolarConstant(time['star'], mean_distance)
-        log.info('Instellation: %.2e W/m^2' % atm.instellation)
+        log.info(f'Instellation: {atm.instellation:.2e} W/m^2')
 
     # Set up atmosphere with general adiabat
     atm_dry, atm = RadConvEqm(
@@ -147,4 +147,4 @@ if __name__ == '__main__':
     CleanOutputDir(dirs['output'])
 
     end = t.time()
-    log.info('Runtime: %.2f s' % float(end - start))
+    log.info(f'Runtime: {float(end - start):.2f} s')

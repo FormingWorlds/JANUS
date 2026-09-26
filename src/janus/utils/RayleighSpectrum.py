@@ -173,7 +173,7 @@ def rayleigh_coeff_adder(
     for n in range(cross_section_list.shape[0]):
         block3_list.append(
             f'{np.array(cross_section_list[n, 0], dtype=int):5d}'
-            + '        %.9E\n' % (cross_section_list[n, 1])
+            + f'        {cross_section_list[n, 1]:.9E}\n'
         )
 
     # Adding the end statement of block 3

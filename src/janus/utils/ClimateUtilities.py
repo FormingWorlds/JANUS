@@ -103,9 +103,9 @@ class Curve:
     def addCurve(self, data, id='', label=''):
         self.NumCurves += 1
         if len(id) == 0:
-            id = 'v%d' % (self.NumCurves - 1)
+            id = f'v{int(self.NumCurves - 1)}'
         # Transform data from list to a numpy array here
-        if type(data) == type([]):
+        if type(data) is list:
             data = numpy.array(data)
         self.data[id] = data
         if self.Xid == None:
@@ -128,7 +128,7 @@ class Curve:
             print('Object on RHS is not indexable')
             return None
         # Transform data from list to a numpy array here
-        if type(data) == type([]):
+        if type(data) is list:
             data = numpy.array(data)
         if id in self.data.keys():
             self.data[id] = data
@@ -232,7 +232,7 @@ def scan(buff, inHeader=None, delimiter=None):
     except:
         header = line
     if len(header) == 0:
-        header = ['V%d' % i for i in range(len(line))]
+        header = [f'V{i}' for i in range(len(line))]
         istart = 0
     else:
         istart = 1
@@ -486,7 +486,7 @@ class romberg:
             self.f = f1
         else:
             name = f.__name__
-            print('Error: %s has wrong number of arguments' % name)
+            print(f'Error: {name} has wrong number of arguments')
         # -----------------------------------------------------
         #
         # We keep lists of all our results, for doing
@@ -686,7 +686,7 @@ class integrator:
             self.derivs = derivs1
         else:
             name = derivs.__name__
-            print('Error: %s has wrong number of arguments' % name)
+            print(f'Error: {name} has wrong number of arguments')
         #
         #
         self.x = xstart
@@ -824,7 +824,7 @@ class newtSolve:
             self.f = f1
         else:
             name = f.__name__
-            print('Error: %s has wrong number of arguments' % name)
+            print(f'Error: {name} has wrong number of arguments')
         self.eps = 1.0e-6
 
         def deriv(x, params):
@@ -849,7 +849,7 @@ class newtSolve:
                 self.deriv = fprime1
             else:
                 name = fprime.__name__
-                print('Error: %s has wrong number of arguments' % name)
+                print(f'Error: {name} has wrong number of arguments')
         self.tolerance = 1.0e-6
         self.nmax = 100
         self.params = None
@@ -858,7 +858,7 @@ class newtSolve:
         if not (params == None):
             self.setParams(params)
         x = xGuess
-        for i in range(self.nmax):
+        for _i in range(self.nmax):
             dx = self.f(x, self.params) / self.deriv(x, self.params)
             x = x - dx
             if abs(dx) < self.tolerance:

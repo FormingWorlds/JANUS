@@ -84,7 +84,7 @@ def plot_emission(
         ax.plot(xp, yp, color='dodgerblue', lw=lw, label='Surface')
 
     # Plot spectrum
-    ax.plot(x, y, color='k', lw=lw, label='Emission ($i=%d$)' % level_idx)
+    ax.plot(x, y, color='k', lw=lw, label=f'Emission ($i={int(level_idx)}$)')
 
     # Adjust
     ax.set_xlabel('Wavelength [nm]')

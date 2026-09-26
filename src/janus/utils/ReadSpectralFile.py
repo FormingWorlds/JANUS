@@ -5,7 +5,7 @@ import os
 def ReadBandEdges(spfile: str):
 
     if not os.path.exists(spfile):
-        raise Exception("Canot find spectral file '%s'" % spfile)
+        raise Exception(f"Canot find spectral file '{spfile}'")
 
     with open(spfile) as hdl:
         lines = hdl.readlines()

@@ -15,7 +15,7 @@ from netCDF4 import Dataset
 
 
 def write_dim(ncdf_file, n_val, vals, name, vtype, dims, units, title):
-    dimension = ncdf_file.createDimension(name, n_val)
+    ncdf_file.createDimension(name, n_val)
     variable = ncdf_file.createVariable(name, vtype, dims)
     variable.units = units
     variable.title = title

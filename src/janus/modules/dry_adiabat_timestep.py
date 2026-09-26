@@ -48,7 +48,6 @@ def compute_dry_adiabat(
 
     # Initialise previous OLR and TOA heating to zero
     PrevOLR_dry = 0.0
-    PrevMaxHeat_dry = 0.0
     PrevTemp_dry = atm.tmp * 0.0
     # Initialize the surface temperature tendency to 0
     dT_surf = 0
@@ -107,7 +106,7 @@ def compute_dry_adiabat(
                 atm_dry.tmp += dT_moist
 
             # Dry convective adjustment
-            for iadj in range(conv_steps):
+            for _iadj in range(conv_steps):
                 atm_dry = DryAdj(atm_dry)
 
             # Temperature floor to prevent SOCRATES crash
@@ -124,7 +123,7 @@ def compute_dry_adiabat(
 
             # Inform during runtime
             if i % 2 == 1 and standalone == True:
-                print('Dry adjustment step %d:' % (i + 1))
+                print(f'Dry adjustment step {i + 1}:')
                 print(
                     '\tOLR = ' + str(atm_dry.LW_flux_up[0]) + ' W/m^2',
                     'dOLR = ' + str(dOLR_dry) + ' W/m^2',
@@ -157,7 +156,6 @@ def compute_dry_adiabat(
             break  # break here
 
         PrevOLR_dry = atm_dry.LW_flux_up[0]
-        PrevMaxHeat_dry = abs(np.max(atm_dry.net_heating))
         PrevTemp_dry[:] = atm_dry.tmp[:]
 
     return atm_dry

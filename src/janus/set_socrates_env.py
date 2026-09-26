@@ -20,8 +20,8 @@ if not SOCRATES_DIR.exists():
 with open(SOCRATES_DIR / 'version') as f:
     SOCRATES_VERSION = f.readline()
 
-log.debug('socrates location: %s' % SOCRATES_DIR)
-log.debug('socrates version: %s' % SOCRATES_VERSION)
+log.debug(f'socrates location: {SOCRATES_DIR}')
+log.debug(f'socrates version: {SOCRATES_VERSION}')
 
 sep = os.pathsep
 

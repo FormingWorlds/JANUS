@@ -100,7 +100,7 @@ if __name__ == '__main__':
     ts_arr = []  # surface temperature
     tr_arr = []  # tropopause temperature
     for i in range(7):
-        log.info('Orbital separation = %.2f AU' % r_arr[i])
+        log.info(f'Orbital separation = {r_arr[i]:.2f} AU')
 
         atm.instellation = baraffe.BaraffeSolarConstant(time['star'], r_arr[i])
         atmos.setTropopauseTemperature(atm)
@@ -123,20 +123,20 @@ if __name__ == '__main__':
         ax.invert_yaxis()
         ax.set_ylabel('Pressure [Pa]')
         ax.set_xlabel('Temperature [K]')
-        ax.set_title('a = %.2f AU' % r_arr[i])
+        ax.set_title(f'a = {r_arr[i]:.2f} AU')
         fig.savefig(
-            dirs['output'] + '/profile%.2fAU.jpg' % r_arr[i], bbox_inches='tight', dpi=100
+            dirs['output'] + f'/profile{r_arr[i]:.2f}AU.jpg', bbox_inches='tight', dpi=100
         )
         plt.close()
 
         # Save netcdf
-        atm.write_ncdf(dirs['output'] + '/profile%.2fAU.nc' % r_arr[i])
+        atm.write_ncdf(dirs['output'] + f'/profile{r_arr[i]:.2f}AU.nc')
 
         log.info(' ')
 
     save_arr = [r_arr, asf_arr, OLR_arr, net_arr, ts_arr, tr_arr]
     np.savetxt(
-        dirs['output'] + '/data_%dK.csv' % T_magma,
+        dirs['output'] + f'/data_{int(T_magma)}K.csv',
         np.array(save_arr).T,
         fmt='%.5e',
         delimiter=',',
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     plt.ioff()
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6, 6.4))
 
-    ax1.set_title('%d K' % T_magma)
+    ax1.set_title(f'{int(T_magma)} K')
 
     ax1.text(
         r_arr[0],
@@ -158,7 +158,7 @@ if __name__ == '__main__':
         color='seagreen',
         weight='bold',
         zorder=8,
-    ).set_bbox(dict(facecolor='white', alpha=0.7, linewidth=0))
+    ).set_bbox({'facecolor': 'white', 'alpha': 0.7, 'linewidth': 0})
     ax1.text(
         r_arr[0],
         -1.0,
@@ -167,7 +167,7 @@ if __name__ == '__main__':
         color='seagreen',
         weight='bold',
         zorder=8,
-    ).set_bbox(dict(facecolor='white', alpha=0.7, linewidth=0))
+    ).set_bbox({'facecolor': 'white', 'alpha': 0.7, 'linewidth': 0})
     ax1.axhline(y=0, color='black', lw=0.7, zorder=0)  # zero flux
 
     ax1.plot(
@@ -213,7 +213,7 @@ if __name__ == '__main__':
 
     ax2.set_xlabel('Orbital separation [AU]')
     fig.subplots_adjust(hspace=0.08)
-    fig.savefig(dirs['output'] + 'inst_%dK.pdf' % T_magma, bbox_inches='tight')
+    fig.savefig(dirs['output'] + f'inst_{int(T_magma)}K.pdf', bbox_inches='tight')
 
     # Tidy
     CleanOutputDir(os.getcwd())

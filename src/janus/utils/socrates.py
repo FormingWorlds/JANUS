@@ -110,7 +110,7 @@ def radCompSoc(
 
     # gas overlap
     if not (2 <= atm.overlap_type <= 8):
-        raise ValueError('Invalid overlap choice (integer): value = %d' % atm.overlap_type)
+        raise ValueError(f'Invalid overlap choice (integer): value = {int(atm.overlap_type)}')
     overlap_flag = str(atm.overlap_type)
     if overlap_flag == '8':
         overlap_flag = '8 0'

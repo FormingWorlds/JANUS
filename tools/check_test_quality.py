@@ -187,7 +187,7 @@ def _has_float_eq(node: ast.AST) -> bool:
     """
     for child in ast.walk(node):
         if isinstance(child, ast.Compare):
-            for op, right in zip(child.ops, child.comparators):
+            for op, right in zip(child.ops, child.comparators, strict=False):
                 if not isinstance(op, ast.Eq):
                     continue
                 right_val = _float_literal_value(right)
@@ -505,7 +505,7 @@ def physics_invariant_status() -> list[str]:
     """
     flagged = []
     keywords = {'approx', 'assert_allclose', 'monoton', 'conserve', 'symmetric', 'positive'}
-    for source, test_rel in sorted(PHYSICS_SOURCES.items()):
+    for _source, test_rel in sorted(PHYSICS_SOURCES.items()):
         test_path = REPO_ROOT / test_rel
         if not test_path.exists():
             continue

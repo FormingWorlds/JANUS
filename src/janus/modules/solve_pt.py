@@ -87,12 +87,10 @@ def RadConvEqm(
 
         if standalone == True:
             log.info(
-                'Net, OLR => moist: %.3f, %.3f W/m^2'
-                % (atm_moist.net_flux[0], atm_moist.LW_flux_up[0])
+                f'Net, OLR => moist: {atm_moist.net_flux[0]:.3f}, {atm_moist.LW_flux_up[0]:.3f} W/m^2'
             )
             log.info(
-                '^^       =>   dry: %.3f, %.3f W/m^2'
-                % (atm_dry.net_flux[0], atm_dry.LW_flux_up[0])
+                f'^^       =>   dry: {atm_dry.net_flux[0]:.3f}, {atm_dry.LW_flux_up[0]:.3f} W/m^2'
             )
             log.info('')
     else:
@@ -236,7 +234,7 @@ def MCPA_CBL(
     # We want to optimise this function (returns residual of F_atm and F_skn, given T_surf)
     def func(x):
 
-        log.info('Evaluating at T_surf = %.1f K' % x)
+        log.info(f'Evaluating at T_surf = {x:.1f} K')
         atm_tmp = compute_moist_adiabat(ini_atm(x), dirs, False, trppD, rscatter)
 
         if atm_bc == 0:
@@ -245,14 +243,15 @@ def MCPA_CBL(
             F_atm = atm_tmp.net_flux[-1]
 
         F_skn = skin(atm_tmp)
-        log.info('    F_atm = %+.2e W m-2      F_skn = %+.2e W m-2' % (F_atm, F_skn))
+        log.info(f'    F_atm = {F_atm:+.2e} W m-2      F_skn = {F_skn:+.2e} W m-2')
 
         del atm_tmp
         return float(F_skn - F_atm)
 
     log.info(
-        'Solving for global energy balance with conductive lid (T_magma = %.1f K)'
-        % attrs['tmp_magma']
+        'Solving for global energy balance with conductive lid (T_magma = {:.1f} K)'.format(
+            attrs['tmp_magma']
+        )
     )
 
     # Use an 'initial guess' method
@@ -272,7 +271,7 @@ def MCPA_CBL(
         r = optimise.root_scalar(func, method='brentq', bracket=bracket, xtol=atol, maxiter=20)
 
     else:
-        raise Exception('Invalid solution method chosen (%d)' % method)
+        raise Exception(f'Invalid solution method chosen ({int(method)})')
 
     # Extract solution
     T_surf_sol = float(r.root)
@@ -291,8 +290,8 @@ def MCPA_CBL(
 
     if T_surf != T_surf_sol:
         log.info('T_surf limits activated')
-        log.info('    Found T_surf = %g K' % T_surf_sol)
-        log.info('    Using T_surf = %g K' % T_surf)
+        log.info(f'    Found T_surf = {T_surf_sol:g} K')
+        log.info(f'    Using T_surf = {T_surf:g} K')
 
     # Get atmosphere state from solution value
     atm = compute_moist_adiabat(ini_atm(T_surf), dirs, False, trppD, rscatter)
@@ -305,9 +304,9 @@ def MCPA_CBL(
 
     F_olr = atm.LW_flux_up[0]
 
-    log.info('    T_surf = %g K' % T_surf)
-    log.info('    F_atm  = %.4e W m-2' % F_atm)
-    log.info('    F_skn  = %.4e W m-2' % skin(atm))
-    log.info('    F_olr  = %.4e W m-2' % F_olr)
+    log.info(f'    T_surf = {T_surf:g} K')
+    log.info(f'    F_atm  = {F_atm:.4e} W m-2')
+    log.info(f'    F_skn  = {skin(atm):.4e} W m-2')
+    log.info(f'    F_olr  = {F_olr:.4e} W m-2')
 
     return atm

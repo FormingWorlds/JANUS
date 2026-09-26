@@ -252,7 +252,7 @@ def contour(A, **kwargs):
     else:
         y = range(A.shape[0])
     cs = pl.contourf(x, y, A)
-    cbar = pl.colorbar(cs)
+    pl.colorbar(cs)
     return plotObj(None, fig)
 
 

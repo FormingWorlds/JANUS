@@ -41,7 +41,7 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
 
     if nbins_max > socrates_nbins_max:
         raise Exception(
-            'Too many bins requested for stellar spectrum (maximum is %d)' % socrates_nbins_max
+            f'Too many bins requested for stellar spectrum (maximum is {int(socrates_nbins_max)})'
         )
 
     # Down-sample spectrum when necessary or requested
@@ -53,7 +53,7 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
         fl_orig = fl
 
         if nbins_max < 500:
-            log.warning('Requested number of bins is small (%d bins)' % nbins_max)
+            log.warning(f'Requested number of bins is small ({int(nbins_max)} bins)')
 
         nbins_max = min(int(socrates_nbins_max), nbins_max)  # Must be fewer than 100k
 
@@ -78,7 +78,7 @@ def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
 
     # Store body of data
     for i in range(len(wl)):
-        content += str('      %1.7e      %1.7e\n' % (wl[i], fl[i]))
+        content += str(f'      {wl[i]:1.7e}      {fl[i]:1.7e}\n')
 
     # Store footer
     content += '*END\n'
@@ -143,4 +143,4 @@ def InsertStellarSpectrum(orig_file: str, star_file: str, output_folder: str):
         ['prep_spec'], stdout=subprocess.PIPE, input='\n'.join(inputs), encoding='ascii'
     )
     if p.returncode != 0:
-        log.warning('prep_spec returned with code %d' % p.returncode)
+        log.warning(f'prep_spec returned with code {int(p.returncode)}')

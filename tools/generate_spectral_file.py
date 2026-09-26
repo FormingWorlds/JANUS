@@ -461,12 +461,12 @@ if restart == 0 or rs_no == '0':
 
     # Set absorbers in each band: line *absorbers IDs*
     # Set to '0' when using MT_CKD or HITEMP data!
-    for band in bands[:-1]:
+    for _band in bands[:-1]:
         f.write('0' + '\n')  # 1 2 5 6 7 13 23
 
     # Set continua in each band: CIA *indexing IDs*
     # Set to '0' when using MT_CKD or HITEMP data!
-    for band in bands[:-1]:
+    for _band in bands[:-1]:
         f.write('0' + '\n')  # 1 2 3 ...
 
     # Exclude no bands
@@ -2218,7 +2218,7 @@ lines = old.readlines()
 sample = str(lines[10]).split()  # use line 0 as a sample of the data
 pitch = int(len(sample[0]) + 1)
 if pitch < 8:
-    raise Exception("Could not parse file '%s'" % kfile)
+    raise Exception(f"Could not parse file '{kfile}'")
 
 # Remove temp file if it already exists
 temp_file = 'temp_k_clean'

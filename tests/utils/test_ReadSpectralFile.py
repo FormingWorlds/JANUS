@@ -38,7 +38,7 @@ def test_band_edges_parsed_and_converted_to_nm(tmp_path):
     # Unit guard: edges in nm for micron-scale bands are O(1e3), not O(1e-6).
     assert min(edges) > 1.0
     # Monotone increasing edges: bands tile the interval without overlap.
-    assert all(b > a for a, b in zip(edges[:-1], edges[1:]))
+    assert all(b > a for a, b in zip(edges[:-1], edges[1:], strict=False))
 
 
 def test_file_without_band_block_and_missing_file(tmp_path):

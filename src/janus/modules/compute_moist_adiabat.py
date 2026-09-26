@@ -56,8 +56,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False):
 
     if standalone == True:
         log.info(
-            'w/o stratosphere (net, OLR): %.3f, %.3f W/m^2'
-            % (atm_moist.net_flux[0], atm_moist.LW_flux_up[0])
+            f'w/o stratosphere (net, OLR): {atm_moist.net_flux[0]:.3f}, {atm_moist.LW_flux_up[0]:.3f} W/m^2'
         )
 
     # Calculate tropopause
@@ -77,8 +76,7 @@ def compute_moist_adiabat(atm, dirs, standalone, trppD, rscatter=False):
 
         if standalone == True:
             log.info(
-                'w/ stratosphere (net, OLR): %.3f, %.3f W/m^2'
-                % (atm_moist.net_flux[0], atm_moist.LW_flux_up[0])
+                f'w/ stratosphere (net, OLR): {atm_moist.net_flux[0]:.3f}, {atm_moist.LW_flux_up[0]:.3f} W/m^2'
             )
 
     return atm_moist

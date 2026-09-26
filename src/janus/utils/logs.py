@@ -10,7 +10,7 @@ def setup_logger(level: str = 'INFO'):
 
     level = str(level).strip().upper()
     if level not in ['INFO', 'DEBUG', 'ERROR', 'WARNING']:
-        raise ValueError("Invalid log level '%s'" % level)
+        raise ValueError(f"Invalid log level '{level}'")
     level_code = logging.getLevelName(level)
 
     # Add terminal output to logger

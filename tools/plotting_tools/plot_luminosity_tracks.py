@@ -1,7 +1,6 @@
 import glob
 import pathlib
 
-import matplotlib as plt
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -66,9 +65,12 @@ for lum_track in reversed(lum_tracks):
             xycoords='data',
             xytext=(100, 0.55),
             textcoords='data',
-            arrowprops=dict(
-                arrowstyle='|-|, widthA=0.2, widthB=0.2', fc=c, ec=c, linewidth=1.2
-            ),
+            arrowprops={
+                'arrowstyle': '|-|, widthA=0.2, widthB=0.2',
+                'fc': c,
+                'ec': c,
+                'linewidth': 1.2,
+            },
             horizontalalignment='center',
             verticalalignment='center',
         )

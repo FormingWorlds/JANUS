@@ -59,7 +59,6 @@ vol_colors = {
     'CO2-H2': mpl.colormaps['Set3'](4.0 / no_colors),
     'CH4-H2': mpl.colormaps['Set3'](5.0 / no_colors),
     'H2-CH4': mpl.colormaps['Set3'](5.0 / no_colors),
-    'H2-CH4': mpl.colormaps['Set3'](5.0 / no_colors),
     'H2-N2': mpl.colormaps['Set2'](0.0 / no_colors),
     'N2-H2': mpl.colormaps['Set2'](0.0 / no_colors),
     'CO2-N2': mpl.colormaps['Set2'](1.0 / no_colors),
@@ -185,9 +184,9 @@ def atm_z(atm, idx):
     dz = -dp / atm.rho[idx]
     atm.zl[idx + 1] = atm.zl[idx] + dz
     if dz < 0:
-        log.warning('dz  = %g < 0 ' % dz)
-        log.warning('(dp  = %g)' % dp)
-        log.warning('(rho = %g)' % atm.rho[idx])
+        log.warning(f'dz  = {dz:g} < 0 ')
+        log.warning(f'(dp  = {dp:g})')
+        log.warning(f'(rho = {atm.rho[idx]:g})')
 
     # Next gravity
     atm.grav_z[idx + 1] = (
@@ -478,11 +477,11 @@ def slopeRay(logpa, logT):
     pa = math.exp(logpa)
     T = math.exp(logT)
     qsat = eps * (satvph2o(T) / pa)
-    log.debug('qsat=%.3f' % qsat)
+    log.debug(f'qsat={qsat:.3f}')
     num = (1.0 + (L / (Ra * T)) * qsat) * Ra
-    log.debug('numerator=%.3f' % num)
+    log.debug(f'numerator={num:.3f}')
     den = cpa + (cpc + (L / (Rc * T) - 1.0) * (L / T)) * qsat
-    log.debug('denominator=%.3f' % den)
+    log.debug(f'denominator={den:.3f}')
     log.debug('dlnT/dlnPa=%.3f' % (num / den))
     return num / den
 
@@ -952,7 +951,7 @@ def plot_adiabats(atm, filename='output/general_adiabat.pdf'):
     T_sat_array = np.linspace(20, 3000, 1000)
     p_partial_sum = np.zeros(len(atm.tmp))
 
-    vol_list_sorted = {k: v for k, v in sorted(atm.vol_list.items(), key=lambda item: item[1])}
+    vol_list_sorted = dict(sorted(atm.vol_list.items(), key=lambda item: item[1]))
 
     # Individual species
     for vol in vol_list_sorted.keys():
@@ -1099,7 +1098,7 @@ def plot_adiabats(atm, filename='output/general_adiabat.pdf'):
         transform=ax2.transAxes,
     )
     # fig.suptitle(r'$\alpha$=%.1f'%atm.alpha_cloud)
-    fig.suptitle('$T_{surf}$=%.1f K, $T_{bot}$=%.1f K' % (atm.ts, atm.tmp[-1]))
+    fig.suptitle(f'$T_{{surf}}$={atm.ts:.1f} K, $T_{{bot}}$={atm.tmp[-1]:.1f} K')
     # plt.show()
 
     fig.savefig(filename, bbox_inches='tight', dpi=190)

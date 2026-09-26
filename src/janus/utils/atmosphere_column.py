@@ -108,8 +108,7 @@ class atmos:
             self.ps = P_surf
             if P_surf <= 0.0:
                 raise Exception(
-                    "Surface pressure passed to atmos.__init__ must be positive!\nValue passed = '%g'"
-                    % P_surf
+                    f"Surface pressure passed to atmos.__init__ must be positive!\nValue passed = '{P_surf:g}'"
                 )
 
             tot_mixing = float(sum(vol_mixing.values()))  # Ensure mixing ratios add up to unity
@@ -127,7 +126,7 @@ class atmos:
         required_vols = {'H2O', 'CO2', 'N2'}
         if len(required_vols.intersection(self.vol_list.keys())) < len(required_vols):
             raise Exception(
-                'Missing required volatiles!\nRequired vols = %s' % str(required_vols)
+                f'Missing required volatiles!\nRequired vols = {str(required_vols)}'
             )
 
         # H2O floor to prevent NaNs
@@ -409,14 +408,14 @@ class atmos:
             case 'atm':
                 p_scalefactor = 1.0 / 101325.0
             case _:
-                raise Exception("Unrecognised pressure unit '%s'" % punit)
+                raise Exception(f"Unrecognised pressure unit '{punit}'")
 
         p_save = np.array(self.p) * p_scalefactor
         T_save = np.array(self.tmp)
 
         X = np.array([p_save, T_save]).T[::-1]
 
-        header = '# (%s)\t(K)\nPressure\tTemp' % punit
+        header = f'# ({punit})\t(K)\nPressure\tTemp'
 
         np.savetxt(filename, X, fmt='%1.5e', header=header, comments='', delimiter='\t')
 
@@ -637,7 +636,7 @@ class atmos:
         var_cp[:] = self.cp[:]
 
         var_gases[:] = np.array(
-            [[c for c in gas.ljust(nchars)[:nchars]] for gas in gas_list], dtype='S1'
+            [list(gas.ljust(nchars)[:nchars]) for gas in gas_list], dtype='S1'
         )
         var_mr[:] = np.array(
             [[self.x_gas[gas][i] for i in range(nlev_c - 1, -1, -1)] for gas in gas_list]

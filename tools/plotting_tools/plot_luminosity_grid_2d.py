@@ -1,7 +1,6 @@
 import glob
 import pathlib
 
-import matplotlib as plt
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -51,7 +50,7 @@ for lum_track in lum_tracks:
     mass_list = np.ones(len(age_list)) * star_mass
 
     # Fill the arrays
-    zip_list = list(zip(age_list, mass_list))
+    zip_list = list(zip(age_list, mass_list, strict=False))
     xy_age_mass.extend(zip_list)
     z_lum.extend(luminosity_list)
 
@@ -86,7 +85,7 @@ print(SPECIFIC_LUMINOSITY)
 color_range = np.logspace(-4, 1, 255)
 
 # Plot as contourf, becomes smoother the more often contourf is repeated
-for i in range(3):
+for _i in range(3):
     cont_linear = ax1.contourf(
         grid_x,
         grid_y,
