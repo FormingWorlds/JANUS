@@ -24,9 +24,8 @@ STATUS_RANK = {'serious': 4, 'minor': 3, 'none': 3, 'serious-unverified': 2}
 ALLOWED_DOC_FILES = set(DOC_FILES)
 ALLOWED_SOURCE_FILES = set(SOURCE_FILES)
 
-# The source listing in the prompt is prefixed with 'N: ' line numbers, which the model
-# may copy into code_excerpt. Strip.
-LINE_PREFIX = re.compile(r'^\d+: ', flags=re.MULTILINE)
+# The source listing in the prompt is prefixed with 'N: ' line numbers. Strip.
+LINE_PREFIX = re.compile(r'^\d+: ?', flags=re.MULTILINE)
 
 # Hidden marker embedded in every finding posted to an issue
 FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} {} -->'

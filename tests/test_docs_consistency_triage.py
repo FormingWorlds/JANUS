@@ -312,6 +312,15 @@ def test_line_number_prefixes_are_stripped_before_matching(repo):
     assert '2:     y' not in r.inc
 
 
+def test_prefix_on_a_blank_line_is_stripped_without_its_space(repo):
+    """A blank source line quoted as '4:' (trailing space trimmed) still verifies."""
+    # CODE_TEXT lines 4 and 5 are blank; read_numbered shows them as '4: ' and '5: '.
+    quoted = '3:     return y\n4:\n5:\n6: def g(z):'
+    r = run_triage(repo, [finding('blank-lines', code_excerpt=quoted)])
+    assert '## Unverified' not in r.inc and '`blank-lines`' in r.inc
+    assert '    return y\n\n\ndef g(z):' in r.inc
+
+
 def test_gap_may_have_an_empty_doc_excerpt(repo):
     """A gap with no related doc passage is filed as a gap, not as unverified."""
     r = run_triage(repo, [gap('gap')])
