@@ -85,3 +85,20 @@ def test_env_reports_locations_and_bad_option_fails():
         result = runner.invoke(cli, ['download', 'spectral', '--bogus'])
     assert result.exit_code != 0
     mock_spec.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ('args', 'target'),
+    [
+        (['download', 'spectral', '-n', 'Oak'], 'janus.utils.data.DownloadSpectralFiles'),
+        (['download', 'stellar'], 'janus.utils.data.DownloadStellarSpectra'),
+    ],
+)
+def test_download_reports_a_failed_fetch_in_one_line(args, target):
+    """A fetch that fails on every mirror ends the command with exit 1 and one message."""
+    from fwl_io import DownloadError
+
+    with patch(target, side_effect=DownloadError('all mirrors failed for Oak.sf')):
+        result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 1
+    assert result.output.strip() == 'Error: all mirrors failed for Oak.sf'

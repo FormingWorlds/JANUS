@@ -106,6 +106,8 @@ To download a specific spectral dataset with a given number of bands:
 janus download spectral -n Frostflow -b 4096
 ```
 
+The selectable groups are the spectral-file datasets of the fwl-io shared manifest, listed by `fwl-io list` under `atmos_clim.spectral_files`. Stellar spectra are fetched by `janus download stellar`.
+
 ## 4. Verify installation
 
 Inspect active environment paths with:
@@ -138,3 +140,5 @@ Override it with:
 ```console
 export FWL_DATA=/path/to/fwl_data
 ```
+
+The `fwl-io` commands, such as `fwl-io relocate`, do not use this default: they read `FWL_DATA` or take `--data-root`. If you use the default location, set `FWL_DATA` to the folder `janus env` prints before you run them.

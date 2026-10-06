@@ -86,12 +86,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .[develop]
 
-      - uses: actions/cache@v4
-        id: cache-fwl-data
-        with:
-          path: /home/runner/work/fwl_data
-          key: fwl-data-1
-
       - name: Validate test markers
         run: bash tools/validate_test_structure.sh
 

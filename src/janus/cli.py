@@ -6,6 +6,13 @@ def cli():
     pass
 
 
+def _fetch_errors() -> tuple:
+    """Return the fwl-io errors of a failed fetch, reported in one line, not a traceback."""
+    from fwl_io import DownloadError, MissingDataRootError, OfflineDataError
+
+    return (DownloadError, MissingDataRootError, OfflineDataError)
+
+
 @click.group()
 def download():
     """Download data and dependencies"""
@@ -31,7 +38,7 @@ def spectral(**kwargs):
 
     try:
         DownloadSpectralFiles(**kwargs)
-    except ValueError as exc:
+    except (ValueError, *_fetch_errors()) as exc:
         raise click.ClickException(str(exc)) from exc
 
 
@@ -40,7 +47,10 @@ def stellar():
     """Download stellar spectra"""
     from .utils.data import DownloadStellarSpectra
 
-    DownloadStellarSpectra()
+    try:
+        DownloadStellarSpectra()
+    except _fetch_errors() as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 @click.command()

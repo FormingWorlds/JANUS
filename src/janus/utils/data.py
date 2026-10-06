@@ -81,14 +81,8 @@ def spectral_file_key(group: str, bands: int | str | None = None) -> str:
         gets a count it does not declare.
     """
     prefix = f'atmos_clim.spectral_files.{group.lower()}.'
-    counts = sorted(
-        (
-            s
-            for k in _shared_datasets()
-            if k.startswith(prefix) and (s := k[len(prefix) :]).isdigit()
-        ),
-        key=int,
-    )
+    suffixes = (k.removeprefix(prefix) for k in _shared_datasets() if k.startswith(prefix))
+    counts = sorted(filter(str.isdigit, suffixes), key=int)
     if not counts:
         raise ValueError(f'No spectral file group {group!r} in the installed fwl-io manifest')
     if len(counts) == 1:

@@ -117,13 +117,16 @@ def test_fetches_carry_the_manifest_pins_of_the_dataset(fetches, monkeypatch, tm
             assert kw[field] == getattr(ds, field)
         assert kw['registry'] == ds.registry() and kw['data_root'] == tmp_path.absolute()
     assert 'Oak.sf' in seen[0]['registry'] and 'sun.txt' in seen[1]['registry']
-    assert all(kw['dataverse'].startswith('10.34894/') for kw in seen)
+    zenodo = ['10.5281/zenodo.15743843', '10.5281/zenodo.15721440']
+    assert [kw['zenodo'] for kw in seen] == zenodo
+    assert [kw['dataverse'] for kw in seen] == ['10.34894/K3UKBX', '10.34894/BC1DEH']
 
 
 def test_a_single_band_group_warns_only_on_an_explicit_other_count(fetches, caplog):
     """Oak resolves to 318; a different count given explicitly is ignored with a
     warning at the default log level, and no count gives no warning."""
     jdata.DownloadSpectralFiles('Oak')
+    assert jdata.spectral_file_key('Oak', 318) == jdata.spectral_file_key('Oak', '318')
     assert caplog.text == ''
     assert jdata.spectral_file_key('Oak', 4096).endswith('oak.318')
     assert 'Oak has only 318 bands; ignoring the requested 4096' in caplog.text
@@ -601,3 +604,55 @@ def test_check_refuses_to_run_without_a_data_root(monkeypatch, capsys):
     monkeypatch.setenv('FWL_DATA', '')
     with pytest.raises(mod.ResolutionError, match='no data root'):
         mod._cmd_check(SimpleNamespace(data_root=None))
+
+
+def test_selectable_groups_are_the_manifest_spectral_sets(fetches):
+    """A group the shared manifest declares is accepted; Legacy, which the installed
+    fwl-io floor does not declare, is refused before any fetch."""
+    assert jdata.spectral_file_key('Honeyside', 48) == 'atmos_clim.spectral_files.honeyside.48'
+    with pytest.raises(ValueError, match="No spectral file group 'Legacy'"):
+        jdata.DownloadSpectralFiles('Legacy')
+    assert fetches == []
+
+
+def test_restore_check_reports_a_damaged_shared_dataset(monkeypatch, tmp_path):
+    """A shared dataset whose file is altered or deleted is reported short of intact."""
+    import hashlib
+
+    import fwl_io.manifest
+    import mors.data
+
+    mod = _cache_module()
+    drc = tmp_path / 'pins'
+    drc.mkdir()
+    manifest = _write_manifest(drc, record='15729114', checksum=hashlib.md5(b'x').hexdigest())
+    monkeypatch.setattr(mors.data, 'manifest_path', lambda: manifest, raising=True)
+    shared = tmp_path / 'shared'
+    shared.mkdir()
+    (shared / 'shared_manifest.toml').write_text(
+        '[star.spectra.named]\nname = "Named"\nzenodo = "10.5281/zenodo.15721440"\n'
+        'required_by = ["janus"]\n',
+        encoding='utf-8',
+    )
+    (shared / 'star.spectra.named.registry.txt').write_text(
+        f'sun.txt md5:{hashlib.md5(b"sun").hexdigest()}\n', encoding='utf-8'
+    )
+    monkeypatch.setattr(
+        fwl_io.manifest, 'shared_manifest_path', lambda: shared / 'shared_manifest.toml'
+    )
+    monkeypatch.setattr(mod, 'SHARED_KEYS', ('star.spectra.named',))
+    root = tmp_path / 'fwl_data'
+    sun = root / 'star' / 'spectra' / 'named' / 'r15721440' / 'sun.txt'
+    sun.parent.mkdir(parents=True)
+
+    def named():
+        report = {r[0]: r[1:] for r in mod.check_restored(root)}
+        return report['star/spectra/named/r15721440']
+
+    sun.write_bytes(b'sun')
+    assert named() == (1, 1, 'intact')
+    sun.write_bytes(b'moon')
+    assert named() == (0, 1, 'intact')
+    sun.unlink()
+    assert named() == (0, 1, 'intact')
+    assert mod.main(['check', '--data-root', str(root)]) == 1
