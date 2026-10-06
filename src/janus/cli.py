@@ -29,7 +29,10 @@ def spectral(**kwargs):
     """
     from .utils.data import DownloadSpectralFiles
 
-    DownloadSpectralFiles(**kwargs)
+    try:
+        DownloadSpectralFiles(**kwargs)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 @click.command()
