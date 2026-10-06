@@ -7,7 +7,7 @@ This page describes a manual developer installation of JANUS and SOCRATES.
 
 !!! info "Prerequisites"
     - `git`
-    - Python 3.10+ (recommended: 3.11)
+    - Python 3.11+
     - a Fortran/C build toolchain (`gfortran`, `gcc`, `make`)
     - NetCDF tools and NetCDF-Fortran development headers/libraries
     - optional but recommended: Conda
@@ -85,7 +85,7 @@ pip install -e .
 
 ## 3. Download JANUS data
 
-Data is downloaded from the [OSF repository](https://osf.io/vehxg/).
+Data is downloaded through [fwl-io](https://github.com/FormingWorlds/fwl-io) from its Zenodo records, with their DataverseNL mirrors as the fallback, and checked against the registry fwl-io ships. It lands in a version directory below `$FWL_DATA`, for example `atmos_clim/spectral_files/oak/318/r15743843`.
 
 Set `FWL_DATA` to define where spectral and stellar data are stored:
 

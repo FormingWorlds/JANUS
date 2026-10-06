@@ -19,7 +19,7 @@ from janus.utils import atmos, CleanOutputDir, DownloadSpectralFiles, DownloadSt
 
 import mors
 
-from janus.utils.data import FWL_DATA_DIR
+from janus.utils.data import spectral_file_dir, stellar_spectra_dir
 
 if __name__=='__main__':
 
@@ -45,7 +45,7 @@ if __name__=='__main__':
 
     # Read spectrum
     spec = mors.Spectrum()
-    spec.LoadTSV(str(FWL_DATA_DIR / 'stellar_spectra' / 'Named' / 'sun.txt'))
+    spec.LoadTSV(str(stellar_spectra_dir() / 'sun.txt'))
 
     # Convert to SOCRATES format
     socstar = os.path.join(dirs["output"], "socstar.txt")
@@ -55,7 +55,7 @@ if __name__=='__main__':
     # Setup spectral file
     log.info("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        str(FWL_DATA_DIR / 'spectral_files'/'Oak'/'318'/'Oak.sf'),
+        str(spectral_file_dir('Oak') / 'Oak.sf'),
         socstar,
         dirs["output"]
     )
