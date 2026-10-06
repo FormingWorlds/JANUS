@@ -41,18 +41,18 @@ def test_download_subcommands_forward_options():
 
 
 def test_spectral_band_default_and_group_help():
-    """The band count defaults to 256 and the bare group prints help.
+    """No band count is forwarded by default, and the bare group prints help.
 
-    The default matters because it selects which resolution folder is
-    fetched; the bare `download` invocation exercises the group body and
-    must list its subcommands rather than fail.
+    The data module applies 256 to a group with several band counts, so a
+    single-band group such as Oak is not told about a count nobody gave; the
+    bare `download` invocation must list its subcommands rather than fail.
     """
     runner = CliRunner()
 
     with patch('janus.utils.data.DownloadSpectralFiles') as mock_spec:
         result = runner.invoke(cli, ['download', 'spectral'])
     assert result.exit_code == 0
-    mock_spec.assert_called_once_with(fname=None, nband=256)
+    mock_spec.assert_called_once_with(fname=None, nband=None)
 
     # A bare group prints its usage and exits non-zero; the exact code
     # differs across click releases, so only the sign is pinned.

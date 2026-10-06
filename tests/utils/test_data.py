@@ -46,6 +46,7 @@ def fetches(monkeypatch, tmp_path):
         ('Dayspring', 48, ['atmos_clim/spectral_files/dayspring/48']),
         ('Frostflow', 4096, ['atmos_clim/spectral_files/frostflow/4096']),
         ('Oak', 256, ['atmos_clim/spectral_files/oak/318']),
+        ('Dayspring', None, ['atmos_clim/spectral_files/dayspring/256']),
         (
             '',
             16,
@@ -70,7 +71,7 @@ def test_spectral_download_asks_fwl_io_for_the_named_dataset(fetches, fname, nba
 def test_unknown_spectral_file_raises_before_any_fetch(fetches):
     """A group or band count the manifest does not declare raises and fetches nothing."""
     for fname, nband in (('Dayspring', 100), ('NotADataset', 256)):
-        with pytest.raises(ValueError, match='No spectral file'):
+        with pytest.raises(ValueError, match='No spectral file group|needs a band count'):
             jdata.DownloadSpectralFiles(fname=fname, nband=nband)
     assert fetches == []
 
@@ -87,7 +88,7 @@ def test_stellar_spectra_and_directories_resolve_through_fwl_io(fetches, tmp_pat
 
 def test_fetches_carry_the_manifest_pins_of_the_dataset(fetches, monkeypatch):
     """Each fetch gets the Zenodo record, the DataverseNL mirror and the registry of
-    its own manifest entry."""
+    its own manifest entry, for a spectral file and for the named spectra."""
     import fwl_io
 
     seen = []
@@ -95,35 +96,49 @@ def test_fetches_carry_the_manifest_pins_of_the_dataset(fetches, monkeypatch):
         fwl_io, 'create_fetcher', lambda **kw: seen.append(kw) or _Fetcher(**kw)
     )
     jdata.DownloadSpectralFiles('Oak')
-    ds = jdata._shared_datasets()['atmos_clim.spectral_files.oak.318']
-    assert seen[0]['zenodo'] == ds.zenodo == '10.5281/zenodo.15743843'
-    assert seen[0]['dataverse'] == ds.dataverse and seen[0]['dataverse'].startswith('10.34894/')
-    assert seen[0]['registry'] == ds.registry() and 'Oak.sf' in seen[0]['registry']
+    jdata.DownloadStellarSpectra()
+    keys = ['atmos_clim.spectral_files.oak.318', jdata.STELLAR_SPECTRA_NAMED]
+    for kw, key in zip(seen, keys, strict=True):
+        ds = jdata._shared_datasets()[key]
+        assert (kw['subdir'], kw['zenodo'], kw['dataverse']) == (
+            ds.subdir,
+            ds.zenodo,
+            ds.dataverse,
+        )
+        assert kw['registry'] == ds.registry() and kw['extract'] == ds.extract
+    assert seen[0]['zenodo'].startswith('10.5281/zenodo.')
+    assert all(kw['dataverse'].startswith('10.34894/') for kw in seen)
 
 
 def test_directories_are_the_version_directories_fwl_io_fills(monkeypatch, tmp_path):
-    """With the real fwl-io fetcher, the helpers return the r<record-id> directory."""
-    monkeypatch.setattr(jdata, 'FWL_DATA_DIR', tmp_path)
+    """With the real fwl-io fetcher, the helpers return the r<record-id> directory and
+    create the data root, but not the dataset directory."""
+    from fwl_io.manifest import zenodo_record_id
+
+    root = tmp_path / 'absent_root'
+    monkeypatch.setattr(jdata, 'FWL_DATA_DIR', root)
     oak = jdata.spectral_file_dir('Oak')
     named = jdata.stellar_spectra_dir()
-    assert oak == tmp_path / 'atmos_clim/spectral_files/oak/318/r15743843'
-    assert named.parent == tmp_path / 'star/spectra/named' and named.name.startswith('r')
-    assert not oak.exists()
+    records = {k: zenodo_record_id(ds.zenodo) for k, ds in jdata._shared_datasets().items()}
+    oak_record = records['atmos_clim.spectral_files.oak.318']
+    assert oak == root / f'atmos_clim/spectral_files/oak/318/r{oak_record}'
+    assert named == root / f'star/spectra/named/r{records[jdata.STELLAR_SPECTRA_NAMED]}'
+    assert root.is_dir() and not oak.exists()
 
 
 def test_band_count_and_group_errors(fetches, caplog):
-    """A single-band group says when it overrides the band count; an unknown group or
-    a multi-band group without a count raises before any fetch."""
-    import logging
-
-    with caplog.at_level(logging.INFO, logger='fwl.janus.utils.data'):
-        assert jdata.spectral_file_key('Oak', 4096).endswith('oak.318')
-    assert 'one band count; using 318' in caplog.text
-    with pytest.raises(ValueError, match="No spectral file group 'Mallard'"):
-        jdata.DownloadSpectralFiles('Mallard')
-    with pytest.raises(ValueError, match=r"band counts declared for Dayspring: \['16'"):
+    """A single-band group warns, at the default log level, only when a different count
+    is given; an unknown group or a multi-band group without a count raises."""
+    assert jdata.spectral_file_key('Oak', 318).endswith('oak.318')
+    jdata.DownloadSpectralFiles('Oak')
+    assert caplog.text == ''
+    assert jdata.spectral_file_key('Oak', 4096).endswith('oak.318')
+    assert 'Oak has only 318 bands; ignoring the requested 4096' in caplog.text
+    with pytest.raises(ValueError, match="No spectral file group 'NotADataset'"):
+        jdata.DownloadSpectralFiles('NotADataset')
+    with pytest.raises(ValueError, match=r"one of \['16', '48', '256', '4096'\]; got None"):
         jdata.spectral_file_dir('Dayspring')
-    assert fetches == []
+    assert fetches == ['atmos_clim/spectral_files/oak/318']
 
 
 def _cache_module():
@@ -139,17 +154,18 @@ def _cache_module():
     return module
 
 
-def test_nightly_shared_keys_are_the_datasets_the_test_helpers_read(tmp_path):
-    """SHARED_KEYS is the Oak spectral file and the named spectra, and the tool builds
-    their fetchers at the version directories, so the key and the cache cover them."""
+def test_nightly_shared_keys_are_the_datasets_the_test_helpers_read(monkeypatch, tmp_path):
+    """SHARED_KEYS is the Oak spectral file and the named spectra, and the tool's fetchers
+    sit at the directories the test helpers read."""
     mod = _cache_module()
     assert set(mod.SHARED_KEYS) == {jdata.spectral_file_key('Oak'), jdata.STELLAR_SPECTRA_NAMED}
-    rel = [f.rel_dir for f in mod._fetchers(tmp_path)]
-    assert 'atmos_clim/spectral_files/oak/318/r15743843' in rel
-    assert any(r.startswith('star/spectra/named/r') for r in rel)
+    monkeypatch.setattr(jdata, 'FWL_DATA_DIR', tmp_path)
+    dirs = {f.target_dir for f in mod._fetchers(tmp_path)}
+    assert jdata.spectral_file_dir('Oak') in dirs
+    assert jdata.stellar_spectra_dir() in dirs
 
 
-def test_nightly_key_tracks_the_shared_keys_and_refuses_an_unknown_one(monkeypatch, capsys):
+def test_nightly_key_tracks_the_shared_keys_and_refuses_an_unknown_one(monkeypatch):
     """Dropping a shared dataset moves the key; a key the shared manifest lacks is refused."""
     mod = _cache_module()
     both = mod.resolve_key()

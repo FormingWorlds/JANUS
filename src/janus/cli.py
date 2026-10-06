@@ -14,11 +14,18 @@ def download():
 
 @click.command()
 @click.option('-n', '--name', 'fname', type=str, help='Name of the spectra')
-@click.option('-b', '--band', 'nband', type=int, help='Number of the band', default=256)
+@click.option(
+    '-b',
+    '--band',
+    'nband',
+    type=int,
+    default=None,
+    help='Number of bands (default 256; ignored for a single-band group such as Oak)',
+)
 def spectral(**kwargs):
     """Download spectral files
 
-    By default, download all files.
+    Without a name, download the default list: Dayspring/256, Frostflow/256, Oak/318.
     """
     from .utils.data import DownloadSpectralFiles
 

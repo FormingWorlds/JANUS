@@ -7,7 +7,6 @@ against the committed registry, and places the files in a version directory
 :func:`spectral_file_dir` and :func:`stellar_spectra_dir` rather than joining it by hand.
 """
 
-import functools
 import logging
 import os
 from pathlib import Path
@@ -34,7 +33,6 @@ def GetFWLData() -> Path:
     return FWL_DATA_DIR.absolute()
 
 
-@functools.cache
 def _shared_datasets() -> dict:
     """Return the datasets of the fwl-io shared manifest, keyed by manifest key."""
     from fwl_io import load_manifest
@@ -58,7 +56,7 @@ def _fetcher(key: str):
     )
 
 
-def spectral_file_key(group: str, bands: int | str | None = None) -> str:
+def spectral_file_key(group: str, bands: int | str | None = None, default=None) -> str:
     """Return the manifest key of a spectral file.
 
     Parameters
@@ -67,7 +65,10 @@ def spectral_file_key(group: str, bands: int | str | None = None) -> str:
         Spectral file group, e.g. ``"Dayspring"`` or ``"Oak"``.
     bands : int or str, optional
         Number of bands. A group the manifest declares with one band count
-        resolves to that count whatever ``bands`` says.
+        resolves to that count; a different count given here is ignored with a
+        warning.
+    default : int, optional
+        Band count used for a group with several counts when ``bands`` is None.
 
     Returns
     -------
@@ -77,23 +78,23 @@ def spectral_file_key(group: str, bands: int | str | None = None) -> str:
     Raises
     ------
     ValueError
-        The manifest declares no spectral file of that group and band count.
+        The manifest declares no such group, or a group with several band counts
+        gets no count or a count it does not declare.
     """
     prefix = f'atmos_clim.spectral_files.{group.lower()}.'
-    declared = sorted(k for k in _shared_datasets() if k.startswith(prefix))
-    if not declared:
+    counts = sorted(
+        (k.removeprefix(prefix) for k in _shared_datasets() if k.startswith(prefix)), key=int
+    )
+    if not counts:
         raise ValueError(f'No spectral file group {group!r} in the installed fwl-io manifest')
-    if len(declared) == 1:
-        if bands is not None and declared[0] != f'{prefix}{bands}':
-            log.info(f'{group} has one band count; using {declared[0].removeprefix(prefix)}')
-        return declared[0]
-    key = f'{prefix}{bands}'
-    if key not in declared:
-        raise ValueError(
-            f'No spectral file {group}/{bands} in the installed fwl-io manifest; '
-            f'band counts declared for {group}: {[k.removeprefix(prefix) for k in declared]}'
-        )
-    return key
+    if len(counts) == 1:
+        if bands is not None and str(bands) != counts[0]:
+            log.warning(f'{group} has only {counts[0]} bands; ignoring the requested {bands}')
+        return f'{prefix}{counts[0]}'
+    bands = default if bands is None else bands
+    if bands is None or str(bands) not in counts:
+        raise ValueError(f'{group} needs a band count, one of {counts}; got {bands}')
+    return f'{prefix}{bands}'
 
 
 def spectral_file_dir(group: str, bands: int | str | None = None) -> Path:
@@ -120,16 +121,17 @@ def DownloadStellarSpectra():
     _fetcher(STELLAR_SPECTRA_NAMED).fetch_all()
 
 
-def DownloadSpectralFiles(fname: str = '', nband: int = 256):
+def DownloadSpectralFiles(fname: str = '', nband: int | None = None):
     """
     Download spectral files through fwl-io.
 
     Inputs :
         - fname (optional) :    group name, e.g. "Dayspring" or "Oak"
                                 if not provided download the basic list
-        - nband (optional) :    number of bands = 16, 48, 256, 4096
-                                (only relevant for a group with several band counts)
+        - nband (optional) :    number of bands = 16, 48, 256 (default), 4096
+                                for a group with several band counts; a single-band
+                                group such as Oak ignores it
     """
     pairs = [folder.split('/') for folder in basic_list] if not fname else [(fname, nband)]
-    for key in [spectral_file_key(group, bands) for group, bands in pairs]:
+    for key in [spectral_file_key(group, bands, default=256) for group, bands in pairs]:
         _fetcher(key).fetch_all()
