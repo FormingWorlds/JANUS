@@ -48,7 +48,7 @@ def fetches(monkeypatch, tmp_path):
         ('Oak', 256, ['atmos_clim/spectral_files/oak/318']),
         (
             '',
-            256,
+            16,
             [
                 'atmos_clim/spectral_files/dayspring/256',
                 'atmos_clim/spectral_files/frostflow/256',
@@ -60,7 +60,7 @@ def fetches(monkeypatch, tmp_path):
 def test_spectral_download_asks_fwl_io_for_the_named_dataset(fetches, fname, nband, expected):
     """A group with several band counts fetches the one asked for; Oak has only 318.
 
-    The empty name fetches the default list, and nothing else is fetched.
+    The empty name fetches the default list whatever nband says, and nothing else.
     """
     jdata.DownloadSpectralFiles(fname=fname, nband=nband)
     assert fetches == expected
@@ -85,10 +85,51 @@ def test_stellar_spectra_and_directories_resolve_through_fwl_io(fetches, tmp_pat
     assert jdata.GetFWLData() == tmp_path.absolute()
 
 
+def test_fetches_carry_the_manifest_pins_of_the_dataset(fetches, monkeypatch):
+    """Each fetch gets the Zenodo record, the DataverseNL mirror and the registry of
+    its own manifest entry."""
+    import fwl_io
+
+    seen = []
+    monkeypatch.setattr(
+        fwl_io, 'create_fetcher', lambda **kw: seen.append(kw) or _Fetcher(**kw)
+    )
+    jdata.DownloadSpectralFiles('Oak')
+    ds = jdata._shared_datasets()['atmos_clim.spectral_files.oak.318']
+    assert seen[0]['zenodo'] == ds.zenodo == '10.5281/zenodo.15743843'
+    assert seen[0]['dataverse'] == ds.dataverse and seen[0]['dataverse'].startswith('10.34894/')
+    assert seen[0]['registry'] == ds.registry() and 'Oak.sf' in seen[0]['registry']
+
+
+def test_directories_are_the_version_directories_fwl_io_fills(monkeypatch, tmp_path):
+    """With the real fwl-io fetcher, the helpers return the r<record-id> directory."""
+    monkeypatch.setattr(jdata, 'FWL_DATA_DIR', tmp_path)
+    oak = jdata.spectral_file_dir('Oak')
+    named = jdata.stellar_spectra_dir()
+    assert oak == tmp_path / 'atmos_clim/spectral_files/oak/318/r15743843'
+    assert named.parent == tmp_path / 'star/spectra/named' and named.name.startswith('r')
+    assert not oak.exists()
+
+
+def test_band_count_and_group_errors(fetches, caplog):
+    """A single-band group says when it overrides the band count; an unknown group or
+    a multi-band group without a count raises before any fetch."""
+    import logging
+
+    with caplog.at_level(logging.INFO, logger='fwl.janus.utils.data'):
+        assert jdata.spectral_file_key('Oak', 4096).endswith('oak.318')
+    assert 'one band count; using 318' in caplog.text
+    with pytest.raises(ValueError, match="No spectral file group 'Mallard'"):
+        jdata.DownloadSpectralFiles('Mallard')
+    with pytest.raises(ValueError, match=r"band counts declared for Dayspring: \['16'"):
+        jdata.spectral_file_dir('Dayspring')
+    assert fetches == []
+
+
 def _cache_module():
     """Load tools/nightly_data_cache.py, skipping when its inputs are absent."""
     pytest.importorskip('mors')
-    pytest.importorskip('fwl_io', minversion='26.8.31')
+    pytest.importorskip('fwl_io', minversion='26.10.6')
     import importlib.util
 
     path = Path(__file__).parents[2] / 'tools' / 'nightly_data_cache.py'
@@ -96,6 +137,27 @@ def _cache_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_nightly_shared_keys_are_the_datasets_the_test_helpers_read(tmp_path):
+    """SHARED_KEYS is the Oak spectral file and the named spectra, and the tool builds
+    their fetchers at the version directories, so the key and the cache cover them."""
+    mod = _cache_module()
+    assert set(mod.SHARED_KEYS) == {jdata.spectral_file_key('Oak'), jdata.STELLAR_SPECTRA_NAMED}
+    rel = [f.rel_dir for f in mod._fetchers(tmp_path)]
+    assert 'atmos_clim/spectral_files/oak/318/r15743843' in rel
+    assert any(r.startswith('star/spectra/named/r') for r in rel)
+
+
+def test_nightly_key_tracks_the_shared_keys_and_refuses_an_unknown_one(monkeypatch, capsys):
+    """Dropping a shared dataset moves the key; a key the shared manifest lacks is refused."""
+    mod = _cache_module()
+    both = mod.resolve_key()
+    monkeypatch.setattr(mod, 'SHARED_KEYS', ('star.spectra.named',))
+    assert mod.resolve_key() != both
+    monkeypatch.setattr(mod, 'SHARED_KEYS', ('atmos_clim.spectral_files.none.1',))
+    with pytest.raises(mod.ResolutionError, match='shared manifest declares no'):
+        mod.resolve_key()
 
 
 def _write_manifest(drc: Path, *, record: str, checksum: str) -> Path:

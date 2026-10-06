@@ -85,7 +85,7 @@ pip install -e .
 
 ## 3. Download JANUS data
 
-Data is downloaded through [fwl-io](https://github.com/FormingWorlds/fwl-io) from its Zenodo records, with their DataverseNL mirrors as the fallback, and checked against the registry fwl-io ships. It lands in a version directory below `$FWL_DATA`, for example `atmos_clim/spectral_files/oak/318/r15743843`.
+Data is downloaded through [fwl-io](https://github.com/FormingWorlds/fwl-io) from its Zenodo records, with their DataverseNL mirrors as the fallback, and checked against the registry fwl-io ships. It lands in a version directory below `$FWL_DATA`, for example `atmos_clim/spectral_files/oak/318/r<record-id>`. A `$FWL_DATA/spectral_files` or `$FWL_DATA/stellar_spectra/Named` folder from an older JANUS is moved into this layout by `fwl-io relocate`.
 
 Set `FWL_DATA` to define where spectral and stellar data are stored:
 

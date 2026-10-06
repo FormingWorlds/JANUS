@@ -7,6 +7,7 @@ against the committed registry, and places the files in a version directory
 :func:`spectral_file_dir` and :func:`stellar_spectra_dir` rather than joining it by hand.
 """
 
+import functools
 import logging
 import os
 from pathlib import Path
@@ -33,6 +34,7 @@ def GetFWLData() -> Path:
     return FWL_DATA_DIR.absolute()
 
 
+@functools.cache
 def _shared_datasets() -> dict:
     """Return the datasets of the fwl-io shared manifest, keyed by manifest key."""
     from fwl_io import load_manifest
@@ -79,13 +81,17 @@ def spectral_file_key(group: str, bands: int | str | None = None) -> str:
     """
     prefix = f'atmos_clim.spectral_files.{group.lower()}.'
     declared = sorted(k for k in _shared_datasets() if k.startswith(prefix))
+    if not declared:
+        raise ValueError(f'No spectral file group {group!r} in the installed fwl-io manifest')
     if len(declared) == 1:
+        if bands is not None and declared[0] != f'{prefix}{bands}':
+            log.info(f'{group} has one band count; using {declared[0].removeprefix(prefix)}')
         return declared[0]
     key = f'{prefix}{bands}'
     if key not in declared:
         raise ValueError(
             f'No spectral file {group}/{bands} in the installed fwl-io manifest; '
-            f'declared for {group}: {[k.removeprefix(prefix) for k in declared] or "none"}'
+            f'band counts declared for {group}: {[k.removeprefix(prefix) for k in declared]}'
         )
     return key
 
@@ -93,13 +99,17 @@ def spectral_file_key(group: str, bands: int | str | None = None) -> str:
 def spectral_file_dir(group: str, bands: int | str | None = None) -> Path:
     """Return the directory that holds a spectral file, e.g. ``.../Oak.sf``.
 
-    Resolving the path does not download anything; call :func:`DownloadSpectralFiles`.
+    Resolving the path downloads nothing (call :func:`DownloadSpectralFiles`), but it
+    creates the FWL data directory if it is absent.
     """
     return _fetcher(spectral_file_key(group, bands)).target_dir
 
 
 def stellar_spectra_dir() -> Path:
-    """Return the directory that holds the named stellar spectra, e.g. ``.../sun.txt``."""
+    """Return the directory that holds the named stellar spectra, e.g. ``.../sun.txt``.
+
+    Like :func:`spectral_file_dir`, it creates the FWL data directory if it is absent.
+    """
     return _fetcher(STELLAR_SPECTRA_NAMED).target_dir
 
 
