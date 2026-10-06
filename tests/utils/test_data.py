@@ -606,10 +606,14 @@ def test_check_refuses_to_run_without_a_data_root(monkeypatch, capsys):
         mod._cmd_check(SimpleNamespace(data_root=None))
 
 
-def test_selectable_groups_are_the_manifest_spectral_sets(fetches):
-    """A group the shared manifest declares is accepted; Legacy, which the installed
-    fwl-io floor does not declare, is refused before any fetch."""
-    assert jdata.spectral_file_key('Honeyside', 48) == 'atmos_clim.spectral_files.honeyside.48'
+def test_selectable_groups_are_the_manifest_spectral_sets(fetches, monkeypatch):
+    """A group the manifest declares is accepted, and a name it does not declare is
+    refused before any fetch, whatever the installed fwl-io declares."""
+    keys = ['atmos_clim.spectral_files.honeyside.48', 'atmos_clim.spectral_files.honeyside.256']
+    keys.append('atmos_clim.spectral_files.oak.318')
+    monkeypatch.setattr(jdata, '_shared_datasets', lambda: dict.fromkeys(keys))
+    assert jdata.spectral_file_key('Honeyside', 48) == keys[0]
+    assert jdata.spectral_file_key('Oak') == keys[2]
     with pytest.raises(ValueError, match="No spectral file group 'Legacy'"):
         jdata.DownloadSpectralFiles('Legacy')
     assert fetches == []
