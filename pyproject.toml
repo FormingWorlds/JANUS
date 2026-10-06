@@ -25,14 +25,14 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 keywords = ["exoplanet", "atmosphere"]
-requires-python = '>=3.10'
+requires-python = '>=3.11'
 dependencies = [
   'click',
+  'fwl-io>=26.10.6',
   'matplotlib',
   'natsort',
   'netcdf4',
   'numpy',
-  'osfclient',
   'pandas',
   'platformdirs',
   'requests>=2.32.4',
@@ -51,7 +51,6 @@ homepage = "https://github.com/FormingWorlds/JANUS"
 develop = [
   "bump-my-version",
   "coverage[toml]",
-  'fwl-io>=26.8.31',
   'fwl-mors',
   "pytest",
   "pytest-cov",

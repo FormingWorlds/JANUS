@@ -71,8 +71,8 @@ jobs:
           python -m pip install -e .[develop]
 
       # The key carries the directory and checksums of every dataset the installed
-      # fwl-mors declares and the JANUS downloader source that pins the OSF data the
-      # tests read. actions/cache writes only on an exact-key miss.
+      # fwl-mors declares and of the shared fwl-io datasets the tests read.
+      # actions/cache writes only on an exact-key miss.
       - name: Resolve the data cache key
         id: cachekey
         run: python tools/nightly_data_cache.py key

@@ -165,7 +165,7 @@ Both markers are registered in `pyproject.toml` under `[tool.pytest.ini_options]
 
 ## 4. Mocking discipline
 
-- Default to `unittest.mock` for ALL external calls in unit tests: the SOCRATES radiative-transfer binary, netCDF file I/O, spectral-file reads, `mors` stellar-spectrum calls, HTTP / OSF downloads, subprocess.
+- Default to `unittest.mock` for ALL external calls in unit tests: the SOCRATES radiative-transfer binary, netCDF file I/O, spectral-file reads, `mors` stellar-spectrum calls, HTTP and fwl-io downloads, subprocess.
 - Mock at the **narrowest scope**: patch the specific function (`unittest.mock.patch('janus.modules.solve_pt.some_helper')`), not the whole module.
 - A mocked physics function MUST return **physically plausible** values. A mock that returns `0.0` or `1.0` for everything will mask sign / clamp / fallback bugs.
 - NEVER mock the function under test. If you're tempted to, the test is asking the wrong question.

@@ -13,7 +13,7 @@ from janus.utils import (
     StellarSpectrum,
     atmos,
 )
-from janus.utils.data import FWL_DATA_DIR
+from janus.utils.data import spectral_file_dir, stellar_spectra_dir
 
 DATA_DRC = files('janus') / 'data' / 'tests'
 
@@ -40,12 +40,12 @@ def get_spectrum_data(drc):
     DownloadStellarSpectra()
 
     spec = mors.Spectrum()
-    spec.LoadTSV(str(FWL_DATA_DIR / 'stellar_spectra' / 'Named' / 'sun.txt'))
+    spec.LoadTSV(str(stellar_spectra_dir() / 'sun.txt'))
     socstar = os.path.join(drc, 'socstar.txt')
     StellarSpectrum.PrepareStellarSpectrum(spec.wl, spec.fl, socstar)
 
     StellarSpectrum.InsertStellarSpectrum(
-        str(FWL_DATA_DIR / 'spectral_files' / 'Oak' / '318' / 'Oak.sf'),
+        str(spectral_file_dir('Oak') / 'Oak.sf'),
         socstar,
         drc,
     )

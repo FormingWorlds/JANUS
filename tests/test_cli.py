@@ -41,18 +41,18 @@ def test_download_subcommands_forward_options():
 
 
 def test_spectral_band_default_and_group_help():
-    """The band count defaults to 256 and the bare group prints help.
+    """No band count is forwarded by default, and the bare group prints help.
 
-    The default matters because it selects which resolution folder is
-    fetched; the bare `download` invocation exercises the group body and
-    must list its subcommands rather than fail.
+    The data module applies 256 to a group with several band counts, so a
+    single-band group such as Oak is not told about a count nobody gave; the
+    bare `download` invocation must list its subcommands rather than fail.
     """
     runner = CliRunner()
 
     with patch('janus.utils.data.DownloadSpectralFiles') as mock_spec:
         result = runner.invoke(cli, ['download', 'spectral'])
     assert result.exit_code == 0
-    mock_spec.assert_called_once_with(fname=None, nband=256)
+    mock_spec.assert_called_once_with(fname=None, nband=None)
 
     # A bare group prints its usage and exits non-zero; the exact code
     # differs across click releases, so only the sign is pinned.
@@ -85,3 +85,20 @@ def test_env_reports_locations_and_bad_option_fails():
         result = runner.invoke(cli, ['download', 'spectral', '--bogus'])
     assert result.exit_code != 0
     mock_spec.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ('args', 'target'),
+    [
+        (['download', 'spectral', '-n', 'Oak'], 'janus.utils.data.DownloadSpectralFiles'),
+        (['download', 'stellar'], 'janus.utils.data.DownloadStellarSpectra'),
+    ],
+)
+def test_download_reports_a_failed_fetch_in_one_line(args, target):
+    """A fetch that fails on every mirror ends the command with exit 1 and one message."""
+    from fwl_io import DownloadError
+
+    with patch(target, side_effect=DownloadError('all mirrors failed for Oak.sf')):
+        result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 1
+    assert result.output.strip() == 'Error: all mirrors failed for Oak.sf'

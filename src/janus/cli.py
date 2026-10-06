@@ -6,6 +6,13 @@ def cli():
     pass
 
 
+def _fetch_errors() -> tuple:
+    """Return the fwl-io errors of a failed fetch, reported in one line, not a traceback."""
+    from fwl_io import DownloadError, MissingDataRootError, OfflineDataError
+
+    return (DownloadError, MissingDataRootError, OfflineDataError)
+
+
 @click.group()
 def download():
     """Download data and dependencies"""
@@ -14,15 +21,25 @@ def download():
 
 @click.command()
 @click.option('-n', '--name', 'fname', type=str, help='Name of the spectra')
-@click.option('-b', '--band', 'nband', type=int, help='Number of the band', default=256)
+@click.option(
+    '-b',
+    '--band',
+    'nband',
+    type=int,
+    default=None,
+    help='Number of bands (default 256; ignored for a single-band group such as Oak)',
+)
 def spectral(**kwargs):
     """Download spectral files
 
-    By default, download all files.
+    Without a name, download the default list: Dayspring/256, Frostflow/256, Oak/318.
     """
     from .utils.data import DownloadSpectralFiles
 
-    DownloadSpectralFiles(**kwargs)
+    try:
+        DownloadSpectralFiles(**kwargs)
+    except (ValueError, *_fetch_errors()) as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 @click.command()
@@ -30,7 +47,10 @@ def stellar():
     """Download stellar spectra"""
     from .utils.data import DownloadStellarSpectra
 
-    DownloadStellarSpectra()
+    try:
+        DownloadStellarSpectra()
+    except _fetch_errors() as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 @click.command()

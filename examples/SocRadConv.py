@@ -29,7 +29,7 @@ import mors
 
 import logging
 
-from janus.utils.data import FWL_DATA_DIR
+from janus.utils.data import spectral_file_dir, stellar_spectra_dir
 
 ####################################
 ##### Stand-alone initial conditions
@@ -74,12 +74,12 @@ if __name__ == "__main__":
     os.mkdir(dirs["output"])
 
     #Download required spectral files
-    DownloadSpectralFiles("Dayspring")
+    DownloadSpectralFiles("Oak")
     DownloadStellarSpectra()
 
     # Read spectrum
     spec = mors.Spectrum()
-    spec.LoadTSV(str(FWL_DATA_DIR / 'stellar_spectra' / 'Named' / 'sun.txt'))
+    spec.LoadTSV(str(stellar_spectra_dir() / 'sun.txt'))
 
     # Convert to SOCRATES format
     socstar = os.path.join(dirs["output"], "socstar.txt")
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     # Move/prepare spectral file
     log.info("Inserting stellar spectrum")
     StellarSpectrum.InsertStellarSpectrum(
-        str(FWL_DATA_DIR / 'spectral_files'/'Oak'/'318'/'Oak.sf'),
+        str(spectral_file_dir('Oak') / 'Oak.sf'),
         socstar,
         dirs["output"]
     )

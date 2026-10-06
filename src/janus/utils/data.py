@@ -1,92 +1,30 @@
-import os
-import re
-import time
-from pathlib import Path
+"""Reference data for JANUS: SOCRATES spectral files and stellar spectra.
+
+Both come from the shared manifest that fwl-io ships. fwl-io fetches each dataset from its
+Zenodo record, falls back to the DataverseNL mirror the manifest pins, checks every file
+against the committed registry, and places the files in a version directory
+``<FWL_DATA>/<key-as-path>/r<record-id>``. Callers resolve that directory through
+:func:`spectral_file_dir` and :func:`stellar_spectra_dir` rather than joining it by hand.
+"""
+
 import logging
+import os
+from pathlib import Path
 
 import platformdirs
-import requests
-from osfclient.api import OSF
 
-log = logging.getLogger("fwl."+__name__)
-
-OSF_RETRY_ATTEMPTS = 3
-OSF_RETRY_DELAYS = (15, 45)
-
-# Most osfclient failures surface as a plain RuntimeError with a
-# "...status code {N}..." message, transient or not; a 401 instead raises
-# osfclient's own UnauthorizedException, which this module does not import
-# or match, so it is never treated as retryable. Only retry the status
-# codes that are actually worth retrying.
-_OSF_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
-_OSF_STATUS_CODE_RE = re.compile(r'status code (\d+)')
-
-def _is_transient_osf_error(exc: RuntimeError) -> bool:
-    match = _OSF_STATUS_CODE_RE.search(str(exc))
-    return bool(match) and int(match.group(1)) in _OSF_RETRYABLE_STATUS
-
-def _osf_retry(func):
-    """
-    Call `func`, retrying on a transient OSF failure (a 429/5xx RuntimeError
-    from osfclient, or a network-level error while streaming a response)
-    with a bounded backoff, so a flaky OSF response does not fail the
-    download outright. A non-transient RuntimeError (e.g. a 404, or a
-    RuntimeError whose message carries no status code) is re-raised
-    immediately rather than retried.
-    """
-    for attempt in range(OSF_RETRY_ATTEMPTS):
-        try:
-            return func()
-        except RuntimeError as exc:
-            if not _is_transient_osf_error(exc) or attempt == OSF_RETRY_ATTEMPTS - 1:
-                raise
-            last_exc = exc
-        except requests.exceptions.RequestException as exc:
-            if attempt == OSF_RETRY_ATTEMPTS - 1:
-                raise
-            last_exc = exc
-        log.warning(f'OSF request failed (attempt {attempt + 1}/'
-                    f'{OSF_RETRY_ATTEMPTS}): {last_exc!r}, retrying...')
-        time.sleep(OSF_RETRY_DELAYS[min(attempt, len(OSF_RETRY_DELAYS) - 1)])
+log = logging.getLogger('fwl.' + __name__)
 
 FWL_DATA_DIR = Path(os.environ.get('FWL_DATA', platformdirs.user_data_dir('fwl_data')))
 
-log.debug(f'FWL data location: {FWL_DATA_DIR}')
+STELLAR_SPECTRA_NAMED = 'star.spectra.named'
+DEFAULT_BANDS = 256
 
 basic_list = (
-        "Dayspring/256",
-        "Frostflow/256",
-        "Legacy",
-        "Mallard",
-        "Oak",
-        "Reach",
-        )
-
-def download_folder(*, storage, folders: list[str], data_dir: Path):
-    """
-    Download a specific folder in the OSF repository
-
-    Inputs :
-        - storage : OSF storage name
-        - folders : folder names to download
-        - data_dir : local repository where data are saved
-    """
-    files = _osf_retry(lambda: list(storage.files))
-    for file in files:
-        for folder in folders:
-            if not file.path[1:].startswith(folder):
-                continue
-            parts = file.path.split('/')[1:]
-            target = Path(data_dir, *parts)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            log.info(f'Downloading {file.path}...')
-
-            def _write(file=file, target=target):
-                with open(target, 'wb') as f:
-                    file.write_to(f)
-
-            _osf_retry(_write)
-            break
+    'Dayspring/256',
+    'Frostflow/256',
+    'Oak/318',
+)
 
 
 def GetFWLData() -> Path:
@@ -95,66 +33,105 @@ def GetFWLData() -> Path:
     """
     return FWL_DATA_DIR.absolute()
 
+
+def _shared_datasets() -> dict:
+    """Return the datasets of the fwl-io shared manifest, keyed by manifest key."""
+    from fwl_io import load_manifest
+    from fwl_io.manifest import shared_manifest_path
+
+    return {ds.key: ds for ds in load_manifest(shared_manifest_path())}
+
+
+def _fetcher(key: str):
+    """Build the fwl-io fetcher of one shared dataset below the FWL data directory."""
+    from fwl_io import create_fetcher
+
+    ds = _shared_datasets()[key]
+    return create_fetcher(
+        subdir=ds.subdir,
+        zenodo=ds.zenodo,
+        dataverse=ds.dataverse,
+        registry=ds.registry(),
+        data_root=GetFWLData(),
+        extract=ds.extract,
+    )
+
+
+def spectral_file_key(group: str, bands: int | str | None = None) -> str:
+    """Return the manifest key of a spectral file.
+
+    Parameters
+    ----------
+    group : str
+        Spectral file group, e.g. ``"Dayspring"`` or ``"Oak"``.
+    bands : int or str, optional
+        Number of bands. A group the manifest declares with one band count
+        resolves to that count; a different count given here is ignored with a
+        warning. A group with several counts uses DEFAULT_BANDS when it is None.
+
+    Returns
+    -------
+    str
+        Key such as ``atmos_clim.spectral_files.dayspring.256``.
+
+    Raises
+    ------
+    ValueError
+        The manifest declares no such group, or a group with several band counts
+        gets a count it does not declare.
+    """
+    prefix = f'atmos_clim.spectral_files.{group.lower()}.'
+    suffixes = (k.removeprefix(prefix) for k in _shared_datasets() if k.startswith(prefix))
+    counts = sorted(filter(str.isdigit, suffixes), key=int)
+    if not counts:
+        raise ValueError(f'No spectral file group {group!r} in the installed fwl-io manifest')
+    if len(counts) == 1:
+        if bands is not None and str(bands) != counts[0]:
+            log.warning(f'{group} has only {counts[0]} bands; ignoring the requested {bands}')
+        return f'{prefix}{counts[0]}'
+    bands = DEFAULT_BANDS if bands is None else bands
+    if str(bands) not in counts:
+        raise ValueError(f'{group} has no {bands}-band spectral file; declared: {counts}')
+    return f'{prefix}{bands}'
+
+
+def spectral_file_dir(group: str, bands: int | str | None = None) -> Path:
+    """Return the directory that holds a spectral file, e.g. ``.../Oak.sf``.
+
+    Resolving the path downloads nothing (call :func:`DownloadSpectralFiles`), but it
+    creates the FWL data directory if it is absent.
+    """
+    return _fetcher(spectral_file_key(group, bands)).target_dir
+
+
+def stellar_spectra_dir() -> Path:
+    """Return the directory that holds the named stellar spectra, e.g. ``.../sun.txt``.
+
+    Like :func:`spectral_file_dir`, it creates the FWL data directory if it is absent.
+    """
+    return _fetcher(STELLAR_SPECTRA_NAMED).target_dir
+
+
 def DownloadStellarSpectra():
     """
-    Download stellar spectra
+    Download the named stellar spectra through fwl-io.
     """
-    # The nightly cache key hashes this module, so a changed pin is refetched there.
-    # A folder already on disk is used as it is, without contacting OSF.
-    #project ID of the stellar spectra on OSF
-    project_id = '8r2sw'
-    folder_name = 'Named'
-
-    data_dir = GetFWLData() / "stellar_spectra"
-    if (data_dir / folder_name).exists():
-        return
-
-    osf = OSF()
-    project = _osf_retry(lambda: osf.project(project_id))
-    storage = _osf_retry(lambda: project.storage('osfstorage'))
-
-    data_dir.mkdir(parents=True, exist_ok=True)
-    print(f"Downloading stellar spectra to {data_dir}")
-    download_folder(storage=storage, folders=[folder_name], data_dir=data_dir)
+    _fetcher(STELLAR_SPECTRA_NAMED).fetch_all()
 
 
-def DownloadSpectralFiles(fname: str="",nband: int=256):
+def DownloadSpectralFiles(fname: str = '', nband: int | None = None):
     """
-    Download spectral files data
+    Download spectral files through fwl-io.
 
     Inputs :
-        - fname (optional) :    folder name, i.e. "/Dayspring"
-                                if not provided download all the basic list
-        - nband (optional) :    number of band = 16, 48, 256, 4096
-                                (only relevant for Dayspring, Frostflow and Honeyside)
+        - fname (optional) :    group name, e.g. "Dayspring" or "Oak"
+                                if not provided download the basic list
+        - nband (optional) :    number of bands = 16, 48, 256 (default), 4096
+                                for a group with several band counts; a single-band
+                                group such as Oak, and the basic list, ignore it
     """
-    # The nightly cache key hashes this module, so a changed pin is refetched there.
-    # Folders already on disk are used as they are, without contacting OSF.
-    #project ID of the spectral files on OSF
-    project_id = 'vehxg'
-
-    #Create spectral file data repository if not existing
-    data_dir = GetFWLData() / "spectral_files"
-    data_dir.mkdir(parents=True, exist_ok=True)
-
-    #If no folder specified download all basic list
-    if not fname:
-        folder_list = basic_list
-    elif fname in ("Dayspring", "Frostflow", "Honeyside"):
-        folder_list = [fname + "/" + str(nband)]
-    elif fname in ("Kynesgrove","Legacy","Mallard","Oak","Reach","stellar_spectra"):
-        folder_list = [fname]
-    else:
-        raise ValueError(f"Unrecognised folder name: {fname}")
-
-    folders = [folder for folder in folder_list if not (data_dir / folder).exists()]
-    if not folders:
-        return
-
-    #Link with OSF project repository
-    osf = OSF()
-    project = _osf_retry(lambda: osf.project(project_id))
-    storage = _osf_retry(lambda: project.storage('osfstorage'))
-
-    print(f"Downloading SOCRATES spectral files to {data_dir}")
-    download_folder(storage=storage, folders=folders, data_dir=data_dir)
+    if not fname and nband is not None:
+        log.warning(f'No spectral file group named; ignoring the band count {nband}')
+    pairs = [folder.split('/') for folder in basic_list] if not fname else [(fname, nband)]
+    for key in [spectral_file_key(group, bands) for group, bands in pairs]:
+        _fetcher(key).fetch_all()

@@ -7,7 +7,7 @@ This page describes a manual developer installation of JANUS and SOCRATES.
 
 !!! info "Prerequisites"
     - `git`
-    - Python 3.10+ (recommended: 3.11)
+    - Python 3.11+
     - a Fortran/C build toolchain (`gfortran`, `gcc`, `make`)
     - NetCDF tools and NetCDF-Fortran development headers/libraries
     - optional but recommended: Conda
@@ -85,7 +85,7 @@ pip install -e .
 
 ## 3. Download JANUS data
 
-Data is downloaded from the [OSF repository](https://osf.io/vehxg/).
+Data is downloaded through [fwl-io](https://github.com/FormingWorlds/fwl-io) from its Zenodo records, with their DataverseNL mirrors as the fallback, and checked against the registry fwl-io ships. It lands in a version directory below `$FWL_DATA`, for example `atmos_clim/spectral_files/oak/318/r<record-id>`. A `$FWL_DATA/spectral_files` or `$FWL_DATA/stellar_spectra/Named` folder from an older JANUS is moved into this layout by `fwl-io relocate`.
 
 Set `FWL_DATA` to define where spectral and stellar data are stored:
 
@@ -105,6 +105,8 @@ To download a specific spectral dataset with a given number of bands:
 ```console
 janus download spectral -n Frostflow -b 4096
 ```
+
+The selectable groups are the spectral-file datasets of the fwl-io shared manifest, listed by `fwl-io list` under `atmos_clim.spectral_files`. Stellar spectra are fetched by `janus download stellar`.
 
 ## 4. Verify installation
 
@@ -138,3 +140,5 @@ Override it with:
 ```console
 export FWL_DATA=/path/to/fwl_data
 ```
+
+The `fwl-io` commands, such as `fwl-io relocate`, do not use this default: they read `FWL_DATA` or take `--data-root`. If you use the default location, set `FWL_DATA` to the folder `janus env` prints before you run them.

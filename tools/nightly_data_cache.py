@@ -8,26 +8,24 @@ Three subcommands, all used by ``.github/workflows/nightly.yml``::
     python tools/nightly_data_cache.py check
 
 ``key`` prints ``key=<value>`` for ``GITHUB_OUTPUT``. The value carries a
-digest of the track-data layout JANUS resolves through its ``fwl-mors``
-dependency: for every dataset the installed manifest declares, the
-directory fwl-io places it in and the per-file checksums the registry
-pins, plus the archive kind of a dataset shipped as one archive and the
-fwl-io release (year.month) that lays out the tree. It also carries the
-source of ``janus.utils.data``, which pins the OSF projects of the
-spectral file and stellar spectra the tests read. It therefore moves
-when the data or its layout moves and stays put otherwise.
+digest of the data layout JANUS reads through fwl-io: for every dataset the
+manifest of the installed ``fwl-mors`` declares, and for the spectral file and
+stellar spectra of the fwl-io shared manifest the tests open, the directory
+fwl-io places it in and the per-file checksums the registry pins, plus the
+archive kind of a dataset shipped as one archive and the fwl-io release
+(year.month) that lays out the tree. It therefore moves when the data or its
+layout moves and stays put otherwise.
 
-Every declared dataset counts, not only the one JANUS fetches today. A
-dataset the manifest gains later costs at most one extra refetch, where
-narrowing the digest to a named subset would leave a dataset JANUS starts
-consuming untracked, which is the failure worth avoiding.
+Every dataset the fwl-mors manifest declares counts, not only the one JANUS
+fetches today. A dataset the manifest gains later costs at most one extra
+refetch, where narrowing the digest to a named subset would leave a dataset
+JANUS starts consuming untracked, which is the failure worth avoiding.
 
 ``fetch`` downloads every dataset the key covers that is not already in
 place, so a tree saved under the key holds all of it and no test
 downloads. ``check`` verifies that tree without the network: every
-registry file present with its pinned checksum, for an archive dataset
-every member its extraction recorded, by name, and for the OSF data the
-files the tests open with the sha256 pinned here.
+registry file present with its pinned checksum, and for an archive dataset
+every member its extraction recorded, by name.
 
 Both subcommands fail with a diagnostic rather than degrade: an empty or
 partial digest would collide with the workflow's restore-key prefix and
@@ -38,33 +36,15 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import os
-import shutil
 import sys
 import tempfile
 from pathlib import Path
 
 KEY_PREFIX = 'fwl-data-'
 
-# JANUS data on OSF that tests/helpers reads: folder, sha256 of each file the tests open
-# (as the OSF file metadata reports it), download call.
-OSF_DATA = (
-    (
-        'spectral_files/Oak',
-        {
-            '318/Oak.sf': 'aa2133bac27d6bc9850b362596f2623e573594512b2bbd0238efe751efe8ae6b',
-            '318/Oak.sf_k': 'a78dced66965fdbdf7376bb30fb70fa8685de85b47aa0a13795d87fc04ba0764',
-        },
-        lambda j: j.DownloadSpectralFiles('Oak'),
-    ),
-    (
-        'stellar_spectra/Named',
-        {'sun.txt': '50a5805c463495a8d311938d8d3121a4b3d19d69d88ca4bfece5c4ce4a59f836'},
-        lambda j: j.DownloadStellarSpectra(),
-    ),
-)
-JANUS_DATA_PY = Path(__file__).resolve().parents[1] / 'src' / 'janus' / 'utils' / 'data.py'
+# Shared-manifest datasets the tests open (tests/helpers): Oak.sf and sun.txt.
+SHARED_KEYS = ('atmos_clim.spectral_files.oak.318', 'star.spectra.named')
 
 
 class ResolutionError(RuntimeError):
@@ -108,7 +88,7 @@ def _manifest_path() -> Path:
 
 
 def _fetchers(data_root: Path) -> list:
-    """Build one fwl-io fetcher per dataset the manifest declares.
+    """Build one fwl-io fetcher per fwl-mors dataset and per entry of SHARED_KEYS.
 
     Parameters
     ----------
@@ -123,10 +103,11 @@ def _fetchers(data_root: Path) -> list:
     Raises
     ------
     ResolutionError
-        When the manifest declares no dataset, or a declared registry
-        file is missing.
+        When the fwl-mors manifest declares no dataset, the shared manifest
+        lacks a key of SHARED_KEYS, or a declared registry file is missing.
     """
     from fwl_io import create_fetcher, load_manifest
+    from fwl_io.manifest import shared_manifest_path
 
     manifest = _manifest_path()
     datasets = sorted(load_manifest(manifest), key=lambda ds: ds.key)
@@ -134,6 +115,11 @@ def _fetchers(data_root: Path) -> list:
         raise ResolutionError(
             f'{manifest} declares no dataset, so this key would track nothing.'
         )
+    shared = {ds.key: ds for ds in load_manifest(shared_manifest_path())}
+    missing = [key for key in SHARED_KEYS if key not in shared]
+    if missing:
+        raise ResolutionError(f'the installed fwl-io shared manifest declares no {missing}')
+    datasets += [shared[key] for key in SHARED_KEYS]
 
     built = []
     for ds in datasets:
@@ -198,8 +184,6 @@ def resolve_key(data_root: Path | None = None) -> str:
     from fwl_io import __version__
 
     material.append('fwl-io\t' + '.'.join(__version__.split('.')[:2]))
-    material.append('janus-osf\t' + hashlib.sha256(JANUS_DATA_PY.read_bytes()).hexdigest())
-    material += [f'osf\t{folder}\t{sorted(files.items())}' for folder, files, _ in OSF_DATA]
     digest = hashlib.sha256('\n'.join(material).encode('utf-8')).hexdigest()
     return f'{KEY_PREFIX}{digest}'
 
@@ -217,8 +201,8 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int, str]]:
     list of tuple
         One ``(rel_dir, found, expected, state)`` per dataset. ``found``
         counts the files fwl-io reports sound, and ``state`` names what that
-        means: ``intact`` for a plain dataset and for the OSF files the tests
-        open, checked by checksum, and ``present`` for the members of an
+        means: ``intact`` for a plain dataset, checked by checksum, and
+        ``present`` for the members of an
         archive dataset, checked by name. An archive dataset with no
         extracted tree counts as its one archive, missing.
 
@@ -234,26 +218,7 @@ def check_restored(data_root: Path) -> list[tuple[str, int, int, str]]:
         ds = check_dataset(f)
         state = 'intact' if ds.verifiable else 'present'
         report.append((f.rel_dir, sum(not c.faulty for c in ds.files), len(ds.files), state))
-    for folder, files, _ in OSF_DATA:
-        report.append((folder, _osf_intact(data_root / folder, files), len(files), 'intact'))
     return report
-
-
-def _osf_intact(folder: Path, files: dict[str, str]) -> int:
-    """Count the files below ``folder`` whose sha256 matches its pin."""
-    return sum(
-        (folder / name).is_file()
-        and hashlib.sha256((folder / name).read_bytes()).hexdigest() == digest
-        for name, digest in files.items()
-    )
-
-
-def _janus_data():
-    """Load ``janus/utils/data.py`` alone, since the janus package import needs SOCRATES."""
-    spec = importlib.util.spec_from_file_location('janus_osf_data', JANUS_DATA_PY)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def fetch_all(data_root: Path) -> None:
@@ -272,16 +237,6 @@ def fetch_all(data_root: Path) -> None:
     for f in _fetchers(data_root):
         f.fetch_all()
         print(f'{f.rel_dir}: fetched', file=sys.stderr)
-
-    jdata = _janus_data()
-    jdata.FWL_DATA_DIR = Path(data_root)
-    for folder, files, download in OSF_DATA:
-        path = Path(data_root) / folder
-        # The JANUS downloader skips an existing folder, so a partial or corrupt one is removed.
-        if path.exists() and _osf_intact(path, files) < len(files):
-            shutil.rmtree(path)
-        download(jdata)
-        print(f'{folder}: fetched', file=sys.stderr)
 
 
 def _data_root(args: argparse.Namespace) -> Path:
@@ -355,8 +310,8 @@ def main(argv: list[str] | None = None) -> int:
         # traceback stand in for the diagnostic this script promises.
         print(
             f'error: reading or fetching the data failed: {exc!r}. Check that Zenodo '
-            'and OSF are reachable and that the installed fwl-mors, fwl-io and janus '
-            'still expose the manifest, fetcher, check and downloaders this script reads.',
+            'or DataverseNL is reachable and that the installed fwl-mors and fwl-io '
+            'still expose the manifests, fetcher and check this script reads.',
             file=sys.stderr,
         )
         return 1
