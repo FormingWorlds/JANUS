@@ -28,7 +28,7 @@ keywords = ["exoplanet", "atmosphere"]
 requires-python = '>=3.11'
 dependencies = [
   'click',
-  'fwl-io>=26.10.6',
+  'fwl-io>=26.10.7.1',
   'matplotlib',
   'natsort',
   'netcdf4',
