@@ -117,11 +117,9 @@ def test_fetches_carry_the_manifest_pins_of_the_dataset(fetches, monkeypatch, tm
             assert kw[field] == getattr(ds, field)
         assert kw['registry'] == ds.registry() and kw['data_root'] == tmp_path.absolute()
     assert 'Oak.sf' in seen[0]['registry'] and 'sun.txt' in seen[1]['registry']
-    pins = [(kw['zenodo'], kw['dataverse']) for kw in seen]
-    assert pins[0] == ('10.5281/zenodo.15743843', '10.34894/K3UKBX')
-    # Named v2 adds toi561.txt to v1; each version keeps its own mirror.
-    named_v1 = ('10.5281/zenodo.15721440', '10.34894/BC1DEH')
-    assert pins[1] in {named_v1, ('10.5281/zenodo.23197931', '10.34894/URD02X')}
+    zenodo = ['10.5281/zenodo.15743843', '10.5281/zenodo.23197931']
+    assert [kw['zenodo'] for kw in seen] == zenodo
+    assert [kw['dataverse'] for kw in seen] == ['10.34894/K3UKBX', '10.34894/URD02X']
 
 
 def test_a_single_band_group_warns_only_on_an_explicit_other_count(fetches, caplog):
