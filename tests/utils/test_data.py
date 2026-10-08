@@ -391,17 +391,19 @@ def test_restore_check_counts_registry_files_not_directories(monkeypatch, tmp_pa
 
 def _write_archive_manifest(drc: Path, *, extract: bool) -> tuple[Path, bytes]:
     """Write a one-archive manifest and registry; return it and the tarball."""
+    import gzip
     import hashlib
     import io
     import tarfile
 
     buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode='w:gz') as tar:
+    with tarfile.open(fileobj=buf, mode='w') as tar:
         for name, data in (('fs255_grid/0p1.dat', b'track-a'), ('fs255_grid/0p2.dat', b'b')):
             info = tarfile.TarInfo(name)
             info.size = len(data)
             tar.addfile(info, io.BytesIO(data))
-    tarball = buf.getvalue()
+    # A fixed gzip mtime keeps the archive checksum the same from call to call.
+    tarball = gzip.compress(buf.getvalue(), mtime=0)
     manifest = drc / 'mors_manifest.toml'
     manifest.write_text(
         '[star.tracks.spada_2013]\n'
@@ -415,6 +417,23 @@ def _write_archive_manifest(drc: Path, *, extract: bool) -> tuple[Path, bytes]:
         f'fs255_grid.tar.gz md5:{hashlib.md5(tarball).hexdigest()}\n', encoding='utf-8'
     )
     return manifest, tarball
+
+
+def test_archive_bytes_do_not_depend_on_the_clock(monkeypatch, tmp_path):
+    """Two archives built one second apart are byte-identical.
+
+    The archive md5 enters the registry and so the cache key; a clock-dependent
+    gzip header would make the key tests fail whenever two builds straddle a second.
+    """
+    import time
+
+    tarballs = []
+    for tag, now in (('first', 1000.0), ('second', 1001.0)):
+        monkeypatch.setattr(time, 'time', lambda now=now: now)
+        (tmp_path / tag).mkdir()
+        tarballs.append(_write_archive_manifest(tmp_path / tag, extract=True)[1])
+    assert tarballs[0] == tarballs[1]
+    assert tarballs[0][4:8] == bytes(4)
 
 
 def test_fetch_extracts_an_archive_dataset_that_check_then_accepts(
