@@ -601,7 +601,7 @@ def test_general_adiabat_profile_monotone_and_bounded():
 _SETTINGS = {
     'instellation': 1234.5, 'zenith_angle': 33.0, 'albedo_pl': 0.31, 'inst_sf': 0.4,
     'skin_k': 3.1, 'skin_d': 0.02, 'tmp_magma': 2345.0, 'albedo_s': 0.27,
-    'planet_mass': 6.1e24, 'planet_radius': 6.5e6, 'overlap_type': 8, 'water_lookup': True,
+    'overlap_type': 8, 'water_lookup': True,
 }
 
 
@@ -610,7 +610,8 @@ def test_general_adiabat_rebuild_keeps_run_settings():
 
     Water at 0.5 bar and 300 K exceeds its saturation pressure (about 3.5 kPa), so
     general_adiabat removes condensate and builds a new atmosphere at the lower
-    surface pressure, which must keep the caller's settings.
+    surface pressure, which must keep the caller's settings. The new surface pressure
+    uses the caller's water-lookup saturation curve, about 27 Pa above the formula.
     """
     assert set(_SETTINGS) == set(RUN_SETTINGS)
     atm = _make_atm({'H2O': 0.5, 'CO2': 0.25, 'N2': 0.25})
@@ -618,7 +619,9 @@ def test_general_adiabat_rebuild_keeps_run_settings():
         setattr(atm, name, value)
     out = ga.general_adiabat(atm)
 
-    assert out.ps < 0.6 * atm.ps  # half the surface pressure was supersaturated water
+    expected_ps = ga.p_sat('H2O', 300.0, water_lookup=True) + 0.5e5  # Pa: saturated H2O + CO2 + N2
+    assert out.ps == pytest.approx(expected_ps, rel=1e-12)
+    assert abs(expected_ps - ga.p_sat('H2O', 300.0) - 0.5e5) > 10.0
     assert {name: getattr(out, name) for name in _SETTINGS} == _SETTINGS
 
 
@@ -629,12 +632,12 @@ def test_general_adiabat_without_supersaturation_keeps_the_column():
     whose sum differs from ps in the last bits.
     """
     atm = _make_atm({'H2O': 0.3, 'CO2': 0.15, 'N2': 1.0 - 0.3 - 0.15}, T_surf=2000.0)
-    atm.overlap_type = 4
-    assert sum(atm.vol_list[v] * atm.ps for v in atm.vol_list) != atm.ps
+    ps = atm.ps
+    assert sum(atm.vol_list[v] * ps for v in atm.vol_list) != ps
     out = ga.general_adiabat(atm)
 
     assert out is atm
-    assert out.overlap_type == 4
+    assert np.max(out.pl) == pytest.approx(ps, rel=1e-12)  # levels start at the original ps
 
 
 # ---------------------------------------------------------------------------

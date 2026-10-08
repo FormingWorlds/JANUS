@@ -137,11 +137,16 @@ def test_mcpa_cbl_trial_columns_keep_run_settings():
     MCPA_CBL builds a new atmosphere per trial surface temperature from the input
     column, so each trial must carry the caller's settings over.
     """
+    # Non-default values; skin_k / skin_d stays 200 and tmp_magma 3100 K keeps _fake_moist's root.
+    expected = {
+        'instellation': 1234.5, 'zenith_angle': 33.0, 'albedo_pl': 0.31, 'inst_sf': 0.4,
+        'skin_k': 3.0, 'skin_d': 0.015, 'tmp_magma': 3100.0, 'albedo_s': 0.27,
+        'overlap_type': 8, 'water_lookup': True,
+    }
+    assert set(expected) == set(RUN_SETTINGS)
     atm_inp = _make_atm_inp()
-    atm_inp.overlap_type = 8
-    atm_inp.water_lookup = True
-    atm_inp.zenith_angle = 33.0
-    expected = {name: getattr(atm_inp, name) for name in RUN_SETTINGS}
+    for name, value in expected.items():
+        setattr(atm_inp, name, value)
     seen = []
 
     def _record(atm_in, *args, **kwargs):

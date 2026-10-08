@@ -13,8 +13,7 @@ from datetime import datetime
 
 # Settings that a rebuilt column copies from the column it replaces.
 RUN_SETTINGS = ("instellation", "zenith_angle", "albedo_pl", "inst_sf", "skin_k", "skin_d",
-                "tmp_magma", "albedo_s", "planet_mass", "planet_radius",
-                "overlap_type", "water_lookup")
+                "tmp_magma", "albedo_s", "overlap_type", "water_lookup")
 
 class atmos:
 
