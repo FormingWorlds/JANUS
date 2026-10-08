@@ -33,7 +33,7 @@ import pytest
 
 import janus.utils.GeneralAdiabat as ga
 import janus.utils.phys as phys
-from janus.utils.atmosphere_column import atmos
+from janus.utils.atmosphere_column import RUN_SETTINGS, atmos
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
@@ -595,6 +595,57 @@ def test_general_adiabat_profile_monotone_and_bounded():
     assert np.all((atm.xd >= 0.0) & (atm.xd <= 1.0 + 1e-9))
     assert np.all((atm.xv >= 0.0) & (atm.xv <= 1.0 + 1e-9))
     np.testing.assert_allclose(atm.xd + atm.xv, 1.0, rtol=1e-6)
+
+
+# A non-default value for each name in RUN_SETTINGS.
+_SETTINGS = {
+    'instellation': 1234.5, 'zenith_angle': 33.0, 'albedo_pl': 0.31, 'inst_sf': 0.4,
+    'skin_k': 3.1, 'skin_d': 0.02, 'tmp_magma': 2345.0, 'albedo_s': 0.27,
+    'overlap_type': 8, 'water_lookup': True,
+}
+# Constructor-passed: a non-Earth planet (mass, radius, its grav_s) and trppT, minT, maxT.
+_PLANET = (6.1e24, 6.5e6, phys.G * 6.1e24 / 6.5e6**2, 150.0, 0.6, 8000.0)
+
+
+def test_general_adiabat_rebuild_keeps_run_settings():
+    """A supersaturated surface rebuilds the column with every setting in RUN_SETTINGS.
+
+    Water at 0.5 bar and 300 K exceeds its saturation pressure (about 3.5 kPa), so
+    general_adiabat removes condensate and builds a new atmosphere at the lower
+    surface pressure, which must keep the caller's settings. The new surface pressure
+    uses the caller's water-lookup saturation curve, about 27 Pa above the formula.
+    """
+    assert set(_SETTINGS) == set(RUN_SETTINGS)
+    m, r, _, trpp, tmin, tmax = _PLANET
+    atm = atmos(300.0, 1.0e5, 1.0e4, r, m, [], vol_mixing={'H2O': 0.5, 'CO2': 0.25, 'N2': 0.25},
+                req_levels=15, trppT=trpp, minT=tmin, maxT=tmax)
+    for name, value in _SETTINGS.items():
+        setattr(atm, name, value)
+    out = ga.general_adiabat(atm)
+
+    # Pa: saturated H2O plus the unsaturated CO2 and N2
+    expected_ps = ga.p_sat('H2O', 300.0, water_lookup=True) + 0.5e5
+    assert out.ps == pytest.approx(expected_ps, rel=1e-12)
+    assert abs(expected_ps - ga.p_sat('H2O', 300.0) - 0.5e5) > 10.0
+    assert {name: getattr(out, name) for name in _SETTINGS} == _SETTINGS
+    planet = (out.planet_mass, out.planet_radius, out.grav_s, out.trppT, out.minT, out.maxT)
+    assert planet == pytest.approx(_PLANET, rel=1e-12)
+    assert abs(_PLANET[2] - phys.G * 5.972e24 / 6.371e6**2) > 0.1  # m s-2, off the Earth value
+
+
+def test_general_adiabat_without_supersaturation_keeps_the_column():
+    """Rounding in the mixing ratios does not rebuild an unsaturated column.
+
+    At 2000 K no species condenses, but these mixing ratios give partial pressures
+    whose sum differs from ps in the last bits.
+    """
+    atm = _make_atm({'H2O': 0.3, 'CO2': 0.15, 'N2': 1.0 - 0.3 - 0.15}, T_surf=2000.0)
+    ps = atm.ps
+    assert sum(atm.vol_list[v] * ps for v in atm.vol_list) != ps
+    out = ga.general_adiabat(atm)
+
+    assert out is atm
+    assert np.max(out.pl) == pytest.approx(ps, rel=1e-12)  # levels start at the original ps
 
 
 # ---------------------------------------------------------------------------

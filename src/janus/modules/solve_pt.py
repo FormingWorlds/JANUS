@@ -16,7 +16,7 @@ log = logging.getLogger("fwl."+__name__)
 
 from janus.modules.compute_moist_adiabat import compute_moist_adiabat
 from janus.modules.dry_adiabat_timestep import compute_dry_adiabat
-from janus.utils.atmosphere_column import atmos
+from janus.utils.atmosphere_column import atmos, RUN_SETTINGS
 
 def RadConvEqm(dirs, time, atm, standalone:bool, cp_dry:bool, trppD:bool, rscatter:bool,
                pure_steam_adj=False, surf_dt=False, cp_surf=1e5, mix_coeff_atmos=1e6, mix_coeff_surf=1e6):
@@ -148,11 +148,7 @@ def MCPA_CBL(dirs, atm_inp, trppD:bool, rscatter:bool, atm_bc:int=0, T_surf_gues
     alpha_cloud=atm_inp.alpha_cloud
 
     #    Passed later ...
-    attrs = {}
-    for a in ["instellation", "zenith_angle", "albedo_pl", 
-                "inst_sf", "skin_k", "skin_d", "tmp_magma", "albedo_s",
-                "planet_mass", "planet_radius"]:
-        attrs[a] = getattr(atm_inp,a)
+    attrs = {a: getattr(atm_inp, a) for a in RUN_SETTINGS}
 
     # Calculate conductive flux for a given atmos object 'a'
     def skin(a):

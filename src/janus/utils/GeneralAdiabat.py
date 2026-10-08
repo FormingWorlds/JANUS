@@ -26,7 +26,7 @@ log = logging.getLogger("fwl."+__name__)
 
 from janus.utils.cp_funcs import *
 from janus.utils.ClimateUtilities import *
-from janus.utils.atmosphere_column import atmos
+from janus.utils.atmosphere_column import atmos, RUN_SETTINGS
 import janus.utils.phys as phys
 
 # Color definitions: 
@@ -748,17 +748,19 @@ def general_adiabat( atm ):
     # saturation vapor pressures, then adjust Vol_list and Psurf.
     new_psurf = 0
     new_p_vol = {}
+    supersaturated = False
     wet_list = []
     dry_list = []
     for vol in atm.vol_list.keys():
         if atm.vol_list[vol] * atm.ps > p_sat(vol, atm.ts,water_lookup=atm.water_lookup):
             new_psurf += p_sat(vol,atm.ts,water_lookup=atm.water_lookup)
             new_p_vol[vol] = p_sat(vol,atm.ts,water_lookup=atm.water_lookup)
+            supersaturated = True
         else:
             new_psurf += atm.vol_list[vol] * atm.ps
             new_p_vol[vol] = atm.vol_list[vol] * atm.ps
             
-    if new_psurf != atm.ps:
+    if supersaturated:
         # Backup variables before they are lost
         Tsurf = atm.ts
         band_edges = atm.band_edges
@@ -771,11 +773,7 @@ def general_adiabat( atm ):
         do_cloud=atm.do_cloud
         alpha_cloud=atm.alpha_cloud
 
-        attrs = {}
-        for a in ["instellation", "zenith_angle", "albedo_pl", 
-                    "inst_sf", "skin_k", "skin_d", "tmp_magma", "albedo_s",
-                    "planet_mass", "planet_radius"]:
-            attrs[a] = getattr(atm,a)
+        attrs = {a: getattr(atm, a) for a in RUN_SETTINGS}
 
         # Calc new mixing ratios
         new_vol_list = {}
