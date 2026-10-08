@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fwl-janus"
-version = "26.07.13"
+version = "26.10.08"
 description = "Temperature structure generator for planetory atmospheres."
 readme = "README.md"
 authors = [
@@ -125,7 +125,7 @@ quote-style = "single"
 
 [tool.bumpversion]
 # https://callowayproject.github.io/bump-my-version/howtos/calver/
-current_version = "24.11.05"
+current_version = "26.10.08"
 parse = """(?x)                     # Verbose mode
     (?P<release>                    # The release part
         (?:[1-9][0-9])\\.           # YY.
