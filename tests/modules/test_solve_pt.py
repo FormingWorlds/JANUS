@@ -25,7 +25,7 @@ import numpy as np
 import pytest
 
 import janus.modules.solve_pt as solve_pt
-from janus.utils.atmosphere_column import atmos
+from janus.utils.atmosphere_column import RUN_SETTINGS, atmos
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
@@ -132,25 +132,26 @@ def test_mcpa_returns_moist_adiabat_state():
 
 
 def test_mcpa_cbl_trial_columns_keep_run_settings():
-    """Each surface-temperature trial column keeps the caller's run settings.
+    """Each surface-temperature trial column keeps every setting in RUN_SETTINGS.
 
-    MCPA_CBL builds a new atmosphere per trial surface temperature. The gas-overlap
-    method and the water-lookup switch are not constructor arguments, so each trial
-    must carry them over from the input column.
+    MCPA_CBL builds a new atmosphere per trial surface temperature from the input
+    column, so each trial must carry the caller's settings over.
     """
     atm_inp = _make_atm_inp()
-    atm_inp.overlap_type = 4
+    atm_inp.overlap_type = 8
     atm_inp.water_lookup = True
+    atm_inp.zenith_angle = 33.0
+    expected = {name: getattr(atm_inp, name) for name in RUN_SETTINGS}
     seen = []
 
     def _record(atm_in, *args, **kwargs):
-        seen.append((atm_in.overlap_type, atm_in.water_lookup))
+        seen.append({name: getattr(atm_in, name) for name in RUN_SETTINGS})
         return _fake_moist(atm_in, *args, **kwargs)
 
     with patch('janus.modules.solve_pt.compute_moist_adiabat', side_effect=_record):
         solve_pt.MCPA_CBL({}, atm_inp, trppD=False, rscatter=False, atm_bc=0)
     assert len(seen) >= 2
-    assert set(seen) == {(4, True)}
+    assert all(trial == expected for trial in seen)
 
 
 @pytest.mark.physics_invariant

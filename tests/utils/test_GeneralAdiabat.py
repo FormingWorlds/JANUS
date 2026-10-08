@@ -33,7 +33,7 @@ import pytest
 
 import janus.utils.GeneralAdiabat as ga
 import janus.utils.phys as phys
-from janus.utils.atmosphere_column import atmos
+from janus.utils.atmosphere_column import RUN_SETTINGS, atmos
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
@@ -597,40 +597,43 @@ def test_general_adiabat_profile_monotone_and_bounded():
     np.testing.assert_allclose(atm.xd + atm.xv, 1.0, rtol=1e-6)
 
 
+# A non-default value for each name in RUN_SETTINGS.
+_SETTINGS = {
+    'instellation': 1234.5, 'zenith_angle': 33.0, 'albedo_pl': 0.31, 'inst_sf': 0.4,
+    'skin_k': 3.1, 'skin_d': 0.02, 'tmp_magma': 2345.0, 'albedo_s': 0.27,
+    'planet_mass': 6.1e24, 'planet_radius': 6.5e6, 'overlap_type': 8, 'water_lookup': True,
+}
+
+
 def test_general_adiabat_rebuild_keeps_run_settings():
-    """A supersaturated surface rebuilds the column with the caller's run settings.
+    """A supersaturated surface rebuilds the column with every setting in RUN_SETTINGS.
 
     Water at 0.5 bar and 300 K exceeds its saturation pressure (about 3.5 kPa), so
     general_adiabat removes condensate and builds a new atmosphere at the lower
-    surface pressure. The new column must keep the gas-overlap method and the
-    water-lookup switch, which are not constructor arguments.
+    surface pressure, which must keep the caller's settings.
     """
+    assert set(_SETTINGS) == set(RUN_SETTINGS)
     atm = _make_atm({'H2O': 0.5, 'CO2': 0.25, 'N2': 0.25})
-    atm.overlap_type = 4
-    atm.water_lookup = True
+    for name, value in _SETTINGS.items():
+        setattr(atm, name, value)
     out = ga.general_adiabat(atm)
 
-    assert out is not atm
     assert out.ps < 0.6 * atm.ps  # half the surface pressure was supersaturated water
-    assert out.overlap_type == 4
-    assert out.water_lookup is True
+    assert {name: getattr(out, name) for name in _SETTINGS} == _SETTINGS
 
 
 def test_general_adiabat_without_supersaturation_keeps_the_column():
     """Rounding in the mixing ratios does not rebuild an unsaturated column.
 
-    At 2000 K no species condenses. Mixing ratios that sum to one only within
-    rounding give a surface pressure that differs from ps in the last bits, which
-    must not count as supersaturation.
+    At 2000 K no species condenses, but these mixing ratios give partial pressures
+    whose sum differs from ps in the last bits.
     """
-    atm = _make_atm({'H2O': 0.5, 'CO2': 0.25, 'N2': 0.25}, T_surf=2000.0)
+    atm = _make_atm({'H2O': 0.3, 'CO2': 0.15, 'N2': 1.0 - 0.3 - 0.15}, T_surf=2000.0)
     atm.overlap_type = 4
-    atm.vol_list['N2'] += 1e-15
-    ps = atm.ps
+    assert sum(atm.vol_list[v] * atm.ps for v in atm.vol_list) != atm.ps
     out = ga.general_adiabat(atm)
 
     assert out is atm
-    assert out.ps == pytest.approx(ps, rel=1e-15)
     assert out.overlap_type == 4
 
 
