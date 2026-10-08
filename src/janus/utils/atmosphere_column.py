@@ -11,6 +11,11 @@ import os, copy, platform, shutil
 import pwd
 from datetime import datetime
 
+# Settings that a rebuilt column copies from the column it replaces.
+RUN_SETTINGS = ("instellation", "zenith_angle", "albedo_pl", "inst_sf", "skin_k", "skin_d",
+                "tmp_magma", "albedo_s", "planet_mass", "planet_radius",
+                "overlap_type", "water_lookup")
+
 class atmos:
 
     def __init__(self, T_surf: float, P_surf: float, P_top: float, pl_radius: float, pl_mass: float,

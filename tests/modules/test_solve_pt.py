@@ -131,6 +131,28 @@ def test_mcpa_returns_moist_adiabat_state():
     assert np.isfinite(out.net_flux[0])
 
 
+def test_mcpa_cbl_trial_columns_keep_run_settings():
+    """Each surface-temperature trial column keeps the caller's run settings.
+
+    MCPA_CBL builds a new atmosphere per trial surface temperature. The gas-overlap
+    method and the water-lookup switch are not constructor arguments, so each trial
+    must carry them over from the input column.
+    """
+    atm_inp = _make_atm_inp()
+    atm_inp.overlap_type = 4
+    atm_inp.water_lookup = True
+    seen = []
+
+    def _record(atm_in, *args, **kwargs):
+        seen.append((atm_in.overlap_type, atm_in.water_lookup))
+        return _fake_moist(atm_in, *args, **kwargs)
+
+    with patch('janus.modules.solve_pt.compute_moist_adiabat', side_effect=_record):
+        solve_pt.MCPA_CBL({}, atm_inp, trppD=False, rscatter=False, atm_bc=0)
+    assert len(seen) >= 2
+    assert set(seen) == {(4, True)}
+
+
 @pytest.mark.physics_invariant
 def test_mcpa_cbl_secant_solves_toa_energy_balance():
     """MCPA_CBL (secant, TOA) finds a bounded surface temperature closing the lid balance.
