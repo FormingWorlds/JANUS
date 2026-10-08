@@ -391,12 +391,17 @@ def test_restore_check_counts_registry_files_not_directories(monkeypatch, tmp_pa
 
 def _write_archive_manifest(drc: Path, *, extract: bool) -> tuple[Path, bytes]:
     """Write a one-archive manifest and registry; return it and the tarball."""
+    import gzip
     import hashlib
     import io
     import tarfile
 
     buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode='w:gz') as tar:
+    # A fixed gzip mtime keeps the archive checksum the same from call to call.
+    with (
+        gzip.GzipFile(fileobj=buf, mode='wb', mtime=0) as gz,
+        tarfile.open(fileobj=gz, mode='w') as tar,
+    ):
         for name, data in (('fs255_grid/0p1.dat', b'track-a'), ('fs255_grid/0p2.dat', b'b')):
             info = tarfile.TarInfo(name)
             info.size = len(data)
