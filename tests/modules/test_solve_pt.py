@@ -25,6 +25,7 @@ import numpy as np
 import pytest
 
 import janus.modules.solve_pt as solve_pt
+import janus.utils.phys as phys
 from janus.utils.atmosphere_column import RUN_SETTINGS, atmos
 
 pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
@@ -144,19 +145,26 @@ def test_mcpa_cbl_trial_columns_keep_run_settings():
         'overlap_type': 8, 'water_lookup': True,
     }
     assert set(expected) == set(RUN_SETTINGS)
-    atm_inp = _make_atm_inp()
+    # Constructor-passed: a non-Earth planet (mass, radius, its grav_s) and trppT, minT, maxT.
+    planet = (6.1e24, 6.5e6, phys.G * 6.1e24 / 6.5e6**2, 150.0, 0.6, 8000.0)
+    atm_inp = atmos(1000.0, 1.0e5, 1.0, planet[1], planet[0], BAND_EDGES,
+                    vol_mixing={'H2O': 0.3, 'CO2': 0.4, 'N2': 0.3}, req_levels=15,
+                    trppT=planet[3], minT=planet[4], maxT=planet[5])
     for name, value in expected.items():
         setattr(atm_inp, name, value)
-    seen = []
+    seen, geo = [], []
 
     def _record(atm_in, *args, **kwargs):
         seen.append({name: getattr(atm_in, name) for name in RUN_SETTINGS})
+        geo.append((atm_in.planet_mass, atm_in.planet_radius, atm_in.grav_s,
+                    atm_in.trppT, atm_in.minT, atm_in.maxT))
         return _fake_moist(atm_in, *args, **kwargs)
 
     with patch('janus.modules.solve_pt.compute_moist_adiabat', side_effect=_record):
         solve_pt.MCPA_CBL({}, atm_inp, trppD=False, rscatter=False, atm_bc=0)
     assert len(seen) >= 2
     assert all(trial == expected for trial in seen)
+    assert all(g == pytest.approx(planet, rel=1e-12) for g in geo)
 
 
 @pytest.mark.physics_invariant

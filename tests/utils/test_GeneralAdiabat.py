@@ -603,6 +603,8 @@ _SETTINGS = {
     'skin_k': 3.1, 'skin_d': 0.02, 'tmp_magma': 2345.0, 'albedo_s': 0.27,
     'overlap_type': 8, 'water_lookup': True,
 }
+# Constructor-passed: a non-Earth planet (mass, radius, its grav_s) and trppT, minT, maxT.
+_PLANET = (6.1e24, 6.5e6, phys.G * 6.1e24 / 6.5e6**2, 150.0, 0.6, 8000.0)
 
 
 def test_general_adiabat_rebuild_keeps_run_settings():
@@ -614,7 +616,9 @@ def test_general_adiabat_rebuild_keeps_run_settings():
     uses the caller's water-lookup saturation curve, about 27 Pa above the formula.
     """
     assert set(_SETTINGS) == set(RUN_SETTINGS)
-    atm = _make_atm({'H2O': 0.5, 'CO2': 0.25, 'N2': 0.25})
+    m, r, _, trpp, tmin, tmax = _PLANET
+    atm = atmos(300.0, 1.0e5, 1.0e4, r, m, [], vol_mixing={'H2O': 0.5, 'CO2': 0.25, 'N2': 0.25},
+                req_levels=15, trppT=trpp, minT=tmin, maxT=tmax)
     for name, value in _SETTINGS.items():
         setattr(atm, name, value)
     out = ga.general_adiabat(atm)
@@ -624,6 +628,9 @@ def test_general_adiabat_rebuild_keeps_run_settings():
     assert out.ps == pytest.approx(expected_ps, rel=1e-12)
     assert abs(expected_ps - ga.p_sat('H2O', 300.0) - 0.5e5) > 10.0
     assert {name: getattr(out, name) for name in _SETTINGS} == _SETTINGS
+    planet = (out.planet_mass, out.planet_radius, out.grav_s, out.trppT, out.minT, out.maxT)
+    assert planet == pytest.approx(_PLANET, rel=1e-12)
+    assert abs(_PLANET[2] - phys.G * 5.972e24 / 6.371e6**2) > 0.1  # m s-2, off the Earth value
 
 
 def test_general_adiabat_without_supersaturation_keeps_the_column():
