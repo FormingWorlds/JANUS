@@ -137,7 +137,7 @@ def test_mcpa_cbl_trial_columns_keep_run_settings():
     MCPA_CBL builds a new atmosphere per trial surface temperature from the input
     column, so each trial must carry the caller's settings over.
     """
-    # Non-default values; skin_k / skin_d stays 200 and tmp_magma 3100 K keeps _fake_moist's root.
+    # Non-default values; skin_k/skin_d = 200 and tmp_magma 3100 K keep a root.
     expected = {
         'instellation': 1234.5, 'zenith_angle': 33.0, 'albedo_pl': 0.31, 'inst_sf': 0.4,
         'skin_k': 3.0, 'skin_d': 0.015, 'tmp_magma': 3100.0, 'albedo_s': 0.27,

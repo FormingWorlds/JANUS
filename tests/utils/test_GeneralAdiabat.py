@@ -619,7 +619,8 @@ def test_general_adiabat_rebuild_keeps_run_settings():
         setattr(atm, name, value)
     out = ga.general_adiabat(atm)
 
-    expected_ps = ga.p_sat('H2O', 300.0, water_lookup=True) + 0.5e5  # Pa: saturated H2O + CO2 + N2
+    # Pa: saturated H2O plus the unsaturated CO2 and N2
+    expected_ps = ga.p_sat('H2O', 300.0, water_lookup=True) + 0.5e5
     assert out.ps == pytest.approx(expected_ps, rel=1e-12)
     assert abs(expected_ps - ga.p_sat('H2O', 300.0) - 0.5e5) > 10.0
     assert {name: getattr(out, name) for name in _SETTINGS} == _SETTINGS
