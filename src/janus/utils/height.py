@@ -12,8 +12,15 @@ def gravity( m, r ):
     return g
 
 def integrate_heights(atm, m_planet, r_planet):
+    """Integrate the hydrostatic equation to get height at each level.
+
+    Returns the cell-centre heights, the cell-edge heights, and a flag that is
+    True if the integration blew up. Also sets atm.grav_z to the local gravity
+    at the returned cell-centre heights, so the two are always consistent.
+    """
 
     z       = np.zeros(len(atm.p))
+    grav_z  = np.zeros(len(atm.p))
     grav_s          = gravity( m_planet, r_planet )
 
     # Reverse arrays to go from high to low pressure
@@ -26,7 +33,7 @@ def integrate_heights(atm, m_planet, r_planet):
     for n in range(0, len(z)-1):
 
         # Gravity with height
-        grav_z = grav_s * ((r_planet)**2) / ((r_planet + z[n])**2)
+        grav_z[n] = grav_s * ((r_planet)**2) / ((r_planet + z[n])**2)
 
         # Mean molar mass depending on mixing ratio
         mean_molar_mass = 0
@@ -34,7 +41,8 @@ def integrate_heights(atm, m_planet, r_planet):
             mean_molar_mass += phys.molar_mass[vol]*atm.x_gas[vol][n]
 
         # Use hydrostatic equation to get height difference
-        dz = phys.R_gas * atm.tmp[n] / (mean_molar_mass * grav_z * atm.p[n]) * (atm.p[n] - atm.p[n+1])
+        dz = (phys.R_gas * atm.tmp[n] / (mean_molar_mass * grav_z[n] * atm.p[n])
+              * (atm.p[n] - atm.p[n+1]))
 
         # Next height
         z[n+1] = z[n] + dz
@@ -46,9 +54,13 @@ def integrate_heights(atm, m_planet, r_planet):
             log.error("Hydrostatic integration blew up. Setting dummy values for height")
             break
 
-    # Set dummy values
+    # Set dummy values, with gravity evaluated on them
     if height_error:
         z = np.linspace(0.0, 1000.0, len(atm.p))
+        grav_z = grav_s * ((r_planet)**2) / ((r_planet + z)**2)
+    else:
+        # Gravity at the topmost level, which the loop does not step from
+        grav_z[-1] = grav_s * ((r_planet)**2) / ((r_planet + z[-1])**2)
 
     # Reverse arrays again back to normal
     atm.p   = atm.p[::-1]
@@ -56,6 +68,7 @@ def integrate_heights(atm, m_planet, r_planet):
     for vol in atm.vol_list.keys():
         atm.x_gas[vol] = atm.x_gas[vol][::-1]
     z = z[::-1]
+    atm.grav_z = grav_z[::-1]
 
     # Set cell edge values
     zl = np.zeros(len(z)+1)

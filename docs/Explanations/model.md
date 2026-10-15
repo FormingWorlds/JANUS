@@ -18,7 +18,7 @@ where $\mu$ is the local mean molar mass of the gas mixture, $g$ is the local gr
 
 $$g(z) = g_s \frac{r_p^2}{(r_p + z)^2} \tag{2}$$
 
-where $g_s = GM_p / r_p^2$ is the surface gravity, $M_p$ the planetary mass, and $r_p$ the planetary radius. Equation (1) is integrated upward using a forward Euler step, giving altitude from pressure differences. Note that this integration is used only to compute the diagnostic altitude grid — the T–p profile itself is integrated directly in pressure space using the pseudoadiabat ODE (Section 3.2).
+where $g_s = GM_p / r_p^2$ is the surface gravity, $M_p$ the planetary mass, and $r_p$ the planetary radius. The local gravity from Equation (2) used at each step is stored on the same levels as the altitude, so the `gravity` and `z` columns of the output file are always consistent. Equation (1) is integrated upward using a forward Euler step, giving altitude from pressure differences. Note that this integration is used only to compute the diagnostic altitude grid — the T–p profile itself is integrated directly in pressure space using the pseudoadiabat ODE (Section 3.2).
 
 ---
 

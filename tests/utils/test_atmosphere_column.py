@@ -17,6 +17,8 @@ fluxes) and the planetary constants. This file exercises:
   unknown-unit error contract).
 * The netCDF writer round-trip: values, dimensions, units, and metadata survive
   a write-then-read cycle, and the hydrostatic blow-up flag is recorded.
+* The written gravity column is the inverse-square local gravity at the
+  written heights, including on the dummy grid after a blow-up.
 
 atmosphere_column.py is a state container rather than one of the six physics
 sources, so most assertions pin structure and round-trips; tests that assert a
@@ -449,8 +451,8 @@ def test_write_ncdf_flags_failed_height_integration(tmp_path, monkeypatch):
     When the hydrostatic integration diverges (an absurdly hot column drives
     the height past the 1e8 m guard), write_ncdf must store height_ok = 'n' and
     a bounded 0..1000 m dummy altitude grid rather than propagating the runaway
-    value. This is the error-contract branch of the height integration as seen
-    through the writer.
+    value, with the gravity column evaluated on that dummy grid. This is the
+    error-contract branch of the height integration as seen through the writer.
     """
     (tmp_path / 'version').write_text('sfx-test-2\n')
     monkeypatch.setenv('RAD_DIR', str(tmp_path))
@@ -465,6 +467,56 @@ def test_write_ncdf_flags_failed_height_integration(tmp_path, monkeypatch):
         assert b'n' in flag
         assert np.all(np.isfinite(ds['z'][:]))
         assert float(np.max(ds['z'][:])) <= 1000.0 + 1e-6
+        # The written gravity follows the dummy heights, so it stays within
+        # its values at 0 and 1000 m rather than reflecting the diverged run.
+        z_file = np.asarray(ds['z'][:], dtype=float)
+        g_file = np.asarray(ds['gravity'][:], dtype=float)
+    grav_s = phys.G * M_EARTH / R_EARTH**2
+    g_top = phys.G * M_EARTH / (R_EARTH + 1000.0) ** 2
+    assert np.all(np.isfinite(g_file))
+    assert np.all(g_file >= g_top * (1.0 - 1e-6))
+    np.testing.assert_allclose(g_file, grav_s * R_EARTH**2 / (R_EARTH + z_file) ** 2, rtol=1e-6)
+
+
+@pytest.mark.physics_invariant
+def test_write_ncdf_gravity_matches_written_heights(tmp_path, monkeypatch):
+    """The written gravity column is the local gravity at the written heights.
+
+    write_ncdf re-integrates the heights before writing, and the gravity
+    column beside them must be g(z) = g_s R^2 / (R + z)^2 evaluated on the
+    z actually in the file, not a profile left over from an earlier solve.
+    The column is seeded with a stale constant g_s, as an adiabat solve on a
+    different height grid would leave it. This synthetic 1e3 to 1e5 Pa column
+    is about 77 km tall, so gravity at its top is about 2.4% below g_s, far
+    outside the float32 storage tolerance; the stale write would fail.
+    The surface level (z = 0) is the edge case where gravity equals g_s.
+    """
+    (tmp_path / 'version').write_text('sfx-test-4\n')
+    monkeypatch.setenv('RAD_DIR', str(tmp_path))
+    atm = _make_atmos()
+    ncell = 8
+    _prepare_small_column(atm, ncell, atm.nbands)
+    np.testing.assert_allclose(atm.grav_z, atm.grav_s, rtol=0)  # stale seed
+    fpath = tmp_path / 'atm_grav.nc'
+    atm.write_ncdf(str(fpath))
+    with Dataset(str(fpath)) as ds:
+        z_file = np.asarray(ds['z'][:], dtype=float)
+        g_file = np.asarray(ds['gravity'][:], dtype=float)
+        assert ds['gravity'].units == 'm s-2'
+
+    grav_s = phys.G * M_EARTH / R_EARTH**2
+    # rtol=1e-6: both columns are stored as float32 (about 6e-8 relative).
+    np.testing.assert_allclose(g_file, grav_s * R_EARTH**2 / (R_EARTH + z_file) ** 2, rtol=1e-6)
+    # Edge case: the surface level (last index, highest pressure) sits at z = 0.
+    assert z_file[-1] == pytest.approx(0.0, abs=1e-6)
+    assert g_file[-1] == pytest.approx(grav_s, rel=1e-6)
+    # Gravity falls strictly with height.
+    order = np.argsort(z_file)
+    assert np.all(np.diff(g_file[order]) < 0.0)
+    # Stale-constant guard: the top of the column is well below g_s.
+    assert g_file.min() < 0.99 * grav_s
+    # The in-memory profile matches what was written.
+    np.testing.assert_allclose(atm.grav_z, g_file, rtol=1e-6)
 
 
 def test_write_ncdf_username_falls_back_when_getlogin_fails(tmp_path, monkeypatch):
