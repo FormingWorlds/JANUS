@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Deterministic triage of analysis.json: verify quoted excerpts, apply literal doc fixes,
-and write pr_body.md, inconsistency_issue_body.md and gap_issue_body.md for the workflow to
-use. Inconsistencies that were not auto-fixed (serious ones, which may point to a bug in the
-code, and minor ones with no safe fix) go to one issue; documentation gaps to another.
+and write pr_body.md, pr_update.md, inconsistency_issue_body.md and gap_issue_body.md for
+the workflow to use. Inconsistencies that were not auto-fixed (serious ones, which may point
+to a bug in the code, and minor ones with no safe fix) go to one issue; documentation gaps
+to another.
 No LLM calls: everything is a plain string operation.
 """
 
@@ -259,8 +260,20 @@ def main():
         else:
             minor.append((f, reason))
 
+    # pr_update.md: this run's findings only, appended to an already open PR.
     pr_body_path = REPO_ROOT / 'pr_body.md'
+    findings_md = ''
     if applied:
+        findings_md = '\n'.join(render_finding(f) for f in applied)
+        # Never applied; listed so the reviewer sees what the doc change would be.
+        serious_fixes = [(f, r) for f, r in serious if f.get('suggested_fix')]
+        if serious_fixes:
+            findings_md += (
+                '\n## Serious findings: suggested doc-side fixes, not applied\n\n'
+                'These would make the doc match the code. The code may be the side that is '
+                'wrong, so decide in the `docs-inconsistency` issue.\n\n'
+                + '\n'.join(render_finding(f, fix_status=r) for f, r in serious_fixes)
+            )
         plural = 'y' if len(applied) == 1 else 'ies'
         pr_body_path.write_text(
             '## Documentation consistency check\n\n'
@@ -270,17 +283,19 @@ def main():
             'directly. Please verify each one before merging. Fixes are literal text '
             'replacements. Serious inconsistencies are never auto-fixed, since the code may '
             'be the side that is wrong. They, and minor inconsistencies without an '
-            'applicable fix, are filed in the `docs-inconsistency` issue.\n\n'
+            'applicable fix, are filed in the `docs-inconsistency` issue. Later runs add '
+            'their fixes here while this PR is open.\n\n'
             '## Checklist\n\n'
             '- [ ] I have verified each finding below against the actual doc and code\n'
             '- [ ] I have reviewed (and corrected if needed) every applied fix\n'
             '- [ ] I have marked this PR ready for review, which starts CI\n\n'
-            '## Findings\n\n' + '\n'.join(render_finding(f) for f in applied)
+            '## Findings\n\n' + findings_md
         )
     else:
         pr_body_path.write_text(
             '## Documentation consistency check\n\nNo fixes applied this run.\n'
         )
+    (REPO_ROOT / 'pr_update.md').write_text(findings_md)
 
     # Unverified findings go to the issue matching their type. Verified sections come
     # first, so they claim a fingerprint before an unverified copy.

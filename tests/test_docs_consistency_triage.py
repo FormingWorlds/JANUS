@@ -91,6 +91,7 @@ def run_triage(repo, findings):
         inc=(repo / 'inconsistency_issue_body.md').read_text(),
         gaps=(repo / 'gap_issue_body.md').read_text(),
         pr=(repo / 'pr_body.md').read_text(),
+        pr_update=(repo / 'pr_update.md').read_text(),
     )
 
 
@@ -185,6 +186,48 @@ def test_serious_inconsistency_is_filed_first_and_never_applied(repo):
     serious_at = r.inc.index('## Serious: possible code bug')
     assert serious_at < r.inc.index('`code-bug`') < r.inc.index('## Minor: needs a manual edit')
     assert r.inc.index('## Minor: needs a manual edit') < r.inc.index('`small`')
+
+
+def test_serious_fix_is_listed_in_the_pr_but_not_applied(repo):
+    """The PR lists serious findings' doc fixes unapplied; fixless ones stay in the issue."""
+    serious_fix = {'old_text': 'gamma=3', 'new_text': 'gamma=4'}
+    r = run_triage(
+        repo,
+        [
+            finding('small', suggested_fix=SAFE_FIX),
+            finding(
+                'code-bug',
+                severity='serious',
+                doc_excerpt='Surface gamma=3 applies.',
+                code_excerpt='    return y',
+                suggested_fix=serious_fix,
+            ),
+            finding(
+                'no-fix-bug',
+                severity='serious',
+                doc_excerpt='Surface gamma=3 applies.',
+                code_excerpt='    return z + 1',
+            ),
+        ],
+    )
+    assert r.outputs == outputs(has_fixes=True, has_inconsistency_items=True)
+    # Only the minor fix is applied.
+    assert 'alpha=5 too' in r.doc and 'Surface gamma=3 applies.' in r.doc
+    section = r.pr.index('## Serious findings: suggested doc-side fixes, not applied')
+    assert r.pr.index('`small`') < section < r.pr.index('`code-bug`')
+    assert 'Suggested fix (not applied: not a minor finding' in r.pr
+    assert '`no-fix-bug`' not in r.pr and '`no-fix-bug`' in r.inc
+    # The section appended to an open PR has the findings but not the header.
+    assert '`small`' in r.pr_update and '## Serious findings' in r.pr_update
+    assert '## Checklist' not in r.pr_update and '## Checklist' in r.pr
+
+
+def test_serious_fix_alone_writes_no_pr_section(repo):
+    """With nothing applied no PR is opened, so the serious section is not written."""
+    r = run_triage(repo, [finding('code-bug', severity='serious', suggested_fix=SAFE_FIX)])
+    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert 'No fixes applied' in r.pr and '## Serious findings' not in r.pr
+    assert r.pr_update == ''
 
 
 def test_unrated_inconsistency_is_blocked_but_not_labelled_serious(repo):

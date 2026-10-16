@@ -18,7 +18,48 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Scheduled runs skip when the reviewed files and the check are unchanged since the last
+  # successful scheduled run (same inputs, same findings reworded). Manual runs always check.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      run: ${{ steps.diff.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Check for changes since the last scheduled check
+        id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          base=$(gh run list --workflow docs-consistency-check.yaml \
+            --branch "${{ github.event.repository.default_branch }}" --event schedule \
+            --status success --limit 1 --json headSha --jq '.[0].headSha // empty')
+          paths=$(cd .github/scripts/docs_consistency && python3 -c \
+            'from analyze import DOC_FILES, SOURCE_FILES; print(" ".join(DOC_FILES + SOURCE_FILES))')
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$base" HEAD -- $paths .github/scripts/docs_consistency/; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Reviewed files unchanged since ${base:0:7}; skipped." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
   analyze:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-latest
     # Above analyze.py's 20 min CLI timeout (CLAUDE_TIMEOUT_S)
     timeout-minutes: 30
@@ -118,6 +159,10 @@ jobs:
           echo "inconsistency_number=$(fetch docs-inconsistency existing_inconsistency_issue.md)" >> "$GITHUB_OUTPUT"
           echo "gap_number=$(fetch docs-gaps existing_gap_issue.md)" >> "$GITHUB_OUTPUT"
 
+      # The PR step may check out an older branch that lacks the helper.
+      - name: Copy description helper
+        run: cp .github/scripts/docs_consistency/append_to_description.sh "$RUNNER_TEMP/"
+
       - name: Triage findings and apply literal fixes
         id: triage
         run: python .github/scripts/docs_consistency/triage_and_apply.py
@@ -142,32 +187,51 @@ jobs:
           gh label create docs-inconsistency --color d73a4a --description "Doc/code disagreements needing a human decision" 2>/dev/null || true
 
       # A PR opened with GITHUB_TOKEN does not trigger CI. It is opened as a draft, so CI starts when a reviewer marks it ready.
-      - name: Open pull request
+      # If an earlier run's PR is open, add this run's fixes to it instead.
+      - name: Open or update pull request
         if: steps.triage.outputs.has_fixes == 'true' && steps.mode.outputs.dry_run != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          existing=$(gh pr list --label docs-consistency --state open --json number --jq '.[0].number // empty')
-          if [ -n "$existing" ]; then
-            echo "PR #$existing is already open and unreviewed — skipping this run's PR." | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          branch="docs-consistency/$(date +%Y-%m-%d)"
-          git checkout -b "$branch"
+          # persist-credentials is off, so authenticate git for this step only.
+          gh auth setup-git
+          today=$(date +%Y-%m-%d)
+          # Reuse only a branch this workflow created in this repository.
+          read -r existing branch < <(gh pr list --label docs-consistency --state open \
+            --json number,headRefName,isCrossRepository \
+            --jq '.[] | select((.isCrossRepository | not) and (.headRefName | startswith("docs-consistency/")))
+              | "\(.number) \(.headRefName)"' | head -n 1) || true
+          if [ -n "$existing" ]; then
+            # Move the fixes from main to the PR branch; --3way skips fixes it already has.
+            git diff -- docs/ > "$RUNNER_TEMP/fixes.patch"
+            git checkout -- docs/
+            git fetch --depth=1 origin "$branch"
+            git checkout -b "$branch" FETCH_HEAD
+            if ! git apply --3way "$RUNNER_TEMP/fixes.patch"; then
+              echo "Fixes conflict with open PR #$existing; not applied. Merge or close it." | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          else
+            branch="docs-consistency/$today"
+            git checkout -b "$branch"
+          fi
           git add docs/
           if git diff --cached --quiet; then
-            echo "No doc changes staged despite has_fixes=true; skipping PR." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "No new doc changes${existing:+ beyond PR #$existing}." | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          git commit -m "Automated docs consistency check: $(date +%Y-%m-%d)"
-          # persist-credentials is off, so authenticate git for this push only.
-          gh auth setup-git
-          git push origin "$branch"
-          gh pr create --draft --label docs-consistency \
-            --title "Docs consistency check: $(date +%Y-%m-%d)" \
-            --body-file pr_body.md
+          git commit -m "Automated docs consistency check: $today"
+          git push origin "HEAD:refs/heads/$branch"
+          if [ -n "$existing" ]; then
+            "$RUNNER_TEMP/append_to_description.sh" "$existing" pr_update.md
+            echo "Added fixes to open PR #$existing." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            gh pr create --draft --label docs-consistency \
+              --title "Docs consistency check: $today" \
+              --body-file pr_body.md
+          fi
 
       # Inconsistencies that were not auto-fixed: serious ones (the code may be wrong) and
       # minor ones with no safe fix. Gaps go to a separate issue below.
@@ -178,7 +242,7 @@ jobs:
         run: |
           existing="${{ steps.existing_issue.outputs.inconsistency_number }}"
           if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body-file inconsistency_issue_body.md
+            "$RUNNER_TEMP/append_to_description.sh" "$existing" inconsistency_issue_body.md
           else
             gh issue create --label docs-inconsistency \
               --title "Doc/code inconsistencies needing a human decision" \
@@ -192,7 +256,7 @@ jobs:
         run: |
           existing="${{ steps.existing_issue.outputs.gap_number }}"
           if [ -n "$existing" ]; then
-            gh issue comment "$existing" --body-file gap_issue_body.md
+            "$RUNNER_TEMP/append_to_description.sh" "$existing" gap_issue_body.md
           else
             gh issue create --label docs-gaps \
               --title "Documentation gaps found by automated check" \
