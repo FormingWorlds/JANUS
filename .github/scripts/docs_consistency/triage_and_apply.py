@@ -169,6 +169,11 @@ def apply_fix(finding):
     old, new = fix['old_text'], fix['new_text']
     excerpt = finding.get('doc_excerpt') or ''
     count = text.count(old) if old else 0
+    # A quote cut at a line break of a hand-wrapped sentence edits half a sentence.
+    start = text.find(old) if old else -1
+    end = start + len(old)
+    line_start = text.rfind('\n', 0, max(start, 0)) + 1
+    prev_line = text[: max(line_start - 1, 0)].rsplit('\n', 1)[-1].rstrip()
     if finding.get('severity') != 'minor':
         # A serious disagreement may be a bug in the code, not the doc
         reason = 'not a minor finding: a human must decide whether the doc or the code is wrong'
@@ -182,6 +187,17 @@ def apply_fix(finding):
         reason = 'doc_excerpt no longer matches the doc (changed by an earlier fix)'
     elif count != 1:
         reason = f'old_text occurs {count} times in the doc, not exactly once'
+    elif text[end : end + 1] == '\n' and text[end + 1 :].lstrip(' ')[:1].islower():
+        reason = 'old_text stops mid-sentence at a line break; it must cover the whole sentence'
+    elif (
+        line_start > 0
+        and not text[line_start:start].strip()
+        and prev_line[-1:] not in ('', '.', ':', '?', '!')
+        and old[:1].islower()
+    ):
+        reason = (
+            'old_text starts mid-sentence at a line break; it must cover the whole sentence'
+        )
     else:
         # old_text occurs once and lies inside doc_excerpt, which is in the doc, so the
         # single occurrence is necessarily the one inside the quoted passage.

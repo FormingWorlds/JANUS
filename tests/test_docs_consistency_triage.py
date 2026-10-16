@@ -150,6 +150,47 @@ def test_unique_fix_edits_only_the_quoted_passage(repo):
     assert '`good`' in r.pr and r.inc == ''
 
 
+# A hand-wrapped note: each sentence runs over several lines.
+WRAPPED_DOC = (
+    '!!! note\n'
+    '    Setting T_r = 0 K disables the stratosphere: since no level\n'
+    '    reaches 0 K, the criterion never triggers.\n'
+)
+
+
+@pytest.mark.parametrize(
+    ('old', 'new', 'reason'),
+    [
+        (
+            'Setting T_r = 0 K disables the stratosphere: since no level',
+            'Setting T_r <= minT disables the stratosphere: since no level',
+            'stops mid-sentence',
+        ),
+        ('reaches 0 K, the criterion never triggers.', 'reaches 1 K.', 'starts mid-sentence'),
+    ],
+    ids=['cut-at-line-end', 'cut-at-line-start'],
+)
+def test_fix_on_one_line_of_a_wrapped_sentence_is_not_applied(repo, old, new, reason):
+    """Editing one physical line of a hand-wrapped sentence leaves the rest unchecked."""
+    (repo / DOC_FILE).write_text(WRAPPED_DOC)
+    excerpt = WRAPPED_DOC.split('\n', 1)[1].rstrip('\n')
+    f = finding('half', doc_excerpt=excerpt, suggested_fix={'old_text': old, 'new_text': new})
+    r = run_triage(repo, [f])
+    assert r.doc == WRAPPED_DOC and r.outputs == outputs(has_inconsistency_items=True)
+    assert reason in r.inc
+
+
+def test_fix_covering_the_whole_wrapped_sentence_is_applied(repo):
+    """A fix spanning the full sentence across its line break is applied."""
+    (repo / DOC_FILE).write_text(WRAPPED_DOC)
+    old = WRAPPED_DOC.split('\n', 1)[1].strip()
+    new = 'Setting T_r <= minT disables the stratosphere:\n    the step is skipped.'
+    f = finding('whole', doc_excerpt=old, suggested_fix={'old_text': old, 'new_text': new})
+    r = run_triage(repo, [f])
+    assert r.outputs == outputs(has_fixes=True)
+    assert r.doc == '!!! note\n    ' + new + '\n'
+
+
 def test_second_fix_on_a_changed_passage_is_not_applied(repo):
     """Once one fix rewrites a passage, a second fix quoting the old text is refused."""
     first = finding(
