@@ -5,7 +5,7 @@ JANUS computes a 1D temperature-pressure profile for a planetary atmosphere. The
 Your job: compare the two and report every place they disagree, plus every place the documentation is silent about something the code does. Respond with a single JSON object matching the required schema, containing everything you find (an empty `findings` array is a valid and expected result if you find nothing).
 
 For each finding:
-- Quote the *exact* doc passage in `doc_excerpt` and the *exact* code in `code_excerpt`; do not paraphrase either side. This lets a human reviewer verify your claim without re-deriving it themselves.
+- Quote the *exact* doc passage in `doc_excerpt` and the *exact* code in `code_excerpt`; do not paraphrase either side. A `code_excerpt` is one continuous block of the file; to quote separate places in it, put a line containing only `...` between verbatim blocks. This lets a human reviewer verify your claim without re-deriving it themselves.
 - Use `code_lines` referring to the line numbers shown in the numbered source listing below (e.g. "L42-L58"). Those `N: ` prefixes are for reference only: do not include them in `code_excerpt`. The documentation is shown unnumbered, exactly as it is in the file.
 - For a `gap`, set `doc_excerpt` to the closest related doc passage if there is one, or to an empty string if there is none.
 - Classify as `type: "inconsistency"` when the doc and code both address the same thing but disagree (a different equation, a different sign, a different coefficient, a different assumption). Set `severity: "serious"` if the disagreement would change model output or physical interpretation, `"minor"` if it's a simplification, notation difference, or something that doesn't change results.

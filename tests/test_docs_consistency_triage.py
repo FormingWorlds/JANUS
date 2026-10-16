@@ -360,6 +360,24 @@ def test_findings_are_routed_to_the_issue_matching_their_type(repo):
     assert '`inc`' in r.inc and 'gap`' not in r.inc
 
 
+@pytest.mark.parametrize(
+    ('excerpt', 'verified'),
+    [
+        ('    y = 2 * x\n...\n    return z + 1', True),
+        ('    return z + 1\n...\n    y = 2 * x', False),
+        ('    y = 2 * x\n    return z + 1', False),
+        ('...', False),
+    ],
+    ids=['blocks-in-order', 'blocks-out-of-order', 'joined-without-marker', 'marker-only'],
+)
+def test_code_blocks_joined_by_an_ellipsis_line_are_checked_one_by_one(repo, excerpt, verified):
+    """Separate code passages joined by a '...' line verify only if each one occurs
+    verbatim, in order; lines joined without the marker do not."""
+    r = run_triage(repo, [finding('joined', code_excerpt=excerpt)])
+    assert ('## Unverified inconsistencies' not in r.inc) is verified
+    assert ('## Minor: needs a manual edit' in r.inc) is verified
+
+
 def test_line_number_prefixes_are_stripped_before_matching(repo):
     """A code quote copied with 'N: ' prefixes verifies, and is posted without them."""
     quoted = '2:     y = 2 * x\n3:     return y'

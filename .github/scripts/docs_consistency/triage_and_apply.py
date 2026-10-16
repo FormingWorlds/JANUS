@@ -28,6 +28,8 @@ ALLOWED_SOURCE_FILES = set(SOURCE_FILES)
 # The source listing in the prompt is prefixed with 'N: ' line numbers, which the model
 # may copy into code_excerpt. Strip.
 LINE_PREFIX = re.compile(r'^\d+: ', flags=re.MULTILINE)
+# A line holding only '...' joins separate verbatim blocks of one code file.
+CODE_GAP_RE = re.compile(r'^[ \t]*\.\.\.[ \t]*$', flags=re.MULTILINE)
 
 # A doc quote cut from inside an equation renders as raw LaTeX, so the displayed quote is
 # widened to the whole $...$ or $$...$$ span.
@@ -150,8 +152,16 @@ def verify_excerpts(finding):
         problems.append(f'code_file {code_file!r} is not one of the reviewed source files')
     elif not code_excerpt.strip():
         problems.append('code_excerpt is empty')
-    elif code_excerpt not in (REPO_ROOT / code_file).read_text():
-        problems.append(f'code_excerpt not found verbatim in {code_file}')
+    else:
+        # Each block must occur verbatim, after the previous one.
+        code, pos = (REPO_ROOT / code_file).read_text(), 0
+        for block in CODE_GAP_RE.split(code_excerpt):
+            block = block.strip('\n')
+            found = code.find(block, pos) if block.strip() else -1
+            if found < 0:
+                problems.append(f'code_excerpt not found verbatim in {code_file}')
+                break
+            pos = found + len(block)
 
     for p in problems:
         print(f"WARNING: finding '{finding.get('id')}': {p}", file=sys.stderr)
