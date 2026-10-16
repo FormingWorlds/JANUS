@@ -230,6 +230,43 @@ def test_serious_fix_alone_writes_no_pr_section(repo):
     assert r.pr_update == ''
 
 
+def test_quote_cut_from_an_equation_is_shown_as_the_whole_equation(repo):
+    """A quote partly inside $...$ or $$...$$ is widened so it renders, with the exact
+    quote kept underneath; a quote outside math is shown unchanged."""
+    (repo / DOC_FILE).write_text('Intro $x$ text.\n$$a + b \\tag{5}$$\nPlain words here.\n')
+    r = run_triage(
+        repo,
+        [
+            finding('display', doc_excerpt='a + b'),
+            finding('inline', doc_excerpt='Intro $x', code_excerpt='    return y'),
+            finding('plain', doc_excerpt='Plain words', code_excerpt='    return z + 1'),
+        ],
+    )
+    assert '> $$a + b \\tag{5}$$' in r.inc and '_Quoted part:_ ` a + b `' in r.inc
+    assert '> Intro $x$\n' in r.inc and '_Quoted part:_ ` Intro $x `' in r.inc
+    assert '> Plain words\n' in r.inc and r.inc.count('_Quoted part:_') == 2
+
+
+def test_dashes_are_removed_from_model_text_but_not_from_quotes(repo):
+    """Em-dashes and en-dashes in the description and the fix are replaced; a doc quote
+    that contains one stays verbatim, since it must match the doc."""
+    em, en = '\u2014', '\u2013'
+    (repo / DOC_FILE).write_text(DOC_TEXT + f'Note {em} kept.\n')
+    dashed = finding(
+        'dashed',
+        description=f'Doc and code disagree {em} badly, over 10{en}20 K.',
+        suggested_fix={'old_text': 'moist lapse', 'new_text': f'moist {em} wet {em} lapse'},
+    )
+    quote = finding(
+        'quote', severity='serious', doc_excerpt=f'Note {em} kept.', code_excerpt='    return y'
+    )
+    r = run_triage(repo, [dashed, quote])
+    assert 'moist, wet, lapse uses alpha=1 too.' in r.doc
+    assert 'Doc and code disagree, badly, over 10-20 K.' in r.pr and em not in r.pr
+    # The only dash left in the issue is the verbatim doc quote.
+    assert f'> Note {em} kept.' in r.inc and r.inc.count(em) == 1 and en not in r.inc
+
+
 def test_unrated_inconsistency_is_blocked_but_not_labelled_serious(repo):
     """A finding without a severity is not auto-fixed and is filed under minor."""
     f = finding('unrated', suggested_fix=SAFE_FIX)
@@ -297,6 +334,28 @@ def test_gap_may_have_an_empty_doc_excerpt(repo):
     assert r.outputs == outputs(has_gap_items=True)
     assert '## Documentation gaps' in r.gaps and '## Unverified' not in r.gaps
     assert '_no related passage_' in r.gaps
+
+
+def test_gap_without_a_doc_file_is_not_filed_as_unverified(repo):
+    """A gap with no related passage may leave doc_file empty; a quote still needs one."""
+    r = run_triage(
+        repo,
+        [
+            gap('no-file', doc_file=''),
+            finding('bad-file', doc_file='', code_excerpt='    return y'),
+        ],
+    )
+    assert '`no-file`' in r.gaps and '## Unverified' not in r.gaps
+    assert '**Doc**: _no related passage_' in r.gaps
+    assert '## Unverified inconsistencies' in r.inc and '`bad-file`' in r.inc
+
+
+def test_backticks_in_a_fix_do_not_break_its_code_span(repo):
+    """Fix text containing backticks is wrapped in a longer backtick delimiter."""
+    fix = {'old_text': 'moist lapse', 'new_text': 'lapse from `cp`'}
+    r = run_triage(repo, [finding('ticks', suggested_fix=fix)])
+    assert 'The lapse from `cp` uses alpha=1 too.' in r.doc
+    assert '- new: `` lapse from `cp` ``' in r.pr and '- old: ` moist lapse `' in r.pr
 
 
 def test_already_reported_findings_are_not_posted_again(repo):

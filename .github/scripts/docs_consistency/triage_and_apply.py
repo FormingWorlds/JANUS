@@ -29,6 +29,12 @@ ALLOWED_SOURCE_FILES = set(SOURCE_FILES)
 # may copy into code_excerpt. Strip.
 LINE_PREFIX = re.compile(r'^\d+: ', flags=re.MULTILINE)
 
+# A doc quote cut from inside an equation renders as raw LaTeX, so the displayed quote is
+# widened to the whole $...$ or $$...$$ span.
+MATH_SPAN_RE = re.compile(r'\$\$.+?\$\$|\$[^$\n]+?\$', flags=re.DOTALL)
+# The model's own text is posted without em-dashes; quotes stay verbatim.
+EM_DASH_RE = re.compile(r'\s*\u2014\s*')
+
 # Hidden marker embedded in every finding posted to an issue
 FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} {} -->'
 FINGERPRINT_RE = re.compile(r'<!-- docs-consistency-fp: ([0-9a-f]{16})(?: ([a-z-]+))? -->')
@@ -113,16 +119,27 @@ def verify_excerpts(finding):
     """Check that the quoted doc and code passages exist verbatim in the named files.
 
     Normalises code_excerpt in place (line-number prefixes stripped) so the posted quote
-    is the verified one. Returns a list of problems; empty means verified.
+    is the verified one, and sets doc_display, the doc quote widened to whole equations.
+    Returns a list of problems; empty means verified.
     """
     problems = []
     doc_file = finding.get('doc_file')
     doc_excerpt = finding.get('doc_excerpt') or ''
-    if doc_file not in ALLOWED_DOC_FILES:
+    if finding.get('type') == 'gap' and not doc_excerpt:
+        pass  # a gap with no related doc passage has no doc file to check
+    elif doc_file not in ALLOWED_DOC_FILES:
         problems.append(f'doc_file {doc_file!r} is not one of the reviewed doc files')
     elif doc_excerpt:
-        if doc_excerpt not in (REPO_ROOT / doc_file).read_text():
+        text = (REPO_ROOT / doc_file).read_text()
+        start = text.find(doc_excerpt)
+        if start < 0:
             problems.append(f'doc_excerpt not found verbatim in {doc_file}')
+        else:
+            end = start + len(doc_excerpt)
+            for m in MATH_SPAN_RE.finditer(text):
+                if m.start() < end and start < m.end():
+                    start, end = min(start, m.start()), max(end, m.end())
+            finding['doc_display'] = text[start:end]
     elif finding.get('type') != 'gap':
         problems.append('doc_excerpt is empty')
 
@@ -177,6 +194,13 @@ def apply_fix(finding):
     return reason
 
 
+def code_span(text):
+    """Inline code that survives backticks in text: the delimiter is one longer than its
+    longest backtick run."""
+    ticks = '`' * (max(map(len, re.findall('`+', text)), default=0) + 1)
+    return f'{ticks} {text} {ticks}'
+
+
 def render_finding(finding, fix_status=None, problems=None, with_fingerprint=False):
     """Render one finding as markdown.
 
@@ -186,7 +210,7 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
     """
     heading = f'### `{finding["id"]}`'
     if finding.get('severity'):
-        heading += f' — {finding["severity"]}'
+        heading += f' ({finding["severity"]})'
     lines = [heading]
     if with_fingerprint:
         lines.append(FINGERPRINT_MARKER.format(finding['fingerprint'], finding['status']))
@@ -202,10 +226,13 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
     lines += [finding['description'], '']
     doc_excerpt = finding.get('doc_excerpt') or ''
     if doc_excerpt:
+        display = finding.get('doc_display') or doc_excerpt
         lines.append(f'**Doc** (`{finding["doc_file"]}`):')
-        lines += [f'> {line}' for line in doc_excerpt.splitlines()]
+        lines += [f'> {line}' for line in display.splitlines()]
+        if display != doc_excerpt:
+            lines += ['', f'_Quoted part:_ {code_span(doc_excerpt)}']
     else:
-        lines.append(f'**Doc** (`{finding["doc_file"]}`): _no related passage_')
+        lines.append('**Doc**: _no related passage_')
     lines += [
         '',
         f'**Code** (`{finding["code_file"]}`, {finding["code_lines"]}):',
@@ -222,11 +249,11 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
         lines += [
             '',
             f'**{label}**',
-            f'- old: `{fix["old_text"]}`',
-            f'- new: `{fix["new_text"]}`',
+            f'- old: {code_span(fix["old_text"])}',
+            f'- new: {code_span(fix["new_text"])}',
         ]
     elif finding['type'] == 'inconsistency':
-        lines += ['', '_No safe literal fix suggested — needs a manual edit._']
+        lines += ['', '_No safe literal fix suggested; needs a manual edit._']
     lines.append('')
     return '\n'.join(lines)
 
@@ -237,6 +264,10 @@ def main():
     # Verify every excerpt against the unmodified files before any fix is applied.
     verified, unverified = [], []
     for f in findings:
+        f['description'] = EM_DASH_RE.sub(', ', f['description']).replace('\u2013', '-')
+        if f.get('suggested_fix'):
+            new = f['suggested_fix']['new_text']
+            f['suggested_fix']['new_text'] = EM_DASH_RE.sub(', ', new).replace('\u2013', '-')
         problems = verify_excerpts(f)
         f['fingerprint'] = fingerprint(f)
         f['status'] = (f.get('severity') or 'none') + ('-unverified' if problems else '')
@@ -364,7 +395,7 @@ def main():
             (
                 '## Documentation gaps\n',
                 'Automated weekly check found source-code behaviour with no corresponding '
-                'documentation. These are not auto-fixed — writing new model-description '
+                'documentation. These are not auto-fixed: writing new model-description '
                 'prose needs a human who can vouch for the physics.\n',
                 [render_finding(f, fix_status='gap', with_fingerprint=True) for f in gaps],
             ),
