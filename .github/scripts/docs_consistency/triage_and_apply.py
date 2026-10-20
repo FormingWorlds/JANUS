@@ -35,9 +35,8 @@ CODE_GAP_RE = re.compile(r'^[ \t]*\.\.\.[ \t]*$', flags=re.MULTILINE)
 # A doc quote cut from inside an equation renders as raw LaTeX, so the displayed quote is
 # widened to the whole $...$ or $$...$$ span.
 MATH_SPAN_RE = re.compile(r'\$\$.+?\$\$|\$[^$\n]+?\$', flags=re.DOTALL)
-# Dashes the model writes between words are replaced: an em-dash or spaced en-dash by a
-# comma, a range en-dash (10\u201320) by a hyphen. A standalone dash, such as a table's
-# empty-cell marker, is doc content and is kept; quotes stay verbatim.
+# Dashes between words become ', ' (or '-' in a range); standalone ones, like empty table
+# cells, are kept.
 EM_DASH_RE = re.compile(r'(?<=[\w$`)])(?:\s*\u2014\s*|\s+\u2013\s+)(?=[\w$`(])')
 EN_DASH_RE = re.compile(r'(?<=\w)\u2013(?=\w)')
 
