@@ -46,3 +46,6 @@ site/
 
 #socrates
 socrates/
+
+# local Claude Code state (the shared rules live in .github/.claude/)
+/.claude/
