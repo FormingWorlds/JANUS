@@ -434,6 +434,28 @@ def test_fix_that_extends_its_passage_is_not_applied_twice(repo):
     assert r.update == '' and r.output == ''
 
 
+@pytest.mark.parametrize(
+    ('cut', 'fixed_line', 'pr_has_it'),
+    [
+        (('alpha=1 too', 'alpha=1'), 'The moist lapse uses alpha=1.', False),
+        (('alpha=1 too', 'alpha=1'), 'The moist lapse uses alpha=1.', True),
+        (('The moist lapse', 'lapse'), 'lapse uses alpha=1 too.', False),
+    ],
+    ids=['trailing-words-deleted', 'pr-that-has-it', 'leading-words-deleted'],
+)
+def test_fix_that_only_deletes_text_reaches_the_open_pr(repo, cut, fixed_line, pr_has_it):
+    """A deletion's new_text and its fixed line are part of the old sentence, so neither may
+    count as already in the PR; it is added unless the PR's whole line reads as fixed."""
+    old, new = cut
+    run_triage(repo, [finding('cut', suggested_fix={'old_text': old, 'new_text': new})])
+    unfixed = 'The moist lapse uses alpha=1 too.'
+    branch = DOC_TEXT.replace(unfixed, fixed_line) if pr_has_it else DOC_TEXT
+    r = onto(repo, branch)
+    assert f'\n{fixed_line}\n' in r.doc
+    assert ('`cut`' in r.update) is not pr_has_it
+    assert 'cut' not in r.inc and r.output == ''
+
+
 def test_fix_the_pr_offered_before_is_not_re_added_after_a_revert(repo):
     """A reviewer reverted a fix on the PR: its fingerprint is in the PR description, so
     the next run neither re-adds it nor files it, and the revert stands."""
