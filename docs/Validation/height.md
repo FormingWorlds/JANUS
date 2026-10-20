@@ -28,9 +28,12 @@ input array is restored on return.
 ## Anchor type
 
 Analytical limit (Earth inverse-square gravity; isothermal scale-height
-integral). Monotonicity (altitude anti-monotone with pressure) and the
-blow-up error contract (a diverging integration is flagged and returns a bounded
-dummy grid) are asserted as the physics invariants.
+integral). Monotonicity (altitude anti-monotone with pressure; local gravity decreasing
+with height), consistency of the stored local gravity with the returned heights
+(`g(z) = g_s R^2 / (R + z)^2` on the same levels, also through the netCDF
+writer), and the blow-up error contract (a diverging integration is flagged and
+returns a bounded dummy grid, with gravity evaluated on it) are asserted as the
+physics invariants.
 
 ## Cross-references
 

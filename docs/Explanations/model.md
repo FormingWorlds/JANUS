@@ -18,7 +18,7 @@ where $\mu$ is the local mean molar mass of the gas mixture, $g$ is the local gr
 
 $$g(z) = g_s \frac{r_p^2}{(r_p + z)^2} \tag{2}$$
 
-where $g_s = GM_p / r_p^2$ is the surface gravity, $M_p$ the planetary mass, and $r_p$ the planetary radius. Equation (1) is integrated upward using a forward Euler step, giving altitude from pressure differences. Note that this integration is used only to compute the diagnostic altitude grid — the T–p profile itself is integrated directly in pressure space using the pseudoadiabat ODE (Section 3.2).
+where $g_s = GM_p / r_p^2$ is the surface gravity, $M_p$ the planetary mass, and $r_p$ the planetary radius. The local gravity from Equation (2) used at each step is stored on the same levels as the altitude, so the `gravity` and `z` columns of the output file are always consistent. Equation (1) is integrated upward using a forward Euler step, giving altitude from pressure differences. Note that this integration is used only to compute the diagnostic altitude grid — the T–p profile itself is integrated directly in pressure space using the pseudoadiabat ODE (Section 3.2).
 
 ---
 
@@ -107,7 +107,7 @@ $$T_r = \left(\frac{(1-\alpha_b) f_s F_\star}{2\sigma_{\rm SB}}\right)^{1/4} \ta
 
 where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $F_\star$ is the bolometric stellar flux, and $\sigma_{\rm SB}$ is the Stefan–Boltzmann constant [^4].
 
-The tropopause is located by either a **fixed temperature criterion**, the first level where $T \leq T_r$, or a **heating rate criterion**, where the tropopause is placed where the net radiative heating rate changes sign. In the stratosphere, volatile mixing ratios are fixed to their tropopause values.
+The tropopause is located by either a **fixed temperature criterion**, the first level where $T < T_r$, or a **heating rate criterion**, where the tropopause is placed where the net radiative heating rate changes sign. In the stratosphere, volatile mixing ratios are fixed to their tropopause values.
 
 !!! note
     Setting $T_r = 0$ K disables the stratosphere entirely: since no atmospheric

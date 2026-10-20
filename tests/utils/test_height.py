@@ -8,6 +8,8 @@ hydrostatic altitude integrator ``integrate_heights``. This file exercises:
   scale-height integral H*ln(p_surface/p).
 * The blow-up guard that flags a diverging integration and returns a
   bounded dummy grid.
+* The local gravity profile left on the column, which must be the
+  inverse-square law evaluated on the returned heights.
 * The domain guard that rejects a non-positive radius rather than dividing
   by zero.
 
@@ -106,7 +108,8 @@ def test_integrate_heights_flags_blowup_and_returns_bounded_dummy():
     When the hydrostatic step diverges (an unphysically hot column drives dz
     or z past 1e8 m), ``integrate_heights`` must set the height_error flag and
     replace the altitude grid with a bounded 0..1000 m linear ramp rather than
-    propagating the blow-up. This is the routine's error contract.
+    propagating the blow-up. The local gravity profile must then be evaluated
+    on that dummy grid. This is the routine's error contract.
     """
     nlev = 20
     press = np.logspace(3, 5, nlev)
@@ -122,6 +125,70 @@ def test_integrate_heights_flags_blowup_and_returns_bounded_dummy():
     assert zcen.min() >= 0.0
     assert zcen.max() == pytest.approx(1000.0, rel=1e-12)
     assert len(zcen) == nlev
+    # Local gravity follows the dummy grid rather than the diverged heights or
+    # a partially filled array from the interrupted loop: finite, bounded by
+    # its values at 0 and 1000 m, and inverse-square in the returned heights.
+    grav_s = height.gravity(M_EARTH, R_EARTH)
+    assert len(atm.grav_z) == nlev
+    assert np.all(np.isfinite(atm.grav_z))
+    assert np.all(atm.grav_z <= grav_s * (1.0 + 1e-12))
+    assert np.all(atm.grav_z >= height.gravity(M_EARTH, R_EARTH + 1000.0) * (1.0 - 1e-12))
+    np.testing.assert_allclose(
+        atm.grav_z, grav_s * R_EARTH**2 / (R_EARTH + zcen) ** 2, rtol=1e-12
+    )
+
+
+@pytest.mark.physics_invariant
+def test_integrate_heights_writes_local_gravity_on_returned_heights():
+    """Local gravity is stored on the same heights the integrator returns.
+
+    ``integrate_heights`` evaluates g(z) = g_s R^2 / (R + z)^2 at each level as
+    it steps up the column and must leave that profile on ``atm.grav_z``, in
+    the same level order as the returned heights. A column seeded with a stale
+    constant gravity must come back with the inverse-square profile, equal to
+    g_s at the surface (z = 0, the edge case) and strictly decreasing upward.
+    The isothermal 288 K N2 column from 1e5 to 1e3 Pa is about 40 km tall, so
+    gravity at its top sits about 1.2% below g_s: far outside tolerance for a
+    stale constant array, and the reversed profile fails the relation too.
+    Each height step must also close the hydrostatic relation with the stored
+    gravity, so the profile is the one the integration actually used.
+    """
+    nlev = 200
+    press = np.logspace(3, 5, nlev)  # index 0 = top of atmosphere
+    grav_s = height.gravity(M_EARTH, R_EARTH)
+    atm = SimpleNamespace(
+        p=press.copy(),
+        tmp=np.full(nlev, 288.0),
+        vol_list={'N2': 1.0},
+        x_gas={'N2': np.ones(nlev)},
+        grav_z=np.full(nlev, grav_s),  # stale profile left by an earlier solve
+    )
+    zcen, _, err = integrate_heights(atm, M_EARTH, R_EARTH)
+    assert err is False
+
+    expected = grav_s * R_EARTH**2 / (R_EARTH + zcen) ** 2
+    assert len(atm.grav_z) == nlev
+    np.testing.assert_allclose(atm.grav_z, expected, rtol=1e-12)
+    # Edge case: the surface level (highest pressure, last index) has z = 0.
+    assert zcen[-1] == pytest.approx(0.0, abs=1e-9)
+    assert atm.grav_z[-1] == pytest.approx(grav_s, rel=1e-12)
+    # Gravity falls strictly as height rises.
+    order = np.argsort(zcen)
+    assert np.all(np.diff(atm.grav_z[order]) < 0.0)
+    # Stale-constant guard: the top level is well below surface gravity.
+    assert atm.grav_z[0] < 0.99 * grav_s
+    # Orientation guard: the level-reversed profile does not match the heights.
+    assert not np.allclose(atm.grav_z[::-1], expected, rtol=1e-6, atol=0.0)
+    # Hydrostatic closure per step, surface first: dz_n = R T dp / (M g_n p_n).
+    # Stepping with constant g_s instead of g_n shifts dz by up to ~1.2%.
+    p_up, z_up, g_up = press[::-1], zcen[::-1], atm.grav_z[::-1]
+    dz_expected = (
+        phys.R_gas
+        * 288.0
+        / (phys.molar_mass['N2'] * g_up[:-1] * p_up[:-1])
+        * (p_up[:-1] - p_up[1:])
+    )
+    np.testing.assert_allclose(np.diff(z_up), dz_expected, rtol=1e-9)
 
 
 @pytest.mark.physics_invariant
