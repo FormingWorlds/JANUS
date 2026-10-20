@@ -91,7 +91,7 @@ def run_triage(repo, findings):
         inc=(repo / 'inconsistency_issue_body.md').read_text(),
         gaps=(repo / 'gap_issue_body.md').read_text(),
         pr=(repo / 'pr_body.md').read_text(),
-        pr_update=(repo / 'pr_update.md').read_text(),
+        applied=[f['id'] for f in json.loads((repo / 'applied_fixes.json').read_text())],
     )
 
 
@@ -258,9 +258,8 @@ def test_serious_fix_is_listed_in_the_pr_but_not_applied(repo):
     assert r.pr.index('`small`') < section < r.pr.index('`code-bug`')
     assert 'Suggested fix (not applied: not a minor finding' in r.pr
     assert '`no-fix-bug`' not in r.pr and '`no-fix-bug`' in r.inc
-    # The section appended to an open PR has the findings but not the header.
-    assert '`small`' in r.pr_update and '## Serious findings' in r.pr_update
-    assert '## Checklist' not in r.pr_update and '## Checklist' in r.pr
+    # Only the applied fix is handed on to a later update of an open PR.
+    assert r.applied == ['small']
 
 
 def test_serious_fix_alone_writes_no_pr_section(repo):
@@ -268,7 +267,7 @@ def test_serious_fix_alone_writes_no_pr_section(repo):
     r = run_triage(repo, [finding('code-bug', severity='serious', suggested_fix=SAFE_FIX)])
     assert r.outputs == outputs(has_inconsistency_items=True)
     assert 'No fixes applied' in r.pr and '## Serious findings' not in r.pr
-    assert r.pr_update == ''
+    assert r.applied == []
 
 
 def test_quote_cut_from_an_equation_is_shown_as_the_whole_equation(repo):
@@ -288,24 +287,119 @@ def test_quote_cut_from_an_equation_is_shown_as_the_whole_equation(repo):
     assert '> Plain words\n' in r.inc and r.inc.count('_Quoted part:_') == 2
 
 
-def test_dashes_are_removed_from_model_text_but_not_from_quotes(repo):
-    """Em-dashes and en-dashes in the description and the fix are replaced; a doc quote
-    that contains one stays verbatim, since it must match the doc."""
+def test_dashes_between_words_are_replaced_but_doc_dashes_are_kept(repo):
+    """Dashes the model writes between words are replaced in the description and the fix.
+    A standalone dash such as a table's empty-cell marker is kept, and so is a doc quote."""
     em, en = '\u2014', '\u2013'
-    (repo / DOC_FILE).write_text(DOC_TEXT + f'Note {em} kept.\n')
+    row = f'| Overlap | {em} | {en} | Random |'
+    (repo / DOC_FILE).write_text(DOC_TEXT + f'Note {em} kept.\n{row}\n')
     dashed = finding(
         'dashed',
-        description=f'Doc and code disagree {em} badly, over 10{en}20 K.',
-        suggested_fix={'old_text': 'moist lapse', 'new_text': f'moist {em} wet {em} lapse'},
+        description=f'Doc and code disagree {em} badly {en} over 10{en}20 K.',
+        suggested_fix={
+            'old_text': 'moist lapse',
+            'new_text': f'moist {em} wet, 10{en}20 K, lapse',
+        },
+    )
+    table = finding(
+        'table',
+        doc_excerpt=row,
+        code_excerpt='    return z + 1',
+        suggested_fix={'old_text': f'{en} | Random |', 'new_text': f'{en} | Equivalent |'},
     )
     quote = finding(
         'quote', severity='serious', doc_excerpt=f'Note {em} kept.', code_excerpt='    return y'
     )
-    r = run_triage(repo, [dashed, quote])
-    assert 'moist, wet, lapse uses alpha=1 too.' in r.doc
-    assert 'Doc and code disagree, badly, over 10-20 K.' in r.pr and em not in r.pr
-    # The only dash left in the issue is the verbatim doc quote.
-    assert f'> Note {em} kept.' in r.inc and r.inc.count(em) == 1 and en not in r.inc
+    r = run_triage(repo, [dashed, table, quote])
+    assert 'moist, wet, 10-20 K, lapse uses alpha=1 too.' in r.doc
+    # The table's placeholder survives the fix next to it.
+    assert f'| Overlap | {em} | {en} | Equivalent |' in r.doc
+    assert 'Doc and code disagree, badly, over 10-20 K.' in r.pr
+    # The en-dash left in the PR is the table's own placeholder, quoted verbatim.
+    assert r.pr.count(en) == r.pr.count(f'{en} |')
+    # The only dash in the issue is the verbatim doc quote.
+    assert f'> Note {em} kept.' in r.inc and r.inc.count(em) == 1
+
+
+def onto(repo, branch_doc):
+    """Simulate the open PR's checkout holding branch_doc and re-apply this run's fixes."""
+    target = repo / 'pr'
+    (target / DOC_FILE).parent.mkdir(parents=True)
+    (target / DOC_FILE).write_text(branch_doc)
+    (repo / 'github_output').write_text('')
+    triage.apply_onto(target)
+    return SimpleNamespace(
+        doc=(target / DOC_FILE).read_text(),
+        update=(repo / 'pr_update.md').read_text(),
+        inc=(repo / 'inconsistency_issue_body.md').read_text(),
+        output=(repo / 'github_output').read_text(),
+    )
+
+
+GAMMA_FIX = finding(
+    'gamma',
+    doc_excerpt='Surface gamma=3 applies.',
+    code_excerpt='    return z + 1',
+    suggested_fix={'old_text': 'gamma=3', 'new_text': 'gamma=4'},
+)
+
+
+def test_fixes_go_onto_an_untouched_open_pr_one_by_one(repo):
+    """On a PR branch that has none of this run's fixes, each one is applied and listed."""
+    run_triage(repo, [finding('alpha', suggested_fix=SAFE_FIX), GAMMA_FIX])
+    r = onto(repo, DOC_TEXT)
+    assert 'moist lapse uses alpha=5' in r.doc and 'Surface gamma=4 applies.' in r.doc
+    assert '`alpha`' in r.update and '`gamma`' in r.update
+    assert 'conflict' not in r.inc and r.output == ''
+
+
+def test_fix_the_pr_has_is_skipped_and_a_corrected_one_is_filed_not_dropped(repo):
+    """A reviewer corrected one fix on the PR and the other is already there: the first
+    is filed in the issue, the second is not repeated, the PR text is untouched."""
+    run_triage(repo, [finding('alpha', suggested_fix=SAFE_FIX), GAMMA_FIX])
+    branch = DOC_TEXT.replace('alpha=1 too', 'alpha=6 too').replace('gamma=3', 'gamma=4')
+    r = onto(repo, branch)
+    assert r.doc == branch and r.update == ''
+    assert '## Fixes that conflict with the open PR' in r.inc and '`alpha`' in r.inc
+    assert '`gamma`' not in r.inc and r.output == 'has_inconsistency_items=true\n'
+
+
+def test_fix_next_to_a_reviewer_edit_counts_as_a_conflict(repo):
+    """old_text is still on the PR but the quoted sentence around it was edited: the fix
+    is filed, not applied, as on main where the whole quote must still match."""
+    run_triage(repo, [GAMMA_FIX])
+    branch = DOC_TEXT.replace('applies', 'holds')
+    r = onto(repo, branch)
+    assert r.doc == branch
+    assert '`gamma`' in r.inc and r.update == ''
+
+
+def test_fix_that_extends_its_passage_is_not_applied_twice(repo):
+    """new_text containing old_text is recognised as already in the PR."""
+    grow = {'old_text': 'gamma=3 applies.', 'new_text': 'gamma=3 applies. Always.'}
+    run_triage(
+        repo, [finding('grow', doc_excerpt='Surface gamma=3 applies.', suggested_fix=grow)]
+    )
+    r = onto(repo, DOC_TEXT.replace('applies.', 'applies. Always.'))
+    assert r.doc.count('Always.') == 1
+    assert r.update == '' and r.output == ''
+
+
+def test_conflict_already_in_the_issue_is_not_filed_again(repo):
+    """A conflicting fix reported in an earlier run is not posted a second time."""
+    run_triage(repo, [GAMMA_FIX])
+    branch = DOC_TEXT.replace('applies', 'holds')
+    first = onto(repo, branch)
+    assert '`gamma`' in first.inc
+    post(repo, 'existing_inconsistency_issue.md', first.inc)
+    (repo / 'pr' / DOC_FILE).unlink()
+    (repo / 'pr' / DOC_FILE).parent.rmdir()
+    # The next run starts from main again, where the fix is still unapplied.
+    (repo / DOC_FILE).write_text(DOC_TEXT)
+    run_triage(repo, [GAMMA_FIX])
+    r = onto(repo, branch)
+    assert 'Fixes that conflict' not in r.inc
+    assert r.output == ''
 
 
 def test_unrated_inconsistency_is_blocked_but_not_labelled_serious(repo):

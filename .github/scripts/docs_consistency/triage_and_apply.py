@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Deterministic triage of analysis.json: verify quoted excerpts, apply literal doc fixes,
-and write pr_body.md, pr_update.md, inconsistency_issue_body.md and gap_issue_body.md for
-the workflow to use. Inconsistencies that were not auto-fixed (serious ones, which may point
-to a bug in the code, and minor ones with no safe fix) go to one issue; documentation gaps
-to another.
+and write pr_body.md, applied_fixes.json, inconsistency_issue_body.md and gap_issue_body.md
+for the workflow to use. With --onto <dir>, re-apply this run's fixes to an open PR's
+checkout instead and write pr_update.md. Inconsistencies that were not auto-fixed (serious
+ones, which may point to a bug in the code, and minor ones with no safe fix) go to one
+issue; documentation gaps to another.
 No LLM calls: everything is a plain string operation.
 """
 
@@ -34,8 +35,11 @@ CODE_GAP_RE = re.compile(r'^[ \t]*\.\.\.[ \t]*$', flags=re.MULTILINE)
 # A doc quote cut from inside an equation renders as raw LaTeX, so the displayed quote is
 # widened to the whole $...$ or $$...$$ span.
 MATH_SPAN_RE = re.compile(r'\$\$.+?\$\$|\$[^$\n]+?\$', flags=re.DOTALL)
-# The model's own text is posted without em-dashes; quotes stay verbatim.
-EM_DASH_RE = re.compile(r'\s*\u2014\s*')
+# Dashes the model writes between words are replaced: an em-dash or spaced en-dash by a
+# comma, a range en-dash (10\u201320) by a hyphen. A standalone dash, such as a table's
+# empty-cell marker, is doc content and is kept; quotes stay verbatim.
+EM_DASH_RE = re.compile(r'(?<=[\w$`)])(?:\s*\u2014\s*|\s+\u2013\s+)(?=[\w$`(])')
+EN_DASH_RE = re.compile(r'(?<=\w)\u2013(?=\w)')
 
 # Hidden marker embedded in every finding posted to an issue
 FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} {} -->'
@@ -290,10 +294,10 @@ def main():
     # Verify every excerpt against the unmodified files before any fix is applied.
     verified, unverified = [], []
     for f in findings:
-        f['description'] = EM_DASH_RE.sub(', ', f['description']).replace('\u2013', '-')
+        f['description'] = EN_DASH_RE.sub('-', EM_DASH_RE.sub(', ', f['description']))
         if f.get('suggested_fix'):
             new = f['suggested_fix']['new_text']
-            f['suggested_fix']['new_text'] = EM_DASH_RE.sub(', ', new).replace('\u2013', '-')
+            f['suggested_fix']['new_text'] = EN_DASH_RE.sub('-', EM_DASH_RE.sub(', ', new))
         problems = verify_excerpts(f)
         f['fingerprint'] = fingerprint(f)
         f['status'] = (f.get('severity') or 'none') + ('-unverified' if problems else '')
@@ -317,7 +321,8 @@ def main():
         else:
             minor.append((f, reason))
 
-    # pr_update.md: this run's findings only, appended to an already open PR.
+    # Read back by --onto when a PR from an earlier run is still open.
+    (REPO_ROOT / 'applied_fixes.json').write_text(json.dumps(applied))
     pr_body_path = REPO_ROOT / 'pr_body.md'
     findings_md = ''
     if applied:
@@ -352,7 +357,6 @@ def main():
         pr_body_path.write_text(
             '## Documentation consistency check\n\nNo fixes applied this run.\n'
         )
-    (REPO_ROOT / 'pr_update.md').write_text(findings_md)
 
     # Unverified findings go to the issue matching their type. Verified sections come
     # first, so they claim a fingerprint before an unverified copy.
@@ -465,5 +469,61 @@ def main():
             print(f'{key}={value}')
 
 
+def apply_onto(target):
+    """Re-apply this run's fixes, one at a time, to the checkout of an open PR at target.
+
+    A fix the PR already has is skipped. A fix whose quoted passage the PR changed (for
+    example a reviewer corrected it) is not applied but filed in the inconsistency issue,
+    so one conflict drops only that fix and nothing is lost. pr_update.md lists the newly
+    applied fixes.
+    """
+    added, conflicts = [], []
+    for f in json.loads((REPO_ROOT / 'applied_fixes.json').read_text()):
+        path = target / f['doc_file']
+        text = path.read_text()
+        old, new = f['suggested_fix']['old_text'], f['suggested_fix']['new_text']
+        # Checked first: new_text may contain old_text, which must not be replaced again.
+        if new in text:
+            continue
+        if f['doc_excerpt'] in text and text.count(old) == 1:
+            path.write_text(text.replace(old, new))
+            added.append(f)
+        else:
+            conflicts.append((f, 'the open PR changed this passage'))
+    (REPO_ROOT / 'pr_update.md').write_text('\n'.join(render_finding(f) for f in added))
+
+    [conflicts], already, _, _ = drop_reported([conflicts], 'existing_inconsistency_issue.md')
+    section = issue_body(
+        [
+            (
+                '## Fixes that conflict with the open PR\n',
+                'These fixes were not added to the open PR, because it already changed the '
+                'passage they edit. Compare them with the PR and apply by hand if needed.\n',
+                [render_finding(f, fix_status=r, with_fingerprint=True) for f, r in conflicts],
+            )
+        ],
+        already,
+    )
+    with (REPO_ROOT / 'inconsistency_issue_body.md').open('a') as body:
+        body.write(section)
+
+    summary = (
+        f'Open PR update: {len(added)} new fix(es) added, {len(conflicts)} conflicting '
+        f'fix(es) filed, {already} already reported'
+    )
+    print(summary)
+    step_summary = os.environ.get('GITHUB_STEP_SUMMARY')
+    if step_summary:
+        with open(step_summary, 'a') as f:
+            f.write(summary + '\n')
+    github_output = os.environ.get('GITHUB_OUTPUT')
+    if github_output and section:
+        with open(github_output, 'a') as f:
+            f.write('has_inconsistency_items=true\n')
+
+
 if __name__ == '__main__':
-    main()
+    if sys.argv[1:2] == ['--onto']:
+        apply_onto(Path(sys.argv[2]).resolve())
+    else:
+        main()
