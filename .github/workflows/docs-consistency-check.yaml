@@ -207,6 +207,9 @@ jobs:
             # Re-apply each fix on its own to a checkout of the PR branch: one it already has
             # is skipped, one whose passage it changed goes to the inconsistency issue.
             git fetch --depth=1 origin "$branch"
+            # Fixes this PR offered before are not re-added, so a reviewer's revert stands.
+            gh api "repos/$GITHUB_REPOSITORY/pulls/$existing" --jq '.body // ""' \
+              > "$GITHUB_WORKSPACE/existing_pr_body.md"
             git worktree add "$RUNNER_TEMP/pr" FETCH_HEAD
             python "$scripts/triage_and_apply.py" --onto "$RUNNER_TEMP/pr"
             cd "$RUNNER_TEMP/pr"

@@ -41,6 +41,11 @@ MATH_SPAN_RE = re.compile(r'\$\$.+?\$\$|\$[^$\n]+?\$', flags=re.DOTALL)
 EM_DASH_RE = re.compile(r'(?<=[\w$`)])(?:\s*\u2014\s*|\s+\u2013\s+)(?=[\w$`(])')
 EN_DASH_RE = re.compile(r'(?<=\w)\u2013(?=\w)')
 
+# A fix that starts or stops at a line break must end a sentence there, or meet a line
+# that starts a new block; otherwise it edits one physical line of a wrapped sentence.
+SENTENCE_END = ('.', ':', '?', '!', '|', '$$')
+BLOCK_START_RE = re.compile(r'\s*(?:#|!!!|\||\$\$|```|>|[-*+] |\d+\. )')
+
 # Hidden marker embedded in every finding posted to an issue
 FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} {} -->'
 FINGERPRINT_RE = re.compile(r'<!-- docs-consistency-fp: ([0-9a-f]{16})(?: ([a-z-]+))? -->')
@@ -183,11 +188,28 @@ def apply_fix(finding):
     old, new = fix['old_text'], fix['new_text']
     excerpt = finding.get('doc_excerpt') or ''
     count = text.count(old) if old else 0
-    # A quote cut at a line break of a hand-wrapped sentence edits half a sentence.
-    start = text.find(old) if old else -1
-    end = start + len(old)
-    line_start = text.rfind('\n', 0, max(start, 0)) + 1
+    # Line breaks at either end of old_text do not change where it cuts the text.
+    core = old.strip('\n')
+    core_start = text.find(old) + old.find(core) if old else -1
+    core_end = core_start + len(core)
+    line_start = text.rfind('\n', 0, max(core_start, 0)) + 1
     prev_line = text[: max(line_start - 1, 0)].rsplit('\n', 1)[-1].rstrip()
+    rest = text[core_end:].split('\n', 2)
+    next_line = rest[1] if len(rest) > 1 else ''
+    cut_at_end = (
+        not rest[0].strip()
+        and next_line.strip()
+        and not core.rstrip().endswith(SENTENCE_END)
+        and not BLOCK_START_RE.match(next_line)
+    )
+    cut_at_start = (
+        line_start > 0
+        and not text[line_start:core_start].strip()
+        and prev_line.strip()
+        and not prev_line.endswith(SENTENCE_END)
+        and not BLOCK_START_RE.match(prev_line)
+        and not BLOCK_START_RE.match(core)
+    )
     if finding.get('severity') != 'minor':
         # A serious disagreement may be a bug in the code, not the doc
         reason = 'not a minor finding: a human must decide whether the doc or the code is wrong'
@@ -201,14 +223,9 @@ def apply_fix(finding):
         reason = 'doc_excerpt no longer matches the doc (changed by an earlier fix)'
     elif count != 1:
         reason = f'old_text occurs {count} times in the doc, not exactly once'
-    elif text[end : end + 1] == '\n' and text[end + 1 :].lstrip(' ')[:1].islower():
+    elif cut_at_end:
         reason = 'old_text stops mid-sentence at a line break; it must cover the whole sentence'
-    elif (
-        line_start > 0
-        and not text[line_start:start].strip()
-        and prev_line[-1:] not in ('', '.', ':', '?', '!')
-        and old[:1].islower()
-    ):
+    elif cut_at_start:
         reason = (
             'old_text starts mid-sentence at a line break; it must cover the whole sentence'
         )
@@ -326,7 +343,7 @@ def main():
     pr_body_path = REPO_ROOT / 'pr_body.md'
     findings_md = ''
     if applied:
-        findings_md = '\n'.join(render_finding(f) for f in applied)
+        findings_md = '\n'.join(render_finding(f, with_fingerprint=True) for f in applied)
         # Never applied; listed so the reviewer sees what the doc change would be.
         serious_fixes = [(f, r) for f, r in serious if f.get('suggested_fix')]
         if serious_fixes:
@@ -472,25 +489,30 @@ def main():
 def apply_onto(target):
     """Re-apply this run's fixes, one at a time, to the checkout of an open PR at target.
 
-    A fix the PR already has is skipped. A fix whose quoted passage the PR changed (for
+    A fix the PR offered before (its fingerprint is in existing_pr_body.md) or already has
+    is skipped. A fix whose quoted passage the PR changed (for
     example a reviewer corrected it) is not applied but filed in the inconsistency issue,
     so one conflict drops only that fix and nothing is lost. pr_update.md lists the newly
     applied fixes.
     """
     added, conflicts = [], []
+    offered = load_reported_fingerprints('existing_pr_body.md')
     for f in json.loads((REPO_ROOT / 'applied_fixes.json').read_text()):
         path = target / f['doc_file']
         text = path.read_text()
         old, new = f['suggested_fix']['old_text'], f['suggested_fix']['new_text']
-        # Checked first: new_text may contain old_text, which must not be replaced again.
-        if new in text:
+        # Offered by this PR before: what the reviewer did with it, a revert included, stands.
+        # Otherwise new_text may contain old_text, which must not be replaced again.
+        if f['fingerprint'] in offered or new in text:
             continue
         if f['doc_excerpt'] in text and text.count(old) == 1:
             path.write_text(text.replace(old, new))
             added.append(f)
         else:
             conflicts.append((f, 'the open PR changed this passage'))
-    (REPO_ROOT / 'pr_update.md').write_text('\n'.join(render_finding(f) for f in added))
+    (REPO_ROOT / 'pr_update.md').write_text(
+        '\n'.join(render_finding(f, with_fingerprint=True) for f in added)
+    )
 
     [conflicts], already, _, _ = drop_reported([conflicts], 'existing_inconsistency_issue.md')
     section = issue_body(

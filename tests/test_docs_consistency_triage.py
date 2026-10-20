@@ -151,44 +151,86 @@ def test_unique_fix_edits_only_the_quoted_passage(repo):
 
 
 # A hand-wrapped note: each sentence runs over several lines.
+# A hand-wrapped note: sentences run over several lines, and lines start with math, a
+# capitalised name or a lowercase word.
 WRAPPED_DOC = (
     '!!! note\n'
     '    Setting T_r = 0 K disables the stratosphere: since no level\n'
-    '    reaches 0 K, the criterion never triggers.\n'
+    '    reaches 0 K, the criterion never triggers and\n'
+    '    $T_r$ is not used by\n'
+    '    SOCRATES at all. The step is skipped.\n'
+    '    Nothing else runs.\n'
+    '\n'
+    '## Head\n'
+    '| a | b |\n'
 )
 
 
 @pytest.mark.parametrize(
-    ('old', 'new', 'reason'),
+    ('old', 'reason'),
     [
-        (
-            'Setting T_r = 0 K disables the stratosphere: since no level',
-            'Setting T_r <= minT disables the stratosphere: since no level',
-            'stops mid-sentence',
-        ),
-        ('reaches 0 K, the criterion never triggers.', 'reaches 1 K.', 'starts mid-sentence'),
+        ('Setting T_r = 0 K disables the stratosphere: since no level', 'stops mid-sentence'),
+        ('reaches 0 K, the criterion never triggers and', 'stops mid-sentence'),
+        ('$T_r$ is not used by', 'stops mid-sentence'),
+        ('$T_r$ is not used by\n', 'stops mid-sentence'),
+        ('reaches 0 K, the criterion never triggers and\n    $T_r$', 'starts mid-sentence'),
+        ('    SOCRATES at all.', 'starts mid-sentence'),
+        ('\n    SOCRATES at all.', 'starts mid-sentence'),
     ],
-    ids=['cut-at-line-end', 'cut-at-line-start'],
+    ids=[
+        'stops-before-lowercase-line',
+        'stops-before-math-line',
+        'stops-before-capitalised-line',
+        'stops-on-trailing-line-break',
+        'starts-after-unfinished-line',
+        'starts-with-indentation',
+        'starts-with-leading-line-break',
+    ],
 )
-def test_fix_on_one_line_of_a_wrapped_sentence_is_not_applied(repo, old, new, reason):
-    """Editing one physical line of a hand-wrapped sentence leaves the rest unchecked."""
+def test_fix_on_part_of_a_wrapped_sentence_is_not_applied(repo, old, reason):
+    """Editing some physical lines of a hand-wrapped sentence leaves the rest unchecked,
+    whatever the next line starts with and however the quote is padded."""
     (repo / DOC_FILE).write_text(WRAPPED_DOC)
     excerpt = WRAPPED_DOC.split('\n', 1)[1].rstrip('\n')
-    f = finding('half', doc_excerpt=excerpt, suggested_fix={'old_text': old, 'new_text': new})
-    r = run_triage(repo, [f])
-    assert r.doc == WRAPPED_DOC and r.outputs == outputs(has_inconsistency_items=True)
+    fix = {'old_text': old, 'new_text': old.upper()}
+    r = run_triage(repo, [finding('half', doc_excerpt=excerpt, suggested_fix=fix)])
+    assert r.doc == WRAPPED_DOC
+    assert r.outputs == outputs(has_inconsistency_items=True)
     assert reason in r.inc
 
 
-def test_fix_covering_the_whole_wrapped_sentence_is_applied(repo):
-    """A fix spanning the full sentence across its line break is applied."""
+@pytest.mark.parametrize(
+    'old',
+    [
+        'Setting T_r = 0 K disables the stratosphere: since no level\n'
+        '    reaches 0 K, the criterion never triggers and\n'
+        '    $T_r$ is not used by\n'
+        '    SOCRATES at all.',
+        'The step is skipped.',
+        'The step is skipped.\n',
+        'Nothing else runs.',
+        'the criterion never triggers',
+        '## Head',
+        '| a | b |',
+    ],
+    ids=[
+        'whole-wrapped-sentence',
+        'sentence-ending-at-a-line-break',
+        'same-with-trailing-line-break',
+        'sentence-ending-before-blank-line',
+        'clause-inside-one-line',
+        'heading-before-table',
+        'table-row-after-heading',
+    ],
+)
+def test_fix_that_cuts_no_sentence_is_applied(repo, old):
+    """Whole sentences, edits inside one line and whole block lines are still applied."""
     (repo / DOC_FILE).write_text(WRAPPED_DOC)
-    old = WRAPPED_DOC.split('\n', 1)[1].strip()
-    new = 'Setting T_r <= minT disables the stratosphere:\n    the step is skipped.'
-    f = finding('whole', doc_excerpt=old, suggested_fix={'old_text': old, 'new_text': new})
-    r = run_triage(repo, [f])
+    excerpt = WRAPPED_DOC.split('\n', 1)[1].rstrip('\n')
+    fix = {'old_text': old, 'new_text': old.upper()}
+    r = run_triage(repo, [finding('whole', doc_excerpt=excerpt, suggested_fix=fix)])
     assert r.outputs == outputs(has_fixes=True)
-    assert r.doc == '!!! note\n    ' + new + '\n'
+    assert r.doc == WRAPPED_DOC.replace(old, old.upper())
 
 
 def test_second_fix_on_a_changed_passage_is_not_applied(repo):
@@ -383,6 +425,21 @@ def test_fix_that_extends_its_passage_is_not_applied_twice(repo):
     r = onto(repo, DOC_TEXT.replace('applies.', 'applies. Always.'))
     assert r.doc.count('Always.') == 1
     assert r.update == '' and r.output == ''
+
+
+def test_fix_the_pr_offered_before_is_not_re_added_after_a_revert(repo):
+    """A reviewer reverted a fix on the PR: its fingerprint is in the PR description, so
+    the next run neither re-adds it nor files it, and the revert stands."""
+    r = run_triage(repo, [GAMMA_FIX])
+    assert '<!-- docs-consistency-fp: ' in r.pr
+    # Control: without the PR description the reverted passage would get the fix again.
+    assert 'Surface gamma=4 applies.' in onto(repo, DOC_TEXT).doc
+    post(repo, 'existing_pr_body.md', r.pr)
+    (repo / 'pr' / DOC_FILE).unlink()
+    (repo / 'pr' / DOC_FILE).parent.rmdir()
+    reverted = onto(repo, DOC_TEXT)
+    assert reverted.doc == DOC_TEXT and reverted.update == ''
+    assert 'gamma' not in reverted.inc and reverted.output == ''
 
 
 def test_conflict_already_in_the_issue_is_not_filed_again(repo):
