@@ -50,7 +50,8 @@ jobs:
             'from analyze import DOC_FILES, SOURCE_FILES; print(" ".join(DOC_FILES + SOURCE_FILES))')
           if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
             echo "run=true" >> "$GITHUB_OUTPUT"
-          elif git diff --quiet "$base" HEAD -- $paths .github/scripts/docs_consistency/; then
+          elif git diff --quiet "$base" HEAD -- $paths .github/scripts/docs_consistency/ \
+              .github/workflows/docs-consistency-check.yaml; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "Reviewed files unchanged since ${base:0:7}; skipped." | tee -a "$GITHUB_STEP_SUMMARY"
           else
@@ -242,6 +243,9 @@ jobs:
           existing="${{ steps.existing_issue.outputs.inconsistency_number }}"
           if [ -n "$existing" ]; then
             .github/scripts/docs_consistency/append_to_description.sh "$existing" inconsistency_issue_body.md
+            if [ "${{ steps.triage.outputs.has_new_serious }}" = "true" ]; then
+              gh issue comment "$existing" --body "New serious findings were added to the description: the code may be wrong."
+            fi
           else
             gh issue create --label docs-inconsistency \
               --title "Doc/code inconsistencies needing a human decision" \

@@ -162,11 +162,12 @@ def verify_excerpts(finding):
     elif not code_excerpt.strip():
         problems.append('code_excerpt is empty')
     else:
-        # Each block must occur verbatim, after the previous one.
+        # Each block must occur verbatim, after the previous one. Empty blocks, from a '...'
+        # line at either end or two in a row, are ignored; at least one block must remain.
         code, pos = (REPO_ROOT / code_file).read_text(), 0
-        for block in CODE_GAP_RE.split(code_excerpt):
-            block = block.strip('\n')
-            found = code.find(block, pos) if block.strip() else -1
+        blocks = [b.strip('\n') for b in CODE_GAP_RE.split(code_excerpt) if b.strip()]
+        for block in blocks or ['']:
+            found = code.find(block, pos) if block else -1
             if found < 0:
                 problems.append(f'code_excerpt not found verbatim in {code_file}')
                 break
@@ -293,12 +294,20 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
             label = 'Applied fix'
         else:
             label = f'Suggested fix (not applied: {fix_status})'
-        lines += [
-            '',
-            f'**{label}**',
-            f'- old: {code_span(fix["old_text"])}',
-            f'- new: {code_span(fix["new_text"])}',
-        ]
+        old, new = fix['old_text'], fix['new_text']
+        if '\n' in old + new:
+            # A multi-line fix cannot sit in an inline code span; show it as a diff.
+            diff = [f'- {line}' for line in old.split('\n')]
+            diff += [f'+ {line}' for line in new.split('\n')]
+            fence = '`' * max(3, max(map(len, re.findall('`+', old + new)), default=0) + 1)
+            lines += ['', f'**{label}**', f'{fence}diff', *diff, fence]
+        else:
+            lines += [
+                '',
+                f'**{label}**',
+                f'- old: {code_span(old)}',
+                f'- new: {code_span(new)}',
+            ]
     elif finding['type'] == 'inconsistency':
         lines += ['', '_No safe literal fix suggested; needs a manual edit._']
     lines.append('')
@@ -475,6 +484,8 @@ def main():
         'has_fixes': 'true' if applied else 'false',
         'has_inconsistency_items': 'true' if inconsistency_body else 'false',
         'has_gap_items': 'true' if gap_body else 'false',
+        # Appending to the issue description is silent; new serious findings also notify.
+        'has_new_serious': 'true' if serious else 'false',
     }
     github_output = os.environ.get('GITHUB_OUTPUT')
     if github_output:

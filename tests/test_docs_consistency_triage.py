@@ -33,7 +33,12 @@ DOC_TEXT = (
 CODE_TEXT = 'def f(x):\n    y = 2 * x\n    return y\n\n\ndef g(z):\n    return z + 1\n'
 
 SAFE_FIX = {'old_text': 'moist lapse uses alpha=1', 'new_text': 'moist lapse uses alpha=5'}
-NOTHING = {'has_fixes': 'false', 'has_inconsistency_items': 'false', 'has_gap_items': 'false'}
+NOTHING = {
+    'has_fixes': 'false',
+    'has_inconsistency_items': 'false',
+    'has_gap_items': 'false',
+    'has_new_serious': 'false',
+}
 
 
 def finding(fid, **overrides):
@@ -263,7 +268,7 @@ def test_serious_inconsistency_is_filed_first_and_never_applied(repo):
         ],
     )
     assert r.doc == DOC_TEXT
-    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert r.outputs == outputs(has_inconsistency_items=True, has_new_serious=True)
     assert 'not a minor finding' in r.inc and 'No fixes applied' in r.pr
     # The serious section comes before the minor one, whatever the input order.
     serious_at = r.inc.index('## Serious: possible code bug')
@@ -293,7 +298,9 @@ def test_serious_fix_is_listed_in_the_pr_but_not_applied(repo):
             ),
         ],
     )
-    assert r.outputs == outputs(has_fixes=True, has_inconsistency_items=True)
+    assert r.outputs == outputs(
+        has_fixes=True, has_inconsistency_items=True, has_new_serious=True
+    )
     # Only the minor fix is applied.
     assert 'alpha=5 too' in r.doc and 'Surface gamma=3 applies.' in r.doc
     section = r.pr.index('## Serious findings: suggested doc-side fixes, not applied')
@@ -307,7 +314,7 @@ def test_serious_fix_is_listed_in_the_pr_but_not_applied(repo):
 def test_serious_fix_alone_writes_no_pr_section(repo):
     """With nothing applied no PR is opened, so the serious section is not written."""
     r = run_triage(repo, [finding('code-bug', severity='serious', suggested_fix=SAFE_FIX)])
-    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert r.outputs == outputs(has_inconsistency_items=True, has_new_serious=True)
     assert 'No fixes applied' in r.pr and '## Serious findings' not in r.pr
     assert r.applied == []
 
@@ -518,8 +525,19 @@ def test_findings_are_routed_to_the_issue_matching_their_type(repo):
         ('    return z + 1\n...\n    y = 2 * x', False),
         ('    y = 2 * x\n    return z + 1', False),
         ('...', False),
+        ('...\n    y = 2 * x\n...', True),
+        ('    y = 2 * x\n...\n...\n    return z + 1', True),
+        ('    y = 2 * x\n...\n    y = 3 * x', False),
     ],
-    ids=['blocks-in-order', 'blocks-out-of-order', 'joined-without-marker', 'marker-only'],
+    ids=[
+        'blocks-in-order',
+        'blocks-out-of-order',
+        'joined-without-marker',
+        'marker-only',
+        'markers-at-both-ends',
+        'doubled-marker',
+        'second-block-invented',
+    ],
 )
 def test_code_blocks_joined_by_an_ellipsis_line_are_checked_one_by_one(repo, excerpt, verified):
     """Separate code passages joined by a '...' line verify only if each one occurs
@@ -536,6 +554,25 @@ def test_line_number_prefixes_are_stripped_before_matching(repo):
     assert '## Unverified' not in r.inc
     assert '    y = 2 * x\n    return y' in r.inc
     assert '2:     y' not in r.inc
+
+
+def test_multi_line_fix_is_shown_as_a_diff_block(repo):
+    """A fix spanning lines is rendered as a fenced diff, so a blank line or a line that
+    starts a list cannot break out of it; a one-line fix keeps its inline form."""
+    doc = DOC_TEXT + '!!! note\n    First line here\n    ends the sentence.\n'
+    (repo / DOC_FILE).write_text(doc)
+    old = 'First line here\n    ends the sentence.'
+    new = 'First line here\n\n    - ends the `cp` sentence.'
+    wrapped = finding(
+        'wrapped',
+        doc_excerpt=old,
+        code_excerpt='    return y',
+        suggested_fix={'old_text': old, 'new_text': new},
+    )
+    r = run_triage(repo, [wrapped, finding('short', suggested_fix=SAFE_FIX)])
+    block = '```diff\n- First line here\n-     ends the sentence.\n+ First line here\n+ \n'
+    assert block + '+     - ends the `cp` sentence.\n```' in r.pr
+    assert '- old: ` moist lapse uses alpha=1 `' in r.pr
 
 
 def test_gap_may_have_an_empty_doc_excerpt(repo):
@@ -603,7 +640,7 @@ def test_finding_is_reposted_only_when_its_severity_rises(repo):
 
     # Same code, now rated serious: reposted under the serious section.
     r = run_triage(repo, [finding('now-serious', severity='serious')])
-    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert r.outputs == outputs(has_inconsistency_items=True, has_new_serious=True)
     assert '## Serious: possible code bug' in r.inc and '`now-serious`' in r.inc
     assert '1 finding(s) above were reported before as unverified or at a lower' in r.inc
     post(repo, 'existing_inconsistency_issue.md', r.inc)
