@@ -227,12 +227,9 @@ def test_nightly_keys_checks_fetches_and_checks_one_selection_in_one_tree():
     )
     assert key == {'id': 'cachekey', 'run': f'fwl-io cache key --prefix fwl-data- {sel}'}
     out = {k: f'${{{{ steps.cachekey.outputs.{k} }}}}' for k in ('key', 'restore-keys')}
-    # Any release tag or commit of actions/cache; a branch such as main can change under us.
-    assert re.fullmatch(r'actions/cache@(v\d+|[0-9a-f]{40})', cache.pop('uses', ''))
-    assert cache == {
-        'id': 'cache-fwl-data',
-        'with': {'path': root, **out},
-    }
+    # A major-version tag or a full commit SHA of actions/cache, never a branch such as main.
+    assert re.fullmatch(r'actions/cache@(v[0-9]+|[0-9a-f]{40})', cache.pop('uses', ''))
+    assert cache == {'id': 'cache-fwl-data', 'with': {'path': root, **out}}
     assert hit == {
         'if': "steps.cache-fwl-data.outputs.cache-hit == 'true'",
         'run': f'fwl-io cache check {sel} --data-root {root}',
