@@ -78,10 +78,17 @@ jobs:
         run: fwl-io cache key --prefix fwl-data- --provider mors --key atmos_clim.spectral_files.oak.318 --key star.spectra.named
 
       - uses: actions/cache@v4
+        id: cache-fwl-data
         with:
           path: /home/runner/work/fwl_data
           key: ${{ steps.cachekey.outputs.key }}
           restore-keys: ${{ steps.cachekey.outputs.restore-keys }}
+
+      # An exact hit is never saved again, so fetch would repair a damaged entry
+      # every night without a word; fail instead, and delete the entry to recover.
+      - name: Check an exact cache hit
+        if: steps.cache-fwl-data.outputs.cache-hit == 'true'
+        run: fwl-io cache check --provider mors --key atmos_clim.spectral_files.oak.318 --key star.spectra.named --data-root /home/runner/work/fwl_data
 
       # Every run, so no test downloads: a complete tree downloads nothing, and a
       # tree restored from an older entry is completed and checked before the save.
