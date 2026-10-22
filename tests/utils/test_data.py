@@ -200,8 +200,12 @@ def test_selectable_groups_are_the_manifest_spectral_sets(fetches, monkeypatch):
     assert fetches == []
 
 
-def _nightly_workflow():
-    """Return the nightly jobs, their steps in order and the fwl-io cache calls in order."""
+NIGHTLY_SEL = '--provider mors --key atmos_clim.spectral_files.oak.318 --key star.spectra.named'
+NIGHTLY_ROOT = '/home/runner/work/fwl_data'
+
+
+def test_nightly_keys_checks_fetches_and_checks_one_selection_in_one_tree():
+    """The nightly keys and restores the data, checks an exact hit, then fills and checks it."""
     import re
 
     import yaml
@@ -213,68 +217,43 @@ def _nightly_workflow():
     )
     jobs = list(workflow['jobs'].values())
     steps = [step for job in jobs for step in job['steps']]
-    calls = []
-    for i, step in enumerate(steps):
-        for line in step.get('run', '').splitlines():
-            m = re.match(r'\s*fwl-io cache (key|fetch|check)\b(.*)', line)
-            if m:
-                # One call per line, whose exit status the step returns.
-                assert not re.search(r'[|;&]|\\$', m[2]), line
-                calls.append((m[1], i, m[2]))
-    return jobs, steps, calls
-
-
-def test_nightly_keys_fetches_and_checks_one_selection_in_one_tree():
-    """Key, restore, fetch and check run every night in order, on one selection and root."""
-    import re
-
-    jobs, steps, calls = _nightly_workflow()
-    assert [c[0] for c in calls] == ['key', 'check', 'fetch', 'check']
-    (_, i_key, key_args), (_, i_hit, _), (_, i_fetch, _), (_, i_check, _) = calls
-    key_id = steps[i_key]['id']
-    out = {k: f'${{{{ steps.{key_id}.outputs.{k} }}}}' for k in ('key', 'restore-keys')}
-    caches = [
-        i
-        for i, s in enumerate(steps)
-        if s.get('uses', '').startswith('actions/cache@') and s['with'].get('key') == out['key']
-    ]
-    tests = next(i for i, s in enumerate(steps) if 'pytest' in s.get('run', ''))
-    assert len(caches) == 1
-    i_cache = caches[0]
-    cache = steps[i_cache]['with']
-    # Keyed, restored, an exact hit checked, then filled and checked before the tests.
-    assert i_key < i_cache < i_hit < i_fetch <= i_check < tests
-    # Both keys from the key step and nothing else: lookup-only would skip the save.
-    assert cache == {'path': cache['path'], **out}
-    # An exact hit is never saved again, so a damaged one must fail before fetch repairs it.
-    hit = f"steps.{steps[i_cache]['id']}.outputs.cache-hit == 'true'"
-    assert steps[i_hit].get('if') == hit
-    # A skipped or failure-tolerant step leaves an unchecked tree saved and the run green.
-    for i in (i_key, i_cache, i_hit, i_fetch, i_check):
-        assert 'continue-on-error' not in steps[i], steps[i].get('name')
-    for i in (i_key, i_cache, i_fetch, i_check):
-        assert 'if' not in steps[i], steps[i].get('name')
-    for i in (i_hit, i_fetch, i_check):
-        assert 'env' not in steps[i], steps[i].get('name')
-    assert not any('continue-on-error' in job for job in jobs)
-
-    assert re.findall(r'--prefix (\S+)', key_args) == ['fwl-data-']
-    selections = {tuple(re.findall(r'--(provider|key) (\S+)', args)) for _, _, args in calls}
-    assert len(selections) == 1
-    root = cache['path']
+    sel, root = NIGHTLY_SEL, NIGHTLY_ROOT
+    # Fixed step bodies: a shell, an extra command or flag, or another condition would let
+    # an unchecked tree be saved, or a damaged exact hit pass.
+    i = next(i for i, s in enumerate(steps) if s.get('run', '').startswith('fwl-io cache key'))
+    key, cache, hit, fill = (
+        {k: v for k, v in s.items() if k != 'name'} for s in steps[i : i + 4]
+    )
+    assert key == {'id': 'cachekey', 'run': f'fwl-io cache key --prefix fwl-data- {sel}'}
+    out = {k: f'${{{{ steps.cachekey.outputs.{k} }}}}' for k in ('key', 'restore-keys')}
+    assert cache == {
+        'id': 'cache-fwl-data',
+        'uses': 'actions/cache@v4',
+        'with': {'path': root, **out},
+    }
+    assert hit == {
+        'if': "steps.cache-fwl-data.outputs.cache-hit == 'true'",
+        'run': f'fwl-io cache check {sel} --data-root {root}',
+    }
+    assert fill == {
+        'run': ''.join(
+            f'fwl-io cache {c} {sel} --data-root {root}\n' for c in ('fetch', 'check')
+        )
+    }
+    # The tests read the tree the steps above filled, after them, on every run.
+    tests = next(j for j, s in enumerate(steps) if 'export FWL_DATA=' in s.get('run', ''))
+    assert i + 3 < tests
     assert re.findall(r'export FWL_DATA="([^"]+)"', steps[tests]['run']) == [root]
-    for kind, _, args in calls[1:]:
-        assert args.count('--data-root') == 1, kind
-        assert re.search(rf'--data-root {re.escape(root)}(\s|$)', args), kind
+    for scope in (workflow, *jobs):
+        assert not {'defaults', 'continue-on-error', 'if'} & scope.keys()
+        assert 'FWL_DATA' not in scope.get('env', {})
 
 
 def test_nightly_selection_is_mors_and_the_datasets_the_test_helpers_read():
     """The nightly caches every fwl-mors dataset plus the Oak file and the named spectra."""
     import re
 
-    _, _, calls = _nightly_workflow()
-    assert calls and calls[0][0] == 'key', 'no fwl-io cache key step first'
-    selection = re.findall(r'--(provider|key) (\S+)', calls[0][2])
+    selection = re.findall(r'--(provider|key) (\S+)', NIGHTLY_SEL)
     assert [v for kind, v in selection if kind == 'provider'] == ['mors']
     assert {v for kind, v in selection if kind == 'key'} == {
         jdata.spectral_file_key('Oak'),
