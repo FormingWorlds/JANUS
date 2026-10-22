@@ -222,13 +222,15 @@ def test_nightly_keys_checks_fetches_and_checks_one_selection_in_one_tree():
     # an unchecked tree be saved, or a damaged exact hit pass.
     i = next(i for i, s in enumerate(steps) if s.get('run', '').startswith('fwl-io cache key'))
     key, cache, hit, fill = (
-        {k: v for k, v in s.items() if k != 'name'} for s in steps[i : i + 4]
+        {k: v.strip() if k == 'run' else v for k, v in s.items() if k != 'name'}
+        for s in steps[i : i + 4]
     )
     assert key == {'id': 'cachekey', 'run': f'fwl-io cache key --prefix fwl-data- {sel}'}
     out = {k: f'${{{{ steps.cachekey.outputs.{k} }}}}' for k in ('key', 'restore-keys')}
+    # Any release tag or commit of actions/cache; a branch such as main can change under us.
+    assert re.fullmatch(r'actions/cache@(v\d+|[0-9a-f]{40})', cache.pop('uses', ''))
     assert cache == {
         'id': 'cache-fwl-data',
-        'uses': 'actions/cache@v4',
         'with': {'path': root, **out},
     }
     assert hit == {
@@ -236,13 +238,14 @@ def test_nightly_keys_checks_fetches_and_checks_one_selection_in_one_tree():
         'run': f'fwl-io cache check {sel} --data-root {root}',
     }
     assert fill == {
-        'run': ''.join(
-            f'fwl-io cache {c} {sel} --data-root {root}\n' for c in ('fetch', 'check')
+        'run': '\n'.join(
+            f'fwl-io cache {c} {sel} --data-root {root}' for c in ('fetch', 'check')
         )
     }
     # The tests read the tree the steps above filled, after them, on every run.
     tests = next(j for j, s in enumerate(steps) if 'export FWL_DATA=' in s.get('run', ''))
     assert i + 3 < tests
+    assert not {'if', 'continue-on-error'} & steps[tests].keys()
     assert re.findall(r'export FWL_DATA="([^"]+)"', steps[tests]['run']) == [root]
     for scope in (workflow, *jobs):
         assert not {'defaults', 'continue-on-error', 'if'} & scope.keys()
