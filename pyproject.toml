@@ -51,10 +51,13 @@ homepage = "https://github.com/FormingWorlds/JANUS"
 develop = [
   "bump-my-version",
   "coverage[toml]",
+  # the nightly keys, fetches and checks its data with fwl-io cache
+  'fwl-io>=26.10.22',
   'fwl-mors',
   "pytest",
   "pytest-cov",
   "pytest-timeout",
+  "pyyaml",
   "ruff",
   "tomlkit",
 ]

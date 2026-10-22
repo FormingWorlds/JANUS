@@ -70,30 +70,25 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .[develop]
 
-      # The key carries the directory and checksums of every dataset the installed
-      # fwl-mors declares and of the shared fwl-io datasets the tests read.
-      # actions/cache writes only on an exact-key miss.
+      # fwl-io builds the key from the folders, checksums and extract kinds of
+      # every fwl-mors dataset and the shared datasets the tests read, plus its
+      # own release, and picks the restore-keys.
       - name: Resolve the data cache key
         id: cachekey
-        run: python tools/nightly_data_cache.py key
+        run: fwl-io cache key --prefix fwl-data- --provider mors --key atmos_clim.spectral_files.oak.318 --key star.spectra.named
 
-      # A moved key starts from the previous tree, so unchanged data is not refetched.
       - uses: actions/cache@v4
-        id: cache-fwl-data
         with:
           path: /home/runner/work/fwl_data
           key: ${{ steps.cachekey.outputs.key }}
-          restore-keys: |
-            fwl-data-
+          restore-keys: ${{ steps.cachekey.outputs.restore-keys }}
 
       # Every run, so no test downloads: a complete tree downloads nothing, and a
-      # partial or unreadable dataset is fetched again before the tree is saved.
-      - name: Fetch the data the key covers
-        run: python tools/nightly_data_cache.py fetch --data-root /home/runner/work/fwl_data
-
-      # Checks the tree the tests read and the one saved under this key.
-      - name: Check the data
-        run: python tools/nightly_data_cache.py check --data-root /home/runner/work/fwl_data
+      # tree restored from an older entry is completed and checked before the save.
+      - name: Fetch and check the data the key covers
+        run: |
+          fwl-io cache fetch --provider mors --key atmos_clim.spectral_files.oak.318 --key star.spectra.named --data-root /home/runner/work/fwl_data
+          fwl-io cache check --provider mors --key atmos_clim.spectral_files.oak.318 --key star.spectra.named --data-root /home/runner/work/fwl_data
 
       - name: Run unit + smoke + integration + slow tests with coverage
         run: |
