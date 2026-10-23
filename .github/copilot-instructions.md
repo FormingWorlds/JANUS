@@ -192,7 +192,7 @@ JANUS is scientific simulation code, so the test suite is held to physics-grade 
 
 ### Structure
 
-- New per-source tests mirror source: `src/janus/<subdir>/<file>.py` -> `tests/<subdir>/test_<file>.py`. Cross-cutting tests (`test_constants.py`, `test_code.py`) and pipeline-level tests (`test_runaway_greenhouse.py`, `test_instellation.py`) are the exception, not the rule.
+- New per-source tests mirror source: `src/janus/<subdir>/<file>.py` -> `tests/<subdir>/test_<file>.py`. Cross-cutting tests (`test_constants.py`, `test_code.py`, `test_nightly_workflow.py` for the nightly data cache steps) and pipeline-level tests (`test_runaway_greenhouse.py`, `test_instellation.py`) are the exception, not the rule.
 - Framework: `pytest` exclusively in the `tests/` directory.
 
 ### Markers and the module-level marker rule
