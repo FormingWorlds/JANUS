@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Deterministic triage of analysis.json: verify quoted excerpts, apply literal doc fixes,
-and write pr_body.md, inconsistency_issue_body.md and gap_issue_body.md for the workflow to
-use. Inconsistencies that were not auto-fixed (serious ones, which may point to a bug in the
-code, and minor ones with no safe fix) go to one issue; documentation gaps to another.
+and write pr_body.md, applied_fixes.json, inconsistency_issue_body.md and gap_issue_body.md
+for the workflow to use. With --onto <dir>, re-apply this run's fixes to an open PR's
+checkout instead and write pr_update.md. Inconsistencies that were not auto-fixed (serious
+ones, which may point to a bug in the code, and minor ones with no safe fix) go to one
+issue; documentation gaps to another.
 No LLM calls: everything is a plain string operation.
 """
 
@@ -27,6 +29,21 @@ ALLOWED_SOURCE_FILES = set(SOURCE_FILES)
 # The source listing in the prompt is prefixed with 'N: ' line numbers, which the model
 # may copy into code_excerpt. Strip.
 LINE_PREFIX = re.compile(r'^\d+: ', flags=re.MULTILINE)
+# A line holding only '...' joins separate verbatim blocks of one code file.
+CODE_GAP_RE = re.compile(r'^[ \t]*\.\.\.[ \t]*$', flags=re.MULTILINE)
+
+# A doc quote cut from inside an equation renders as raw LaTeX, so the displayed quote is
+# widened to the whole $...$ or $$...$$ span.
+MATH_SPAN_RE = re.compile(r'\$\$.+?\$\$|\$[^$\n]+?\$', flags=re.DOTALL)
+# Dashes between words become ', ' (or '-' in a range); standalone ones, like empty table
+# cells, are kept.
+EM_DASH_RE = re.compile(r'(?<=[\w$`)])(?:\s*\u2014\s*|\s+\u2013\s+)(?=[\w$`(])')
+EN_DASH_RE = re.compile(r'(?<=\w)\u2013(?=\w)')
+
+# A fix that starts or stops at a line break must end a sentence there, or meet a line
+# that starts a new block; otherwise it edits one physical line of a wrapped sentence.
+SENTENCE_END = ('.', ':', '?', '!', '|', '$$')
+BLOCK_START_RE = re.compile(r'\s*(?:#|!!!|\||\$\$|```|>|[-*+] |\d+\. )')
 
 # Hidden marker embedded in every finding posted to an issue
 FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} {} -->'
@@ -112,16 +129,27 @@ def verify_excerpts(finding):
     """Check that the quoted doc and code passages exist verbatim in the named files.
 
     Normalises code_excerpt in place (line-number prefixes stripped) so the posted quote
-    is the verified one. Returns a list of problems; empty means verified.
+    is the verified one, and sets doc_display, the doc quote widened to whole equations.
+    Returns a list of problems; empty means verified.
     """
     problems = []
     doc_file = finding.get('doc_file')
     doc_excerpt = finding.get('doc_excerpt') or ''
-    if doc_file not in ALLOWED_DOC_FILES:
+    if finding.get('type') == 'gap' and not doc_excerpt:
+        pass  # a gap with no related doc passage has no doc file to check
+    elif doc_file not in ALLOWED_DOC_FILES:
         problems.append(f'doc_file {doc_file!r} is not one of the reviewed doc files')
     elif doc_excerpt:
-        if doc_excerpt not in (REPO_ROOT / doc_file).read_text():
+        text = (REPO_ROOT / doc_file).read_text()
+        start = text.find(doc_excerpt)
+        if start < 0:
             problems.append(f'doc_excerpt not found verbatim in {doc_file}')
+        else:
+            end = start + len(doc_excerpt)
+            for m in MATH_SPAN_RE.finditer(text):
+                if m.start() < end and start < m.end():
+                    start, end = min(start, m.start()), max(end, m.end())
+            finding['doc_display'] = text[start:end]
     elif finding.get('type') != 'gap':
         problems.append('doc_excerpt is empty')
 
@@ -132,8 +160,17 @@ def verify_excerpts(finding):
         problems.append(f'code_file {code_file!r} is not one of the reviewed source files')
     elif not code_excerpt.strip():
         problems.append('code_excerpt is empty')
-    elif code_excerpt not in (REPO_ROOT / code_file).read_text():
-        problems.append(f'code_excerpt not found verbatim in {code_file}')
+    else:
+        # Each block must occur verbatim, after the previous one. Empty blocks, from a '...'
+        # line at either end or two in a row, are ignored; at least one block must remain.
+        code, pos = (REPO_ROOT / code_file).read_text(), 0
+        blocks = [b.strip('\n') for b in CODE_GAP_RE.split(code_excerpt) if b.strip()]
+        for block in blocks or ['']:
+            found = code.find(block, pos) if block else -1
+            if found < 0:
+                problems.append(f'code_excerpt not found verbatim in {code_file}')
+                break
+            pos = found + len(block)
 
     for p in problems:
         print(f"WARNING: finding '{finding.get('id')}': {p}", file=sys.stderr)
@@ -151,6 +188,28 @@ def apply_fix(finding):
     old, new = fix['old_text'], fix['new_text']
     excerpt = finding.get('doc_excerpt') or ''
     count = text.count(old) if old else 0
+    # Line breaks at either end of old_text do not change where it cuts the text.
+    core = old.strip('\n')
+    core_start = text.find(old) + old.find(core) if old else -1
+    core_end = core_start + len(core)
+    line_start = text.rfind('\n', 0, max(core_start, 0)) + 1
+    prev_line = text[: max(line_start - 1, 0)].rsplit('\n', 1)[-1].rstrip()
+    rest = text[core_end:].split('\n', 2)
+    next_line = rest[1] if len(rest) > 1 else ''
+    cut_at_end = (
+        not rest[0].strip()
+        and next_line.strip()
+        and not core.rstrip().endswith(SENTENCE_END)
+        and not BLOCK_START_RE.match(next_line)
+    )
+    cut_at_start = (
+        line_start > 0
+        and not text[line_start:core_start].strip()
+        and prev_line.strip()
+        and not prev_line.endswith(SENTENCE_END)
+        and not BLOCK_START_RE.match(prev_line)
+        and not BLOCK_START_RE.match(core)
+    )
     if finding.get('severity') != 'minor':
         # A serious disagreement may be a bug in the code, not the doc
         reason = 'not a minor finding: a human must decide whether the doc or the code is wrong'
@@ -164,16 +223,33 @@ def apply_fix(finding):
         reason = 'doc_excerpt no longer matches the doc (changed by an earlier fix)'
     elif count != 1:
         reason = f'old_text occurs {count} times in the doc, not exactly once'
+    elif cut_at_end:
+        reason = 'old_text stops mid-sentence at a line break; it must cover the whole sentence'
+    elif cut_at_start:
+        reason = (
+            'old_text starts mid-sentence at a line break; it must cover the whole sentence'
+        )
     else:
         # old_text occurs once and lies inside doc_excerpt, which is in the doc, so the
         # single occurrence is necessarily the one inside the quoted passage.
-        doc_path.write_text(text.replace(old, new))
+        fixed, at = text.replace(old, new), text.find(old)
+        # The whole fixed lines, so --onto can tell whether an open PR already has the fix.
+        first, last = fixed.rfind('\n', 0, at) + 1, fixed.find('\n', at + len(new))
+        finding['fixed_lines'] = fixed[first : last if last >= 0 else len(fixed)]
+        doc_path.write_text(fixed)
         return None
     print(
         f"WARNING: finding '{finding['id']}': {reason}; leaving unfixed for manual review",
         file=sys.stderr,
     )
     return reason
+
+
+def code_span(text):
+    """Inline code that survives backticks in text: the delimiter is one longer than its
+    longest backtick run."""
+    ticks = '`' * (max(map(len, re.findall('`+', text)), default=0) + 1)
+    return f'{ticks} {text} {ticks}'
 
 
 def render_finding(finding, fix_status=None, problems=None, with_fingerprint=False):
@@ -185,7 +261,7 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
     """
     heading = f'### `{finding["id"]}`'
     if finding.get('severity'):
-        heading += f' — {finding["severity"]}'
+        heading += f' ({finding["severity"]})'
     lines = [heading]
     if with_fingerprint:
         lines.append(FINGERPRINT_MARKER.format(finding['fingerprint'], finding['status']))
@@ -201,10 +277,13 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
     lines += [finding['description'], '']
     doc_excerpt = finding.get('doc_excerpt') or ''
     if doc_excerpt:
+        display = finding.get('doc_display') or doc_excerpt
         lines.append(f'**Doc** (`{finding["doc_file"]}`):')
-        lines += [f'> {line}' for line in doc_excerpt.splitlines()]
+        lines += [f'> {line}' for line in display.splitlines()]
+        if display != doc_excerpt:
+            lines += ['', f'_Quoted part:_ {code_span(doc_excerpt)}']
     else:
-        lines.append(f'**Doc** (`{finding["doc_file"]}`): _no related passage_')
+        lines.append('**Doc**: _no related passage_')
     lines += [
         '',
         f'**Code** (`{finding["code_file"]}`, {finding["code_lines"]}):',
@@ -218,14 +297,22 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
             label = 'Applied fix'
         else:
             label = f'Suggested fix (not applied: {fix_status})'
-        lines += [
-            '',
-            f'**{label}**',
-            f'- old: `{fix["old_text"]}`',
-            f'- new: `{fix["new_text"]}`',
-        ]
+        old, new = fix['old_text'], fix['new_text']
+        if '\n' in old + new:
+            # A multi-line fix cannot sit in an inline code span; show it as a diff.
+            diff = [f'- {line}' for line in old.split('\n')]
+            diff += [f'+ {line}' for line in new.split('\n')]
+            fence = '`' * max(3, max(map(len, re.findall('`+', old + new)), default=0) + 1)
+            lines += ['', f'**{label}**', f'{fence}diff', *diff, fence]
+        else:
+            lines += [
+                '',
+                f'**{label}**',
+                f'- old: {code_span(old)}',
+                f'- new: {code_span(new)}',
+            ]
     elif finding['type'] == 'inconsistency':
-        lines += ['', '_No safe literal fix suggested — needs a manual edit._']
+        lines += ['', '_No safe literal fix suggested; needs a manual edit._']
     lines.append('')
     return '\n'.join(lines)
 
@@ -236,6 +323,10 @@ def main():
     # Verify every excerpt against the unmodified files before any fix is applied.
     verified, unverified = [], []
     for f in findings:
+        f['description'] = EN_DASH_RE.sub('-', EM_DASH_RE.sub(', ', f['description']))
+        if f.get('suggested_fix'):
+            new = f['suggested_fix']['new_text']
+            f['suggested_fix']['new_text'] = EN_DASH_RE.sub('-', EM_DASH_RE.sub(', ', new))
         problems = verify_excerpts(f)
         f['fingerprint'] = fingerprint(f)
         f['status'] = (f.get('severity') or 'none') + ('-unverified' if problems else '')
@@ -259,8 +350,21 @@ def main():
         else:
             minor.append((f, reason))
 
+    # Read back by --onto when a PR from an earlier run is still open.
+    (REPO_ROOT / 'applied_fixes.json').write_text(json.dumps(applied))
     pr_body_path = REPO_ROOT / 'pr_body.md'
+    findings_md = ''
     if applied:
+        findings_md = '\n'.join(render_finding(f, with_fingerprint=True) for f in applied)
+        # Never applied; listed so the reviewer sees what the doc change would be.
+        serious_fixes = [(f, r) for f, r in serious if f.get('suggested_fix')]
+        if serious_fixes:
+            findings_md += (
+                '\n## Serious findings: suggested doc-side fixes, not applied\n\n'
+                'These would make the doc match the code. The code may be the side that is '
+                'wrong, so decide in the `docs-inconsistency` issue.\n\n'
+                + '\n'.join(render_finding(f, fix_status=r) for f, r in serious_fixes)
+            )
         plural = 'y' if len(applied) == 1 else 'ies'
         pr_body_path.write_text(
             '## Documentation consistency check\n\n'
@@ -270,12 +374,13 @@ def main():
             'directly. Please verify each one before merging. Fixes are literal text '
             'replacements. Serious inconsistencies are never auto-fixed, since the code may '
             'be the side that is wrong. They, and minor inconsistencies without an '
-            'applicable fix, are filed in the `docs-inconsistency` issue.\n\n'
+            'applicable fix, are filed in the `docs-inconsistency` issue. Later runs add '
+            'their fixes here while this PR is open.\n\n'
             '## Checklist\n\n'
             '- [ ] I have verified each finding below against the actual doc and code\n'
             '- [ ] I have reviewed (and corrected if needed) every applied fix\n'
             '- [ ] I have marked this PR ready for review, which starts CI\n\n'
-            '## Findings\n\n' + '\n'.join(render_finding(f) for f in applied)
+            '## Findings\n\n' + findings_md
         )
     else:
         pr_body_path.write_text(
@@ -349,7 +454,7 @@ def main():
             (
                 '## Documentation gaps\n',
                 'Automated weekly check found source-code behaviour with no corresponding '
-                'documentation. These are not auto-fixed — writing new model-description '
+                'documentation. These are not auto-fixed: writing new model-description '
                 'prose needs a human who can vouch for the physics.\n',
                 [render_finding(f, fix_status='gap', with_fingerprint=True) for f in gaps],
             ),
@@ -382,6 +487,8 @@ def main():
         'has_fixes': 'true' if applied else 'false',
         'has_inconsistency_items': 'true' if inconsistency_body else 'false',
         'has_gap_items': 'true' if gap_body else 'false',
+        # Appending to the issue description is silent; new serious findings also notify.
+        'has_new_serious': 'true' if serious else 'false',
     }
     github_output = os.environ.get('GITHUB_OUTPUT')
     if github_output:
@@ -393,5 +500,68 @@ def main():
             print(f'{key}={value}')
 
 
+def apply_onto(target):
+    """Re-apply this run's fixes, one at a time, to the checkout of an open PR at target.
+
+    A fix the PR offered before (its fingerprint is in existing_pr_body.md) or already has
+    is skipped. A fix whose quoted passage the PR changed (for
+    example a reviewer corrected it) is not applied but filed in the inconsistency issue,
+    so one conflict drops only that fix and nothing is lost. pr_update.md lists the newly
+    applied fixes.
+    """
+    added, conflicts = [], []
+    offered = load_reported_fingerprints('existing_pr_body.md')
+    for f in json.loads((REPO_ROOT / 'applied_fixes.json').read_text()):
+        path = target / f['doc_file']
+        text = path.read_text()
+        old, new = f['suggested_fix']['old_text'], f['suggested_fix']['new_text']
+        # Offered by this PR before: what the reviewer did with it, a revert included, stands.
+        # Already in the PR: its doc has the whole fixed lines as they read on main. Testing
+        # new_text alone would match a deletion, whose new_text is part of the old sentence.
+        lines = f['fixed_lines']
+        if f['fingerprint'] in offered or (lines.strip() and f'\n{lines}\n' in f'\n{text}\n'):
+            continue
+        if f['doc_excerpt'] in text and text.count(old) == 1:
+            path.write_text(text.replace(old, new))
+            added.append(f)
+        else:
+            conflicts.append((f, 'the open PR changed this passage'))
+    (REPO_ROOT / 'pr_update.md').write_text(
+        '\n'.join(render_finding(f, with_fingerprint=True) for f in added)
+    )
+
+    [conflicts], already, _, _ = drop_reported([conflicts], 'existing_inconsistency_issue.md')
+    section = issue_body(
+        [
+            (
+                '## Fixes that conflict with the open PR\n',
+                'These fixes were not added to the open PR, because it already changed the '
+                'passage they edit. Compare them with the PR and apply by hand if needed.\n',
+                [render_finding(f, fix_status=r, with_fingerprint=True) for f, r in conflicts],
+            )
+        ],
+        already,
+    )
+    with (REPO_ROOT / 'inconsistency_issue_body.md').open('a') as body:
+        body.write(section)
+
+    summary = (
+        f'Open PR update: {len(added)} new fix(es) added, {len(conflicts)} conflicting '
+        f'fix(es) filed, {already} already reported'
+    )
+    print(summary)
+    step_summary = os.environ.get('GITHUB_STEP_SUMMARY')
+    if step_summary:
+        with open(step_summary, 'a') as f:
+            f.write(summary + '\n')
+    github_output = os.environ.get('GITHUB_OUTPUT')
+    if github_output and section:
+        with open(github_output, 'a') as f:
+            f.write('has_inconsistency_items=true\n')
+
+
 if __name__ == '__main__':
-    main()
+    if sys.argv[1:2] == ['--onto']:
+        apply_onto(Path(sys.argv[2]).resolve())
+    else:
+        main()
