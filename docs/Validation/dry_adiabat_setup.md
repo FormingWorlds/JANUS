@@ -2,23 +2,26 @@
 
 ## What this page checks
 
-This page checks how JANUS builds a dry adiabat, the temperature profile of a well-mixed dry atmosphere. `janus.modules.dry_adiabat_setup` builds this profile from the surface temperature and pressure. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. If this part of the code is wrong, the dry-adiabat solve (`compute_dry_adiabat`), which builds its column with `dry_adiabat_atm`, starts from a wrong temperature profile. The case below says why the check exists, what it tests, how we know the right answer and why it matters, and ends with a box "Test details".
+This page checks how JANUS builds a dry adiabat, the temperature profile of a well-mixed dry atmosphere. `dry_adiabat_atm` in `janus.modules.dry_adiabat_setup` builds this profile from the surface temperature and pressure. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. The case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends the case.
 
 ## Constant potential temperature along a dry adiabat
 
-**Why this check exists.** A profile built with the wrong lapse rate looks plausible but is not an adiabat. An isothermal column, for example from a missing adiabat step, or a lapse with the wrong sign gives a wrong temperature at every level.
+**Why this check exists.** A profile that is not an adiabat can still look plausible. An isothermal column, for example from a missing adiabat step, gives a wrong temperature at every level without an error message.
 
-**What it tests.** The potential temperature $\theta = T (p_\mathrm{ref} / p)^{R / c_p}$ is the temperature that a gas parcel at pressure $p$ and temperature $T$ would have if it were moved dry-adiabatically to the reference pressure $p_\mathrm{ref}$. Here $R / c_p$ is the gas constant over the heat capacity. With the reference pressure at the surface, $\theta$ must equal the surface temperature $T_s$ at every level of a dry adiabat. The test builds the profile and checks that $\theta$ is constant along the column and equal to $T_s$. It also checks that the exponent $R / c_p$ lies between 0 and 0.4, the physical range for a column made mostly of diatomic gas.
+**What it tests.** The potential temperature is $\theta = T (p_\mathrm{ref} / p)^{R / c_p}$: the temperature that a gas parcel at pressure $p$ and temperature $T$ would have if it were moved dry-adiabatically to the reference pressure $p_\mathrm{ref}$. $R / c_p$ is the gas constant over the heat capacity of the gas mixture. With the reference pressure at the surface, $\theta$ must equal the surface temperature $T_s$ at every level of a dry adiabat. The test builds the profile and checks that $\theta$ is constant along the column and equal to $T_s$. It also checks that $R / c_p$ lies between 0 and 0.4 (2/7 for a diatomic gas, 2/5 for a monatomic gas).
 
-**How we know the right answer.** A dry adiabat conserves potential temperature (the Poisson relation); this follows from the first law of thermodynamics for an ideal gas. The test also states the wrong answer explicitly: an isothermal profile would put $\theta$ more than 50 % above $T_s$ at the low-pressure top. A companion test checks that the temperature rises monotonically from the top of the column to the surface, which rules out a sign error in the lapse direction.
+**How we know the right answer.** A dry adiabat conserves potential temperature (the Poisson relation), which follows from the first law of thermodynamics for an ideal gas. The test also states the wrong answer: an isothermal profile would put $\theta$ more than 50 % above $T_s$ at the low-pressure top.
 
-**Why it matters.** `RadConvEqm` with `cp_dry=True` calls `compute_dry_adiabat`, which builds its column with this profile (see [solve_pt.md](solve_pt.md)). Its exponent $R / c_p$ comes from the heat capacity `cpv` (see [cp_funcs.md](cp_funcs.md)).
+**Why it matters.** `compute_dry_adiabat` in `janus.modules.dry_adiabat_timestep` builds its start column with `dry_adiabat_atm`, and `RadConvEqm` calls `compute_dry_adiabat` when `cp_dry=True`. The exponent $R / c_p$ comes from the heat capacity `cpv` (see [cp_funcs.md](cp_funcs.md)).
+
+**Known limit.** The test computes $\theta$ with the `Rcp` that the code itself returns, and checks only that it lies between 0 and 0.4. A wrong heat capacity, and so a wrong exponent inside that range, does not fail this test.
 
 ??? info "Test details"
     - Reference: Poisson adiabat identity, conservation of potential temperature (analytical limit).
     - Tolerance: relative 1e-10 for $\theta$ against $T_s$ along the column; relative 1e-12 for the surface temperature.
     - Test id: `tests/modules/test_dry_adiabat_setup.py::test_dry_adiabat_conserves_potential_temperature`
     - Command: `pytest tests/modules/test_dry_adiabat_setup.py::test_dry_adiabat_conserves_potential_temperature`
+    - Companion test: `test_dry_adiabat_temperature_rises_monotonically_toward_surface` checks that the temperature rises from the top of the column to the surface, which rules out a lapse of the wrong sign.
 
 ## Related code
 

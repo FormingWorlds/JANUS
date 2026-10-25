@@ -2,7 +2,7 @@
 
 ## What this page checks
 
-This page checks how JANUS computes the gravity at the surface and the altitude of each level of the atmosphere. `janus.utils.height` holds the surface-gravity law and the hydrostatic altitude integrator. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. If this part of the code is wrong, the heights and the local gravity that JANUS writes to its netCDF output are wrong. Each case below says why the check exists, what it tests, how we know the right answer and why it matters, and ends with a box "Test details".
+This page checks how JANUS computes the gravity at the surface and the altitude of each level of the atmosphere. `janus.utils.height` holds the surface-gravity law and the hydrostatic altitude integrator. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. If this part of the code is wrong, the heights that JANUS writes to its netCDF output are wrong. Each case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends each case.
 
 ## Surface gravity of the Earth
 
@@ -10,7 +10,7 @@ This page checks how JANUS computes the gravity at the surface and the altitude 
 
 **What it tests.** `gravity(M, r)` returns the Newtonian surface field $g = G M / r^2$, with $G$ the gravitational constant, $M$ the planet mass and $r$ the radius. At the mass of the Earth, 5.972e24 kg, and its mean radius, 6.371e6 m, the test expects about 9.82 m/s$^2$. Doubling the radius must quarter $g$, and doubling the mass must double it.
 
-**How we know the right answer.** The value follows from Newton's law with the Earth's mass and mean radius. It is slightly above the standard 9.81 m/s$^2$ because the mean radius is smaller than the equatorial radius. An inverse-linear $1/r$ error would only halve $g$ when the radius doubles, so the test tells the 2 laws apart.
+**How we know the right answer.** The value follows from Newton's law with the Earth's mass and mean radius. It is slightly above the standard 9.81 m/s$^2$. An inverse-linear $1/r$ error would only halve $g$ when the radius doubles, so the test tells the 2 laws apart.
 
 **Why it matters.** The surface gravity sets the scale height and with it the altitude of every level (next case).
 
@@ -24,13 +24,9 @@ This page checks how JANUS computes the gravity at the surface and the altitude 
 
 **Why this check exists.** The altitude integrator sums a hydrostatic step over the pressure levels. A missing $1/p$ factor in the step moves every altitude.
 
-**What it tests.** `integrate_heights` sums the hydrostatic step $dz = -(R_\mathrm{gas} T / (M g))\, d\ln p$ up the column. Here $R_\mathrm{gas}$ is the gas constant, $T$ the temperature, $M$ the molar mass and $g$ the gravity. For an isothermal ideal-gas column this integrates in closed form to $z(p) = H \ln(p_\mathrm{surface} / p)$, with the scale height $H = R_\mathrm{gas} T / (M g)$. The test compares the total span of the column with this integral on a fine grid. The routine reverses the pressure array internally, so the test also checks that the input array is the same on return.
+**What it tests.** `integrate_heights` sums the hydrostatic step $dz = -(R_\mathrm{gas} T / (M g))\, d\ln p$ up the column. Here $R_\mathrm{gas}$ is the gas constant, $T$ the temperature, $M$ the molar mass and $g$ the gravity. For an isothermal ideal-gas column this integrates to $z(p) = H \ln(p_\mathrm{surface} / p)$, with the scale height $H = R_\mathrm{gas} T / (M g)$. The test compares the total span of a 200-level N$_2$ column at 288 K with this integral. The routine reverses the pressure array internally, so the test also checks that the input array is the same on return.
 
-**How we know the right answer.** The closed-form integral of the hydrostatic equation for an isothermal ideal gas. A missing $1/p$ factor would put the span far outside the 5 % tolerance. Further physics invariants are asserted:
-
-- the altitude falls as the pressure rises, and the local gravity falls with height;
-- the stored local gravity agrees with the returned heights, $g(z) = g_s R^2 / (R + z)^2$ on the same levels, also through the netCDF writer;
-- a diverging integration is flagged and returns a bounded dummy grid, with the gravity evaluated on it.
+**How we know the right answer.** The span follows from the closed-form integral of the hydrostatic equation for an isothermal ideal gas. A missing $1/p$ factor would put the span far outside the 5 % tolerance.
 
 **Why it matters.** `write_ncdf` calls `integrate_heights`, so these heights are the altitudes of the JANUS output. The routine uses `R_gas` and `molar_mass` from `janus.utils.phys` (see [phys.md](phys.md)).
 
@@ -41,6 +37,7 @@ This page checks how JANUS computes the gravity at the surface and the altitude 
     - Tolerance: relative 0.05 on the total span; the input pressure array identical on return.
     - Test id: `tests/utils/test_height.py::test_integrate_heights_recovers_isothermal_scale_height`
     - Command: `pytest tests/utils/test_height.py::test_integrate_heights_recovers_isothermal_scale_height`
+    - Companion tests: `test_integrate_heights_flags_blowup_and_returns_bounded_dummy` (a diverging integration is flagged and returns a bounded dummy grid, with the gravity evaluated on it), `test_integrate_heights_writes_local_gravity_on_returned_heights` (the local gravity $g(z) = g_s R^2 / (R + z)^2$, with $g_s$ the surface gravity, $R$ the planet radius and $z$ the height, is stored on the returned heights), and `tests/utils/test_atmosphere_column.py::test_write_ncdf_gravity_matches_written_heights` (the same relation through the netCDF writer).
 
 ## Related code
 
