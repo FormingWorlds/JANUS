@@ -1,40 +1,28 @@
 # Validation: `src/janus/utils/cp_funcs.py`
 
-This page tracks the `reference_pinned` test that anchors the per-species molar
-heat capacity `cpv` in `janus.utils.cp_funcs` against the NIST-JANAF
-thermochemical tables.
+## What this page checks
 
-| Test id | Reference | Anchor type | Scope |
-|---|---|---|---|
-| `tests/utils/test_cp_funcs.py::test_water_heat_capacity_matches_nist_shomate_at_500K` | NIST-JANAF Thermochemical Tables[^cite-janaf] | Published benchmark | Pins the temperature-dependent Shomate branch for gaseous water to 35.22 J/mol/K at 500 K and verifies the heat capacity rises with temperature as vibrational modes activate. |
+This page checks the heat capacity of each gas species that JANUS uses. The molar heat capacity $c_p$ is the heat needed to warm 1 mol of a gas by 1 K at constant pressure. `cpv` in `janus.utils.cp_funcs` gives it, either as a flat constant or as a function of temperature. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. If this part of the code is wrong, the adiabats and the temperature profile of the atmosphere are wrong too. The case below says why the check exists, what it tests, how we know the right answer and why it matters, and ends with a box "Test details".
 
-## Re-derivation note
+## Heat capacity of water vapour at 500 K
 
-`cpv(vol, tmp, cp_mode)` dispatches between a flat constant heat capacity
-(`cp_mode = "constant"`) and the NIST Shomate polynomial (`cp_mode =
-"T-dependent"`). The Shomate branch evaluates
-`Cp = A + B t + C t^2 + D t^3 + E / t^2` with `t = T / 1000` and the tabulated
-water-vapour coefficients. At 500 K the tabulated molar heat capacity of gaseous
-water is 35.22 J/mol/K; the implementation returns 35.218, pinned to `rel=2e-3`.
+**Why this check exists.** `cpv(vol, tmp, cp_mode)` has 2 branches: a flat constant heat capacity (`cp_mode = "constant"`) and the NIST Shomate polynomial (`cp_mode = "T-dependent"`). A wrong coefficient, a per-gram value where a per-mole value belongs, or the wrong branch gives a heat capacity that is wrong without an error message.
 
-The value 35.22 J/mol/K distinguishes the Shomate branch from the flat constant
-branch, which does not rise with temperature. The scale guard `25 < cp < 55`
-J/mol/K rejects a per-gram versus per-mole unit slip (which would land near 3.5
-J/g/K numerically) or a factor-of-ten error. An unknown species with no table
-entry returns 0.0 in both branches, the guard path exercised separately.
+**What it tests.** The Shomate branch evaluates $c_p = A + B t + C t^2 + D t^3 + E / t^2$ with $t = T / 1000$ and the tabulated coefficients of water vapour. At 500 K the code returns 35.218 J/mol/K, and the test expects 35.22 J/mol/K. The test also checks that the heat capacity at 1500 K is higher than at 500 K, because vibrational modes activate as the gas warms. A scale guard, $25 < c_p < 55$ J/mol/K, rejects a per-gram value (which would be near 3.5 J/g/K) or a factor-of-ten error.
 
-## Anchor type
+**How we know the right answer.** The NIST-JANAF thermochemical tables[^cite-janaf] give 35.22 J/mol/K for gaseous water at 500 K. This value tells the Shomate branch apart from the flat constant branch, which does not rise with temperature. Two physics invariants are also asserted: the heat capacity of a known species is positive, and the constant and Shomate values of CO$_2$ roughly agree. An unknown species with no table entry returns 0.0 in both branches; a separate test checks this path.
 
-Published benchmark (NIST-JANAF Shomate water-vapour coefficients). Positivity of
-a known species' heat capacity and rough constant-versus-Shomate agreement for
-CO2 are asserted as the physics invariants.
+**Why it matters.** The ratio of the gas constant to $c_p$ sets the slope of the dry adiabat (see [dry_adiabat_setup.md](dry_adiabat_setup.md)). A caller must name the `cp_mode` it needs: if it relies on the default, a change of the default changes its results without a message.
 
-## Cross-references
+??? info "Test details"
+    - Reference: NIST-JANAF Thermochemical Tables[^cite-janaf], Shomate coefficients of water vapour (published benchmark).
+    - Tolerance: relative 2e-3 at 500 K; scale guard 25 to 55 J/mol/K.
+    - Test id: `tests/utils/test_cp_funcs.py::test_water_heat_capacity_matches_nist_shomate_at_500K`
+    - Command: `pytest tests/utils/test_cp_funcs.py::test_water_heat_capacity_matches_nist_shomate_at_500K`
+
+## Related code
 
 - `src/janus/utils/cp_funcs.py`: `cpv`.
-- The `cp_mode` string selects the branch; a caller that relies on the default
-  without naming the mode it needs is a review red flag, since a default flip
-  silently redirects every implicit caller.
 
 ## References
 
