@@ -6,7 +6,7 @@ This page checks the thermal emission of the planet surface, summed over the spe
 
 ## Band-integrated surface flux and the Stefan-Boltzmann law
 
-**Why this check exists.** The surface flux is a sum over bands of a Planck radiance with an albedo factor. A wrong band weight, a missing albedo factor or a wrong temperature power gives a wrong flux without an error message.
+**Why this check exists.** The surface flux is a sum over bands of a Planck radiance with an albedo factor. A wrong band weight or a wrong temperature power gives a wrong flux without an error message. This test runs with albedo 0; the companion albedo test checks the albedo factor.
 
 **What it tests.** The routine fills each band with the Planck radiance at the surface temperature $T_s$, integrates over the band grid and weights by $(1 - a)$, with $a$ the surface albedo. Summed over a grid that spans the thermal range, the band fluxes must give the Stefan-Boltzmann result $F = (1 - a) \sigma T_s^4$, with $\sigma$ = 5.670374419e-8 W m$^{-2}$ K$^{-4}$. The test evaluates 2 surface temperatures and checks that the ratio of the fluxes follows $(T_{s2} / T_{s1})^4$.
 

@@ -6,7 +6,7 @@ This page checks how JANUS relaxes a layer that holds more water vapour than it 
 
 ## Dew-point target and the Clausius-Clapeyron relation
 
-**Why this check exists.** The relaxation target comes from an inverted Clausius-Clapeyron relation with a reference point and a latent heat. A wrong reference point or a wrong latent heat moves the target temperature without an error message.
+**Why this check exists.** The relaxation target comes from an inverted Clausius-Clapeyron relation with a reference point and a latent heat. A wrong reference point, or a latent heat in `Tdew` that differs from the one in `phys`, moves the target temperature without an error message.
 
 **What it tests.** The moist adjustment relaxes a supersaturated water layer toward its local dew point over a relaxation time $\tau$. The temperature tendency is $(T_\mathrm{dew}(p_p) - T) / \tau$, with $p_p$ the local partial pressure of water and the target $T_\mathrm{dew}$ = `GeneralAdiabat.Tdew("H2O", pp)`. The dew-point curve is the closed-form inverse of the Clausius-Clapeyron relation with a constant latent heat $L$:
 
@@ -21,6 +21,8 @@ The reference is the water triple point ($T_\mathrm{ref}$ = 273.15 K, $p_\mathrm
 **How we know the right answer.** The triple point of water is a published thermodynamic fixed point. At that point the logarithm is zero, so it does not test the latent heat; the round trip does. Doubling $L$ shifts the recovered temperature by about 49 K. The third check ties the published fixed point to the output of the module. The physics invariants are the sign of the tendency (supersaturated layers warm toward the dew point) and its $1 / \tau$ scaling.
 
 **Why it matters.** `compute_dry_adiabat` calls `moist_adj`, and `RadConvEqm` with `cp_dry=True` calls `compute_dry_adiabat` (see [solve_pt.md](solve_pt.md)). Other tests check the relaxation itself: in `test_supersaturated_column_relaxes_toward_local_dew_point` the tendency on the adjusted interior levels equals $(T_\mathrm{dew} - T) / \tau$, latent heating warms the cold column, and halving $\tau$ doubles the tendency. In `test_moist_adjustment_zero_without_water_or_when_subsaturated`, a column with no water or an already subsaturated column has no adjustment.
+
+**Known limit.** The round trip takes the latent heat of water from `phys.water`, the same source that `Tdew` uses, so a wrong value there does not fail this test.
 
 ??? info "Test details"
     - Reference: water triple point (273.15 K at 611.657 Pa) and the constant-$L$ Clausius-Clapeyron inversion (analytical limit).

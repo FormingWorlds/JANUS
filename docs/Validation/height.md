@@ -22,17 +22,19 @@ This page checks how JANUS computes the gravity at the surface and the altitude 
 
 ## Height of an isothermal column
 
-**Why this check exists.** The altitude integrator sums a hydrostatic step over the pressure levels. A missing $1/p$ factor or a wrong molar mass moves every altitude.
+**Why this check exists.** The altitude integrator sums a hydrostatic step over the pressure levels. A missing $1/p$ factor in the step moves every altitude.
 
 **What it tests.** `integrate_heights` sums the hydrostatic step $dz = -(R_\mathrm{gas} T / (M g))\, d\ln p$ up the column. Here $R_\mathrm{gas}$ is the gas constant, $T$ the temperature, $M$ the molar mass and $g$ the gravity. For an isothermal ideal-gas column this integrates in closed form to $z(p) = H \ln(p_\mathrm{surface} / p)$, with the scale height $H = R_\mathrm{gas} T / (M g)$. The test compares the total span of the column with this integral on a fine grid. The routine reverses the pressure array internally, so the test also checks that the input array is the same on return.
 
-**How we know the right answer.** The closed-form integral of the hydrostatic equation for an isothermal ideal gas. A missing $1/p$ factor or a wrong molar mass would move the scale height far outside the 5 % tolerance. Further physics invariants are asserted:
+**How we know the right answer.** The closed-form integral of the hydrostatic equation for an isothermal ideal gas. A missing $1/p$ factor would put the span far outside the 5 % tolerance. Further physics invariants are asserted:
 
 - the altitude falls as the pressure rises, and the local gravity falls with height;
 - the stored local gravity agrees with the returned heights, $g(z) = g_s R^2 / (R + z)^2$ on the same levels, also through the netCDF writer;
 - a diverging integration is flagged and returns a bounded dummy grid, with the gravity evaluated on it.
 
 **Why it matters.** `write_ncdf` calls `integrate_heights`, so these heights are the altitudes of the JANUS output. The routine uses `R_gas` and `molar_mass` from `janus.utils.phys` (see [phys.md](phys.md)).
+
+**Known limit.** The test computes the analytic span with the same `R_gas`, `molar_mass` and `gravity` that the code uses, so a wrong value of one of these does not fail this test. The gravity case above checks `gravity` on its own.
 
 ??? info "Test details"
     - Reference: isothermal hydrostatic column, analytic scale-height integral (analytical limit).
