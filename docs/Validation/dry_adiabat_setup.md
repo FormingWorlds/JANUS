@@ -17,7 +17,7 @@ This page checks how JANUS builds a dry adiabat, the temperature profile of a we
 ![Temperature of the dry adiabat against pressure, with the potential temperature of each level](../assets/validation/janus_dry_adiabat_theta.svg#only-light){ width="80%" }
 ![Temperature of the dry adiabat against pressure, with the potential temperature of each level](../assets/validation/janus_dry_adiabat_theta_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** The y-axis is the pressure on a log scale, with the surface at the bottom. The solid line is the temperature that `dry_adiabat_atm` gives each level and the dotted line is ts = 1500 K; both give context. The marks are the potential temperature $\theta$ of each level, which the test asserts equal to ts to a relative 1e-10, too small to see. The cross is $\theta$ at the top level if the column were isothermal, at 5604 K. A pass means that every mark lies on the dotted line and the cross lies above 1.5 ts.
+**How to read the plot.** The y-axis is the pressure on a log scale, with the surface at the bottom. The solid line is the temperature that `dry_adiabat_atm` gives each level and the dotted line is $T_s$ = 1500 K; both give context. The circles are the potential temperature $\theta$ of each level, which the test asserts equal to $T_s$ to a relative 1e-10, too small to see. The cross is $\theta$ at the top level if the column were isothermal, at 5604 K. A pass means that every circle lies on the dotted line and that the cross lies above 1.5 $T_s$.
 
 **Known limit.** The test computes $\theta$ with the `Rcp` that the code itself returns, and checks only that it lies between 0 and 0.4. A wrong heat capacity, and so a wrong exponent inside that range, does not fail this test.
 

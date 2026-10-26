@@ -17,7 +17,7 @@ This page checks the thermodynamic relations of `janus.utils.phys`: the saturati
 ![Saturation pressure from satvps against temperature, with the values at T0 and 30 K below and above it](../assets/validation/janus_phys_satvps.svg#only-light){ width="80%" }
 ![Saturation pressure from satvps against temperature, with the values at T0 and 30 K below and above it](../assets/validation/janus_phys_satvps_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** The line is `satvps` for the water-like values of the test and gives context. The grey band is the guard range of 10 to 100 Pa. The test asserts 3 marks. At $T_0$ = 273.16 K the code value (circle) equals $e_0$ = 611 Pa (square) to a relative 1e-12. At 30 K below $T_0$ the code value (circle) is 53.02 Pa (square, with its error bar of 1 %). At 30 K above $T_0$ the code value (circle) is higher than $e_0$. A pass means that the circles sit in their squares and the circle at 30 K below lies inside the grey band.
+**How to read the plot.** The line is `satvps` with the inputs of the test and gives context. The inputs are $T_0$ = 273.16 K, $e_0$ = 611 Pa, a molar mass of 18 g/mol and a latent heat of 2.5e6 J/kg. The grey band is the guard band of 10 to 100 Pa. The test asserts 3 marks. At $T_0$ the code value (circle) equals $e_0$ (square) to a relative 1e-12. At 30 K below $T_0$ the code value (circle) is 53.02 Pa (square, with its error bar of 1 %). At 30 K above $T_0$ the code value (circle) is higher than $e_0$. A pass means that the circles at $T_0$ and 30 K below sit in their squares. The circle at 30 K below must also lie in the grey band. The circle at 30 K above must lie above $e_0$.
 
 ??? info "Test details"
     - Reference: Clausius-Clapeyron reference identity plus an off-reference exponent (analytical limit).
@@ -59,7 +59,7 @@ This page checks the thermodynamic relations of `janus.utils.phys`: the saturati
 ![Planck radiance at 5e13 Hz against temperature, with the values at 300 and 1500 K](../assets/validation/janus_phys_planck.svg#only-light){ width="80%" }
 ![Planck radiance at 5e13 Hz against temperature, with the values at 300 and 1500 K](../assets/validation/janus_phys_planck_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** Both axes are logarithmic. The line is `B` at 5e13 Hz from 200 to 2000 K and gives context. The test asserts the code value at 300 K (circle) against 6.193e-13 W m$^{-2}$ sr$^{-1}$ Hz$^{-1}$ (square). Its error bar of relative 1e-3 is too small to see. The value at 1500 K (circle) must be more than 100 times higher; it is 753 times higher. A pass means that the circle at 300 K sits in the square. The circle at 1500 K must lie more than 2 decades above it. The test also checks a value at 1e16 Hz, which is not on this axis.
+**How to read the plot.** Both axes are logarithmic. The line is `B` at 5e13 Hz from 200 to 2000 K and gives context. The test asserts the code value at 300 K (circle) against 6.193e-13 W m$^{-2}$ sr$^{-1}$ Hz$^{-1}$ (square). Its error bar of relative 1e-3 is too small to see. The value at 1500 K (circle) must be more than 100 times higher; it is 753 times higher. A pass means that the circle at 300 K sits in the square. The circle at 1500 K must be more than 100 times higher. The test also checks a value at 1e16 Hz, which is not on this axis.
 
 ??? info "Test details"
     - Reference: Planck closed-form radiance (analytical limit).

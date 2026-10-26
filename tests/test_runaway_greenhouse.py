@@ -94,9 +94,9 @@ def test_runaway_greenhouse(tmpdir, inp, expected, validation_plot):
             's',
             mfc='none',
             color='0.6',
-            label='pinned OLR of the test',
+            label='stored OLR of the test',
         )
-        ax.plot([inp], [expected], 's', mfc='none', ms=10, label=f'pin at {inp:.0f} K')
+        ax.plot([inp], [expected], 's', mfc='none', ms=10, label=f'stored value at {inp:.0f} K')
         ax.plot([inp], [ret], 'o', label='code')
         ax.set(xlabel='surface temperature [K]', ylabel=r'OLR [W m$^{-2}$]', yscale='log')
         ax.legend(fontsize='small')

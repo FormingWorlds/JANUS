@@ -76,8 +76,8 @@ def test_instellation(tmpdir, inp, expected, validation_plot):
         names = ['SW down', 'LW up', 'net', 'Ts', 'T trop']
         fig, ax = plt.subplots()
         ax.axhline(1.0, ls=':', color='0.5')
-        ax.plot(names, np.asarray(ret) / np.asarray(expected), 'o', label='code / pin')
-        ax.set(ylabel='code value / pinned value', ylim=(0.99, 1.01))
+        ax.plot(names, np.asarray(ret) / np.asarray(expected), 'o', label='code / stored value')
+        ax.set(ylabel='code value / stored value', ylim=(0.99, 1.01))
         ax.legend(fontsize='small')
         fig.tight_layout()
         return fig

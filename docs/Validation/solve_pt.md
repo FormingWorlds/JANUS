@@ -14,16 +14,16 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 
 **Why it matters.** `RadConvEqm` returns the atmosphere state. When a physics change moves these values on purpose, the stored values change in the same commit, with the reason in the commit message.
 
-![Outgoing longwave radiation against surface temperature, with the 3 pinned values and the code value](../assets/validation/janus_runaway_olr_200k.svg#only-light){ width="80%" }
-![Outgoing longwave radiation against surface temperature, with the 3 pinned values and the code value](../assets/validation/janus_runaway_olr_200k_dark.svg#only-dark){ width="80%" }
+![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 200 K](../assets/validation/janus_runaway_olr_200k.svg#only-light){ width="80%" }
+![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 200 K](../assets/validation/janus_runaway_olr_200k_dark.svg#only-dark){ width="80%" }
 
-![Outgoing longwave radiation against surface temperature, with the 3 pinned values and the code value](../assets/validation/janus_runaway_olr_1705k.svg#only-light){ width="80%" }
-![Outgoing longwave radiation against surface temperature, with the 3 pinned values and the code value](../assets/validation/janus_runaway_olr_1705k_dark.svg#only-dark){ width="80%" }
+![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 1705 K](../assets/validation/janus_runaway_olr_1705k.svg#only-light){ width="80%" }
+![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 1705 K](../assets/validation/janus_runaway_olr_1705k_dark.svg#only-dark){ width="80%" }
 
-![Outgoing longwave radiation against surface temperature, with the 3 pinned values and the code value](../assets/validation/janus_runaway_olr_2800k.svg#only-light){ width="80%" }
-![Outgoing longwave radiation against surface temperature, with the 3 pinned values and the code value](../assets/validation/janus_runaway_olr_2800k_dark.svg#only-dark){ width="80%" }
+![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 2800 K](../assets/validation/janus_runaway_olr_2800k.svg#only-light){ width="80%" }
+![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 2800 K](../assets/validation/janus_runaway_olr_2800k_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** There is one plot for each of the 3 surface temperatures of the test. The grey squares are the 3 pinned values: 90.73, 278.99 and 6583.79 W/m$^2$. In each plot the large square is the pin of that temperature and the circle is the code value. The test asserts it to a relative 1e-5, too small to see. No line is drawn, because each point needs a full radiative-convective solve. A pass means that the circle sits in the large square.
+**How to read the plot.** There is one plot for each of the 3 surface temperatures of the test. The grey squares are the 3 stored values: 90.73, 278.99 and 6583.79 W/m$^2$. In each plot the large square is the stored value of that temperature and the circle is the code value. The test asserts it to a relative 1e-5, too small to see. No line is drawn, because each point needs a full radiative-convective solve. A pass means that the circle sits in the large square.
 
 **Known limit.** Only 3 surface temperatures are checked; the test file holds further reference rows on the plateau, but they are commented out. With `cp_dry=False`, the test does not reach the dry-adiabat or the moist-adjustment code.
 
@@ -43,13 +43,13 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 
 **Why it matters.** `MCPA_CBL` returns the atmosphere state with a conductive surface layer.
 
-![Ratio of the code value to the pinned value for the 5 quantities of the instellation test](../assets/validation/janus_instellation_0p3au.svg#only-light){ width="80%" }
-![Ratio of the code value to the pinned value for the 5 quantities of the instellation test](../assets/validation/janus_instellation_0p3au_dark.svg#only-dark){ width="80%" }
+![Ratio of the code value to the stored value for the 5 quantities of the instellation test at 0.3 au](../assets/validation/janus_instellation_0p3au.svg#only-light){ width="80%" }
+![Ratio of the code value to the stored value for the 5 quantities of the instellation test at 0.3 au](../assets/validation/janus_instellation_0p3au_dark.svg#only-dark){ width="80%" }
 
-![Ratio of the code value to the pinned value for the 5 quantities of the instellation test](../assets/validation/janus_instellation_1p4au.svg#only-light){ width="80%" }
-![Ratio of the code value to the pinned value for the 5 quantities of the instellation test](../assets/validation/janus_instellation_1p4au_dark.svg#only-dark){ width="80%" }
+![Ratio of the code value to the stored value for the 5 quantities of the instellation test at 1.4 au](../assets/validation/janus_instellation_1p4au.svg#only-light){ width="80%" }
+![Ratio of the code value to the stored value for the 5 quantities of the instellation test at 1.4 au](../assets/validation/janus_instellation_1p4au_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** There is one plot for each of the 2 orbital distances, 0.3 and 1.4 AU. Each mark is one of the 5 quantities divided by its pinned value: downward shortwave flux, upward longwave flux and net flux at the top of the atmosphere, surface temperature and tropopause temperature. The test asserts each to a relative 1e-5, too small to see on this axis. A pass means that every mark lies on the dotted line at 1.
+**How to read the plot.** There is one plot for each of the 2 orbital distances, 0.3 and 1.4 au. Each mark is one of the 5 quantities divided by its stored value. The axis labels are: SW down, the downward shortwave flux; LW up, the upward longwave flux; net, the net flux, all 3 at the top of the atmosphere; Ts, the surface temperature; T trop, the tropopause temperature. The test asserts each to a relative 1e-5, too small to see on this axis. A pass means that every mark lies on the dotted line at 1.
 
 **Known limit.** Only the downward shortwave flux has an analytical scaling; the other 4 values are a regression pin only. `MCPA`, the third solve that `janus.modules` exports, has only a mocked unit test (`tests/modules/test_solve_pt.py`), no stored SOCRATES result.
 

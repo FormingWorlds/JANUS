@@ -77,7 +77,7 @@ def test_dry_adiabat_conserves_potential_temperature(validation_plot):
 
         fig, ax = plt.subplots()
         ax.plot(atm.tmpl, atm.pl, label='code, T of the dry adiabat')
-        ax.axvline(ts, ls=':', color='0.5', label='ts')
+        ax.axvline(ts, ls=':', color='0.5', label='$T_s$')
         ax.plot(theta, atm.pl, 'o', ms=3, label=r'$\theta$ of each level')
         ax.plot(
             [theta_if_isothermal[0]], [atm.pl[0]], 'x', label=r'$\theta$ if isothermal, top'
