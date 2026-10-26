@@ -121,8 +121,9 @@ def test_satvpw_matches_one_atm_at_steam_point(validation_plot):
     assert 1.00e5 < p_boil < 1.02e5
     # Clausius-Clapeyron monotonicity: warmer water has higher saturation
     # pressure, colder (still above the triple point) has lower.
-    assert phys.satvpw(T_steam - dT) < p_boil < phys.satvpw(T_steam + dT)
-    assert phys.satvpw(T_steam - dT) > 0.0
+    p_cold, p_hot = phys.satvpw(T_steam - dT), phys.satvpw(T_steam + dT)
+    assert p_cold < p_boil < p_hot
+    assert p_cold > 0.0
 
     def figure():
         import matplotlib.pyplot as plt
@@ -142,7 +143,7 @@ def test_satvpw_matches_one_atm_at_steam_point(validation_plot):
         ax.plot([T_steam], [p_boil], 'o', label='code at 373.16 K')
         ax.plot(
             [T_steam - dT, T_steam + dT],
-            [phys.satvpw(T_steam - dT), phys.satvpw(T_steam + dT)],
+            [p_cold, p_hot],
             '^',
             label=r'code at $\pm$10 K',
         )

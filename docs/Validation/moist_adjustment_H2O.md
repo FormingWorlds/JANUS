@@ -25,13 +25,7 @@ At or below 611.657 Pa the code takes $T_\mathrm{ref}$ = 273.15 K, $p_\mathrm{re
 ![Dew point of water against its partial pressure, with the triple point and the round trip at 340 K](../assets/validation/janus_moist_dew_point.svg#only-light){ width="80%" }
 ![Dew point of water against its partial pressure, with the triple point and the round trip at 340 K](../assets/validation/janus_moist_dew_point_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** The line is `Tdew` for water from 100 Pa to 1e5 Pa and gives context. Near the triple point it rises in one steep step, where the ice and liquid branches of `Tdew` meet with a gap of 2.8 K. The line has no point at 611.657 Pa, so the marks at 273.15 K sit below the drawn step. The test asserts these marks:
-
-- at 611.657 Pa, the code value (circle) at 273.15 K to 0.05 K (square with error bar), and the relaxation target of `moist_adj` (diamond) at 273.15 K to 0.1 K, twice the drawn error bar; the 3 marks overlap;
-- at 24380 Pa, the round trip (circle) at 340 K (square) to a relative 1e-9;
-- at 5944 Pa, the cross: the dew point of the code for the pressure that a doubled latent heat gives at 340 K. It is 312.3 K.
-
-A pass means that the circles and the diamond lie within their tolerances of 273.15 K and 340 K, and that the cross lies more than 1 K from 340 K.
+**How to read the plot.** The line is `Tdew` for water from 100 Pa to 1e5 Pa and gives context. Near the triple point it rises in one steep step, where the ice and liquid branches of `Tdew` meet 2.8 K apart. At 611.657 Pa the code value (circle) must be 273.15 K to 0.05 K (square); the `moist_adj` target (diamond) must be within 0.1 K. These marks overlap and sit below the drawn step, because the line has no point at 611.657 Pa. At 24380 Pa the round trip (circle) must give 340 K (square) to a relative 1e-9. The cross at 5944 Pa, 312.3 K, is the doubled latent heat case; it must lie more than 1 K from 340 K.
 
 **Known limit.** The round trip takes the latent heat of water from `phys.water`, the same source that `Tdew` uses, so a wrong value there does not fail this test. The round trip runs above the triple-point pressure only, so the sublimation branch below it has no round-trip check.
 

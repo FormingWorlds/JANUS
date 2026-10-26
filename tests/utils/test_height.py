@@ -45,13 +45,14 @@ def test_surface_gravity_matches_earth_inverse_square(validation_plot):
     Doubling the radius must quarter g, which discriminates an inverse-linear
     bug; doubling the mass must double g.
     """
-    g_ref, g_tol, r_far = 9.82, 0.02, 2.0
-    grav = height.gravity(M_EARTH, R_EARTH)
+    g_ref, g_tol, r_near, r_far = 9.82, 0.02, 1.0, 2.0
+    grav = height.gravity(M_EARTH, r_near * R_EARTH)
     assert grav == pytest.approx(g_ref, abs=g_tol)
     # Inverse-square guard: 2x radius -> g/4 exactly, not g/2 (inverse-linear).
     grav_double_r = height.gravity(M_EARTH, r_far * R_EARTH)
     assert grav_double_r == pytest.approx(grav / r_far**2, rel=1e-12)
-    assert grav_double_r < grav / 3.0  # rules out the inverse-linear g/2 result
+    g_bound = grav / 3.0
+    assert grav_double_r < g_bound  # rules out the inverse-linear g/2 result
     # Mass linearity and positivity.
     assert height.gravity(2.0 * M_EARTH, R_EARTH) == pytest.approx(2.0 * grav, rel=1e-12)
     assert grav > 0.0
@@ -65,11 +66,17 @@ def test_surface_gravity_matches_earth_inverse_square(validation_plot):
             radii, [height.gravity(M_EARTH, r * R_EARTH) for r in radii], label='code, gravity'
         )
         ax.errorbar(
-            [1.0], [g_ref], yerr=g_tol, fmt='s', mfc='none', capsize=4, label=r'9.82 $\pm$ 0.02'
+            [r_near],
+            [g_ref],
+            yerr=g_tol,
+            fmt='s',
+            mfc='none',
+            capsize=4,
+            label=r'9.82 $\pm$ 0.02',
         )
         ax.plot([r_far], [grav / r_far**2], 's', mfc='none', ms=10, label='g/4')
-        ax.plot([1.0, r_far], [grav, grav_double_r], 'o', label='code at R and 2R')
-        ax.plot([r_far], [grav / r_far], 'x', label='g/2 (inverse-linear)')
+        ax.plot([r_near, r_far], [grav, grav_double_r], 'o', label='code at R and 2R')
+        ax.plot([r_far - 0.15, r_far + 0.15], [g_bound, g_bound], ls='--', label='bound g/3')
         ax.set(xlabel=r'r [$R_\oplus$]', ylabel=r'g [m s$^{-2}$]')
         ax.legend(fontsize='small')
         fig.tight_layout()
@@ -118,7 +125,8 @@ def test_integrate_heights_recovers_isothermal_scale_height(validation_plot):
     # Rectangle-rule hydrostatic sum matches the analytic log integral to a
     # few percent on this grid; a missing 1/p factor or wrong molar mass would
     # throw the scale height far outside 5%.
-    assert z_span == pytest.approx(analytic_span, rel=0.05)
+    span_rtol = 0.05
+    assert z_span == pytest.approx(analytic_span, rel=span_rtol)
     # Autonomy: the input pressure array is unchanged after the internal flip.
     np.testing.assert_allclose(atm.p, p_input, rtol=0, atol=0)
 
@@ -130,12 +138,18 @@ def test_integrate_heights_recovers_isothermal_scale_height(validation_plot):
         keep = np.unique(np.r_[0:nlev:5, np.argmin(zcen), np.argmax(zcen)])
         height_km = (zcen - zcen.min()) / 1e3
         ax.plot(height_km[keep], atm.p[keep], 'o', ms=3, label='code, every 5th level')
+        ax.errorbar(
+            [analytic_span / 1e3],
+            [press.min()],
+            xerr=span_rtol * analytic_span / 1e3,
+            fmt='s',
+            mfc='none',
+            capsize=4,
+            label='full height from the scale height, 5 %',
+        )
+        ax.plot([z_span / 1e3], [press.min()], 'D', label='code, full height')
         ax.set(xlabel='height above the lowest level [km]', ylabel='p [Pa]', yscale='log')
         ax.invert_yaxis()
-        ax.set_title(
-            f'span: code {z_span / 1e3:.2f} km, analytic {analytic_span / 1e3:.2f} km',
-            fontsize='small',
-        )
         ax.legend(fontsize='small')
         fig.tight_layout()
         return fig

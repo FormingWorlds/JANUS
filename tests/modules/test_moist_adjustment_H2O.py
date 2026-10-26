@@ -132,7 +132,8 @@ def test_dew_point_target_matches_clausius_clapeyron_reference(validation_plot):
     # Published anchor: water triple point, 273.16 K at 611.657 Pa. The routine
     # uses 273.15 K as its p<=p_triple reference temperature; pin within 0.05 K.
     p_triple, T_triple, tol_dew, tol_target = 611.657, 273.15, 0.05, 0.1
-    assert ga.Tdew('H2O', p_triple) == pytest.approx(T_triple, abs=tol_dew)
+    tdew_triple = ga.Tdew('H2O', p_triple)
+    assert tdew_triple == pytest.approx(T_triple, abs=tol_dew)
 
     # Off-reference round-trip that depends on the latent heat. The p>p_triple
     # branch of ga.Tdew anchors on the 1 atm reference pressure at Tref=373.15 K,
@@ -146,12 +147,14 @@ def test_dew_point_target_matches_clausius_clapeyron_reference(validation_plot):
     coeff = latent_molar / phys.R_gas
     t_target = 340.0
     p_forward = pref * math.exp(coeff * (1.0 / Tref - 1.0 / t_target))
-    assert ga.Tdew('H2O', p_forward) == pytest.approx(t_target, rel=1e-9)
+    tdew_forward = ga.Tdew('H2O', p_forward)
+    assert tdew_forward == pytest.approx(t_target, rel=1e-9)
     # Latent-heat guard: feeding the same pressure but with a doubled coefficient
     # recovers a temperature tens of kelvin away, far past the round-trip
     # tolerance, so the anchor actually pins L rather than being degenerate.
     p_wrong_l = pref * math.exp(2.0 * coeff * (1.0 / Tref - 1.0 / t_target))
-    assert abs(ga.Tdew('H2O', p_wrong_l) - t_target) > 1.0
+    tdew_wrong = ga.Tdew('H2O', p_wrong_l)
+    assert abs(tdew_wrong - t_target) > 1.0
 
     # Tie the published anchor to the module output: a cold column with one
     # interior level at the triple-point pressure relaxes that level's target to
@@ -185,13 +188,13 @@ def test_dew_point_target_matches_clausius_clapeyron_reference(validation_plot):
             capsize=4,
             label='triple point',
         )
-        ax.plot([pp_triple], [ga.Tdew('H2O', pp_triple)], 'o', label='code at the triple point')
+        ax.plot([pp_triple], [tdew_triple], 'o', label='code at the triple point')
         ax.plot([pp_triple], [target_triple], 'D', mfc='none', label='moist_adj target')
         ax.plot(
             [p_forward], [t_target], 's', mfc='none', ms=10, label='round-trip target 340 K'
         )
-        ax.plot([p_forward], [ga.Tdew('H2O', p_forward)], 'o', label='code, round trip')
-        ax.plot([p_wrong_l], [ga.Tdew('H2O', p_wrong_l)], 'x', label='code, doubled-L pressure')
+        ax.plot([p_forward], [tdew_forward], 'o', label='code, round trip')
+        ax.plot([p_wrong_l], [tdew_wrong], 'x', label='code, doubled-L pressure')
         ax.set(xlabel='H$_2$O partial pressure [Pa]', ylabel='dew point [K]', xscale='log')
         ax.legend(fontsize='small')
         fig.tight_layout()

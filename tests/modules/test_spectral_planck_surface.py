@@ -44,30 +44,36 @@ def test_band_integrated_surface_flux_matches_stefan_boltzmann(validation_plot):
     total = float(np.sum(surf_Planck_nu(atm)))
     stefan_boltzmann = (1.0 - albedo) * SIGMA_SB * ts**4
     # Grid converges to ~4e-6; 2e-3 leaves generous headroom.
-    assert total == pytest.approx(stefan_boltzmann, rel=2e-3)
+    sb_rtol, ratio_ref, ratio_rtol = 2e-3, 16.0, 1e-2
+    assert total == pytest.approx(stefan_boltzmann, rel=sb_rtol)
 
     # T^4 scaling guard: halving Ts drops the integrated flux by 2^4.
     atm_cool = SimpleNamespace(
         band_centres=wavenum, band_widths=widths, ts=ts / 2.0, albedo_s=albedo
     )
     total_cool = float(np.sum(surf_Planck_nu(atm_cool)))
-    assert total / total_cool == pytest.approx(16.0, rel=1e-2)
+    assert total / total_cool == pytest.approx(ratio_ref, rel=ratio_rtol)
 
     def figure():
         import matplotlib.pyplot as plt
 
-        temps = np.linspace(500.0, 2000.0, 61)
-        fig, (left, right) = plt.subplots(1, 2, figsize=(8.0, 3.6))
-        left.plot(temps, SIGMA_SB * temps**4, label=r'$\sigma T^4$')
-        left.plot([ts, ts / 2.0], [total, total_cool], 'o', label='code, band sum')
-        left.set(xlabel='Ts [K]', ylabel=r'surface flux [W m$^{-2}$]', yscale='log')
-        left.legend(fontsize='small')
-        per_band = surf_Planck_nu(atm) / widths
-        right.plot(wavenum[::200], per_band[::200], label='code, 1500 K')
-        right.set(
-            xlabel=r'wavenumber [cm$^{-1}$]', ylabel=r'flux per band width [W m$^{-2}$ cm]'
+        temps = np.linspace(500.0, 2000.0, 31)
+        fig, left = plt.subplots()
+        left.plot(temps, (1.0 - albedo) * SIGMA_SB * temps**4, label=r'$(1-a)\,\sigma T^4$')
+        left.errorbar(
+            [ts],
+            [stefan_boltzmann],
+            yerr=sb_rtol * stefan_boltzmann,
+            fmt='s',
+            mfc='none',
+            capsize=4,
+            label='Stefan-Boltzmann at Ts',
         )
-        right.legend(fontsize='small')
+        left.plot([ts, ts / 2.0], [total, total_cool], 'o', label='code, band sum')
+        left.set(
+            xlabel='Ts [K]', ylabel=r'surface flux [W m$^{-2}$]', yscale='log', ylim=(2e3, 3e7)
+        )
+        left.legend(fontsize='small', loc='upper left')
         fig.tight_layout()
         return fig
 

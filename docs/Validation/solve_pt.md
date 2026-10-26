@@ -49,7 +49,7 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 ![Ratio of the code value to the stored value for the 5 quantities of the instellation test at 1.4 au](../assets/validation/janus_instellation_1p4au.svg#only-light){ width="80%" }
 ![Ratio of the code value to the stored value for the 5 quantities of the instellation test at 1.4 au](../assets/validation/janus_instellation_1p4au_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** There is one plot for each of the 2 orbital distances, 0.3 and 1.4 au. Each mark is one of the 5 quantities divided by its stored value. The axis labels are: SW down, the downward shortwave flux; LW up, the upward longwave flux; net, the net flux, all 3 at the top of the atmosphere; Ts, the surface temperature; T trop, the tropopause temperature. The test asserts each to a relative 1e-5, too small to see on this axis. A pass means that every mark lies on the dotted line at 1.
+**How to read the plot.** There is one plot for each of the 2 orbital distances, 0.3 and 1.4 au. Each mark is one of the 5 quantities divided by its stored value. SW down, LW up and net are the downward shortwave, upward longwave and net fluxes at the top of the atmosphere. Ts is the surface temperature and T trop the tropopause temperature. The test asserts each to a relative 1e-5, too small to see on this axis. A pass means that every mark lies on the dotted line at 1.
 
 **Known limit.** Only the downward shortwave flux has an analytical scaling; the other 4 values are a regression pin only. `MCPA`, the third solve that `janus.modules` exports, has only a mocked unit test (`tests/modules/test_solve_pt.py`), no stored SOCRATES result.
 
