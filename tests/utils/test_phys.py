@@ -55,16 +55,17 @@ def test_satvps_returns_reference_pressure_at_reference_temperature(validation_p
     at_ref = phys.satvps(T0, T0, e0, mol_weight, latent)
     assert at_ref == pytest.approx(e0, rel=1e-12)  # exponent is exactly zero here
 
-    colder = phys.satvps(T0 - 30.0, T0, e0, mol_weight, latent)
-    warmer = phys.satvps(T0 + 30.0, T0, e0, mol_weight, latent)
+    dT, colder_ref, colder_rtol, guard = 30.0, 53.02, 1e-2, (10.0, 100.0)
+    colder = phys.satvps(T0 - dT, T0, e0, mol_weight, latent)
+    warmer = phys.satvps(T0 + dT, T0, e0, mol_weight, latent)
     # Off-reference pin: 30 K below T0 the exponent is -2.44, giving 53.0 Pa for
     # the water-like L/Rv coefficient. Unlike the T0 identity this value depends
     # on the coefficient, so it pins L/Rv rather than collapsing to e0.
-    assert colder == pytest.approx(53.02, rel=1e-2)
+    assert colder == pytest.approx(colder_ref, rel=colder_rtol)
     # Coefficient guard: a factor slip in L or Rv leaves this band. Doubling the
     # coefficient collapses the value to ~4.6 Pa (below), halving it lifts the
     # value to ~180 Pa (above); the correct 53 Pa is the only value inside.
-    assert 10.0 < colder < 100.0
+    assert guard[0] < colder < guard[1]
     # Sign-of-exponent guard: a dropped minus sign would invert these.
     assert colder < e0 < warmer
     # Positivity: saturation pressure is strictly positive.
@@ -80,18 +81,18 @@ def test_satvps_returns_reference_pressure_at_reference_temperature(validation_p
             [phys.satvps(t, T0, e0, mol_weight, latent) for t in temps],
             label='code, satvps',
         )
-        ax.axhspan(10.0, 100.0, color='0.5', alpha=0.2, label='guard band 10 to 100 Pa')
+        ax.axhspan(*guard, color='0.5', alpha=0.2, label='guard band 10 to 100 Pa')
         ax.errorbar(
-            [T0 - 30.0],
-            [53.02],
-            yerr=53.02 * 1e-2,
+            [T0 - dT],
+            [colder_ref],
+            yerr=colder_ref * colder_rtol,
             fmt='s',
             mfc='none',
             capsize=4,
             label='53.02 Pa',
         )
         ax.plot([T0], [e0], 's', mfc='none', ms=10, label='e0 at T0')
-        ax.plot([T0 - 30.0, T0, T0 + 30.0], [colder, at_ref, warmer], 'o', label='code')
+        ax.plot([T0 - dT, T0, T0 + dT], [colder, at_ref, warmer], 'o', label='code')
         ax.set(xlabel='T [K]', ylabel='saturation pressure [Pa]', yscale='log')
         ax.legend(fontsize='small')
         fig.tight_layout()
@@ -111,16 +112,17 @@ def test_satvpw_matches_one_atm_at_steam_point(validation_plot):
     with the Smithsonian fit; this ~1 atm scale is the physical anchor. The
     curve must rise monotonically with temperature (Clausius-Clapeyron).
     """
-    p_boil = phys.satvpw(373.16)
+    T_steam, p_ref, p_rtol, dT = 373.16, 101514.5, 1e-4, 10.0
+    p_boil = phys.satvpw(T_steam)
     # Smithsonian fit at the steam point; pins the regression value.
-    assert p_boil == pytest.approx(101514.5, rel=1e-4)
+    assert p_boil == pytest.approx(p_ref, rel=p_rtol)
     # Reference-scale guard: within ~0.5% of one standard atmosphere, ruling
     # out a Pa/hPa unit slip (would give ~1013 or ~1.01e7) or a 10x error.
     assert 1.00e5 < p_boil < 1.02e5
     # Clausius-Clapeyron monotonicity: warmer water has higher saturation
     # pressure, colder (still above the triple point) has lower.
-    assert phys.satvpw(363.16) < p_boil < phys.satvpw(383.16)
-    assert phys.satvpw(363.16) > 0.0
+    assert phys.satvpw(T_steam - dT) < p_boil < phys.satvpw(T_steam + dT)
+    assert phys.satvpw(T_steam - dT) > 0.0
 
     def figure():
         import matplotlib.pyplot as plt
@@ -129,20 +131,20 @@ def test_satvpw_matches_one_atm_at_steam_point(validation_plot):
         fig, ax = plt.subplots()
         ax.plot(temps, [phys.satvpw(t) for t in temps], label='code, satvpw')
         ax.errorbar(
-            [373.16],
-            [101514.5],
-            yerr=101514.5 * 1e-4,
+            [T_steam],
+            [p_ref],
+            yerr=p_ref * p_rtol,
             fmt='s',
             mfc='none',
             capsize=4,
             label='101514.5 Pa',
         )
-        ax.plot([373.16], [p_boil], 'o', label='code at 373.16 K')
+        ax.plot([T_steam], [p_boil], 'o', label='code at 373.16 K')
         ax.plot(
-            [363.16, 383.16],
-            [phys.satvpw(363.16), phys.satvpw(383.16)],
+            [T_steam - dT, T_steam + dT],
+            [phys.satvpw(T_steam - dT), phys.satvpw(T_steam + dT)],
             '^',
-            label='code at +-10 K',
+            label=r'code at $\pm$10 K',
         )
         ax.set(xlabel='T [K]', ylabel='saturation pressure [Pa]')
         ax.legend(fontsize='small')
@@ -187,12 +189,13 @@ def test_planck_radiance_positive_and_increases_with_temperature(validation_plot
     rather than overflowing; that clamp is the error-contract path.
     """
     nu = 5.0e13  # ~6 micron, thermal-IR
-    b_cool = phys.B(nu, 300.0)
-    b_warm = phys.B(nu, 1500.0)
+    T_cool, T_warm, b_ref, b_rtol = 300.0, 1500.0, 6.193e-13, 1e-3
+    b_cool = phys.B(nu, T_cool)
+    b_warm = phys.B(nu, T_warm)
     # Closed-form Planck value at (5e13 Hz, 300 K); pins the nu**3 prefactor and
     # the h*nu/kT exponent. A dropped factor of 2 or a nu**2 / nu**4 prefactor
     # slip leaves the value outside the surrounding band.
-    assert b_cool == pytest.approx(6.193e-13, rel=1e-3)
+    assert b_cool == pytest.approx(b_ref, rel=b_rtol)
     assert 5.0e-13 < b_cool < 7.0e-13
     assert b_cool > 0.0
     assert b_warm > b_cool  # dB/dT > 0 at fixed frequency
@@ -212,15 +215,15 @@ def test_planck_radiance_positive_and_increases_with_temperature(validation_plot
         fig, ax = plt.subplots()
         ax.plot(temps, [phys.B(nu, t) for t in temps], label='code, B at 5e13 Hz')
         ax.errorbar(
-            [300.0],
-            [6.193e-13],
-            yerr=6.193e-13 * 1e-3,
+            [T_cool],
+            [b_ref],
+            yerr=b_ref * b_rtol,
             fmt='s',
             mfc='none',
             capsize=4,
             label='6.193e-13',
         )
-        ax.plot([300.0, 1500.0], [b_cool, b_warm], 'o', label='code at 300 and 1500 K')
+        ax.plot([T_cool, T_warm], [b_cool, b_warm], 'o', label='code at 300 and 1500 K')
         ax.set(
             xlabel='T [K]',
             ylabel=r'B [W m$^{-2}$ sr$^{-1}$ Hz$^{-1}$]',

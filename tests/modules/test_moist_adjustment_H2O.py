@@ -131,7 +131,8 @@ def test_dew_point_target_matches_clausius_clapeyron_reference(validation_plot):
     """
     # Published anchor: water triple point, 273.16 K at 611.657 Pa. The routine
     # uses 273.15 K as its p<=p_triple reference temperature; pin within 0.05 K.
-    assert ga.Tdew('H2O', 611.657) == pytest.approx(273.15, abs=0.05)
+    p_triple, T_triple, tol_dew, tol_target = 611.657, 273.15, 0.05, 0.1
+    assert ga.Tdew('H2O', p_triple) == pytest.approx(T_triple, abs=tol_dew)
 
     # Off-reference round-trip that depends on the latent heat. The p>p_triple
     # branch of ga.Tdew anchors on the 1 atm reference pressure at Tref=373.15 K,
@@ -156,7 +157,7 @@ def test_dew_point_target_matches_clausius_clapeyron_reference(validation_plot):
     # interior level at the triple-point pressure relaxes that level's target to
     # 273.15 K. press descends so index 1 (611.657 Pa) is an interior level the
     # downward pass adjusts; the top node (index -1) is left untouched.
-    pp_triple = 611.657
+    pp_triple = p_triple
     press = np.array([1.0e5, pp_triple, 1.0e3])
     t_cold, tau = 200.0, 50.0
     atm = SimpleNamespace(
@@ -167,7 +168,7 @@ def test_dew_point_target_matches_clausius_clapeyron_reference(validation_plot):
     )
     dt_conv = moist_adj(atm, conv_timescale=tau)
     target_triple = t_cold + dt_conv[1] * tau  # reconstructed relaxation target
-    assert target_triple == pytest.approx(273.15, abs=0.1)
+    assert target_triple == pytest.approx(T_triple, abs=tol_target)
 
     def figure():
         import matplotlib.pyplot as plt
@@ -177,8 +178,8 @@ def test_dew_point_target_matches_clausius_clapeyron_reference(validation_plot):
         ax.plot(pgrid, [ga.Tdew('H2O', p) for p in pgrid], label='code, Tdew')
         ax.errorbar(
             [pp_triple],
-            [273.15],
-            yerr=0.05,
+            [T_triple],
+            yerr=tol_dew,
             fmt='s',
             mfc='none',
             capsize=4,

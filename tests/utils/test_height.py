@@ -45,11 +45,12 @@ def test_surface_gravity_matches_earth_inverse_square(validation_plot):
     Doubling the radius must quarter g, which discriminates an inverse-linear
     bug; doubling the mass must double g.
     """
+    g_ref, g_tol, r_far = 9.82, 0.02, 2.0
     grav = height.gravity(M_EARTH, R_EARTH)
-    assert grav == pytest.approx(9.82, abs=0.02)
+    assert grav == pytest.approx(g_ref, abs=g_tol)
     # Inverse-square guard: 2x radius -> g/4 exactly, not g/2 (inverse-linear).
-    grav_double_r = height.gravity(M_EARTH, 2.0 * R_EARTH)
-    assert grav_double_r == pytest.approx(grav / 4.0, rel=1e-12)
+    grav_double_r = height.gravity(M_EARTH, r_far * R_EARTH)
+    assert grav_double_r == pytest.approx(grav / r_far**2, rel=1e-12)
     assert grav_double_r < grav / 3.0  # rules out the inverse-linear g/2 result
     # Mass linearity and positivity.
     assert height.gravity(2.0 * M_EARTH, R_EARTH) == pytest.approx(2.0 * grav, rel=1e-12)
@@ -64,11 +65,11 @@ def test_surface_gravity_matches_earth_inverse_square(validation_plot):
             radii, [height.gravity(M_EARTH, r * R_EARTH) for r in radii], label='code, gravity'
         )
         ax.errorbar(
-            [1.0], [9.82], yerr=0.02, fmt='s', mfc='none', capsize=4, label='9.82 +- 0.02'
+            [1.0], [g_ref], yerr=g_tol, fmt='s', mfc='none', capsize=4, label=r'9.82 $\pm$ 0.02'
         )
-        ax.plot([2.0], [grav / 4.0], 's', mfc='none', ms=10, label='g/4')
-        ax.plot([1.0, 2.0], [grav, grav_double_r], 'o', label='code at R and 2R')
-        ax.plot([2.0], [grav / 2.0], 'x', label='g/2 (inverse-linear)')
+        ax.plot([r_far], [grav / r_far**2], 's', mfc='none', ms=10, label='g/4')
+        ax.plot([1.0, r_far], [grav, grav_double_r], 'o', label='code at R and 2R')
+        ax.plot([r_far], [grav / r_far], 'x', label='g/2 (inverse-linear)')
         ax.set(xlabel=r'r [$R_\oplus$]', ylabel=r'g [m s$^{-2}$]')
         ax.legend(fontsize='small')
         fig.tight_layout()
