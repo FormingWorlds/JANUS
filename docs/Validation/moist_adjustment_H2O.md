@@ -29,7 +29,7 @@ At or below 611.657 Pa the code takes $T_\mathrm{ref}$ = 273.15 K, $p_\mathrm{re
     - Tolerance: absolute 0.05 K at the triple point; relative 1e-9 for the round trip; absolute 0.1 K for the `moist_adj` target; a doubled $L$ must miss by more than 1 K.
     - Test id: `tests/modules/test_moist_adjustment_H2O.py::test_dew_point_target_matches_clausius_clapeyron_reference`
     - Command: `pytest tests/modules/test_moist_adjustment_H2O.py::test_dew_point_target_matches_clausius_clapeyron_reference`
-    - Companion test: `test_supersaturated_column_relaxes_toward_local_dew_point`. The tendency on the adjusted interior levels equals $(T_\mathrm{dew} - T) / \tau$, latent heating warms the cold column, and halving $\tau$ doubles the tendency.
+    - Companion test: `test_supersaturated_column_relaxes_toward_local_dew_point`. The tendency on the adjusted interior levels equals $(T_\mathrm{dew} - T) / \tau$, latent heating warms the cold column, and doubling $\tau$ halves the tendency.
     - Companion test: `test_moist_adjustment_zero_without_water_or_when_subsaturated`. There is no adjustment without water or in a subsaturated column.
 
 ## Related code

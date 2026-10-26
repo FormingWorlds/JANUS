@@ -8,17 +8,17 @@ This page checks the thermal emission of the planet surface, summed over spectra
 
 **Why this check exists.** The surface flux is a sum over bands of a Planck emission with an albedo factor. A wrong band weight or a wrong temperature power gives a wrong flux without an error message.
 
-**What it tests.** The routine fills each band with the Planck emission at the surface temperature $T_s$. It weights the emission by $(1 - a)$, with $a$ the surface albedo, and multiplies it by $\pi$ and the band width. Summed over a grid that spans the thermal range, the band fluxes must give the Stefan-Boltzmann result $F = (1 - a) \sigma T_s^4$, with $\sigma$ = 5.670374419e-8 W m$^{-2}$ K$^{-4}$. The test uses 60000 bands from 1 to 30000 cm$^{-1}$ (wavenumber), $T_s$ = 1500 K and albedo 0. Halving $T_s$ must lower the flux by $2^4 = 16$.
+**What it tests.** The routine fills each band with the Planck emission at the surface temperature $T_s$. It weights the emission by $(1 - a)$, with $a$ the surface albedo, and multiplies it by $\pi$ and by the band width divided by 1000 (a unit conversion). Summed over a grid that spans the thermal range, the band fluxes must give the Stefan-Boltzmann result $F = (1 - a) \sigma T_s^4$, with $\sigma$ = 5.670374419e-8 W m$^{-2}$ K$^{-4}$. The test uses 60000 bands from 1 to 30000 cm$^{-1}$ (wavenumber), $T_s$ = 1500 K and albedo 0. Halving $T_s$ must lower the flux by $2^4 = 16$.
 
 **How we know the right answer.** The integral of the Planck function over all frequencies is the Stefan-Boltzmann law. The quartic scaling tells the right law apart: a linearised or cubic emission law could match at one temperature but fails the ratio.
 
-**Why it matters.** `surf_Planck_nu` is a standalone helper: no code in this repository calls it, and `plot_flux_balance` only imports it.
+**Why it matters.** `surf_Planck_nu` is a standalone helper: no module under `src/janus` calls it, and `plot_flux_balance` only imports it.
 
 **Known limit.** The test runs with albedo 0, so it does not check the albedo factor; the companion test does. The test grid is a uniform fine grid, not the band grid of a SOCRATES spectral file.
 
 ??? info "Test details"
     - Reference: Stefan-Boltzmann law, grey black-body flux (analytical limit).
-    - Tolerance: relative 2e-3 on the band-integrated flux; relative 1e-2 on the flux ratio of 16 for a doubled temperature.
+    - Tolerance: relative 2e-3 on the band-integrated flux; relative 1e-2 on the flux ratio of 16 between $T_s$ and $T_s / 2$.
     - Test id: `tests/modules/test_spectral_planck_surface.py::test_band_integrated_surface_flux_matches_stefan_boltzmann`
     - Command: `pytest tests/modules/test_spectral_planck_surface.py::test_band_integrated_surface_flux_matches_stefan_boltzmann`
     - Companion test: `test_surface_flux_scales_with_albedo_and_vanishes_at_unit_albedo` drives the flux to zero at unit albedo and checks the linear $(1 - a)$ response between the end points.

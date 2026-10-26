@@ -2,7 +2,7 @@
 
 ## What this page checks
 
-This page checks the heat capacity of a gas species in JANUS. If it is wrong, the adiabats and the stratosphere of JANUS are wrong too. The molar heat capacity $c_p$ is the heat needed to warm 1 mol of a gas by 1 K at constant pressure. `cpv` in `janus.utils.cp_funcs` gives it, either as a flat constant or as a function of temperature. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. The case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends the case.
+This page checks the heat capacity of a gas species in JANUS. If it is wrong, the adiabats and the stratosphere of a run that uses this branch are wrong too. The molar heat capacity $c_p$ is the heat needed to warm 1 mol of a gas by 1 K at constant pressure. `cpv` in `janus.utils.cp_funcs` gives it, either as a flat constant or as a function of temperature. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. The case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends the case.
 
 ## Heat capacity of water vapour at 500 K
 

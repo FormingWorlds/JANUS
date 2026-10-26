@@ -2,19 +2,19 @@
 
 ## What this page checks
 
-This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL` in `janus.modules.solve_pt`. If they change, every atmosphere state they return changes. Each one builds a full atmosphere column and returns its fluxes. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. Here the right answer is a stored result of the same code (a regression pin). The tests catch any change of the result, not an error that was there from the start. They run the real SOCRATES radiative-transfer code over a full column solve, so they are integration tests that run every night. Each case below says why the check exists, what it tests, how we know the right answer and why it matters; a box "Test details" ends each case.
+This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL` in `janus.modules.solve_pt`. If they are wrong, the outgoing fluxes, the surface temperature and the tropopause temperature that they return are wrong. Each one builds a full atmosphere column and returns its fluxes. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. Here the right answer is a stored result of the same code (a regression pin). The tests catch any change of the result, not an error that was there from the start. They run the real SOCRATES radiative-transfer code over a full column solve, so they are integration tests that run every night. Each case below says why the check exists, what it tests, how we know the right answer and why it matters; a box "Test details" ends each case.
 
 ## Outgoing radiation along the runaway greenhouse
 
 **Why this check exists.** `RadConvEqm` combines the column setup, the moist adiabat and the SOCRATES radiation. A change in any of them moves the outgoing radiation, and the test catches it.
 
-**What it tests.** `RadConvEqm` builds a radiative-convective equilibrium column and returns the top-of-atmosphere fluxes for a given surface temperature. For a pure-steam atmosphere, the outgoing longwave radiation (OLR) flattens toward the Simpson-Nakajima limit as the surface warms. This limit bounds the OLR while the condensing steam atmosphere is optically thick; at high enough surface temperature the OLR rises again. The test runs the column with `cp_dry=False` at 3 surface temperatures and compares the OLR with stored values. 200 K is below the plateau, 1705.3 K is on it and 2800 K is beyond it. Before that comparison it checks that the returned flux is finite and positive.
+**What it tests.** `RadConvEqm` builds a radiative-convective equilibrium column and returns the top-of-atmosphere fluxes for a given surface temperature. For a pure-steam atmosphere, the outgoing longwave radiation (OLR) flattens toward the Simpson-Nakajima limit as the surface warms. This limit bounds the OLR while the condensing steam atmosphere is optically thick; at high enough surface temperature the OLR rises again. The test runs the column with `cp_dry=False` at 3 surface temperatures, 200, 1705.3 and 2800 K, and compares the OLR with stored values. 1705.3 K lies near the end of the plateau, and 2800 K beyond it. Before that comparison it checks that the returned flux is finite and positive.
 
 **How we know the right answer.** The stored values are the JANUS + SOCRATES result of the runaway-greenhouse curve of Nakajima et al. (1992) and Goldblatt et al. (2013) (see References). They lock the current solve. A solve that returns `nan` or a negative flux fails the finiteness check first.
 
 **Why it matters.** `RadConvEqm` returns the atmosphere state. When a physics change moves these values on purpose, the stored values change in the same commit, with the reason in the commit message.
 
-**Known limit.** Only 3 surface temperatures are stored; the points on the plateau between them are not. With `cp_dry=False`, the test does not reach the dry-adiabat or the moist-adjustment code.
+**Known limit.** Only 3 surface temperatures are checked; the test file holds further reference rows on the plateau, but they are commented out. With `cp_dry=False`, the test does not reach the dry-adiabat or the moist-adjustment code.
 
 ??? info "Test details"
     - Reference: stored OLR along the pure-steam runaway-greenhouse curve (regression pin of the JANUS + SOCRATES pipeline): 90.7314, 278.990 and 6583.79 W/m$^2$ at 200, 1705.3 and 2800 K.
