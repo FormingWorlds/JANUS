@@ -12,7 +12,7 @@ This page checks the thermodynamic relations of `janus.utils.phys`: the saturati
 
 **How we know the right answer.** Both values follow from the closed form. The reference point alone does not test $L / R_v$, because the exponent is zero there, so the second point does. A doubled $L / R_v$ gives about 4.6 Pa and a halved one about 180 Pa, both outside the range check of 10 to 100 Pa. A dropped minus sign inverts the temperature response, which the ordering check catches.
 
-**Why it matters.** `GeneralAdiabat.p_sat` builds the saturation curve of each volatile (water, methane, CO$_2$, CO, N$_2$, O$_2$, O$_3$, H$_2$, He, NH$_3$) with `satvps_function`, which calls `satvps`.
+**Why it matters.** `GeneralAdiabat.p_sat` builds the saturation curve of each condensing volatile (water, methane, CO$_2$, CO, N$_2$, O$_2$, O$_3$, He, NH$_3$) with `satvps_function`, which calls `satvps`. H$_2$ is forced dry. For water with `water_lookup=True` (off by default), steam tables replace `satvps` above the triple point.
 
 ??? info "Test details"
     - Reference: Clausius-Clapeyron reference identity plus an off-reference exponent (analytical limit).

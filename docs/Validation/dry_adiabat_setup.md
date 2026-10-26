@@ -2,13 +2,13 @@
 
 ## What this page checks
 
-This page checks how JANUS builds a dry adiabat, the temperature profile of a well-mixed dry atmosphere. `dry_adiabat_atm` in `janus.modules.dry_adiabat_setup` builds this profile from the surface temperature and pressure. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. The case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends the case.
+This page checks how JANUS builds a dry adiabat, the temperature profile of a well-mixed dry atmosphere. If it is wrong, the dry-adiabat solve starts from a wrong profile. `dry_adiabat_atm` in `janus.modules.dry_adiabat_setup` builds this profile from the surface temperature and pressure. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. The case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends the case.
 
 ## Constant potential temperature along a dry adiabat
 
 **Why this check exists.** A profile that is not an adiabat can still look plausible. An isothermal column, for example from a missing adiabat step, gives a wrong temperature at every level without an error message.
 
-**What it tests.** The potential temperature is $\theta = T (p_\mathrm{ref} / p)^{R / c_p}$: the temperature that a gas parcel at pressure $p$ and temperature $T$ would have if it were moved dry-adiabatically to the reference pressure $p_\mathrm{ref}$. $R / c_p$ is the gas constant over the heat capacity of the gas mixture. With the reference pressure at the surface, $\theta$ must equal the surface temperature $T_s$ at every level of a dry adiabat. The test builds the profile and checks that $\theta$ is constant along the column and equal to $T_s$. It also checks that $R / c_p$ lies between 0 and 0.4 (2/7 for a diatomic gas, 2/5 for a monatomic gas).
+**What it tests.** The potential temperature is $\theta = T (p_\mathrm{ref} / p)^{R / c_p}$. It is the temperature that a gas parcel at pressure $p$ and temperature $T$ would have at the reference pressure $p_\mathrm{ref}$ after a dry-adiabatic move. $R / c_p$ is the gas constant over the heat capacity of the gas mixture. With the reference pressure at the surface, $\theta$ must equal the surface temperature $T_s$ at every level of a dry adiabat. The test builds the profile and checks that $\theta$ is constant along the column and equal to $T_s$. It also checks that $R / c_p$ lies between 0 and 0.4 (2/7 for a diatomic gas, 2/5 for a monatomic gas).
 
 **How we know the right answer.** A dry adiabat conserves potential temperature (the Poisson relation), which follows from the first law of thermodynamics for an ideal gas. The test also states the wrong answer: an isothermal profile would put $\theta$ more than 50 % above $T_s$ at the low-pressure top.
 

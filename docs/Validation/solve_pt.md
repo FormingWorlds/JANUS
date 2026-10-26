@@ -2,13 +2,13 @@
 
 ## What this page checks
 
-This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL` in `janus.modules.solve_pt`. Each one builds a full atmosphere column and returns its fluxes. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. Here the right answer is a stored result of the same code (a regression pin): the tests catch any change of the result, not an error that was there from the start. They run the real SOCRATES radiative-transfer code over a full column solve, so they are integration tests that run every night. Each case below says why the check exists, what it tests, how we know the right answer and why it matters; a box "Test details" ends each case.
+This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL` in `janus.modules.solve_pt`. If they change, every atmosphere state they return changes. Each one builds a full atmosphere column and returns its fluxes. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. Here the right answer is a stored result of the same code (a regression pin). The tests catch any change of the result, not an error that was there from the start. They run the real SOCRATES radiative-transfer code over a full column solve, so they are integration tests that run every night. Each case below says why the check exists, what it tests, how we know the right answer and why it matters; a box "Test details" ends each case.
 
 ## Outgoing radiation along the runaway greenhouse
 
-**Why this check exists.** `RadConvEqm` combines the column setup, the convection and the SOCRATES radiation. A change in any of them moves the outgoing radiation, and the test catches it.
+**Why this check exists.** `RadConvEqm` combines the column setup, the moist adiabat and the SOCRATES radiation. A change in any of them moves the outgoing radiation, and the test catches it.
 
-**What it tests.** `RadConvEqm` builds a radiative-convective equilibrium column and returns the top-of-atmosphere fluxes for a given surface temperature. For a pure-steam atmosphere, the outgoing longwave radiation (OLR) flattens toward the Simpson-Nakajima limit as the surface warms. This limit is the upper bound of the OLR of an atmosphere in which water vapour condenses. The test runs the column at 3 surface temperatures, 200, 1705.3 and 2800 K, with `cp_dry=False`, and compares the OLR with stored values. Before that comparison it checks that the returned flux is finite and positive.
+**What it tests.** `RadConvEqm` builds a radiative-convective equilibrium column and returns the top-of-atmosphere fluxes for a given surface temperature. For a pure-steam atmosphere, the outgoing longwave radiation (OLR) flattens toward the Simpson-Nakajima limit as the surface warms. This limit bounds the OLR while the condensing steam atmosphere is optically thick; at high enough surface temperature the OLR rises again. The test runs the column with `cp_dry=False` at 3 surface temperatures and compares the OLR with stored values. 200 K is below the plateau, 1705.3 K is on it and 2800 K is beyond it. Before that comparison it checks that the returned flux is finite and positive.
 
 **How we know the right answer.** The stored values are the JANUS + SOCRATES result of the runaway-greenhouse curve of Nakajima et al. (1992) and Goldblatt et al. (2013) (see References). They lock the current solve. A solve that returns `nan` or a negative flux fails the finiteness check first.
 
@@ -32,7 +32,7 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 
 **Why it matters.** `MCPA_CBL` returns the atmosphere state with a conductive surface layer.
 
-**Known limit.** Only the downward shortwave flux has an analytical scaling; the other 4 values are a regression pin only. `MCPA`, the third solve that `janus.modules` exports, has no test of this kind.
+**Known limit.** Only the downward shortwave flux has an analytical scaling; the other 4 values are a regression pin only. `MCPA`, the third solve that `janus.modules` exports, has only a mocked unit test (`tests/modules/test_solve_pt.py`), no stored SOCRATES result.
 
 ??? info "Test details"
     - Reference: stored top-of-atmosphere fluxes, surface temperature and tropopause temperature at 0.3 and 1.4 au (regression pin of the JANUS + SOCRATES pipeline).
@@ -43,7 +43,7 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 ## Related code
 
 - `src/janus/modules/solve_pt.py`: `RadConvEqm`, `MCPA_CBL`.
-- `src/janus/modules/dry_adiabat_setup.py`, `src/janus/modules/moist_adjustment_H2O.py`: column steps that `RadConvEqm` reaches only with `cp_dry=True`; see [dry_adiabat_setup.md](dry_adiabat_setup.md) and [moist_adjustment_H2O.md](moist_adjustment_H2O.md).
+- `src/janus/modules/dry_adiabat_setup.py`, `src/janus/modules/moist_adjustment_H2O.py`: column steps that `RadConvEqm` reaches only with `cp_dry=True` (and, for `moist_adj`, `pure_steam_adj=True`); see [dry_adiabat_setup.md](dry_adiabat_setup.md) and [moist_adjustment_H2O.md](moist_adjustment_H2O.md).
 - `tests/helpers/`: the shared column-setup fixtures of these tests. They import the MORS package, so each test module skips when MORS is not installed.
 
 ## References

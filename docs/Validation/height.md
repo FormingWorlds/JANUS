@@ -2,7 +2,7 @@
 
 ## What this page checks
 
-This page checks how JANUS computes the gravity at the surface and the altitude of each level of the atmosphere. `janus.utils.height` holds the surface-gravity law and the hydrostatic altitude integrator. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. If this part of the code is wrong, the heights that JANUS writes to its netCDF output are wrong. Each case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends each case.
+This page checks how JANUS computes the gravity at the surface and the altitude of each level of the atmosphere. `janus.utils.height` holds the surface-gravity law and the hydrostatic altitude integrator. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. If this part of the code is wrong, the heights and the local gravity that JANUS writes to its netCDF output are wrong. Each case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends each case.
 
 ## Surface gravity of the Earth
 
@@ -24,7 +24,7 @@ This page checks how JANUS computes the gravity at the surface and the altitude 
 
 **Why this check exists.** The altitude integrator sums a hydrostatic step over the pressure levels. A missing $1/p$ factor in the step moves every altitude.
 
-**What it tests.** `integrate_heights` sums the hydrostatic step $dz = -(R_\mathrm{gas} T / (M g))\, d\ln p$ up the column. Here $R_\mathrm{gas}$ is the gas constant, $T$ the temperature, $M$ the molar mass and $g$ the gravity. For an isothermal ideal-gas column this integrates to $z(p) = H \ln(p_\mathrm{surface} / p)$, with the scale height $H = R_\mathrm{gas} T / (M g)$. The test compares the total span of a 200-level N$_2$ column at 288 K with this integral. The routine reverses the pressure array internally, so the test also checks that the input array is the same on return.
+**What it tests.** `integrate_heights` sums the hydrostatic step $dz = -(R_\mathrm{gas} T / (M g))\, d\ln p$ up the column. Here $R_\mathrm{gas}$ is the gas constant, $T$ the temperature, $M$ the molar mass and $g$ the gravity. For an isothermal ideal-gas column this integrates to $z(p) = H \ln(p_\mathrm{surface} / p)$, with the scale height $H = R_\mathrm{gas} T / (M g)$. The test compares the total span of a 200-level N$_2$ column at 288 K with this integral. It also checks that the altitude falls as the pressure rises. The routine reverses the pressure array internally, so the test also checks that the input array is the same on return.
 
 **How we know the right answer.** The span follows from the closed-form integral of the hydrostatic equation for an isothermal ideal gas. A missing $1/p$ factor would put the span far outside the 5 % tolerance.
 
@@ -37,7 +37,9 @@ This page checks how JANUS computes the gravity at the surface and the altitude 
     - Tolerance: relative 0.05 on the total span; the input pressure array identical on return.
     - Test id: `tests/utils/test_height.py::test_integrate_heights_recovers_isothermal_scale_height`
     - Command: `pytest tests/utils/test_height.py::test_integrate_heights_recovers_isothermal_scale_height`
-    - Companion tests: `test_integrate_heights_flags_blowup_and_returns_bounded_dummy` (a diverging integration is flagged and returns a bounded dummy grid, with the gravity evaluated on it), `test_integrate_heights_writes_local_gravity_on_returned_heights` (the local gravity $g(z) = g_s R^2 / (R + z)^2$, with $g_s$ the surface gravity, $R$ the planet radius and $z$ the height, is stored on the returned heights), and `tests/utils/test_atmosphere_column.py::test_write_ncdf_gravity_matches_written_heights` (the same relation through the netCDF writer).
+    - Companion test: `test_integrate_heights_flags_blowup_and_returns_bounded_dummy`. A diverging integration is flagged and returns a bounded dummy grid, with the gravity evaluated on it.
+    - Companion test: `test_integrate_heights_writes_local_gravity_on_returned_heights`. The local gravity $g(z) = g_s R^2 / (R + z)^2$ is stored on the returned heights and falls with height. Here $g_s$ is the surface gravity, $R$ the planet radius and $z$ the height.
+    - Companion test: `tests/utils/test_atmosphere_column.py::test_write_ncdf_gravity_matches_written_heights`. The same relation holds through the netCDF writer.
 
 ## Related code
 

@@ -2,7 +2,7 @@
 
 ## What this page checks
 
-This page checks how JANUS relaxes a layer that holds more water vapour than it can hold at its temperature. Such a supersaturated layer warms toward its dew point, the temperature at which its water vapour is just saturated. `moist_adj` in `janus.modules.moist_adjustment_H2O` computes this temperature change. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. The case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends the case.
+This page checks how JANUS relaxes a layer that holds more water vapour than it can hold at its temperature. Such a supersaturated layer warms toward its dew point, the temperature at which its water vapour is just saturated. If this code is wrong, those layers move to a wrong temperature. `moist_adj` in `janus.modules.moist_adjustment_H2O` computes this temperature change. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. The case below says why the check exists, what it tests, how we know the right answer and why it matters. A box "Test details" ends the case.
 
 ## Dew-point target and the Clausius-Clapeyron relation
 
@@ -18,9 +18,9 @@ At or below 611.657 Pa the code takes $T_\mathrm{ref}$ = 273.15 K, $p_\mathrm{re
 - A forward pressure computed by hand, $p(T) = p_\mathrm{ref} \exp((L / R)(1/T_\mathrm{ref} - 1/T))$, fed back through $T_\mathrm{dew}$ must give $T$ = 340 K again to 9 significant figures.
 - A cold column with an interior level at the triple-point pressure must relax that level's target to 273.15 K through `moist_adj`.
 
-**How we know the right answer.** The water triple point, 273.16 K at 611.657 Pa, is a published thermodynamic fixed point; the code uses 273.15 K, inside the 0.05 K tolerance. At that point the logarithm is zero, so it does not test the latent heat; the round trip does. A doubled $L$ shifts the recovered temperature by about 28 K, and the test asserts a shift of more than 1 K. The third check ties the fixed point to the output of the module.
+**How we know the right answer.** The water triple point, 273.16 K at 611.657 Pa, is a published fixed point. The code uses 273.15 K, inside the 0.05 K tolerance. At that point the logarithm is zero, so it does not test the latent heat; the round trip does. A doubled $L$ shifts the recovered temperature by about 28 K, and the test asserts a shift of more than 1 K. The third check ties the fixed point to the output of the module.
 
-**Why it matters.** `compute_dry_adiabat` calls `moist_adj` when `pure_steam_adj=True`.
+**Why it matters.** `compute_dry_adiabat` calls `moist_adj` when `pure_steam_adj=True`, and `RadConvEqm` calls `compute_dry_adiabat` when `cp_dry=True` (see [solve_pt.md](solve_pt.md)).
 
 **Known limit.** The round trip takes the latent heat of water from `phys.water`, the same source that `Tdew` uses, so a wrong value there does not fail this test. The round trip runs above the triple-point pressure only, so the sublimation branch below it has no round-trip check.
 
@@ -29,7 +29,8 @@ At or below 611.657 Pa the code takes $T_\mathrm{ref}$ = 273.15 K, $p_\mathrm{re
     - Tolerance: absolute 0.05 K at the triple point; relative 1e-9 for the round trip; absolute 0.1 K for the `moist_adj` target; a doubled $L$ must miss by more than 1 K.
     - Test id: `tests/modules/test_moist_adjustment_H2O.py::test_dew_point_target_matches_clausius_clapeyron_reference`
     - Command: `pytest tests/modules/test_moist_adjustment_H2O.py::test_dew_point_target_matches_clausius_clapeyron_reference`
-    - Companion tests: `test_supersaturated_column_relaxes_toward_local_dew_point` (the tendency on the adjusted interior levels equals $(T_\mathrm{dew} - T) / \tau$, latent heating warms the cold column, and halving $\tau$ doubles the tendency) and `test_moist_adjustment_zero_without_water_or_when_subsaturated` (no adjustment without water or in a subsaturated column).
+    - Companion test: `test_supersaturated_column_relaxes_toward_local_dew_point`. The tendency on the adjusted interior levels equals $(T_\mathrm{dew} - T) / \tau$, latent heating warms the cold column, and halving $\tau$ doubles the tendency.
+    - Companion test: `test_moist_adjustment_zero_without_water_or_when_subsaturated`. There is no adjustment without water or in a subsaturated column.
 
 ## Related code
 
