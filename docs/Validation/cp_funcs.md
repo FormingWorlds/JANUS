@@ -14,6 +14,11 @@ This page checks the heat capacity of a gas species in JANUS. If it is wrong, th
 
 **Why it matters.** The heat capacity enters the adiabats and the stratosphere of JANUS through `cpv`. The ratio of the gas constant to $c_p$ sets the slope of the dry adiabat (see [dry_adiabat_setup.md](dry_adiabat_setup.md)).
 
+![Heat capacity of water vapour against temperature from both branches of cpv, with the values at 500 and 1500 K](../assets/validation/janus_cp_h2o_500k.svg#only-light){ width="80%" }
+![Heat capacity of water vapour against temperature from both branches of cpv, with the values at 500 and 1500 K](../assets/validation/janus_cp_h2o_500k_dark.svg#only-dark){ width="80%" }
+
+**How to read the plot.** The lines are `cpv` for water vapour from 300 to 2000 K and give context: the solid line is the `T-dependent` branch and the dashed line the constant branch. Below 500 K the solid line is flat, because the code holds the temperature of the fit at 500 K or above. The test asserts the code value at 500 K (circle) against 35.22 J/mol/K (square, with its error bar of relative 2e-3). It also asserts that the value at 1500 K (triangle) is higher. A pass means that the circle lies inside the error bar and the triangle lies above the circle.
+
 **Known limit.** No JANUS call passes `cp_mode`, so the model uses the constant branch by default. This test checks only the `T-dependent` branch, and only the low-temperature coefficients of water at 500 K.
 
 ??? info "Test details"

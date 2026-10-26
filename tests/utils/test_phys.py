@@ -36,7 +36,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_satvps_returns_reference_pressure_at_reference_temperature():
+def test_satvps_returns_reference_pressure_at_reference_temperature(validation_plot):
     """Clausius-Clapeyron law recovers e0 at T=T0 and its exponent at T!=T0.
 
     ``satvps`` is the simplified Clausius-Clapeyron relation
@@ -70,10 +70,39 @@ def test_satvps_returns_reference_pressure_at_reference_temperature():
     # Positivity: saturation pressure is strictly positive.
     assert colder > 0.0
 
+    def figure():
+        import matplotlib.pyplot as plt
+
+        temps = np.linspace(T0 - 40.0, T0 + 40.0, 81)
+        fig, ax = plt.subplots()
+        ax.plot(
+            temps,
+            [phys.satvps(t, T0, e0, mol_weight, latent) for t in temps],
+            label='code, satvps',
+        )
+        ax.axhspan(10.0, 100.0, color='0.9', label='guard band 10 to 100 Pa')
+        ax.errorbar(
+            [T0 - 30.0],
+            [53.02],
+            yerr=53.02 * 1e-2,
+            fmt='s',
+            mfc='none',
+            capsize=4,
+            label='53.02 Pa',
+        )
+        ax.plot([T0], [e0], 's', mfc='none', ms=10, label='e0 at T0')
+        ax.plot([T0 - 30.0, T0, T0 + 30.0], [colder, at_ref, warmer], 'o', label='code')
+        ax.set(xlabel='T [K]', ylabel='saturation pressure [Pa]', yscale='log')
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_phys_satvps')
+
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_satvpw_matches_one_atm_at_steam_point():
+def test_satvpw_matches_one_atm_at_steam_point(validation_plot):
     """Smithsonian liquid-water curve gives ~1 atm at the 373.16 K steam point.
 
     ``satvpw`` is the Smithsonian saturation-vapour-pressure formula over
@@ -92,6 +121,35 @@ def test_satvpw_matches_one_atm_at_steam_point():
     # pressure, colder (still above the triple point) has lower.
     assert phys.satvpw(363.16) < p_boil < phys.satvpw(383.16)
     assert phys.satvpw(363.16) > 0.0
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        temps = np.linspace(355.0, 390.0, 71)
+        fig, ax = plt.subplots()
+        ax.plot(temps, [phys.satvpw(t) for t in temps], label='code, satvpw')
+        ax.errorbar(
+            [373.16],
+            [101514.5],
+            yerr=101514.5 * 1e-4,
+            fmt='s',
+            mfc='none',
+            capsize=4,
+            label='101514.5 Pa',
+        )
+        ax.plot([373.16], [p_boil], 'o', label='code at 373.16 K')
+        ax.plot(
+            [363.16, 383.16],
+            [phys.satvpw(363.16), phys.satvpw(383.16)],
+            '^',
+            label='code at +-10 K',
+        )
+        ax.set(xlabel='T [K]', ylabel='saturation pressure [Pa]')
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_phys_satvpw')
 
 
 @pytest.mark.physics_invariant
@@ -116,7 +174,7 @@ def test_ice_saturation_below_liquid_and_both_positive():
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_planck_radiance_positive_and_increases_with_temperature():
+def test_planck_radiance_positive_and_increases_with_temperature(validation_plot):
     """Planck radiance B(nu,T) matches its closed form and rises with T.
 
     ``B`` is the Planck function of frequency,
@@ -146,6 +204,34 @@ def test_planck_radiance_positive_and_increases_with_temperature():
     b_extreme = phys.B(1.0e16, 300.0)
     assert math.isfinite(b_extreme)
     assert 0.0 < b_extreme < b_cool
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        temps = np.geomspace(200.0, 2000.0, 61)
+        fig, ax = plt.subplots()
+        ax.plot(temps, [phys.B(nu, t) for t in temps], label='code, B at 5e13 Hz')
+        ax.errorbar(
+            [300.0],
+            [6.193e-13],
+            yerr=6.193e-13 * 1e-3,
+            fmt='s',
+            mfc='none',
+            capsize=4,
+            label='6.193e-13',
+        )
+        ax.plot([300.0, 1500.0], [b_cool, b_warm], 'o', label='code at 300 and 1500 K')
+        ax.set(
+            xlabel='T [K]',
+            ylabel=r'B [W m$^{-2}$ sr$^{-1}$ Hz$^{-1}$]',
+            xscale='log',
+            yscale='log',
+        )
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_phys_planck')
 
 
 @pytest.mark.physics_invariant

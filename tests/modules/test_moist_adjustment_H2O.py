@@ -115,7 +115,7 @@ def test_supersaturated_column_relaxes_toward_local_dew_point():
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_dew_point_target_matches_clausius_clapeyron_reference():
+def test_dew_point_target_matches_clausius_clapeyron_reference(validation_plot):
     """The moist-adjustment dew-point target reproduces the water triple point.
 
     moist_adj relaxes each supersaturated level to ga.Tdew('H2O', pp), so the
@@ -168,6 +168,35 @@ def test_dew_point_target_matches_clausius_clapeyron_reference():
     dt_conv = moist_adj(atm, conv_timescale=tau)
     target_triple = t_cold + dt_conv[1] * tau  # reconstructed relaxation target
     assert target_triple == pytest.approx(273.15, abs=0.1)
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        pgrid = np.logspace(2.0, 5.0, 61)
+        fig, ax = plt.subplots()
+        ax.plot(pgrid, [ga.Tdew('H2O', p) for p in pgrid], label='code, Tdew')
+        ax.errorbar(
+            [pp_triple],
+            [273.15],
+            yerr=0.05,
+            fmt='s',
+            mfc='none',
+            capsize=4,
+            label='triple point',
+        )
+        ax.plot([pp_triple], [ga.Tdew('H2O', pp_triple)], 'o', label='code at the triple point')
+        ax.plot([pp_triple], [target_triple], 'D', mfc='none', label='moist_adj target')
+        ax.plot(
+            [p_forward], [t_target], 's', mfc='none', ms=10, label='round-trip target 340 K'
+        )
+        ax.plot([p_forward], [ga.Tdew('H2O', p_forward)], 'o', label='code, round trip')
+        ax.plot([p_wrong_l], [ga.Tdew('H2O', p_wrong_l)], 'x', label='code, doubled-L pressure')
+        ax.set(xlabel='H$_2$O partial pressure [Pa]', ylabel='dew point [K]', xscale='log')
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_moist_dew_point')
 
 
 @pytest.mark.physics_invariant

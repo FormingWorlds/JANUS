@@ -45,7 +45,7 @@ TEST_DATA = (
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
 @pytest.mark.parametrize('inp,expected', TEST_DATA)
-def test_runaway_greenhouse(tmpdir, inp, expected):
+def test_runaway_greenhouse(tmpdir, inp, expected, validation_plot):
     """RadConvEqm outgoing longwave flux matches pinned runaway-greenhouse values.
 
     Across surface temperatures from 200 K up to 2800 K the converged pure-water
@@ -83,3 +83,24 @@ def test_runaway_greenhouse(tmpdir, inp, expected):
     assert np.isfinite(ret)
     assert ret > 0.0
     np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0)
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        ax.plot(
+            [t for t, _ in TEST_DATA],
+            [o for _, o in TEST_DATA],
+            's',
+            mfc='none',
+            color='0.6',
+            label='pinned OLR of the test',
+        )
+        ax.plot([inp], [expected], 's', mfc='none', ms=10, label=f'pin at {inp:.0f} K')
+        ax.plot([inp], [ret], 'o', label='code')
+        ax.set(xlabel='surface temperature [K]', ylabel=r'OLR [W m$^{-2}$]', yscale='log')
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, f'janus_runaway_olr_{inp:.0f}k')

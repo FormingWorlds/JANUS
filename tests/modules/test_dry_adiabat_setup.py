@@ -45,7 +45,7 @@ def _make_atm(vol_list, ts, nlev=20, ps=1.0e5):
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_dry_adiabat_conserves_potential_temperature():
+def test_dry_adiabat_conserves_potential_temperature(validation_plot):
     """The Poisson adiabat holds potential temperature constant at ts.
 
     For a dry adiabat T = ts*(p/ps)**Rcp the potential temperature
@@ -71,6 +71,24 @@ def test_dry_adiabat_conserves_potential_temperature():
     # potential temperature far above ts at the low-pressure top level.
     theta_if_isothermal = ts * (atm.ps / atm.pl) ** atm.Rcp
     assert theta_if_isothermal[0] > 1.5 * ts
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        ax.plot(atm.tmpl, atm.pl, label='code, T of the dry adiabat')
+        ax.axvline(ts, ls=':', color='0.5', label='ts')
+        ax.plot(theta, atm.pl, 'o', ms=3, label=r'$\theta$ of each level')
+        ax.plot(
+            [theta_if_isothermal[0]], [atm.pl[0]], 'x', label=r'$\theta$ if isothermal, top'
+        )
+        ax.set(xlabel='T [K]', ylabel='p [Pa]', yscale='log')
+        ax.invert_yaxis()
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_dry_adiabat_theta')
 
 
 @pytest.mark.physics_invariant

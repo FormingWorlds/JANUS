@@ -32,7 +32,7 @@ TEST_DATA = (
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
 @pytest.mark.parametrize('inp,expected', TEST_DATA)
-def test_instellation(tmpdir, inp, expected):
+def test_instellation(tmpdir, inp, expected, validation_plot):
     """Full-column MCPA_CBL fluxes match pinned references at fixed instellation.
 
     For a hydrogen-dominated column at two orbital distances the converged
@@ -69,3 +69,17 @@ def test_instellation(tmpdir, inp, expected):
     assert atm.trppT > 0.0
     assert np.all(np.isfinite(ret))
     np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0)
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        names = ['SW down', 'LW up', 'net', 'Ts', 'T trop']
+        fig, ax = plt.subplots()
+        ax.axhline(1.0, ls=':', color='0.5')
+        ax.plot(names, np.asarray(ret) / np.asarray(expected), 'o', label='code / pin')
+        ax.set(ylabel='code value / pinned value', ylim=(0.99, 1.01))
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, f'janus_instellation_{inp:g}au'.replace('.', 'p'))

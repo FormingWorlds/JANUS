@@ -599,9 +599,16 @@ def test_general_adiabat_profile_monotone_and_bounded():
 
 # A non-default value for each name in RUN_SETTINGS.
 _SETTINGS = {
-    'instellation': 1234.5, 'zenith_angle': 33.0, 'albedo_pl': 0.31, 'inst_sf': 0.4,
-    'skin_k': 3.1, 'skin_d': 0.02, 'tmp_magma': 2345.0, 'albedo_s': 0.27,
-    'overlap_type': 8, 'water_lookup': True,
+    'instellation': 1234.5,
+    'zenith_angle': 33.0,
+    'albedo_pl': 0.31,
+    'inst_sf': 0.4,
+    'skin_k': 3.1,
+    'skin_d': 0.02,
+    'tmp_magma': 2345.0,
+    'albedo_s': 0.27,
+    'overlap_type': 8,
+    'water_lookup': True,
 }
 # Constructor-passed: a non-Earth planet (mass, radius, its grav_s) and trppT, minT, maxT.
 _PLANET = (6.1e24, 6.5e6, phys.G * 6.1e24 / 6.5e6**2, 150.0, 0.6, 8000.0)
@@ -617,8 +624,19 @@ def test_general_adiabat_rebuild_keeps_run_settings():
     """
     assert set(_SETTINGS) == set(RUN_SETTINGS)
     m, r, _, trpp, tmin, tmax = _PLANET
-    atm = atmos(300.0, 1.0e5, 1.0e4, r, m, [], vol_mixing={'H2O': 0.5, 'CO2': 0.25, 'N2': 0.25},
-                req_levels=15, trppT=trpp, minT=tmin, maxT=tmax)
+    atm = atmos(
+        300.0,
+        1.0e5,
+        1.0e4,
+        r,
+        m,
+        [],
+        vol_mixing={'H2O': 0.5, 'CO2': 0.25, 'N2': 0.25},
+        req_levels=15,
+        trppT=trpp,
+        minT=tmin,
+        maxT=tmax,
+    )
     for name, value in _SETTINGS.items():
         setattr(atm, name, value)
     out = ga.general_adiabat(atm)

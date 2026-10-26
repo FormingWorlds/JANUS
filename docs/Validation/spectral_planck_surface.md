@@ -14,6 +14,11 @@ This page checks the thermal emission of the planet surface, summed over spectra
 
 **Why it matters.** `surf_Planck_nu` is a standalone helper: no module under `src/janus` calls it, and `plot_flux_balance` only imports it.
 
+![Band-summed surface flux against surface temperature with the Stefan-Boltzmann law, and the surface spectrum at 1500 K](../assets/validation/janus_spectral_stefan_boltzmann.svg#only-light){ width="80%" }
+![Band-summed surface flux against surface temperature with the Stefan-Boltzmann law, and the surface spectrum at 1500 K](../assets/validation/janus_spectral_stefan_boltzmann_dark.svg#only-dark){ width="80%" }
+
+**How to read the plot.** The left panel shows the line $\sigma T^4$ and the band sums of `surf_Planck_nu` at 1500 K and 750 K (marks). The test asserts that the mark at 1500 K matches the line to a relative 2e-3, too small to see. It also asserts that the ratio of the 2 marks is 16, to within 1 %. The right panel shows the flux per band width at 1500 K, every 200th band, and gives context. A pass means that both marks lie on the line.
+
 **Known limit.** The test runs with albedo 0, so it does not check the albedo factor; the companion test does. The test grid is a uniform fine grid, not the band grid of a SOCRATES spectral file.
 
 ??? info "Test details"

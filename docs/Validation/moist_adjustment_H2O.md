@@ -22,6 +22,11 @@ At or below 611.657 Pa the code takes $T_\mathrm{ref}$ = 273.15 K, $p_\mathrm{re
 
 **Why it matters.** `compute_dry_adiabat` calls `moist_adj` when `pure_steam_adj=True`, and `RadConvEqm` calls `compute_dry_adiabat` when `cp_dry=True` (see [solve_pt.md](solve_pt.md)).
 
+![Dew point of water against its partial pressure, with the triple point and the round trip at 340 K](../assets/validation/janus_moist_dew_point.svg#only-light){ width="80%" }
+![Dew point of water against its partial pressure, with the triple point and the round trip at 340 K](../assets/validation/janus_moist_dew_point_dark.svg#only-dark){ width="80%" }
+
+**How to read the plot.** The line is `Tdew` for water from 100 Pa to 1e5 Pa and gives context. At the triple point the line jumps by about 3 K, because the 2 branches use different reference points: the ice branch the triple point, the liquid branch 373.15 K at 1e5 Pa. The test asserts these marks. At the triple-point pressure: the code value (circle) and the relaxation target of `moist_adj` (diamond) against 273.15 K (square, with its error bar of 0.05 K). At 24380 Pa: the round trip (circle) against 340 K (square), to a relative 1e-9. The cross is the dew point of the pressure made with a doubled latent heat, at 312.3 K. A pass means that the circles and the diamond sit in their squares and the cross lies more than 1 K from 340 K.
+
 **Known limit.** The round trip takes the latent heat of water from `phys.water`, the same source that `Tdew` uses, so a wrong value there does not fail this test. The round trip runs above the triple-point pressure only, so the sublimation branch below it has no round-trip check.
 
 ??? info "Test details"

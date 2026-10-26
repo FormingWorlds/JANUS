@@ -14,6 +14,11 @@ This page checks the thermodynamic relations of `janus.utils.phys`: the saturati
 
 **Why it matters.** `GeneralAdiabat.p_sat` builds the saturation curve of each condensing volatile (water, methane, CO$_2$, CO, N$_2$, O$_2$, O$_3$, He, NH$_3$) with `satvps_function`, which calls `satvps`. H$_2$ is forced dry. For water with `water_lookup=True` (off by default), steam tables replace `satvps` above the triple point.
 
+![Saturation pressure from satvps against temperature, with the values at T0 and 30 K below and above it](../assets/validation/janus_phys_satvps.svg#only-light){ width="80%" }
+![Saturation pressure from satvps against temperature, with the values at T0 and 30 K below and above it](../assets/validation/janus_phys_satvps_dark.svg#only-dark){ width="80%" }
+
+**How to read the plot.** The line is `satvps` for the water-like values of the test and gives context. The grey band is the guard range of 10 to 100 Pa. The test asserts 3 marks. At $T_0$ = 273.16 K the code value (circle) equals $e_0$ = 611 Pa (square) to a relative 1e-12. At 30 K below $T_0$ the code value (circle) is 53.02 Pa (square, with its error bar of 1 %). At 30 K above $T_0$ the code value (circle) is higher than $e_0$. A pass means that the circles sit in their squares and the circle at 30 K below lies inside the grey band.
+
 ??? info "Test details"
     - Reference: Clausius-Clapeyron reference identity plus an off-reference exponent (analytical limit).
     - Tolerance: relative 1e-12 at $T_0$; relative 1e-2 on 53.02 Pa at $T_0 - 30$ K; range check 10 to 100 Pa.
@@ -30,6 +35,11 @@ This page checks the thermodynamic relations of `janus.utils.phys`: the saturati
 
 **Why it matters.** `satvpg` blends the liquid-water and ice formulae (`satvpw`, `satvpi`) between -20 and 0 °C. No other JANUS module calls these 3 functions, so this check protects them for direct use.
 
+![Saturation pressure of liquid water from satvpw against temperature near the steam point](../assets/validation/janus_phys_satvpw.svg#only-light){ width="80%" }
+![Saturation pressure of liquid water from satvpw against temperature near the steam point](../assets/validation/janus_phys_satvpw_dark.svg#only-dark){ width="80%" }
+
+**How to read the plot.** The line is `satvpw` from 355 to 390 K and gives context. The test asserts the code value at 373.16 K (circle) against 101514.5 Pa (square, with its error bar of relative 1e-4, too small to see). The 2 triangles are the values 10 K below and above, which must bracket the circle. A pass means that the circle sits in the square and lies between the triangles.
+
 ??? info "Test details"
     - Reference: Smithsonian Meteorological Tables[^cite-smithsonian] (published benchmark).
     - Tolerance: relative 1e-4 on 101514.5 Pa; range check 1.00e5 to 1.02e5 Pa.
@@ -45,6 +55,11 @@ This page checks the thermodynamic relations of `janus.utils.phys`: the saturati
 **How we know the right answer.** The closed form fixes both the $\nu^3$ prefactor and the exponent. Warming from 300 K to 1500 K multiplies the radiance by about 750, far from the factor of 5 that a radiance linear in temperature would give. So the ratio check tells the exponential Wien tail (the high-frequency side of the Planck curve) apart from a linear error.
 
 **Why it matters.** No JANUS source calls `B`, so this check protects it for direct use.
+
+![Planck radiance at 5e13 Hz against temperature, with the values at 300 and 1500 K](../assets/validation/janus_phys_planck.svg#only-light){ width="80%" }
+![Planck radiance at 5e13 Hz against temperature, with the values at 300 and 1500 K](../assets/validation/janus_phys_planck_dark.svg#only-dark){ width="80%" }
+
+**How to read the plot.** Both axes are logarithmic. The line is `B` at 5e13 Hz from 200 to 2000 K and gives context. The test asserts the code value at 300 K (circle) against 6.193e-13 W m$^{-2}$ sr$^{-1}$ Hz$^{-1}$ (square, with its error bar of relative 1e-3, too small to see). The value at 1500 K (circle) must be more than 100 times higher; it is 753 times higher. A pass means that the circle at 300 K sits in the square and the circle at 1500 K lies more than 2 decades above it. The test also checks a value at 1e16 Hz, which is not on this axis.
 
 ??? info "Test details"
     - Reference: Planck closed-form radiance (analytical limit).

@@ -28,7 +28,7 @@ SIGMA_SB = 5.670374419e-8
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_band_integrated_surface_flux_matches_stefan_boltzmann():
+def test_band_integrated_surface_flux_matches_stefan_boltzmann(validation_plot):
     """Summing surf_Planck_nu over a fine grid recovers (1-a)*sigma*Ts^4.
 
     ``surf_Planck_nu`` returns the per-band surface Planck emission. Summed
@@ -52,6 +52,26 @@ def test_band_integrated_surface_flux_matches_stefan_boltzmann():
     )
     total_cool = float(np.sum(surf_Planck_nu(atm_cool)))
     assert total / total_cool == pytest.approx(16.0, rel=1e-2)
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        temps = np.linspace(500.0, 2000.0, 61)
+        fig, (left, right) = plt.subplots(1, 2, figsize=(8.0, 3.6))
+        left.plot(temps, SIGMA_SB * temps**4, label=r'$\sigma T^4$')
+        left.plot([ts, ts / 2.0], [total, total_cool], 'o', label='code, band sum')
+        left.set(xlabel='Ts [K]', ylabel=r'surface flux [W m$^{-2}$]', yscale='log')
+        left.legend(fontsize='small')
+        per_band = surf_Planck_nu(atm) / widths
+        right.plot(wavenum[::200], per_band[::200], label='code, 1500 K')
+        right.set(
+            xlabel=r'wavenumber [cm$^{-1}$]', ylabel=r'flux per band width [W m$^{-2}$ cm]'
+        )
+        right.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_spectral_stefan_boltzmann')
 
 
 @pytest.mark.physics_invariant

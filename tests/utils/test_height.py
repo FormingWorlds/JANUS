@@ -36,7 +36,7 @@ R_EARTH = 6.371e6
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_surface_gravity_matches_earth_inverse_square():
+def test_surface_gravity_matches_earth_inverse_square(validation_plot):
     """Newtonian surface gravity g=GM/r^2 recovers Earth's ~9.82 m/s^2.
 
     ``gravity`` is the inverse-square Newtonian law. Evaluated at Earth's
@@ -55,10 +55,31 @@ def test_surface_gravity_matches_earth_inverse_square():
     assert height.gravity(2.0 * M_EARTH, R_EARTH) == pytest.approx(2.0 * grav, rel=1e-12)
     assert grav > 0.0
 
+    def figure():
+        import matplotlib.pyplot as plt
+
+        radii = np.linspace(1.0, 3.0, 41)
+        fig, ax = plt.subplots()
+        ax.plot(
+            radii, [height.gravity(M_EARTH, r * R_EARTH) for r in radii], label='code, gravity'
+        )
+        ax.errorbar(
+            [1.0], [9.82], yerr=0.02, fmt='s', mfc='none', capsize=4, label='9.82 +- 0.02'
+        )
+        ax.plot([2.0], [grav / 4.0], 's', mfc='none', ms=10, label='g/4')
+        ax.plot([1.0, 2.0], [grav, grav_double_r], 'o', label='code at R and 2R')
+        ax.plot([2.0], [grav / 2.0], 'x', label='g/2 (inverse-linear)')
+        ax.set(xlabel=r'r [$R_\oplus$]', ylabel=r'g [m s$^{-2}$]')
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_height_gravity')
+
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_integrate_heights_recovers_isothermal_scale_height():
+def test_integrate_heights_recovers_isothermal_scale_height(validation_plot):
     """Hydrostatic integration of an isothermal N2 column matches H*ln(p_s/p).
 
     For an isothermal ideal-gas column the geopotential height grows as
@@ -99,6 +120,26 @@ def test_integrate_heights_recovers_isothermal_scale_height():
     assert z_span == pytest.approx(analytic_span, rel=0.05)
     # Autonomy: the input pressure array is unchanged after the internal flip.
     np.testing.assert_allclose(atm.p, p_input, rtol=0, atol=0)
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        ax.plot(scale_h * np.log(press.max() / press) / 1e3, press, label=r'$H \ln(p_s/p)$')
+        keep = np.unique(np.r_[0:nlev:5, np.argmin(zcen), np.argmax(zcen)])
+        height_km = (zcen - zcen.min()) / 1e3
+        ax.plot(height_km[keep], atm.p[keep], 'o', ms=3, label='code, every 5th level')
+        ax.set(xlabel='height above the lowest level [km]', ylabel='p [Pa]', yscale='log')
+        ax.invert_yaxis()
+        ax.set_title(
+            f'span: code {z_span / 1e3:.2f} km, analytic {analytic_span / 1e3:.2f} km',
+            fontsize='small',
+        )
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_height_isothermal_column')
 
 
 @pytest.mark.physics_invariant
