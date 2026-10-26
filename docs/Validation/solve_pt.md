@@ -23,7 +23,7 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 ![Outgoing longwave radiation against surface temperature, with the 3 pinned values and the code value](../assets/validation/janus_runaway_olr_2800k.svg#only-light){ width="80%" }
 ![Outgoing longwave radiation against surface temperature, with the 3 pinned values and the code value](../assets/validation/janus_runaway_olr_2800k_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** There is one plot for each of the 3 surface temperatures of the test. The grey squares are the 3 pinned values: 90.73, 278.99 and 6583.79 W/m$^2$. In each plot the large square is the pin of that temperature and the circle is the code value, which the test asserts to a relative 1e-5, too small to see. No line is drawn, because each point needs a full radiative-convective solve. A pass means that the circle sits in the large square.
+**How to read the plot.** There is one plot for each of the 3 surface temperatures of the test. The grey squares are the 3 pinned values: 90.73, 278.99 and 6583.79 W/m$^2$. In each plot the large square is the pin of that temperature and the circle is the code value. The test asserts it to a relative 1e-5, too small to see. No line is drawn, because each point needs a full radiative-convective solve. A pass means that the circle sits in the large square.
 
 **Known limit.** Only 3 surface temperatures are checked; the test file holds further reference rows on the plateau, but they are commented out. With `cp_dry=False`, the test does not reach the dry-adiabat or the moist-adjustment code.
 

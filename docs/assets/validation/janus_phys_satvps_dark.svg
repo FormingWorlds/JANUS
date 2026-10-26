@@ -1190,7 +1190,7 @@ L 551.540676 280.093422
 L 551.540676 190.868948 
 L 57.43 190.868948 
 z
-" clip-path="url(#pae5c3dabb8)" style="fill: #e6e6e6; stroke: #e6e6e6; stroke-linejoin: miter"/>
+" clip-path="url(#pae5c3dabb8)" style="fill: #808080; opacity: 0.2; stroke: #808080; stroke-linejoin: miter"/>
    </g>
    <g id="line2d_53">
     <path d="M 79.889576 252.449907 
@@ -1465,7 +1465,7 @@ L 92.45765 46.69629
 L 92.45765 38.24134 
 L 68.30065 38.24134 
 z
-" style="fill: #e6e6e6; stroke: #e6e6e6; stroke-linejoin: miter"/>
+" style="fill: #808080; opacity: 0.2; stroke: #808080; stroke-linejoin: miter"/>
     </g>
     <g id="text_17">
      <!-- guard band 10 to 100 Pa -->

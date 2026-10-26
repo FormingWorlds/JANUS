@@ -17,7 +17,7 @@ This page checks how JANUS computes the gravity at the surface and the altitude 
 ![Gravity against distance from the centre of the Earth, with the values at 1 and 2 Earth radii](../assets/validation/janus_height_gravity.svg#only-light){ width="80%" }
 ![Gravity against distance from the centre of the Earth, with the values at 1 and 2 Earth radii](../assets/validation/janus_height_gravity_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** The line is `gravity` for the mass of the Earth from 1 to 3 Earth radii and gives context. The test asserts the code value at 1 Earth radius (circle) against 9.82 m/s$^2$ (square, with its error bar of 0.02). At 2 Earth radii it asserts the code value (circle) against $g/4$ (square) to a relative 1e-12. The cross is $g/2$, the value of a wrong inverse-linear law. A pass means that each circle sits in its square and the circle at 2 Earth radii lies below $g/3$, so far below the cross. The test also asserts that twice the mass gives twice $g$; the plot does not draw this.
+**How to read the plot.** The line is `gravity` for the mass of the Earth from 1 to 3 Earth radii and gives context. The test asserts the code value at 1 Earth radius (left circle) against 9.82 m/s$^2$ (square, with its error bar of 0.02). At 2 Earth radii it asserts the code value (right circle) against $g/4$ (square) to a relative 1e-12. The cross is $g/2$, the value of a wrong inverse-linear law. The test also requires the right circle to lie below $g/3$. A pass means that each circle sits in its square and the right circle lies far below the cross. The test also asserts that twice the mass gives twice $g$; the plot does not draw this.
 
 ??? info "Test details"
     - Reference: Earth mass and mean radius, Newtonian inverse-square law (analytical limit).
@@ -38,7 +38,7 @@ This page checks how JANUS computes the gravity at the surface and the altitude 
 ![Pressure against height of an isothermal nitrogen column, from the code and from the scale height](../assets/validation/janus_height_isothermal_column.svg#only-light){ width="80%" }
 ![Pressure against height of an isothermal nitrogen column, from the code and from the scale height](../assets/validation/janus_height_isothermal_column_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** The y-axis is the pressure on a log scale, with the surface at the bottom. The line is $H \ln(p_s/p)$ with the scale height $H$ of the test. The marks are the heights that `integrate_heights` gives, for every 5th level and for the lowest and highest level. The test asserts that the full height of the column matches the line to 5 %. The title gives both heights: 39.87 km from the code and 40.09 km from the line. A pass means that the 2 heights agree to 5 %.
+**How to read the plot.** The y-axis is the pressure on a log scale, with the surface at the bottom. The line is $H \ln(p_s/p)$ with the scale height $H$ of the test. The marks are the heights that `integrate_heights` gives, measured from the lowest level, for every 5th level and for the lowest and highest level. The test asserts that the full height of the column matches the line to 5 %. The title gives both heights: 39.87 km from the code and 40.09 km from the line. A pass means that the 2 heights agree to 5 %.
 
 **Known limit.** The test computes the analytic span with the same `R_gas`, `molar_mass` and `gravity` that the code uses, so a wrong value of one of these does not fail this test. The gravity case above checks `gravity` on its own.
 

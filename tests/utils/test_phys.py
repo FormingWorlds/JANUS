@@ -80,7 +80,7 @@ def test_satvps_returns_reference_pressure_at_reference_temperature(validation_p
             [phys.satvps(t, T0, e0, mol_weight, latent) for t in temps],
             label='code, satvps',
         )
-        ax.axhspan(10.0, 100.0, color='0.9', label='guard band 10 to 100 Pa')
+        ax.axhspan(10.0, 100.0, color='0.5', alpha=0.2, label='guard band 10 to 100 Pa')
         ax.errorbar(
             [T0 - 30.0],
             [53.02],

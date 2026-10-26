@@ -59,7 +59,7 @@ This page checks the thermodynamic relations of `janus.utils.phys`: the saturati
 ![Planck radiance at 5e13 Hz against temperature, with the values at 300 and 1500 K](../assets/validation/janus_phys_planck.svg#only-light){ width="80%" }
 ![Planck radiance at 5e13 Hz against temperature, with the values at 300 and 1500 K](../assets/validation/janus_phys_planck_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** Both axes are logarithmic. The line is `B` at 5e13 Hz from 200 to 2000 K and gives context. The test asserts the code value at 300 K (circle) against 6.193e-13 W m$^{-2}$ sr$^{-1}$ Hz$^{-1}$ (square, with its error bar of relative 1e-3, too small to see). The value at 1500 K (circle) must be more than 100 times higher; it is 753 times higher. A pass means that the circle at 300 K sits in the square and the circle at 1500 K lies more than 2 decades above it. The test also checks a value at 1e16 Hz, which is not on this axis.
+**How to read the plot.** Both axes are logarithmic. The line is `B` at 5e13 Hz from 200 to 2000 K and gives context. The test asserts the code value at 300 K (circle) against 6.193e-13 W m$^{-2}$ sr$^{-1}$ Hz$^{-1}$ (square). Its error bar of relative 1e-3 is too small to see. The value at 1500 K (circle) must be more than 100 times higher; it is 753 times higher. A pass means that the circle at 300 K sits in the square. The circle at 1500 K must lie more than 2 decades above it. The test also checks a value at 1e16 Hz, which is not on this axis.
 
 ??? info "Test details"
     - Reference: Planck closed-form radiance (analytical limit).
