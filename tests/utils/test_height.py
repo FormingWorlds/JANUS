@@ -137,7 +137,7 @@ def test_integrate_heights_recovers_isothermal_scale_height(validation_plot):
         ax.plot(scale_h * np.log(press.max() / press) / 1e3, press, label=r'$H \ln(p_s/p)$')
         keep = np.unique(np.r_[0:nlev:5, np.argmin(zcen), np.argmax(zcen)])
         height_km = (zcen - zcen.min()) / 1e3
-        ax.plot(height_km[keep], atm.p[keep], 'o', ms=3, label='code, every 5th level')
+        ax.plot(height_km[keep], atm.p[keep], 'o', ms=3, label='code, every 5th level and both ends')
         ax.errorbar(
             [analytic_span / 1e3],
             [press.min()],

@@ -8,16 +8,16 @@ This page checks the thermodynamic relations of `janus.utils.phys`: the saturati
 
 **Why this check exists.** `satvps` evaluates an exponential law. A wrong coefficient or a dropped minus sign in the exponent changes the saturation pressure by large factors without an error message.
 
-**What it tests.** `satvps(T, T0, e0, M, L)` evaluates the integrated Clausius-Clapeyron relation $e(T) = e_0 \exp(-(L / R_v)(1/T - 1/T_0))$, with $R_v = R^* / M$. Here $R^*$ is the universal gas constant, $e_0$ the saturation pressure at the reference temperature $T_0$, $L$ the latent heat (J/kg) and $M$ the molar mass (g/mol). At $T = T_0$ the exponent is exactly zero, so $e(T_0) = e_0$ for any $M$ and $L$. 30 K below $T_0$ the exponent is -2.44, and the test expects $e$ = 53.0 Pa for the water-like coefficient. The test also checks $e(T_0 - 30) < e_0 < e(T_0 + 30)$.
+**What it tests.** `satvps(T, T0, e0, M, L)` evaluates the integrated Clausius-Clapeyron relation $e(T) = e_0 \exp(-(L / R_v)(1/T - 1/T_0))$, with $R_v = R^* / M$. Here $R^* = 1000\,k N_A$ = 8314.46 J kmol$^{-1}$ K$^{-1}$ is the universal gas constant per kilomole, so $R_v$ is in J kg$^{-1}$ K$^{-1}$ when $M$ is in g/mol, $e_0$ the saturation pressure at the reference temperature $T_0$, $L$ the latent heat (J/kg) and $M$ the molar mass (g/mol). At $T = T_0$ the exponent is exactly zero. So $e(T_0) = e_0$ for any $M$ and $L$. 30 K below $T_0$ the exponent is -2.44, and the test expects $e$ = 53.0 Pa for the water-like coefficient. The test also checks $e(T_0 - 30) < e_0 < e(T_0 + 30)$.
 
-**How we know the right answer.** Both values follow from the closed form. The reference point alone does not test $L / R_v$, because the exponent is zero there, so the second point does. A doubled $L / R_v$ gives about 4.6 Pa and a halved one about 180 Pa, both outside the range check of 10 to 100 Pa. A dropped minus sign inverts the temperature response, which the ordering check catches.
+**How we know the right answer.** Both follow from the closed form. The reference point alone does not test $L / R_v$, because the exponent is zero there, so the second point does. A doubled $L / R_v$ gives about 4.6 Pa and a halved one about 180 Pa, both outside the range check of 10 to 100 Pa. A dropped minus sign inverts the temperature response. The ordering check catches it.
 
 **Why it matters.** `GeneralAdiabat.p_sat` builds the saturation curve of each condensing volatile (water, methane, CO$_2$, CO, N$_2$, O$_2$, O$_3$, He, NH$_3$) with `satvps_function`, which calls `satvps`. H$_2$ is forced dry. For water with `water_lookup=True` (off by default), steam tables replace `satvps` above the triple point.
 
 ![Saturation pressure from satvps against temperature, with the values at T0 and 30 K below and above it](../assets/validation/janus_phys_satvps.svg#only-light){ width="80%" }
 ![Saturation pressure from satvps against temperature, with the values at T0 and 30 K below and above it](../assets/validation/janus_phys_satvps_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** The line is `satvps` with the inputs of the test ($T_0$ = 273.16 K, $e_0$ = 611 Pa, 18 g/mol, 2.5e6 J/kg) and gives context. The grey band is the guard band of 10 to 100 Pa. At $T_0$ the code value (circle) must equal $e_0$ (square) to a relative 1e-12. At 30 K below $T_0$ it must be 53.02 Pa to 1 % (square with error bar) and lie in the grey band. At 30 K above $T_0$ it must lie above $e_0$. A pass means that all 3 circles meet these conditions.
+**How to read the plot.** The line is `satvps` with the inputs of the test ($T_0$ = 273.16 K, $e_0$ = 611 Pa, 18 g/mol, 2.5e6 J/kg) and gives context. The grey band is the 10 to 100 Pa guard. At $T_0$ the code value (circle) must equal $e_0$ (square) to a relative 1e-12. At 30 K below $T_0$ it must be 53.02 Pa to 1 % (square with error bar) and lie in the grey band. At 30 K above $T_0$ it must lie above $e_0$. A pass means that all 3 circles meet these conditions.
 
 ??? info "Test details"
     - Reference: Clausius-Clapeyron reference identity plus an off-reference exponent (analytical limit).
@@ -59,7 +59,7 @@ This page checks the thermodynamic relations of `janus.utils.phys`: the saturati
 ![Planck radiance at 5e13 Hz against temperature, with the values at 300 and 1500 K](../assets/validation/janus_phys_planck.svg#only-light){ width="80%" }
 ![Planck radiance at 5e13 Hz against temperature, with the values at 300 and 1500 K](../assets/validation/janus_phys_planck_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** Both axes are logarithmic, and the line is `B` at 5e13 Hz from 200 to 2000 K, as context. The test asserts the code value at 300 K (circle) against 6.193e-13 W m$^{-2}$ sr$^{-1}$ Hz$^{-1}$ (square). Its tolerance, a relative 1e-3, is too small to see. The value at 1500 K (circle) must be more than 100 times higher; it is 753 times higher. A value at 1e16 Hz is asserted too but is not on this axis. A pass means that the circle at 300 K sits in the square.
+**How to read the plot.** Both axes are logarithmic, and the line is `B` at 5e13 Hz from 200 to 2000 K, as context. The test asserts the code value at 300 K (circle) against 6.193e-13 W m$^{-2}$ sr$^{-1}$ Hz$^{-1}$ (square). Its tolerance, a relative 1e-3, is too small to see. The value at 1500 K (circle) must be more than 100 times higher; it is 753 times higher. A value at 1e16 Hz is asserted too but is not on this axis. A pass means that the circle at 300 K sits in the square. The circle at 1500 K must be more than 100 times higher.
 
 ??? info "Test details"
     - Reference: Planck closed-form radiance (analytical limit).

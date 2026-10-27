@@ -2,7 +2,7 @@
 
 ## What this page checks
 
-This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL` in `janus.modules.solve_pt`. If they are wrong, the outgoing fluxes, the surface temperature and the tropopause temperature that they return are wrong. Each one builds a full atmosphere column and returns its fluxes. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. Here the right answer is a stored result of the same code (a regression pin). The tests catch any change of the result, not an error that was there from the start. They run the real SOCRATES radiative-transfer code over a full column solve, so they are integration tests that run every night. Each case below says why the check exists, what it tests, how we know the right answer and why it matters; a box "Test details" ends each case.
+This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL` (multiple-condensible pseudoadiabat with a conductive boundary layer) in `janus.modules.solve_pt`. If they are wrong, the outgoing fluxes, the surface temperature and the tropopause temperature that they return are wrong. Each one builds a full atmosphere column and returns its fluxes. Validation means that a test runs the code on a case with a known right answer and checks the result within a stated tolerance. Here the right answer is a stored result of the same code (a regression pin). The tests catch any change of the result, not an error that was there from the start. They run the real SOCRATES radiative-transfer code over a full column solve, so they are integration tests that run every night. Each case below says why the check exists, what it tests, how we know the right answer and why it matters; a box "Test details" ends each case.
 
 ## Outgoing radiation along the runaway greenhouse
 
@@ -23,7 +23,7 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 ![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 2800 K](../assets/validation/janus_runaway_olr_2800k.svg#only-light){ width="80%" }
 ![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 2800 K](../assets/validation/janus_runaway_olr_2800k_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** There is one plot for each of the 3 surface temperatures of the test. The grey squares are the 3 stored values: 90.73, 278.99 and 6583.79 W/m$^2$. In each plot the large square is the stored value of that temperature and the circle is the code value. The test asserts it to a relative 1e-5, too small to see. No line is drawn, because each point needs a full radiative-convective solve. A pass means that the circle sits in the large square.
+**How to read the plot.** There is one plot for each of the 3 surface temperatures of the test, with the OLR on a log y-axis. The grey squares are the 3 stored values: 90.73, 278.99 and 6583.79 W/m$^2$. In each plot the large square is the stored value of that temperature and the circle is the code value. The test asserts it to a relative 1e-5, too small to see. No line is drawn, because each point needs a full radiative-convective solve. A pass means that the circle sits in the large square.
 
 **Known limit.** Only 3 surface temperatures are checked; the test file holds further reference rows on the plateau, but they are commented out. With `cp_dry=False`, the test does not reach the dry-adiabat or the moist-adjustment code.
 
@@ -37,9 +37,9 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 
 **Why this check exists.** `MCPA_CBL` finds the surface temperature at which the net atmospheric flux equals the heat conducted through a surface skin (Fourier's law). A change in the solve or in the stellar input moves its fluxes and temperatures, and the test catches it.
 
-**What it tests.** The test runs `MCPA_CBL` at orbital distances of 0.3 and 1.4 au (astronomical units). At each distance it compares 5 values with stored values: the downward shortwave flux, the upward longwave flux and the net flux at the top of the atmosphere, the surface temperature and the tropopause temperature. Before that comparison it checks that the surface temperature and the tropopause temperature are positive and that every value is finite.
+**What it tests.** The test runs `MCPA_CBL` for a pure water-vapour column at orbital distances of 0.3 and 1.4 au (astronomical units). The instellation, the stellar flux that reaches the planet, falls with the square of the distance. At each distance it compares 5 values with stored values: the downward shortwave flux, the upward longwave flux and the net flux at the top of the atmosphere, the surface temperature and the tropopause temperature. Before that comparison it checks that the surface temperature and the tropopause temperature are positive and that every value is finite.
 
-**How we know the right answer.** Like the case above, this is a regression pin of the JANUS + SOCRATES pipeline. The stored downward shortwave flux follows the inverse square of the distance: 2342.97 / 107.585 = 21.78 = (1.4 / 0.3)$^2$.
+**How we know the right answer.** Like the case above, this is a regression pin of the JANUS + SOCRATES pipeline. The stored downward shortwave flux follows the inverse square of the distance: 2342.97 / 107.585 = 21.78 = (1.4 / 0.3)$^2$. The test pins the 5 values. It does not assert the scaling.
 
 **Why it matters.** `MCPA_CBL` returns the atmosphere state with a conductive surface layer.
 
