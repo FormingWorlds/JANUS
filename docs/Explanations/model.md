@@ -4,7 +4,7 @@ A 1D prescribed convective atmosphere model for rocky exoplanet and magma ocean 
 
 ## 1. Model summary
 
-JANUS computes the temperature-pressure (T–p) structure of a planetary atmosphere in hydrostatic and convective equilibrium, then calculates the resulting radiative energy fluxes. It is designed for atmospheres overlying magma ocean surfaces, where surface temperatures are high, atmospheric compositions are diverse and potentially non-dilute in condensable species, and the standard dilute-vapour approximations of terrestrial meteorology break down. The model operates as a 1D column, integrating upward from a prescribed surface temperature and set of volatile partial pressures [^1][^2].
+JANUS computes the temperature-pressure (T-p) structure of a planetary atmosphere in hydrostatic and convective equilibrium, then calculates the resulting radiative energy fluxes. It is designed for atmospheres overlying magma ocean surfaces, where surface temperatures are high, atmospheric compositions are diverse and potentially non-dilute in condensable species, and the standard dilute-vapour approximations of terrestrial meteorology break down. The model operates as a 1D column, integrating upward from a prescribed surface temperature and set of volatile partial pressures [^1][^2].
 
 ---
 
@@ -18,7 +18,7 @@ where $\mu$ is the local mean molar mass of the gas mixture, $g$ is the local gr
 
 $$g(z) = g_s \frac{r_p^2}{(r_p + z)^2} \tag{2}$$
 
-where $g_s = GM_p / r_p^2$ is the surface gravity, $M_p$ the planetary mass, and $r_p$ the planetary radius. The local gravity from Equation (2) used at each step is stored on the same levels as the altitude, so the `gravity` and `z` columns of the output file are always consistent. Equation (1) is integrated upward using a forward Euler step, giving altitude from pressure differences. Note that this integration is used only to compute the diagnostic altitude grid — the T–p profile itself is integrated directly in pressure space using the pseudoadiabat ODE (Section 3.2).
+where $g_s = GM_p / r_p^2$ is the surface gravity, $M_p$ the planetary mass, and $r_p$ the planetary radius. The local gravity from Equation (2) used at each step is stored on the same levels as the altitude, so the `gravity` and `z` columns of the output file are always consistent. Equation (1) is integrated upward using a forward Euler step, giving altitude from pressure differences. Note that this integration is used only to compute the diagnostic altitude grid; the T-p profile itself is integrated directly in pressure space using the pseudoadiabat ODE (Section 3.2).
 
 ---
 
@@ -38,7 +38,7 @@ Gas-phase molar heat capacities are temperature-dependent, computed from Shomate
 
 $$c_{p,s}(\hat T) = A_s + B_s \hat T + C_s \hat T^2 + D_s \hat T^3 + E_s / \hat T^2 \tag{4}$$
 
-where $\hat T = T/1000$ and the fit constants $A_s$–$E_s$ are taken from the NIST Chemistry WebBook (SRD 69).
+where $\hat T = T/1000$ and the fit constants $A_s$-$E_s$ are taken from the NIST Chemistry WebBook (SRD 69).
 
 ### 3.3 Generalised moist pseudoadiabat
 
@@ -74,11 +74,11 @@ Above the critical temperature, $L_s = 0$: species become supercritical and are 
 
 H$_2$ is hardcoded as non-condensing at all temperatures relevant to magma ocean atmospheres ($p_{\rm sat} \to 10^{30}$ Pa), reflecting the fact that H$_2$ condensation occurs only below $\sim 30$ K. <br><br>
 
-![Thermal structure for single-species atmospheres at $P_{\rm surf} = 260$ bar and $T_{\rm surf} = 1000$ K. Solid lines show the adiabatic temperature profile for each volatile; dashed lines show the corresponding saturation vapour pressure curve $p_{\rm sat}^i$. In the lower troposphere the profile follows the dry adiabat until it intersects $p_{\rm sat}^i$, at which point condensation occurs and the lapse rate follows the moist convective profile (Eqs. 5–7). Figure 3 from Lichtenberg et al. (2021) [^1].](../assets/thermal_structure.png)
+![Thermal structure for single-species atmospheres at $P_{\rm surf} = 260$ bar and $T_{\rm surf} = 1000$ K. Solid lines show the adiabatic temperature profile for each volatile; dashed lines show the corresponding saturation vapour pressure curve $p_{\rm sat}^i$. In the lower troposphere the profile follows the dry adiabat until it intersects $p_{\rm sat}^i$, at which point condensation occurs and the lapse rate follows the moist convective profile (Eqs. 5-7). Figure 3 from Lichtenberg et al. (2021) [^1].](../assets/thermal_structure.png)
 
 *Thermal structure for single-species atmospheres with fixed surface pressure
 $P_{\rm surf} = 260$ bar and surface temperature $T_{\rm surf} = 1000$ K.
-Solid lines show the generalised adiabatic temperature profile (Eqs. 5–7) for
+Solid lines show the generalised adiabatic temperature profile (Eqs. 5-7) for
 each volatile; dashed lines show the corresponding saturation vapour pressure
 curve $p_{\rm sat}^i$ (Eq. 8). In the lower troposphere the profile follows
 the dry adiabat until it intersects $p_{\rm sat}^i$, at which point the lapse
@@ -105,7 +105,7 @@ Above the tropopause, the atmosphere is set to an **isothermal stratosphere** at
 
 $$T_r = \left(\frac{(1-\alpha_b) f_s F_\star}{2\sigma_{\rm SB}}\right)^{1/4} \tag{9}$$
 
-where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $F_\star$ is the bolometric stellar flux, and $\sigma_{\rm SB}$ is the Stefan–Boltzmann constant [^4].
+where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $F_\star$ is the bolometric stellar flux, and $\sigma_{\rm SB}$ is the Stefan-Boltzmann constant [^4].
 
 The tropopause is located by either a **fixed temperature criterion**, the first level where $T < T_r$, or a **heating rate criterion**, where the tropopause is placed where the net radiative heating rate changes sign. In the stratosphere, volatile mixing ratios are fixed to their tropopause values.
 
@@ -161,7 +161,7 @@ The total upward and downward fluxes are the sum of thermal and stellar componen
 
 $$F_{\rm net}^{\uparrow\downarrow} = F_{\rm th}^{\uparrow\downarrow} + F_\star^{\uparrow\downarrow} \tag{16}$$
 
-The net radiative flux used as the interior–atmosphere boundary condition is [^1] Eq. (18), [^2] Eq. (4):
+The net radiative flux used as the interior-atmosphere boundary condition is [^1] Eq. (18), [^2] Eq. (4):
 
 $$F_{\rm net} = F_{\rm LW}^{\uparrow} + F_{\rm SW}^{\uparrow} - F_{\rm LW}^{\downarrow} - F_{\rm SW}^{\downarrow} \tag{17}$$
 
@@ -181,7 +181,7 @@ where $k_{\rm c}$ is the thermal conductivity and $d_{\rm c}$ the thickness of t
 
 ## 7. Runaway greenhouse physics
 
-In a steam-dominated atmosphere, the OLR becomes decoupled from the surface temperature when the photosphere lies within a condensing region. Since the temperature structure in that region is fixed by the saturation curve rather than by $T_s$, OLR saturates at the **Simpson–Nakajima radiation limit** ($\approx 280$ W m$^{-2}$ for pure steam) [^8]. Only when surface temperatures are high enough that the deep atmosphere becomes supercritical, and the condensing zone transparent, does the photosphere re-couple to $T_s$, entering the **post-runaway regime** [^9].
+In a steam-dominated atmosphere, the OLR becomes decoupled from the surface temperature when the photosphere lies within a condensing region. Since the temperature structure in that region is fixed by the saturation curve rather than by $T_s$, OLR saturates at the **Simpson-Nakajima radiation limit** ($\approx 280$ W m$^{-2}$ for pure steam) [^8]. Only when surface temperatures are high enough that the deep atmosphere becomes supercritical, and the condensing zone transparent, does the photosphere re-couple to $T_s$, entering the **post-runaway regime** [^9].
 
 For multi-component outgassed atmospheres above molten surfaces, this classical radiation limit does not appear: the diverse gas mixture and volatile dissolution into the magma mean the OLR varies continuously with $T_s$ with no clear plateau [^10].
 
@@ -215,13 +215,13 @@ where $\sigma_{\rm 1\mu m} = 0.3743 \times 2.49 \times 10^{-6}$ m$^2$ kg$^{-1}$.
 | Rotation scaling of instellation | $f_s$ | 3/8 | Cronin (2014) [^6] |
 | Skin layer thickness | $d_{\rm c}$ | 0.01 m | Used in coupled mode |
 | Skin layer conductivity | $k_{\rm c}$ | 2.0 W m$^{-1}$ K$^{-1}$ | Used in coupled mode |
-| Gas overlap method | — | Random Overlap | SOCRATES `overlap_type=2` |
+| Gas overlap method | n/a | Random Overlap | SOCRATES `overlap_type=2` |
 | TOA pressure | $p_{\rm top}$ | $10^{-5}$ bar | User-configurable |
 | RK4 step size | $\Delta\ln p$ | −0.01 | Pseudoadiabat integration |
 
 ---
 
-[^1]: Lichtenberg, T., Bower, D. J., Hammond, M., Boukrouche, R., Sanan, P., Tsai, S. M., & Pierrehumbert, R. T. (2021). Vertically resolved magma ocean–protoatmosphere evolution: H₂, H₂O, CO₂, CH₄, CO, O₂, and N₂ as primary absorbers. *Journal of Geophysical Research: Planets, 126*(2), e2020JE006711. https://doi.org/10.1029/2020JE006711
+[^1]: Lichtenberg, T., Bower, D. J., Hammond, M., Boukrouche, R., Sanan, P., Tsai, S. M., & Pierrehumbert, R. T. (2021). Vertically resolved magma ocean-protoatmosphere evolution: H₂, H₂O, CO₂, CH₄, CO, O₂, and N₂ as primary absorbers. *Journal of Geophysical Research: Planets, 126*(2), e2020JE006711. https://doi.org/10.1029/2020JE006711
 
 [^2]: Nicholls, H., Lichtenberg, T., Bower, D. J., & Pierrehumbert, R. (2024). Magma ocean evolution at arbitrary redox state. *Journal of Geophysical Research: Planets, 129*(12), e2024JE008576. https://doi.org/10.1029/2024JE008576
 
