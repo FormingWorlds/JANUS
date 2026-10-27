@@ -456,6 +456,35 @@ def test_fix_that_only_deletes_text_reaches_the_open_pr(repo, cut, fixed_line, p
     assert 'cut' not in r.inc and r.output == ''
 
 
+TABLE_DOC = '| a | b |\n| alpha | 1 |\n| beta | 2 |\n| gamma | 3 |\n'
+NOTE_DOC = '!!! note\n    First.\n    Second line.\n    Third.\n'
+
+
+@pytest.mark.parametrize('pr_has_it', [False, True], ids=['pr-without-it', 'pr-with-it'])
+@pytest.mark.parametrize(
+    ('doc', 'old'),
+    [
+        (TABLE_DOC, '| beta | 2 |\n'),
+        (TABLE_DOC, '\n| beta | 2 |'),
+        (TABLE_DOC, '| a | b |\n'),
+        (NOTE_DOC, '    Second line.\n'),
+    ],
+    ids=['row-and-following-break', 'break-and-row', 'first-line', 'wrapped-sentence-line'],
+)
+def test_fix_that_deletes_whole_lines_reaches_the_open_pr(repo, doc, old, pr_has_it):
+    """Deleting whole lines leaves fixed lines the unfixed PR also has; the fix is added
+    unless the deleted lines are already gone from the PR."""
+    (repo / DOC_FILE).write_text(doc)
+    drop = finding(
+        'drop', doc_excerpt=doc.strip('\n'), suggested_fix={'old_text': old, 'new_text': ''}
+    )
+    run_triage(repo, [drop])
+    r = onto(repo, doc.replace(old, '') if pr_has_it else doc)
+    assert r.doc == doc.replace(old, '')
+    assert ('`drop`' in r.update) is not pr_has_it
+    assert 'drop' not in r.inc and r.output == ''
+
+
 def test_fix_the_pr_offered_before_is_not_re_added_after_a_revert(repo):
     """A reviewer reverted a fix on the PR: its fingerprint is in the PR description, so
     the next run neither re-adds it nor files it, and the revert stands."""

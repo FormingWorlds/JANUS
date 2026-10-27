@@ -232,11 +232,14 @@ def apply_fix(finding):
     else:
         # old_text occurs once and lies inside doc_excerpt, which is in the doc, so the
         # single occurrence is necessarily the one inside the quoted passage.
-        fixed, at = text.replace(old, new), text.find(old)
-        # The whole fixed lines, so --onto can tell whether an open PR already has the fix.
-        first, last = fixed.rfind('\n', 0, at) + 1, fixed.find('\n', at + len(new))
-        finding['fixed_lines'] = fixed[first : last if last >= 0 else len(fixed)]
-        doc_path.write_text(fixed)
+        at = text.find(old)
+        # The whole lines around the edit, before and after it, so --onto can tell whether
+        # an open PR already has the fix.
+        first, last = text.rfind('\n', 0, at) + 1, text.find('\n', at + len(old))
+        last = len(text) if last < 0 else last
+        finding['unfixed_lines'] = text[first:last]
+        finding['fixed_lines'] = text[first:at] + new + text[at + len(old) : last]
+        doc_path.write_text(text.replace(old, new))
         return None
     print(
         f"WARNING: finding '{finding['id']}': {reason}; leaving unfixed for manual review",
@@ -516,10 +519,11 @@ def apply_onto(target):
         text = path.read_text()
         old, new = f['suggested_fix']['old_text'], f['suggested_fix']['new_text']
         # Offered by this PR before: what the reviewer did with it, a revert included, stands.
-        # Already in the PR: its doc has the whole fixed lines as they read on main. Testing
-        # new_text alone would match a deletion, whose new_text is part of the old sentence.
-        lines = f['fixed_lines']
-        if f['fingerprint'] in offered or (lines.strip() and f'\n{lines}\n' in f'\n{text}\n'):
+        # Already in the PR: the unfixed lines are gone and the fixed ones are there.
+        padded = f'\n{text}\n'
+        if f['fingerprint'] in offered or (
+            f'\n{f["unfixed_lines"]}\n' not in padded and f'\n{f["fixed_lines"]}\n' in padded
+        ):
             continue
         if f['doc_excerpt'] in text and text.count(old) == 1:
             path.write_text(text.replace(old, new))
