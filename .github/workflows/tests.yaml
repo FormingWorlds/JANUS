@@ -50,6 +50,10 @@ jobs:
           repository: 'FormingWorlds/SOCRATES'
           path: 'SOCRATES'
 
+      - name: Runner OS release
+        id: os
+        run: . /etc/os-release && echo "release=${ID}-${VERSION_ID}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/cache@v4
         id: cache-socrates
         with:
@@ -57,7 +61,7 @@ jobs:
             SOCRATES/bin
             SOCRATES/sbin
             SOCRATES/set_rad_env
-          key: socrates-${{ hashFiles('SOCRATES/version') }}
+          key: socrates-${{ steps.os.outputs.release }}-portable-${{ hashFiles('SOCRATES/version') }}
 
       - name: Build SOCRATES
         if: steps.cache-socrates.outputs.cache-hit != 'true'
@@ -65,7 +69,11 @@ jobs:
           export LD_LIBRARY_PATH=""
           cd SOCRATES
           ./configure
+          # -march=native ties the binary to the build CPU; a restored cache can run on another.
+          grep -q -- '-Ofast -march=native' make/Mk_cmd
+          sed -i 's/-Ofast -march=native/-O2 -fno-fast-math/g' make/Mk_cmd
           ./build_code
+          if grep -nE -- '-march=|-mcpu=native|-Ofast' bin/Mk_cmd; then exit 1; fi
           source set_rad_env
           cd ..
 
