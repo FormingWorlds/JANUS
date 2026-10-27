@@ -48,6 +48,10 @@ BLOCK_START_RE = re.compile(r'\s*(?:#|!!!|\||\$\$|```|>|[-*+] |\d+\. )')
 # Hidden marker embedded in every finding posted to an issue
 FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} {} -->'
 FINGERPRINT_RE = re.compile(r'<!-- docs-consistency-fp: ([0-9a-f]{16})(?: ([a-z-]+))? -->')
+# Second marker on an applied fix, keyed on its doc side, which varies less between runs
+# than the code quote the fingerprint hashes.
+FIX_KEY_MARKER = '<!-- docs-consistency-fix: {} -->'
+FIX_KEY_RE = re.compile(r'<!-- docs-consistency-fix: ([0-9a-f]{16}) -->')
 
 
 def load_findings():
@@ -239,6 +243,8 @@ def apply_fix(finding):
         last = len(text) if last < 0 else last
         finding['unfixed_lines'] = text[first:last]
         finding['fixed_lines'] = text[first:at] + new + text[at + len(old) : last]
+        key = f'{finding["doc_file"]}\n{" ".join(old.split())}'
+        finding['fix_key'] = hashlib.sha256(key.encode()).hexdigest()[:16]
         doc_path.write_text(text.replace(old, new))
         return None
     print(
@@ -268,6 +274,8 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
     lines = [heading]
     if with_fingerprint:
         lines.append(FINGERPRINT_MARKER.format(finding['fingerprint'], finding['status']))
+        if finding.get('fix_key'):
+            lines.append(FIX_KEY_MARKER.format(finding['fix_key']))
     if problems:
         lines += [
             '',
@@ -506,14 +514,17 @@ def main():
 def apply_onto(target):
     """Re-apply this run's fixes, one at a time, to the checkout of an open PR at target.
 
-    A fix the PR offered before (its fingerprint is in existing_pr_body.md) or already has
-    is skipped. A fix whose quoted passage the PR changed (for
-    example a reviewer corrected it) is not applied but filed in the inconsistency issue,
-    so one conflict drops only that fix and nothing is lost. pr_update.md lists the newly
-    applied fixes.
+    A fix the PR offered before or already has is skipped. Offered before means its
+    fingerprint or fix key is in existing_pr_body.md; a revert can still come back if a
+    later run quotes both the code and the doc passage differently. A fix whose quoted
+    passage the PR changed (for example a reviewer corrected it) is not applied but filed in
+    the inconsistency issue, so one conflict drops only that fix and nothing is lost.
+    pr_update.md lists the newly applied fixes.
     """
     added, conflicts = [], []
     offered = load_reported_fingerprints('existing_pr_body.md')
+    body = REPO_ROOT / 'existing_pr_body.md'
+    offered_fixes = set(FIX_KEY_RE.findall(body.read_text())) if body.exists() else set()
     for f in json.loads((REPO_ROOT / 'applied_fixes.json').read_text()):
         path = target / f['doc_file']
         text = path.read_text()
@@ -521,8 +532,13 @@ def apply_onto(target):
         # Offered by this PR before: what the reviewer did with it, a revert included, stands.
         # Already in the PR: the unfixed lines are gone and the fixed ones are there.
         padded = f'\n{text}\n'
-        if f['fingerprint'] in offered or (
-            f'\n{f["unfixed_lines"]}\n' not in padded and f'\n{f["fixed_lines"]}\n' in padded
+        if (
+            f['fingerprint'] in offered
+            or f['fix_key'] in offered_fixes
+            or (
+                f'\n{f["unfixed_lines"]}\n' not in padded
+                and f'\n{f["fixed_lines"]}\n' in padded
+            )
         ):
             continue
         if f['doc_excerpt'] in text and text.count(old) == 1:

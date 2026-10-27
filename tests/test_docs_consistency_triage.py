@@ -500,6 +500,19 @@ def test_fix_the_pr_offered_before_is_not_re_added_after_a_revert(repo):
     assert 'gamma' not in reverted.inc and reverted.output == ''
 
 
+def test_reverted_fix_stays_out_when_the_next_run_quotes_other_code(repo):
+    """The next run proposes the same doc fix with a different code quote, so a new
+    fingerprint: the fix key on the doc side still keeps the reverted fix out."""
+    r = run_triage(repo, [GAMMA_FIX])
+    assert '<!-- docs-consistency-fix: ' in r.pr
+    post(repo, 'existing_pr_body.md', r.pr)
+    (repo / DOC_FILE).write_text(DOC_TEXT)
+    run_triage(repo, [{**GAMMA_FIX, 'code_excerpt': '    return y'}])
+    reverted = onto(repo, DOC_TEXT)
+    assert reverted.doc == DOC_TEXT and reverted.update == ''
+    assert 'gamma' not in reverted.inc and reverted.output == ''
+
+
 def test_conflict_already_in_the_issue_is_not_filed_again(repo):
     """A conflicting fix reported in an earlier run is not posted a second time."""
     run_triage(repo, [GAMMA_FIX])
