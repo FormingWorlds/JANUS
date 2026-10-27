@@ -1,8 +1,8 @@
 """Pipeline reference test for the MCPA_CBL surface energy balance.
 
 Runs the full JANUS single-column radiative-convective solver (real SOCRATES
-binary) at fixed instellation and pins the returned surface shortwave and
-longwave fluxes, net flux, surface temperature, and tropopause temperature
+binary) at fixed instellation and pins the returned top-of-atmosphere shortwave
+and longwave fluxes, net flux, surface temperature, and tropopause temperature
 against reference values. This is the instellation flux anchor in the
 reference_pinned inventory for the solve_pt pipeline. See docs/How-to/test.md.
 """
@@ -35,9 +35,9 @@ TEST_DATA = (
 def test_instellation(tmpdir, inp, expected, validation_plot):
     """Full-column MCPA_CBL fluxes match pinned references at fixed instellation.
 
-    For a hydrogen-dominated column at two orbital distances the converged
-    single-column solver must reproduce the reference surface downward
-    shortwave flux, upward longwave flux, net flux, surface temperature, and
+    For a pure water-vapour column at two orbital distances the converged
+    single-column solver must reproduce the reference top-of-atmosphere
+    downward shortwave flux, upward longwave flux, net flux, surface temperature, and
     tropopause temperature. Before the pin the physical sanity of the solve is
     checked: surface and tropopause temperatures are positive and every
     returned flux is finite, ruling out a diverged or NaN-producing solve that

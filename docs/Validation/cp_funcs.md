@@ -34,4 +34,4 @@ This page checks the heat capacity of a gas species in JANUS. If it is wrong, th
 
 ## References
 
-[^cite-janaf]: M. W. Chase, *NIST-JANAF Thermochemical Tables*, 4th edition, Journal of Physical and Chemical Reference Data, Monograph 9, 1998. Machine-readable Shomate coefficients for individual species are available through the [NIST Chemistry WebBook](https://webbook.nist.gov).
+[^cite-janaf]: M. W. Chase, *NIST-JANAF Thermochemical Tables*, 4th edition, Journal of Physical and Chemical Reference Data, Monograph 9, 1998. The value at 500 K is from the table of gaseous water, H-064 ([janaf.nist.gov/tables/H-064.txt](https://janaf.nist.gov/tables/H-064.txt)). Machine-readable Shomate coefficients for individual species are available through the [NIST Chemistry WebBook](https://webbook.nist.gov).
