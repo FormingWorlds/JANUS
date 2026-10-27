@@ -40,7 +40,7 @@ R_GAS = 8.314462618
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_water_heat_capacity_matches_nist_shomate_at_500K():
+def test_water_heat_capacity_matches_nist_shomate_at_500K(validation_plot):
     """cpv(H2O) reproduces the NIST Shomate water-vapour value at 500 K.
 
     The T-dependent branch evaluates the NIST Shomate polynomial. At 500 K
@@ -50,15 +50,51 @@ def test_water_heat_capacity_matches_nist_shomate_at_500K():
     vibrational modes activate, which discriminates the Shomate branch from
     the flat constant branch.
     """
-    cp500 = cp_funcs.cpv('H2O', 500.0, 'T-dependent')
-    assert cp500 == pytest.approx(35.22, rel=2e-3)  # NIST Shomate H2O(g), 500 K
+    T, nist, rtol = 500.0, 35.22, 2e-3
+    cp500 = cp_funcs.cpv('H2O', T, 'T-dependent')
+    assert cp500 == pytest.approx(nist, rel=rtol)  # NIST Shomate H2O(g), 500 K
     # Positivity guard.
     assert cp500 > 0.0
     # Scale guard: order 3.5e1 J/mol/K, not 3.5e0 (per-gram slip) or 3.5e2.
     assert 25.0 < cp500 < 55.0
     # Temperature dependence: cp of water vapour rises with T.
-    cp1500 = cp_funcs.cpv('H2O', 1500.0, 'T-dependent')
+    T_hot = 1500.0
+    cp1500 = cp_funcs.cpv('H2O', T_hot, 'T-dependent')
     assert cp1500 > cp500
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        temps = [300.0 + 25.0 * k for k in range(69)]
+        fig, ax = plt.subplots()
+        ax.plot(
+            temps,
+            [cp_funcs.cpv('H2O', t, 'T-dependent') for t in temps],
+            label='code, T-dependent',
+        )
+        ax.plot(
+            temps,
+            [cp_funcs.cpv('H2O', t, 'constant') for t in temps],
+            ls='--',
+            label='code, constant',
+        )
+        ax.errorbar(
+            [T],
+            [nist],
+            yerr=nist * rtol,
+            fmt='s',
+            mfc='none',
+            capsize=4,
+            label='NIST 35.22',
+        )
+        ax.plot([T], [cp500], 'o', label='code at 500 K')
+        ax.plot([T_hot], [cp1500], '^', label='code at 1500 K')
+        ax.set(xlabel='T [K]', ylabel=r'$c_p$ of H$_2$O [J mol$^{-1}$ K$^{-1}$]')
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_cp_h2o_500k')
 
 
 @pytest.mark.physics_invariant

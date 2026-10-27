@@ -115,7 +115,7 @@ def test_supersaturated_column_relaxes_toward_local_dew_point():
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-def test_dew_point_target_matches_clausius_clapeyron_reference():
+def test_dew_point_target_matches_clausius_clapeyron_reference(validation_plot):
     """The moist-adjustment dew-point target reproduces the water triple point.
 
     moist_adj relaxes each supersaturated level to ga.Tdew('H2O', pp), so the
@@ -131,7 +131,9 @@ def test_dew_point_target_matches_clausius_clapeyron_reference():
     """
     # Published anchor: water triple point, 273.16 K at 611.657 Pa. The routine
     # uses 273.15 K as its p<=p_triple reference temperature; pin within 0.05 K.
-    assert ga.Tdew('H2O', 611.657) == pytest.approx(273.15, abs=0.05)
+    p_triple, T_triple, tol_dew, tol_target = 611.657, 273.15, 0.05, 0.1
+    tdew_triple = ga.Tdew('H2O', p_triple)
+    assert tdew_triple == pytest.approx(T_triple, abs=tol_dew)
 
     # Off-reference round-trip that depends on the latent heat. The p>p_triple
     # branch of ga.Tdew anchors on the 1 atm reference pressure at Tref=373.15 K,
@@ -145,18 +147,20 @@ def test_dew_point_target_matches_clausius_clapeyron_reference():
     coeff = latent_molar / phys.R_gas
     t_target = 340.0
     p_forward = pref * math.exp(coeff * (1.0 / Tref - 1.0 / t_target))
-    assert ga.Tdew('H2O', p_forward) == pytest.approx(t_target, rel=1e-9)
+    tdew_forward = ga.Tdew('H2O', p_forward)
+    assert tdew_forward == pytest.approx(t_target, rel=1e-9)
     # Latent-heat guard: feeding the same pressure but with a doubled coefficient
     # recovers a temperature tens of kelvin away, far past the round-trip
     # tolerance, so the anchor actually pins L rather than being degenerate.
     p_wrong_l = pref * math.exp(2.0 * coeff * (1.0 / Tref - 1.0 / t_target))
-    assert abs(ga.Tdew('H2O', p_wrong_l) - t_target) > 1.0
+    tdew_wrong = ga.Tdew('H2O', p_wrong_l)
+    assert abs(tdew_wrong - t_target) > 1.0
 
     # Tie the published anchor to the module output: a cold column with one
     # interior level at the triple-point pressure relaxes that level's target to
     # 273.15 K. press descends so index 1 (611.657 Pa) is an interior level the
     # downward pass adjusts; the top node (index -1) is left untouched.
-    pp_triple = 611.657
+    pp_triple = p_triple
     press = np.array([1.0e5, pp_triple, 1.0e3])
     t_cold, tau = 200.0, 50.0
     atm = SimpleNamespace(
@@ -167,7 +171,36 @@ def test_dew_point_target_matches_clausius_clapeyron_reference():
     )
     dt_conv = moist_adj(atm, conv_timescale=tau)
     target_triple = t_cold + dt_conv[1] * tau  # reconstructed relaxation target
-    assert target_triple == pytest.approx(273.15, abs=0.1)
+    assert target_triple == pytest.approx(T_triple, abs=tol_target)
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        pgrid = np.logspace(2.0, 5.0, 61)
+        fig, ax = plt.subplots()
+        ax.plot(pgrid, [ga.Tdew('H2O', p) for p in pgrid], label='code, Tdew')
+        ax.errorbar(
+            [pp_triple],
+            [T_triple],
+            yerr=tol_dew,
+            fmt='s',
+            mfc='none',
+            capsize=4,
+            label='triple point',
+        )
+        ax.plot([pp_triple], [tdew_triple], 'o', label='code at the triple point')
+        ax.plot([pp_triple], [target_triple], 'D', mfc='none', label='moist_adj target')
+        ax.plot(
+            [p_forward], [t_target], 's', mfc='none', ms=10, label='round-trip target 340 K'
+        )
+        ax.plot([p_forward], [tdew_forward], 'o', label='code, round trip')
+        ax.plot([p_wrong_l], [tdew_wrong], 'x', label='code, doubled-L pressure')
+        ax.set(xlabel='H$_2$O partial pressure [Pa]', ylabel='dew point [K]', xscale='log')
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, 'janus_moist_dew_point')
 
 
 @pytest.mark.physics_invariant

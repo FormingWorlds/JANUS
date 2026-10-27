@@ -1,8 +1,8 @@
 """Pipeline reference test for the MCPA_CBL surface energy balance.
 
 Runs the full JANUS single-column radiative-convective solver (real SOCRATES
-binary) at fixed instellation and pins the returned surface shortwave and
-longwave fluxes, net flux, surface temperature, and tropopause temperature
+binary) at fixed instellation and pins the returned top-of-atmosphere shortwave
+and longwave fluxes, net flux, surface temperature, and tropopause temperature
 against reference values. This is the instellation flux anchor in the
 reference_pinned inventory for the solve_pt pipeline. See docs/How-to/test.md.
 """
@@ -32,12 +32,12 @@ TEST_DATA = (
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
 @pytest.mark.parametrize('inp,expected', TEST_DATA)
-def test_instellation(tmpdir, inp, expected):
+def test_instellation(tmpdir, inp, expected, validation_plot):
     """Full-column MCPA_CBL fluxes match pinned references at fixed instellation.
 
-    For a hydrogen-dominated column at two orbital distances the converged
-    single-column solver must reproduce the reference surface downward
-    shortwave flux, upward longwave flux, net flux, surface temperature, and
+    For a pure water-vapour column at two orbital distances the converged
+    single-column solver must reproduce the reference top-of-atmosphere
+    downward shortwave flux, upward longwave flux, net flux, surface temperature, and
     tropopause temperature. Before the pin the physical sanity of the solve is
     checked: surface and tropopause temperatures are positive and every
     returned flux is finite, ruling out a diverged or NaN-producing solve that
@@ -69,3 +69,17 @@ def test_instellation(tmpdir, inp, expected):
     assert atm.trppT > 0.0
     assert np.all(np.isfinite(ret))
     np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0)
+
+    def figure():
+        import matplotlib.pyplot as plt
+
+        names = ['SW down', 'LW up', 'net', 'Ts', 'T trop']
+        fig, ax = plt.subplots()
+        ax.axhline(1.0, ls=':', color='0.5')
+        ax.plot(names, np.asarray(ret) / np.asarray(expected), 'o', label='code / stored value')
+        ax.set(ylabel='code value / stored value', ylim=(0.99, 1.01))
+        ax.legend(fontsize='small')
+        fig.tight_layout()
+        return fig
+
+    validation_plot(figure, f'janus_instellation_{inp:g}au'.replace('.', 'p'))

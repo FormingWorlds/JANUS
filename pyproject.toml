@@ -54,6 +54,7 @@ develop = [
   # the nightly keys, fetches and checks its data with fwl-io cache
   'fwl-io>=26.10.22',
   'fwl-mors',
+  'proteus-mpl>=1.5.0',
   "pytest",
   "pytest-cov",
   "pytest-timeout",
