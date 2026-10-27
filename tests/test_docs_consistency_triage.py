@@ -205,6 +205,24 @@ def test_fix_on_part_of_a_wrapped_sentence_is_not_applied(repo, old, reason):
 
 
 @pytest.mark.parametrize(
+    'doc',
+    [
+        '- The surface temperature is set by the\n  radiative balance of the column.\n',
+        '> The surface temperature is set by the\n> radiative balance of the column.\n',
+    ],
+    ids=['wrapped-list-item', 'wrapped-quote'],
+)
+def test_fix_on_the_continuation_line_of_a_list_item_is_not_applied(repo, doc):
+    """A list item or quote wraps like a paragraph, so its first line is no boundary."""
+    (repo / DOC_FILE).write_text(doc)
+    old = 'radiative balance of the column.'
+    fix = {'old_text': old, 'new_text': old.upper()}
+    r = run_triage(repo, [finding('cont', doc_excerpt=doc.strip(), suggested_fix=fix)])
+    assert r.doc == doc
+    assert 'starts mid-sentence' in r.inc
+
+
+@pytest.mark.parametrize(
     'old',
     [
         'Setting T_r = 0 K disables the stratosphere: since no level\n'

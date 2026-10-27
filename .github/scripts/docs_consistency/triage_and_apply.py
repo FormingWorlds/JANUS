@@ -44,6 +44,8 @@ EN_DASH_RE = re.compile(r'(?<=\w)\u2013(?=\w)')
 # that starts a new block; otherwise it edits one physical line of a wrapped sentence.
 SENTENCE_END = ('.', ':', '?', '!', '|', '$$')
 BLOCK_START_RE = re.compile(r'\s*(?:#|!!!|\||\$\$|```|>|[-*+] |\d+\. )')
+# List items and quotes wrap onto continuation lines, so only these end at their line.
+ONE_LINE_BLOCK_RE = re.compile(r'\s*(?:#|!!!|\||\$\$|```)')
 
 # Hidden marker embedded in every finding posted to an issue
 FINGERPRINT_MARKER = '<!-- docs-consistency-fp: {} {} -->'
@@ -208,10 +210,11 @@ def apply_fix(finding):
     )
     cut_at_start = (
         line_start > 0
-        and not text[line_start:core_start].strip()
+        # Only indentation or a quote's '>' before the edit: it starts its line.
+        and not text[line_start:core_start].replace('>', '').strip()
         and prev_line.strip()
         and not prev_line.endswith(SENTENCE_END)
-        and not BLOCK_START_RE.match(prev_line)
+        and not ONE_LINE_BLOCK_RE.match(prev_line)
         and not BLOCK_START_RE.match(core)
     )
     if finding.get('severity') != 'minor':
