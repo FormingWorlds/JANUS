@@ -428,6 +428,7 @@ def test_fix_the_pr_has_is_skipped_and_a_corrected_one_is_filed_not_dropped(repo
     r = onto(repo, branch)
     assert r.doc == branch and r.update == ''
     assert '## Fixes that conflict with the open PR' in r.inc and '`alpha`' in r.inc
+    assert "the passage reads differently on the open PR's branch" in r.inc
     assert '`gamma`' not in r.inc and r.output == 'has_inconsistency_items=true\n'
 
 

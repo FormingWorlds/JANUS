@@ -520,8 +520,9 @@ def apply_onto(target):
     A fix the PR offered before or already has is skipped. Offered before means its
     fingerprint or fix key is in existing_pr_body.md; a revert can still come back if a
     later run quotes both the code and the doc passage differently. A fix whose quoted
-    passage the PR changed (for example a reviewer corrected it) is not applied but filed in
-    the inconsistency issue, so one conflict drops only that fix and nothing is lost.
+    passage reads differently on the PR branch (a reviewer edited it, or main changed it
+    after the branch was made) is not applied but filed in the inconsistency issue, so one
+    conflict drops only that fix and nothing is lost.
     pr_update.md lists the newly applied fixes.
     """
     added, conflicts = [], []
@@ -548,7 +549,7 @@ def apply_onto(target):
             path.write_text(text.replace(old, new))
             added.append(f)
         else:
-            conflicts.append((f, 'the open PR changed this passage'))
+            conflicts.append((f, "the passage reads differently on the open PR's branch"))
     (REPO_ROOT / 'pr_update.md').write_text(
         '\n'.join(render_finding(f, with_fingerprint=True) for f in added)
     )
@@ -558,8 +559,9 @@ def apply_onto(target):
         [
             (
                 '## Fixes that conflict with the open PR\n',
-                'These fixes were not added to the open PR, because it already changed the '
-                'passage they edit. Compare them with the PR and apply by hand if needed.\n',
+                'These fixes were not added to the open PR, because the passage they edit '
+                'reads differently on its branch: a reviewer edited it, or the doc on main '
+                'changed after the branch was made. Compare and apply by hand if needed.\n',
                 [render_finding(f, fix_status=r, with_fingerprint=True) for f, r in conflicts],
             )
         ],
