@@ -25,7 +25,7 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 
 **How to read the plot.** There is one plot for each of the 3 surface temperatures of the test, with the OLR on a log y-axis. The grey squares are the 3 stored values: 90.74, 279.03 and 6583.90 W/m$^2$. In each plot the large square is the stored value of that temperature and the circle is the code value. The test asserts it to a relative 1e-5, too small to see. No line is drawn, because each point needs a full radiative-convective solve. A pass means that the circle sits in the large square.
 
-**Known limit.** Only 3 surface temperatures are checked; the test file holds further reference rows on the plateau, but they are commented out. With `cp_dry=False`, the test does not reach the dry-adiabat or the moist-adjustment code.
+**Known limit.** Only 3 surface temperatures are checked; the test file holds further rows on the plateau, but they are commented out and are not kept at the SOCRATES version of the active rows. With `cp_dry=False`, the test does not reach the dry-adiabat or the moist-adjustment code.
 
 ??? info "Test details"
     - Reference: stored OLR along the pure-steam runaway-greenhouse curve (regression pin of the JANUS + SOCRATES 2607.3 pipeline): 90.7448, 279.030 and 6583.90 W/m$^2$ at 200, 1705.3 and 2800 K.

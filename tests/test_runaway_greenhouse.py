@@ -5,7 +5,7 @@ binary) for a pure-water column at fixed surface temperatures and pins the
 outgoing longwave radiation against reference values spanning the
 runaway-greenhouse transition. This is the runaway-greenhouse OLR anchor in the
 reference_pinned inventory for the solve_pt pipeline. See docs/How-to/test.md.
-The active reference values come from SOCRATES 2607.3.
+The active reference values come from the SOCRATES version in helpers.SOCRATES_PINS.
 """
 
 import numpy as np
@@ -13,7 +13,12 @@ import pytest
 
 pytest.importorskip('mors')
 
-from helpers import get_atmosphere_config, get_spectrum_data, work_directory  # noqa: E402
+from helpers import (  # noqa: E402
+    get_atmosphere_config,
+    get_spectrum_data,
+    socrates_pin_note,
+    work_directory,
+)
 
 from janus.modules import RadConvEqm  # noqa: E402
 
@@ -45,7 +50,9 @@ TEST_DATA = (
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-@pytest.mark.parametrize('inp,expected', TEST_DATA)
+@pytest.mark.parametrize(
+    'inp,expected', TEST_DATA, ids=('sub_runaway_200K', 'plateau_1705K', 'post_runaway_2800K')
+)
 def test_runaway_greenhouse(tmpdir, inp, expected, validation_plot):
     """RadConvEqm outgoing longwave flux matches pinned runaway-greenhouse values.
 
@@ -83,7 +90,7 @@ def test_runaway_greenhouse(tmpdir, inp, expected, validation_plot):
     # Physical sanity before the pin: OLR is finite and strictly positive.
     assert np.isfinite(ret)
     assert ret > 0.0
-    np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0)
+    np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0, err_msg=socrates_pin_note())
 
     def figure():
         import matplotlib.pyplot as plt

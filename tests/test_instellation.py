@@ -5,7 +5,7 @@ binary) at fixed instellation and pins the returned top-of-atmosphere shortwave
 and longwave fluxes, net flux, surface temperature, and tropopause temperature
 against reference values. This is the instellation flux anchor in the
 reference_pinned inventory for the solve_pt pipeline. See docs/How-to/test.md.
-The active reference values come from SOCRATES 2607.3.
+The active reference values come from the SOCRATES version in helpers.SOCRATES_PINS.
 """
 
 import numpy as np
@@ -13,7 +13,12 @@ import pytest
 
 pytest.importorskip('mors')
 
-from helpers import get_atmosphere_config, get_spectrum_data, work_directory  # noqa: E402
+from helpers import (  # noqa: E402
+    get_atmosphere_config,
+    get_spectrum_data,
+    socrates_pin_note,
+    work_directory,
+)
 
 from janus.modules import MCPA_CBL  # noqa: E402
 
@@ -69,7 +74,7 @@ def test_instellation(tmpdir, inp, expected, validation_plot):
     assert atm.ts > 0.0
     assert atm.trppT > 0.0
     assert np.all(np.isfinite(ret))
-    np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0)
+    np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0, err_msg=socrates_pin_note())
 
     def figure():
         import matplotlib.pyplot as plt

@@ -6,6 +6,7 @@ from pathlib import Path
 import mors
 import toml
 
+from janus.set_socrates_env import SOCRATES_VERSION
 from janus.utils import (
     DownloadSpectralFiles,
     DownloadStellarSpectra,
@@ -16,6 +17,19 @@ from janus.utils import (
 from janus.utils.data import spectral_file_dir, stellar_spectra_dir
 
 DATA_DRC = files('janus') / 'data' / 'tests'
+SOCRATES_PINS = '2607.3'
+
+
+def socrates_pin_note():
+    """Name the SOCRATES version of the stored pipeline values and the version in use.
+
+    Returns
+    -------
+        str
+            Message for the assertion of a stored-value comparison.
+    """
+    used = SOCRATES_VERSION.strip()
+    return f'stored values are from SOCRATES {SOCRATES_PINS}; this run uses SOCRATES {used}'
 
 
 @contextmanager
