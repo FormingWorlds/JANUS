@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:description>test: tests/test_instellation.py::test_instellation[1.4-expected1]; command: pytest 'tests/test_instellation.py::test_instellation[1.4-expected1]' --validation-plots; summary: {"v": 1, "axes": [{"scales": ["linear", "linear"], "categories": [["SW down", "LW up", "net", "Ts", "T trop"], null], "lines": [[2, 0.0, 1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 0.0], [5, 0.0, 4.0, 2.0, 1.0, 1.0000005648804375, 1.0000018352812239, 1.0000010041571115, -1.3211251989211293e-07]], "collections": [], "values": [], "value_scales": [], "patches": [], "images": [], "image_scales": [], "extents": []}]}</dc:description>
+    <dc:description>test: tests/test_instellation.py::test_instellation[outer_1p4au]; command: pytest 'tests/test_instellation.py::test_instellation[outer_1p4au]' --validation-plots; summary: {"v": 1, "axes": [{"scales": ["linear", "linear"], "categories": [["SW down", "LW up", "net", "Ts", "T trop"], null], "lines": [[2, 0.0, 1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 0.0], [5, 0.0, 4.0, 2.0, 1.0, 0.9999999762860549, 1.0000000233000934, 1.0000000029179859, 9.116063538836016e-09]], "collections": [], "values": [], "value_scales": [], "patches": [], "images": [], "image_scales": [], "extents": []}]}</dc:description>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -1018,11 +1018,11 @@ z
 " style="stroke: #10151b"/>
     </defs>
     <g clip-path="url(#p4538380fc8)">
-     <use xlink:href="#m4e214ecc18" x="106.429252" y="163.250495" style="fill: #10151b; stroke: #10151b"/>
-     <use xlink:href="#m4e214ecc18" x="212.546608" y="163.268671" style="fill: #10151b; stroke: #10151b"/>
-     <use xlink:href="#m4e214ecc18" x="318.663963" y="163.266375" style="fill: #10151b; stroke: #10151b"/>
-     <use xlink:href="#m4e214ecc18" x="424.781318" y="163.26966" style="fill: #10151b; stroke: #10151b"/>
-     <use xlink:href="#m4e214ecc18" x="530.898674" y="163.259966" style="fill: #10151b; stroke: #10151b"/>
+     <use xlink:href="#m4e214ecc18" x="106.429252" y="163.27854" style="fill: #10151b; stroke: #10151b"/>
+     <use xlink:href="#m4e214ecc18" x="212.546608" y="163.278127" style="fill: #10151b; stroke: #10151b"/>
+     <use xlink:href="#m4e214ecc18" x="318.663963" y="163.278022" style="fill: #10151b; stroke: #10151b"/>
+     <use xlink:href="#m4e214ecc18" x="424.781318" y="163.27817" style="fill: #10151b; stroke: #10151b"/>
+     <use xlink:href="#m4e214ecc18" x="530.898674" y="163.27783" style="fill: #10151b; stroke: #10151b"/>
     </g>
    </g>
    <g id="patch_3">

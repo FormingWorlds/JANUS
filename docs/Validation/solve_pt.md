@@ -23,12 +23,12 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 ![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 2800 K](../assets/validation/janus_runaway_olr_2800k.svg#only-light){ width="80%" }
 ![Outgoing longwave radiation against surface temperature, with the 3 stored values and the code value at 2800 K](../assets/validation/janus_runaway_olr_2800k_dark.svg#only-dark){ width="80%" }
 
-**How to read the plot.** There is one plot for each of the 3 surface temperatures of the test, with the OLR on a log y-axis. The grey squares are the 3 stored values: 90.73, 278.99 and 6583.79 W/m$^2$. In each plot the large square is the stored value of that temperature and the circle is the code value. The test asserts it to a relative 1e-5, too small to see. No line is drawn, because each point needs a full radiative-convective solve. A pass means that the circle sits in the large square.
+**How to read the plot.** There is one plot for each of the 3 surface temperatures of the test, with the OLR on a log y-axis. The grey squares are the 3 stored values: 90.74, 279.03 and 6583.90 W/m$^2$. In each plot the large square is the stored value of that temperature and the circle is the code value. The test asserts it to a relative 1e-5, too small to see. No line is drawn, because each point needs a full radiative-convective solve. A pass means that the circle sits in the large square.
 
-**Known limit.** Only 3 surface temperatures are checked; the test file holds further reference rows on the plateau, but they are commented out. With `cp_dry=False`, the test does not reach the dry-adiabat or the moist-adjustment code.
+**Known limit.** Only 3 surface temperatures are checked; the test file holds further rows between 337 and 2663 K, but they are commented out and their values are not checked against the SOCRATES version of the active rows. With `cp_dry=False`, the test does not reach the dry-adiabat or the moist-adjustment code.
 
 ??? info "Test details"
-    - Reference: stored OLR along the pure-steam runaway-greenhouse curve (regression pin of the JANUS + SOCRATES pipeline): 90.7314, 278.990 and 6583.79 W/m$^2$ at 200, 1705.3 and 2800 K.
+    - Reference: stored OLR along the pure-steam runaway-greenhouse curve (regression pin of the JANUS + SOCRATES pipeline, at the SOCRATES version in `tests/helpers/__init__.py`): 90.7448, 279.030 and 6583.90 W/m$^2$ at 200, 1705.3 and 2800 K.
     - Tolerance: relative 1e-5, absolute 0.
     - Test id: `tests/test_runaway_greenhouse.py::test_runaway_greenhouse`
     - Command: `pytest tests/test_runaway_greenhouse.py::test_runaway_greenhouse` (needs SOCRATES)
@@ -51,10 +51,10 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 
 **How to read the plot.** There is one plot for each of the 2 orbital distances, 0.3 and 1.4 au. Each mark is one of the 5 quantities divided by its stored value. SW down, LW up and net are the downward shortwave, upward longwave and net fluxes at the top of the atmosphere. Ts is the surface temperature and T trop the tropopause temperature. The test asserts each to a relative 1e-5, too small to see on this axis. A pass means that every mark lies on the dotted line at 1.
 
-**Known limit.** Only the downward shortwave flux has an analytical scaling; the other 4 values are a regression pin only. `MCPA`, the third solve that `janus.modules` exports, has only a mocked unit test (`tests/modules/test_solve_pt.py`), no stored SOCRATES result.
+**Known limit.** Only the downward shortwave flux has an analytical scaling; the other 4 values are a regression pin only. The test file also holds commented-out rows between 0.48 and 1.22 au; their values are not checked against that SOCRATES version. `MCPA`, the third solve that `janus.modules` exports, has only a mocked unit test (`tests/modules/test_solve_pt.py`), no stored SOCRATES result.
 
 ??? info "Test details"
-    - Reference: stored top-of-atmosphere fluxes, surface temperature and tropopause temperature at 0.3 and 1.4 au (regression pin of the JANUS + SOCRATES pipeline).
+    - Reference: stored top-of-atmosphere fluxes, surface temperature and tropopause temperature at 0.3 and 1.4 au (regression pin of the JANUS + SOCRATES pipeline, at the SOCRATES version in `tests/helpers/__init__.py`).
     - Tolerance: relative 1e-5, absolute 0.
     - Test id: `tests/test_instellation.py::test_instellation`
     - Command: `pytest tests/test_instellation.py::test_instellation` (needs SOCRATES)

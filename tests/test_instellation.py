@@ -5,6 +5,7 @@ binary) at fixed instellation and pins the returned top-of-atmosphere shortwave
 and longwave fluxes, net flux, surface temperature, and tropopause temperature
 against reference values. This is the instellation flux anchor in the
 reference_pinned inventory for the solve_pt pipeline. See docs/How-to/test.md.
+The active reference values come from the SOCRATES version in helpers.SOCRATES_PINNED_VERSION.
 """
 
 import numpy as np
@@ -12,26 +13,32 @@ import pytest
 
 pytest.importorskip('mors')
 
-from helpers import get_atmosphere_config, get_spectrum_data, work_directory  # noqa: E402
+from helpers import (  # noqa: E402
+    SOCRATES_PIN_NOTE,
+    get_atmosphere_config,
+    get_spectrum_data,
+    work_directory,
+)
 
 from janus.modules import MCPA_CBL  # noqa: E402
 
 pytestmark = [pytest.mark.integration, pytest.mark.timeout(300)]
 
 TEST_DATA = (
-    (0.3, (2.34297e03, 1.94521e03, -4.54446e01, 3.00023e03, 4.19570e02)),
+    (0.3, (2.3429661e03, 1.9457766e03, -4.4875244e01, 3.0002244e03, 4.1957014e02)),
     #    (0.483333, (9.02641e02, 8.43916e02, 7.70272e01, 2.99961e03, 3.30552e02)),
     #    (0.666667, (4.74451e02, 5.01731e02, 9.86425e01, 2.99951e03, 2.81454e02)),
     #    (0.85, (2.91857e02, 4.21028e02, 1.73069e02, 2.99913e03, 2.49260e02)),
     #    (1.03333, (1.97482e02, 4.16319e02, 2.48540e02, 2.99876e03, 2.26070e02)),
     #    (1.21667, (1.42451e02, 4.15915e02, 2.94890e02, 2.99853e03, 2.08342e02)),
-    (1.4, (1.07585e02, 4.17063e02, 3.25661e02, 2.99837e03, 1.94223e02)),
+    (1.4, (1.0758520e02, 4.1712155e02, 3.2571954e02, 2.9983714e03, 1.9422323e02)),
 )
+CASE_IDS = {0.3: 'inner_0p3au', 1.4: 'outer_1p4au'}
 
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-@pytest.mark.parametrize('inp,expected', TEST_DATA)
+@pytest.mark.parametrize('inp,expected', TEST_DATA, ids=[CASE_IDS[x] for x, _ in TEST_DATA])
 def test_instellation(tmpdir, inp, expected, validation_plot):
     """Full-column MCPA_CBL fluxes match pinned references at fixed instellation.
 
@@ -68,7 +75,7 @@ def test_instellation(tmpdir, inp, expected, validation_plot):
     assert atm.ts > 0.0
     assert atm.trppT > 0.0
     assert np.all(np.isfinite(ret))
-    np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0)
+    np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0, err_msg=SOCRATES_PIN_NOTE)
 
     def figure():
         import matplotlib.pyplot as plt
