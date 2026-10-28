@@ -33,7 +33,12 @@ DOC_TEXT = (
 CODE_TEXT = 'def f(x):\n    y = 2 * x\n    return y\n\n\ndef g(z):\n    return z + 1\n'
 
 SAFE_FIX = {'old_text': 'moist lapse uses alpha=1', 'new_text': 'moist lapse uses alpha=5'}
-NOTHING = {'has_fixes': 'false', 'has_inconsistency_items': 'false', 'has_gap_items': 'false'}
+NOTHING = {
+    'has_fixes': 'false',
+    'has_inconsistency_items': 'false',
+    'has_gap_items': 'false',
+    'has_new_serious': 'false',
+}
 
 
 def finding(fid, **overrides):
@@ -91,6 +96,7 @@ def run_triage(repo, findings):
         inc=(repo / 'inconsistency_issue_body.md').read_text(),
         gaps=(repo / 'gap_issue_body.md').read_text(),
         pr=(repo / 'pr_body.md').read_text(),
+        applied=[f['id'] for f in json.loads((repo / 'applied_fixes.json').read_text())],
     )
 
 
@@ -149,6 +155,107 @@ def test_unique_fix_edits_only_the_quoted_passage(repo):
     assert '`good`' in r.pr and r.inc == ''
 
 
+# A hand-wrapped note: each sentence runs over several lines.
+# A hand-wrapped note: sentences run over several lines, and lines start with math, a
+# capitalised name or a lowercase word.
+WRAPPED_DOC = (
+    '!!! note\n'
+    '    Setting T_r = 0 K disables the stratosphere: since no level\n'
+    '    reaches 0 K, the criterion never triggers and\n'
+    '    $T_r$ is not used by\n'
+    '    SOCRATES at all. The step is skipped.\n'
+    '    Nothing else runs.\n'
+    '\n'
+    '## Head\n'
+    '| a | b |\n'
+)
+
+
+@pytest.mark.parametrize(
+    ('old', 'reason'),
+    [
+        ('Setting T_r = 0 K disables the stratosphere: since no level', 'stops mid-sentence'),
+        ('reaches 0 K, the criterion never triggers and', 'stops mid-sentence'),
+        ('$T_r$ is not used by', 'stops mid-sentence'),
+        ('$T_r$ is not used by\n', 'stops mid-sentence'),
+        ('reaches 0 K, the criterion never triggers and\n    $T_r$', 'starts mid-sentence'),
+        ('    SOCRATES at all.', 'starts mid-sentence'),
+        ('\n    SOCRATES at all.', 'starts mid-sentence'),
+    ],
+    ids=[
+        'stops-before-lowercase-line',
+        'stops-before-math-line',
+        'stops-before-capitalised-line',
+        'stops-on-trailing-line-break',
+        'starts-after-unfinished-line',
+        'starts-with-indentation',
+        'starts-with-leading-line-break',
+    ],
+)
+def test_fix_on_part_of_a_wrapped_sentence_is_not_applied(repo, old, reason):
+    """Editing some physical lines of a hand-wrapped sentence leaves the rest unchecked,
+    whatever the next line starts with and however the quote is padded."""
+    (repo / DOC_FILE).write_text(WRAPPED_DOC)
+    excerpt = WRAPPED_DOC.split('\n', 1)[1].rstrip('\n')
+    fix = {'old_text': old, 'new_text': old.upper()}
+    r = run_triage(repo, [finding('half', doc_excerpt=excerpt, suggested_fix=fix)])
+    assert r.doc == WRAPPED_DOC
+    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert reason in r.inc
+
+
+@pytest.mark.parametrize(
+    'doc',
+    [
+        '- The surface temperature is set by the\n  radiative balance of the column.\n',
+        '> The surface temperature is set by the\n> radiative balance of the column.\n',
+    ],
+    ids=['wrapped-list-item', 'wrapped-quote'],
+)
+def test_fix_on_the_continuation_line_of_a_list_item_is_not_applied(repo, doc):
+    """A list item or quote wraps like a paragraph, so its first line is no boundary."""
+    (repo / DOC_FILE).write_text(doc)
+    old = 'radiative balance of the column.'
+    fix = {'old_text': old, 'new_text': old.upper()}
+    r = run_triage(repo, [finding('cont', doc_excerpt=doc.strip(), suggested_fix=fix)])
+    assert r.doc == doc
+    assert 'starts mid-sentence' in r.inc
+
+
+@pytest.mark.parametrize(
+    'old',
+    [
+        'Setting T_r = 0 K disables the stratosphere: since no level\n'
+        '    reaches 0 K, the criterion never triggers and\n'
+        '    $T_r$ is not used by\n'
+        '    SOCRATES at all.',
+        'The step is skipped.',
+        'The step is skipped.\n',
+        'Nothing else runs.',
+        'the criterion never triggers',
+        '## Head',
+        '| a | b |',
+    ],
+    ids=[
+        'whole-wrapped-sentence',
+        'sentence-ending-at-a-line-break',
+        'same-with-trailing-line-break',
+        'sentence-ending-before-blank-line',
+        'clause-inside-one-line',
+        'heading-before-table',
+        'table-row-after-heading',
+    ],
+)
+def test_fix_that_cuts_no_sentence_is_applied(repo, old):
+    """Whole sentences, edits inside one line and whole block lines are still applied."""
+    (repo / DOC_FILE).write_text(WRAPPED_DOC)
+    excerpt = WRAPPED_DOC.split('\n', 1)[1].rstrip('\n')
+    fix = {'old_text': old, 'new_text': old.upper()}
+    r = run_triage(repo, [finding('whole', doc_excerpt=excerpt, suggested_fix=fix)])
+    assert r.outputs == outputs(has_fixes=True)
+    assert r.doc == WRAPPED_DOC.replace(old, old.upper())
+
+
 def test_second_fix_on_a_changed_passage_is_not_applied(repo):
     """Once one fix rewrites a passage, a second fix quoting the old text is refused."""
     first = finding(
@@ -179,12 +286,267 @@ def test_serious_inconsistency_is_filed_first_and_never_applied(repo):
         ],
     )
     assert r.doc == DOC_TEXT
-    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert r.outputs == outputs(has_inconsistency_items=True, has_new_serious=True)
     assert 'not a minor finding' in r.inc and 'No fixes applied' in r.pr
     # The serious section comes before the minor one, whatever the input order.
     serious_at = r.inc.index('## Serious: possible code bug')
     assert serious_at < r.inc.index('`code-bug`') < r.inc.index('## Minor: needs a manual edit')
     assert r.inc.index('## Minor: needs a manual edit') < r.inc.index('`small`')
+
+
+def test_serious_fix_is_listed_in_the_pr_but_not_applied(repo):
+    """The PR lists serious findings' doc fixes unapplied; fixless ones stay in the issue."""
+    serious_fix = {'old_text': 'gamma=3', 'new_text': 'gamma=4'}
+    r = run_triage(
+        repo,
+        [
+            finding('small', suggested_fix=SAFE_FIX),
+            finding(
+                'code-bug',
+                severity='serious',
+                doc_excerpt='Surface gamma=3 applies.',
+                code_excerpt='    return y',
+                suggested_fix=serious_fix,
+            ),
+            finding(
+                'no-fix-bug',
+                severity='serious',
+                doc_excerpt='Surface gamma=3 applies.',
+                code_excerpt='    return z + 1',
+            ),
+        ],
+    )
+    assert r.outputs == outputs(
+        has_fixes=True, has_inconsistency_items=True, has_new_serious=True
+    )
+    # Only the minor fix is applied.
+    assert 'alpha=5 too' in r.doc and 'Surface gamma=3 applies.' in r.doc
+    section = r.pr.index('## Serious findings: suggested doc-side fixes, not applied')
+    assert r.pr.index('`small`') < section < r.pr.index('`code-bug`')
+    assert 'Suggested fix (not applied: not a minor finding' in r.pr
+    assert '`no-fix-bug`' not in r.pr and '`no-fix-bug`' in r.inc
+    # Only the applied fix is handed on to a later update of an open PR.
+    assert r.applied == ['small']
+
+
+def test_serious_fix_alone_writes_no_pr_section(repo):
+    """With nothing applied no PR is opened, so the serious section is not written."""
+    r = run_triage(repo, [finding('code-bug', severity='serious', suggested_fix=SAFE_FIX)])
+    assert r.outputs == outputs(has_inconsistency_items=True, has_new_serious=True)
+    assert 'No fixes applied' in r.pr and '## Serious findings' not in r.pr
+    assert r.applied == []
+
+
+def test_quote_cut_from_an_equation_is_shown_as_the_whole_equation(repo):
+    """A quote partly inside $...$ or $$...$$ is widened so it renders, with the exact
+    quote kept underneath; a quote outside math is shown unchanged."""
+    (repo / DOC_FILE).write_text('Intro $x$ text.\n$$a + b \\tag{5}$$\nPlain words here.\n')
+    r = run_triage(
+        repo,
+        [
+            finding('display', doc_excerpt='a + b'),
+            finding('inline', doc_excerpt='Intro $x', code_excerpt='    return y'),
+            finding('plain', doc_excerpt='Plain words', code_excerpt='    return z + 1'),
+        ],
+    )
+    assert '> $$a + b \\tag{5}$$' in r.inc and '_Quoted part:_ ` a + b `' in r.inc
+    assert '> Intro $x$\n' in r.inc and '_Quoted part:_ ` Intro $x `' in r.inc
+    assert '> Plain words\n' in r.inc and r.inc.count('_Quoted part:_') == 2
+
+
+def test_dashes_between_words_are_replaced_but_doc_dashes_are_kept(repo):
+    """Dashes the model writes between words are replaced in the description and the fix.
+    A standalone dash such as a table's empty-cell marker is kept, and so is a doc quote."""
+    em, en = '\u2014', '\u2013'
+    row = f'| Overlap | {em} | {en} | Random |'
+    (repo / DOC_FILE).write_text(DOC_TEXT + f'Note {em} kept.\n{row}\n')
+    dashed = finding(
+        'dashed',
+        description=f'Doc and code disagree {em} badly {en} over 10{en}20 K.',
+        suggested_fix={
+            'old_text': 'moist lapse',
+            'new_text': f'moist {em} wet, 10{en}20 K, lapse',
+        },
+    )
+    table = finding(
+        'table',
+        doc_excerpt=row,
+        code_excerpt='    return z + 1',
+        suggested_fix={'old_text': f'{en} | Random |', 'new_text': f'{en} | Equivalent |'},
+    )
+    quote = finding(
+        'quote', severity='serious', doc_excerpt=f'Note {em} kept.', code_excerpt='    return y'
+    )
+    r = run_triage(repo, [dashed, table, quote])
+    assert 'moist, wet, 10-20 K, lapse uses alpha=1 too.' in r.doc
+    # The table's placeholder survives the fix next to it.
+    assert f'| Overlap | {em} | {en} | Equivalent |' in r.doc
+    assert 'Doc and code disagree, badly, over 10-20 K.' in r.pr
+    # The en-dash left in the PR is the table's own placeholder, quoted verbatim.
+    assert r.pr.count(en) == r.pr.count(f'{en} |')
+    # The only dash in the issue is the verbatim doc quote.
+    assert f'> Note {em} kept.' in r.inc and r.inc.count(em) == 1
+
+
+def onto(repo, branch_doc):
+    """Simulate the open PR's checkout holding branch_doc and re-apply this run's fixes."""
+    target = repo / 'pr'
+    (target / DOC_FILE).parent.mkdir(parents=True)
+    (target / DOC_FILE).write_text(branch_doc)
+    (repo / 'github_output').write_text('')
+    triage.apply_onto(target)
+    return SimpleNamespace(
+        doc=(target / DOC_FILE).read_text(),
+        update=(repo / 'pr_update.md').read_text(),
+        inc=(repo / 'inconsistency_issue_body.md').read_text(),
+        output=(repo / 'github_output').read_text(),
+    )
+
+
+GAMMA_FIX = finding(
+    'gamma',
+    doc_excerpt='Surface gamma=3 applies.',
+    code_excerpt='    return z + 1',
+    suggested_fix={'old_text': 'gamma=3', 'new_text': 'gamma=4'},
+)
+
+
+def test_fixes_go_onto_an_untouched_open_pr_one_by_one(repo):
+    """On a PR branch that has none of this run's fixes, each one is applied and listed."""
+    run_triage(repo, [finding('alpha', suggested_fix=SAFE_FIX), GAMMA_FIX])
+    r = onto(repo, DOC_TEXT)
+    assert 'moist lapse uses alpha=5' in r.doc and 'Surface gamma=4 applies.' in r.doc
+    assert '`alpha`' in r.update and '`gamma`' in r.update
+    assert 'conflict' not in r.inc and r.output == ''
+
+
+def test_fix_the_pr_has_is_skipped_and_a_corrected_one_is_filed_not_dropped(repo):
+    """A reviewer corrected one fix on the PR and the other is already there: the first
+    is filed in the issue, the second is not repeated, the PR text is untouched."""
+    run_triage(repo, [finding('alpha', suggested_fix=SAFE_FIX), GAMMA_FIX])
+    branch = DOC_TEXT.replace('alpha=1 too', 'alpha=6 too').replace('gamma=3', 'gamma=4')
+    r = onto(repo, branch)
+    assert r.doc == branch and r.update == ''
+    assert '## Fixes that conflict with the open PR' in r.inc and '`alpha`' in r.inc
+    assert "the passage reads differently on the open PR's branch" in r.inc
+    assert '`gamma`' not in r.inc and r.output == 'has_inconsistency_items=true\n'
+
+
+def test_fix_next_to_a_reviewer_edit_counts_as_a_conflict(repo):
+    """old_text is still on the PR but the quoted sentence around it was edited: the fix
+    is filed, not applied, as on main where the whole quote must still match."""
+    run_triage(repo, [GAMMA_FIX])
+    branch = DOC_TEXT.replace('applies', 'holds')
+    r = onto(repo, branch)
+    assert r.doc == branch
+    assert '`gamma`' in r.inc and r.update == ''
+
+
+def test_fix_that_extends_its_passage_is_not_applied_twice(repo):
+    """new_text containing old_text is recognised as already in the PR."""
+    grow = {'old_text': 'gamma=3 applies.', 'new_text': 'gamma=3 applies. Always.'}
+    run_triage(
+        repo, [finding('grow', doc_excerpt='Surface gamma=3 applies.', suggested_fix=grow)]
+    )
+    r = onto(repo, DOC_TEXT.replace('applies.', 'applies. Always.'))
+    assert r.doc.count('Always.') == 1
+    assert r.update == '' and r.output == ''
+
+
+@pytest.mark.parametrize(
+    ('cut', 'fixed_line', 'pr_has_it'),
+    [
+        (('alpha=1 too', 'alpha=1'), 'The moist lapse uses alpha=1.', False),
+        (('alpha=1 too', 'alpha=1'), 'The moist lapse uses alpha=1.', True),
+        (('The moist lapse', 'lapse'), 'lapse uses alpha=1 too.', False),
+    ],
+    ids=['trailing-words-deleted', 'pr-that-has-it', 'leading-words-deleted'],
+)
+def test_fix_that_only_deletes_text_reaches_the_open_pr(repo, cut, fixed_line, pr_has_it):
+    """A deletion's new_text and its fixed line are part of the old sentence, so neither may
+    count as already in the PR; it is added unless the PR's whole line reads as fixed."""
+    old, new = cut
+    run_triage(repo, [finding('cut', suggested_fix={'old_text': old, 'new_text': new})])
+    unfixed = 'The moist lapse uses alpha=1 too.'
+    branch = DOC_TEXT.replace(unfixed, fixed_line) if pr_has_it else DOC_TEXT
+    r = onto(repo, branch)
+    assert f'\n{fixed_line}\n' in r.doc
+    assert ('`cut`' in r.update) is not pr_has_it
+    assert 'cut' not in r.inc and r.output == ''
+
+
+TABLE_DOC = '| a | b |\n| alpha | 1 |\n| beta | 2 |\n| gamma | 3 |\n'
+NOTE_DOC = '!!! note\n    First.\n    Second line.\n    Third.\n'
+
+
+@pytest.mark.parametrize('pr_has_it', [False, True], ids=['pr-without-it', 'pr-with-it'])
+@pytest.mark.parametrize(
+    ('doc', 'old'),
+    [
+        (TABLE_DOC, '| beta | 2 |\n'),
+        (TABLE_DOC, '\n| beta | 2 |'),
+        (TABLE_DOC, '| a | b |\n'),
+        (NOTE_DOC, '    Second line.\n'),
+    ],
+    ids=['row-and-following-break', 'break-and-row', 'first-line', 'wrapped-sentence-line'],
+)
+def test_fix_that_deletes_whole_lines_reaches_the_open_pr(repo, doc, old, pr_has_it):
+    """Deleting whole lines leaves fixed lines the unfixed PR also has; the fix is added
+    unless the deleted lines are already gone from the PR."""
+    (repo / DOC_FILE).write_text(doc)
+    drop = finding(
+        'drop', doc_excerpt=doc.strip('\n'), suggested_fix={'old_text': old, 'new_text': ''}
+    )
+    run_triage(repo, [drop])
+    r = onto(repo, doc.replace(old, '') if pr_has_it else doc)
+    assert r.doc == doc.replace(old, '')
+    assert ('`drop`' in r.update) is not pr_has_it
+    assert 'drop' not in r.inc and r.output == ''
+
+
+def test_fix_the_pr_offered_before_is_not_re_added_after_a_revert(repo):
+    """A reviewer reverted a fix on the PR: its fingerprint is in the PR description, so
+    the next run neither re-adds it nor files it, and the revert stands."""
+    r = run_triage(repo, [GAMMA_FIX])
+    assert '<!-- docs-consistency-fp: ' in r.pr
+    # Control: without the PR description the reverted passage would get the fix again.
+    assert 'Surface gamma=4 applies.' in onto(repo, DOC_TEXT).doc
+    post(repo, 'existing_pr_body.md', r.pr)
+    (repo / 'pr' / DOC_FILE).unlink()
+    (repo / 'pr' / DOC_FILE).parent.rmdir()
+    reverted = onto(repo, DOC_TEXT)
+    assert reverted.doc == DOC_TEXT and reverted.update == ''
+    assert 'gamma' not in reverted.inc and reverted.output == ''
+
+
+def test_reverted_fix_stays_out_when_the_next_run_quotes_other_code(repo):
+    """The next run proposes the same doc fix with a different code quote, so a new
+    fingerprint: the fix key on the doc side still keeps the reverted fix out."""
+    r = run_triage(repo, [GAMMA_FIX])
+    assert '<!-- docs-consistency-fix: ' in r.pr
+    post(repo, 'existing_pr_body.md', r.pr)
+    (repo / DOC_FILE).write_text(DOC_TEXT)
+    run_triage(repo, [{**GAMMA_FIX, 'code_excerpt': '    return y'}])
+    reverted = onto(repo, DOC_TEXT)
+    assert reverted.doc == DOC_TEXT and reverted.update == ''
+    assert 'gamma' not in reverted.inc and reverted.output == ''
+
+
+def test_conflict_already_in_the_issue_is_not_filed_again(repo):
+    """A conflicting fix reported in an earlier run is not posted a second time."""
+    run_triage(repo, [GAMMA_FIX])
+    branch = DOC_TEXT.replace('applies', 'holds')
+    first = onto(repo, branch)
+    assert '`gamma`' in first.inc
+    post(repo, 'existing_inconsistency_issue.md', first.inc)
+    (repo / 'pr' / DOC_FILE).unlink()
+    (repo / 'pr' / DOC_FILE).parent.rmdir()
+    # The next run starts from main again, where the fix is still unapplied.
+    (repo / DOC_FILE).write_text(DOC_TEXT)
+    run_triage(repo, [GAMMA_FIX])
+    r = onto(repo, branch)
+    assert 'Fixes that conflict' not in r.inc
+    assert r.output == ''
 
 
 def test_unrated_inconsistency_is_blocked_but_not_labelled_serious(repo):
@@ -239,6 +601,35 @@ def test_findings_are_routed_to_the_issue_matching_their_type(repo):
     assert '`inc`' in r.inc and 'gap`' not in r.inc
 
 
+@pytest.mark.parametrize(
+    ('excerpt', 'verified'),
+    [
+        ('    y = 2 * x\n...\n    return z + 1', True),
+        ('    return z + 1\n...\n    y = 2 * x', False),
+        ('    y = 2 * x\n    return z + 1', False),
+        ('...', False),
+        ('...\n    y = 2 * x\n...', True),
+        ('    y = 2 * x\n...\n...\n    return z + 1', True),
+        ('    y = 2 * x\n...\n    y = 3 * x', False),
+    ],
+    ids=[
+        'blocks-in-order',
+        'blocks-out-of-order',
+        'joined-without-marker',
+        'marker-only',
+        'markers-at-both-ends',
+        'doubled-marker',
+        'second-block-invented',
+    ],
+)
+def test_code_blocks_joined_by_an_ellipsis_line_are_checked_one_by_one(repo, excerpt, verified):
+    """Separate code passages joined by a '...' line verify only if each one occurs
+    verbatim, in order; lines joined without the marker do not."""
+    r = run_triage(repo, [finding('joined', code_excerpt=excerpt)])
+    assert ('## Unverified inconsistencies' not in r.inc) is verified
+    assert ('## Minor: needs a manual edit' in r.inc) is verified
+
+
 def test_line_number_prefixes_are_stripped_before_matching(repo):
     """A code quote copied with 'N: ' prefixes verifies, and is posted without them."""
     quoted = '2:     y = 2 * x\n3:     return y'
@@ -248,12 +639,53 @@ def test_line_number_prefixes_are_stripped_before_matching(repo):
     assert '2:     y' not in r.inc
 
 
+def test_multi_line_fix_is_shown_as_a_diff_block(repo):
+    """A fix spanning lines is rendered as a fenced diff, so a blank line or a line that
+    starts a list cannot break out of it; a one-line fix keeps its inline form."""
+    doc = DOC_TEXT + '!!! note\n    First line here\n    ends the sentence.\n'
+    (repo / DOC_FILE).write_text(doc)
+    old = 'First line here\n    ends the sentence.'
+    new = 'First line here\n\n    - ends the `cp` sentence.'
+    wrapped = finding(
+        'wrapped',
+        doc_excerpt=old,
+        code_excerpt='    return y',
+        suggested_fix={'old_text': old, 'new_text': new},
+    )
+    r = run_triage(repo, [wrapped, finding('short', suggested_fix=SAFE_FIX)])
+    block = '```diff\n- First line here\n-     ends the sentence.\n+ First line here\n+ \n'
+    assert block + '+     - ends the `cp` sentence.\n```' in r.pr
+    assert '- old: ` moist lapse uses alpha=1 `' in r.pr
+
+
 def test_gap_may_have_an_empty_doc_excerpt(repo):
     """A gap with no related doc passage is filed as a gap, not as unverified."""
     r = run_triage(repo, [gap('gap')])
     assert r.outputs == outputs(has_gap_items=True)
     assert '## Documentation gaps' in r.gaps and '## Unverified' not in r.gaps
     assert '_no related passage_' in r.gaps
+
+
+def test_gap_without_a_doc_file_is_not_filed_as_unverified(repo):
+    """A gap with no related passage may leave doc_file empty; a quote still needs one."""
+    r = run_triage(
+        repo,
+        [
+            gap('no-file', doc_file=''),
+            finding('bad-file', doc_file='', code_excerpt='    return y'),
+        ],
+    )
+    assert '`no-file`' in r.gaps and '## Unverified' not in r.gaps
+    assert '**Doc**: _no related passage_' in r.gaps
+    assert '## Unverified inconsistencies' in r.inc and '`bad-file`' in r.inc
+
+
+def test_backticks_in_a_fix_do_not_break_its_code_span(repo):
+    """Fix text containing backticks is wrapped in a longer backtick delimiter."""
+    fix = {'old_text': 'moist lapse', 'new_text': 'lapse from `cp`'}
+    r = run_triage(repo, [finding('ticks', suggested_fix=fix)])
+    assert 'The lapse from `cp` uses alpha=1 too.' in r.doc
+    assert '- new: `` lapse from `cp` ``' in r.pr and '- old: ` moist lapse `' in r.pr
 
 
 def test_already_reported_findings_are_not_posted_again(repo):
@@ -291,7 +723,7 @@ def test_finding_is_reposted_only_when_its_severity_rises(repo):
 
     # Same code, now rated serious: reposted under the serious section.
     r = run_triage(repo, [finding('now-serious', severity='serious')])
-    assert r.outputs == outputs(has_inconsistency_items=True)
+    assert r.outputs == outputs(has_inconsistency_items=True, has_new_serious=True)
     assert '## Serious: possible code bug' in r.inc and '`now-serious`' in r.inc
     assert '1 finding(s) above were reported before as unverified or at a lower' in r.inc
     post(repo, 'existing_inconsistency_issue.md', r.inc)
