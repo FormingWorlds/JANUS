@@ -5,7 +5,7 @@ binary) at fixed instellation and pins the returned top-of-atmosphere shortwave
 and longwave fluxes, net flux, surface temperature, and tropopause temperature
 against reference values. This is the instellation flux anchor in the
 reference_pinned inventory for the solve_pt pipeline. See docs/How-to/test.md.
-The active reference values come from the SOCRATES version in helpers.SOCRATES_PINS.
+The active reference values come from the SOCRATES version in helpers.SOCRATES_PINNED_VERSION.
 """
 
 import numpy as np
@@ -14,9 +14,9 @@ import pytest
 pytest.importorskip('mors')
 
 from helpers import (  # noqa: E402
+    SOCRATES_PIN_NOTE,
     get_atmosphere_config,
     get_spectrum_data,
-    socrates_pin_note,
     work_directory,
 )
 
@@ -33,11 +33,12 @@ TEST_DATA = (
     #    (1.21667, (1.42451e02, 4.15915e02, 2.94890e02, 2.99853e03, 2.08342e02)),
     (1.4, (1.0758520e02, 4.1712155e02, 3.2571954e02, 2.9983714e03, 1.9422323e02)),
 )
+CASE_IDS = {0.3: 'inner_0p3au', 1.4: 'outer_1p4au'}
 
 
 @pytest.mark.reference_pinned
 @pytest.mark.physics_invariant
-@pytest.mark.parametrize('inp,expected', TEST_DATA)
+@pytest.mark.parametrize('inp,expected', TEST_DATA, ids=[CASE_IDS[x] for x, _ in TEST_DATA])
 def test_instellation(tmpdir, inp, expected, validation_plot):
     """Full-column MCPA_CBL fluxes match pinned references at fixed instellation.
 
@@ -74,7 +75,7 @@ def test_instellation(tmpdir, inp, expected, validation_plot):
     assert atm.ts > 0.0
     assert atm.trppT > 0.0
     assert np.all(np.isfinite(ret))
-    np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0, err_msg=socrates_pin_note())
+    np.testing.assert_allclose(ret, expected, rtol=1e-5, atol=0, err_msg=SOCRATES_PIN_NOTE)
 
     def figure():
         import matplotlib.pyplot as plt

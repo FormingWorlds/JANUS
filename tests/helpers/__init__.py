@@ -17,19 +17,14 @@ from janus.utils import (
 from janus.utils.data import spectral_file_dir, stellar_spectra_dir
 
 DATA_DRC = files('janus') / 'data' / 'tests'
-SOCRATES_PINS = '2607.3'
-
-
-def socrates_pin_note():
-    """Name the SOCRATES version of the stored pipeline values and the version in use.
-
-    Returns
-    -------
-        str
-            Message for the assertion of a stored-value comparison.
-    """
-    used = SOCRATES_VERSION.strip()
-    return f'stored values are from SOCRATES {SOCRATES_PINS}; this run uses SOCRATES {used}'
+SOCRATES_PINNED_VERSION = '2607.3'
+_used = SOCRATES_VERSION.strip()
+SOCRATES_PIN_NOTE = (
+    f'stored values are from SOCRATES {_used}, the version string of this run'
+    if _used == SOCRATES_PINNED_VERSION
+    else f'version mismatch: stored values are from SOCRATES {SOCRATES_PINNED_VERSION}; '
+    f'this run uses SOCRATES {_used}'
+)
 
 
 @contextmanager

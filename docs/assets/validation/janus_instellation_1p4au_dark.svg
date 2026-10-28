@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:description>test: tests/test_instellation.py::test_instellation[1.4-expected1]; command: pytest 'tests/test_instellation.py::test_instellation[1.4-expected1]' --validation-plots; summary: {"v": 1, "axes": [{"scales": ["linear", "linear"], "categories": [["SW down", "LW up", "net", "Ts", "T trop"], null], "lines": [[2, 0.0, 1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 0.0], [5, 0.0, 4.0, 2.0, 1.0, 0.9999999762860549, 1.0000000233000934, 1.0000000029179859, 9.116063538836016e-09]], "collections": [], "values": [], "value_scales": [], "patches": [], "images": [], "image_scales": [], "extents": []}]}</dc:description>
+    <dc:description>test: tests/test_instellation.py::test_instellation[outer_1p4au]; command: pytest 'tests/test_instellation.py::test_instellation[outer_1p4au]' --validation-plots; summary: {"v": 1, "axes": [{"scales": ["linear", "linear"], "categories": [["SW down", "LW up", "net", "Ts", "T trop"], null], "lines": [[2, 0.0, 1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 0.0], [5, 0.0, 4.0, 2.0, 1.0, 0.9999999762860549, 1.0000000233000934, 1.0000000029179859, 9.116063538836016e-09]], "collections": [], "values": [], "value_scales": [], "patches": [], "images": [], "image_scales": [], "extents": []}]}</dc:description>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
