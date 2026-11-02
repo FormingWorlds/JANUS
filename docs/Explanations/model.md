@@ -30,7 +30,7 @@ In regions where no volatile species condense, the temperature follows the **dry
 
 $$T(p) = T_s \left(\frac{p}{p_s}\right)^{R/c_p^{\rm mix}} \tag{3}$$
 
-where $c_p^{\rm mix}$ is the molar heat capacity of the local gas mixture. The adiabatic exponent $R/c_p^{\rm mix}$ is computed from the molar-weighted heat capacities of all species present.
+where $c_p^{\rm mix}$ is the molar heat capacity of the gas mixture. The adiabatic exponent $R/c_p^{\rm mix}$ is computed once from the surface molar-weighted heat capacities of all species present, evaluated at $T_s$, and is held constant with height.
 
 ### 3.2 Heat capacities
 
@@ -48,7 +48,7 @@ The lapse rate is computed in two steps. First, the slope with respect to the **
 
 $$\frac{d\ln T}{d\ln p_d} = \frac{R + \displaystyle\sum_s \eta_s \frac{L_s}{T}}{\displaystyle\sum_s \left[\eta_s \left(c_{p,s} + R \beta_s \left(\frac{L_s}{R T} - 1\right)\right) + f_c \eta_s^c c_{p,s}^{\rm cond}\right]} \tag{5}$$
 
-where $\eta_s = x_s^{\rm gas} / x_d$ is the ratio of the gas-phase mole fraction of condensable $s$ to the total dry mole fraction, $\eta_s^c = x_s^{\rm cond} / x_d$ is the condensate mole fraction normalised by the dry mole fraction, $L_s$ is the molar latent heat, $c_{p,s}$ is the molar heat capacity of species $s$ in the gas phase, $c_{p,s}^{\rm cond}$ is the heat capacity of the condensed phase, $\beta_s = L_s / (R T)$ is the dimensionless latent heat parameter, and $f_c$ is the retained condensate fraction [^3].
+where the latent-heat and condensate terms are summed only over species that are saturated ($p_s \geq p_{\rm sat,s}$) and below their critical temperature, while every other species contributes only $\eta_s c_{p,s}$ to the denominator; $\eta_s = x_s^{\rm gas} / x_d$ is the ratio of the gas-phase mole fraction of species $s$ to the total dry mole fraction, $\eta_s^c = x_s^{\rm cond} / x_d$ is the condensate mole fraction normalised by the dry mole fraction, $L_s$ is the molar latent heat, $c_{p,s}$ is the molar heat capacity of species $s$ in the gas phase, $c_{p,s}^{\rm cond}$ is the heat capacity of the condensed phase, $\beta_s = L_s / (R T)$ is the dimensionless latent heat parameter (for water with the lookup table enabled, between the triple and critical points, $\beta_s$ is instead the tabulated $d\ln p_{\rm sat}/d\ln T$), and $f_c$ is the retained condensate fraction [^3].
 
 Second, this is converted to the total pressure gradient via the chain rule (Graham et al. 2021 [^3] Eq. 16):
 
@@ -110,9 +110,10 @@ where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $
 The tropopause is located by either a **fixed temperature criterion**, the first level where $T < T_r$, or a **heating rate criterion**, where the tropopause is placed where the net radiative heating rate changes sign. In the stratosphere, volatile mixing ratios are fixed to their tropopause values.
 
 !!! note
-    Setting $T_r = 0$ K disables the stratosphere entirely: since no atmospheric
-    level reaches 0 K, the fixed-temperature criterion is never triggered and the
-    whole column is treated as convective. This is the appropriate choice for pure
+    Setting $T_r = 0$ K disables the stratosphere entirely: with the fixed-
+    temperature criterion, the tropopause step is skipped whenever $T_r$ does not
+    exceed the temperature floor `minT` (default 1 K), and the whole column is
+    treated as convective. This is the appropriate choice for pure
     steam atmospheres, and is the default in `config_runaway.toml`.
 
 ---
