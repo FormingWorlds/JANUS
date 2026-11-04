@@ -2,9 +2,15 @@
 
 Exercises the stellar-spectrum preparation for SOCRATES: unit conversion
 and file format of the written spectrum, the down-sampling path with its
-bin-count contracts, and the prep_spec insertion wrapper with the binary
-mocked. See docs/How-to/test.md.
+bin-count contracts, and the prep_spec insertion wrapper with a
+stand-in for the binary. See docs/How-to/test.md.
 """
+
+import os
+import shutil
+import time
+from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -78,42 +84,174 @@ def test_prepare_spectrum_rebins_long_input(tmp_path, caplog):
         ss.PrepareStellarSpectrum(wl, fl, str(star), nbins_max=100_000)
 
 
-def test_insert_stellar_spectrum_replaces_outputs_and_calls_prep_spec(
-    tmp_path, monkeypatch, caplog
-):
-    """Insertion copies both spectral files, replaces stale outputs, and
-    feeds prep_spec the expected script.
+FAKE_PREP_SPEC = r"""#!/bin/bash
+# Stand-in for SOCRATES prep_spec: reads a name into 132 characters, as prep_spec.f90 does.
+{ read -r name; pwd; echo "$name"; ls -a; cat; } > "$FAKE_LOG"
+name=${name:0:132}
+case "$FAKE_MODE" in
+  sleep) exec sleep 600 ;;
+  flood) while :; do echo '+++ Invalid input: Please re-enter.' >&2; done ;;
+  rc2) echo '*** Error: bad block' >&2; exit 2 ;;
+  noblock) echo '*** Error: no block' >&2; exit 0 ;;
+esac
+[ -f "$name" ] || { echo 'A new spectral file will be created.' >&2; exit 0; }
+printf '*BLOCK: TYPE =    2: VERSION =    1\n*BLOCK: TYPE =    6: VERSION =    1\n' >> "$name"
+echo written >> "${name}_k"
+"""
 
-    Pre-existing outputs must be overwritten by the fresh copies; the
-    prep_spec stdin script must reference the star file between the insert
-    commands; a nonzero return code logs a warning instead of raising.
-    """
+
+@pytest.fixture
+def insert(tmp_path, monkeypatch):
+    """Inputs for InsertStellarSpectrum and a fake prep_spec first on PATH."""
+    bindir = tmp_path / 'bin'
+    bindir.mkdir()
+    tool = bindir / 'prep_spec'
+    tool.write_text(FAKE_PREP_SPEC)
+    tool.chmod(0o755)
+    monkeypatch.setenv('PATH', f'{bindir}{os.pathsep}{os.environ["PATH"]}')
+    monkeypatch.setenv('FAKE_LOG', str(tmp_path / 'fake.log'))
+    monkeypatch.setenv('FAKE_MODE', 'ok')
     orig = tmp_path / 'orig.sf'
-    orig.write_text('SPECTRAL DATA')
-    (tmp_path / 'orig.sf_k').write_text('K DATA')
+    orig.write_text('SPECTRAL DATA\n')
+    (tmp_path / 'orig.sf_k').write_text('K DATA\n')
     star = tmp_path / 'star.txt'
-    star.write_text('STAR')
-    outdir = tmp_path / 'out'
-    outdir.mkdir()
-    # Stale outputs that must be replaced.
-    (outdir / 'star.sf').write_text('stale')
-    (outdir / 'star.sf_k').write_text('stale')
+    star.write_text('Star\n*BEGIN_DATA\n 1.0e-7 1.0e6\n*END\n')
+    out = tmp_path / 'out'
+    out.mkdir()
+    return SimpleNamespace(
+        orig=str(orig), star=str(star), out=out, log=tmp_path / 'fake.log', tmp=tmp_path
+    )
 
-    calls = {}
 
-    class _Proc:
-        returncode = 1
+def _folder(root, length):
+    """Make a folder whose path, with its trailing slash, has exactly ``length`` characters."""
+    path = str(root)
+    while len(path) + 1 < length:
+        path = os.path.join(path, 'd' * min(60, max(1, length - len(path) - 2)))
+    assert len(path) + 1 == length
+    os.makedirs(path, exist_ok=True)
+    return path
 
-    def fake_run(cmd, stdout=None, input=None, encoding=None):
-        calls['cmd'] = cmd
-        calls['input'] = input
-        return _Proc()
 
-    monkeypatch.setattr(ss.subprocess, 'run', fake_run)
-    ss.InsertStellarSpectrum(str(orig), str(star), str(outdir))
+def test_insert_gives_prep_spec_short_names_and_a_lock(insert):
+    """prep_spec reads names into 132 characters and loops without a lock file.
 
-    assert (outdir / 'star.sf').read_text() == 'SPECTRAL DATA'
-    assert (outdir / 'star.sf_k').read_text() == 'K DATA'
-    assert calls['cmd'] == ['prep_spec']
-    assert str(star) in calls['input']
-    assert 'prep_spec returned with code 1' in caplog.text
+    Whatever the length of the output and star paths, it must see relative names in a
+    working folder that holds radiation_code.lock, and the answers must stay in order.
+    """
+    out = _folder(insert.tmp, 180)
+    star = os.path.join(_folder(insert.tmp / 'stars', 170), 'star.txt')
+    shutil.copyfile(insert.star, star)
+    ss.InsertStellarSpectrum(insert.orig, star, out)
+
+    cwd, first, *rest = insert.log.read_text().splitlines()
+    assert first == 'star.sf' and len(first) <= 132
+    assert 'radiation_code.lock' in rest and 'star.sf_k' in rest
+    assert cwd.startswith(os.path.realpath(out)) and cwd != os.path.realpath(out)
+    answers = rest[rest.index('a') :]
+    assert answers[:6] == ['a', '6', 'n', 'T', '100 4000', '250']
+    assert answers[6:8] == ['2', 'n'] and not answers[8].startswith('/')
+    assert answers[9:11] == ['y', '-1']
+    assert star not in rest
+    assert Path(out, 'star.sf').read_text().endswith('VERSION =    1\n')
+    assert Path(out, 'star.sf_k').read_text() == 'K DATA\nwritten\n'
+    assert sorted(os.listdir(out)) == ['star.sf', 'star.sf_k']
+
+
+def test_insert_replaces_stale_outputs_and_resolves_a_relative_star(insert, monkeypatch):
+    """Old outputs go, and a star path relative to the caller reads after the cwd change."""
+    (insert.out / 'star.sf').write_text('stale')
+    (insert.out / 'star.sf_k').write_text('stale')
+    monkeypatch.chdir(insert.tmp)
+    ss.InsertStellarSpectrum(insert.orig, 'star.txt', str(insert.out))
+    assert (insert.out / 'star.sf').read_text().startswith('SPECTRAL DATA')
+    assert 'stale' not in (insert.out / 'star.sf_k').read_text()
+
+
+@pytest.mark.parametrize('length, stops', [(200, False), (201, True), (400, True)])
+def test_insert_stops_on_a_folder_above_the_socrates_limit(insert, length, stops):
+    """Cl_run_cdf holds the folder in a string of 200 characters: 200 passes, 201 stops."""
+    out = _folder(insert.tmp, length)
+    Path(out, 'star.sf').write_text('old')
+    if stops:
+        with pytest.raises(ValueError, match=f'{length} characters'):
+            ss.InsertStellarSpectrum(insert.orig, insert.star, out)
+        assert not insert.log.exists(), 'prep_spec must not start'
+        assert Path(out, 'star.sf').read_text() == 'old', 'no side effect before the stop'
+    else:
+        ss.InsertStellarSpectrum(insert.orig, insert.star, out)
+        assert Path(out, 'star.sf').read_text().startswith('SPECTRAL DATA')
+
+
+@pytest.mark.parametrize('body', [None, '', 'no data marker\n'])
+def test_insert_stops_on_a_star_file_prep_spec_would_loop_on(insert, body):
+    """Without *BEGIN_DATA in the star file prep_spec reads on without end, even with a lock."""
+    star = insert.tmp / 'bad.txt'
+    if body is not None:
+        star.write_text(body)
+    with pytest.raises(ValueError, match='BEGIN_DATA'):
+        ss.InsertStellarSpectrum(insert.orig, str(star), str(insert.out))
+    assert not insert.log.exists(), 'prep_spec must not start'
+    assert os.listdir(insert.out) == []
+
+
+@pytest.mark.parametrize(
+    'mode, message',
+    [
+        ('rc2', r'code 2[\s\S]*bad block'),
+        ('noblock', r'block[\s\S]*no block'),
+    ],
+)
+def test_insert_raises_when_prep_spec_writes_no_star(insert, monkeypatch, mode, message):
+    """A return code of 0 proves nothing: prep_spec can skip a block and still exit 0.
+
+    Both failures name the last output, leave no star.sf that a later call could read
+    and no working folder.
+    """
+    (insert.out / 'star.sf').write_text('stale')
+    monkeypatch.setenv('FAKE_MODE', mode)
+    with pytest.raises(RuntimeError, match=message):
+        ss.InsertStellarSpectrum(insert.orig, insert.star, str(insert.out))
+    assert os.listdir(insert.out) == []
+
+
+def test_insert_needs_both_blocks(insert, monkeypatch):
+    """A file with the thermal block and no stellar block fails, and the other way round."""
+    for line, missing in (('6', '2'), ('2', '6')):
+        tool = insert.tmp / 'bin' / 'prep_spec'
+        tool.write_text(
+            '#!/bin/bash\ncat > /dev/null\n'
+            f'printf "*BLOCK: TYPE =    {line}: X\\n*BLOCK: TYPE =   1{missing}: X\\n"'
+            ' >> star.sf\n'
+        )
+        with pytest.raises(RuntimeError, match='block'):
+            ss.InsertStellarSpectrum(insert.orig, insert.star, str(insert.out))
+
+
+@pytest.mark.parametrize('mode', ['sleep', 'flood'])
+def test_insert_stops_a_stuck_prep_spec_without_growth(insert, monkeypatch, mode):
+    """A hang or an endless error loop ends at the time limit and keeps only the last lines."""
+    monkeypatch.setenv('FAKE_MODE', mode)
+    monkeypatch.setattr(ss, 'PREP_SPEC_TIMEOUT', 1.0)
+    start = time.monotonic()
+    with pytest.raises(RuntimeError, match='time limit') as err:
+        ss.InsertStellarSpectrum(insert.orig, insert.star, str(insert.out))
+    assert time.monotonic() - start < 20.0
+    assert len(str(err.value)) < 5000
+    assert os.listdir(insert.out) == []
+
+
+def test_insert_time_limit_does_not_cut_a_normal_call(insert):
+    """The limit is far above the seconds of a normal call on a stored spectral file."""
+    assert ss.PREP_SPEC_TIMEOUT >= 600.0
+    ss.InsertStellarSpectrum(insert.orig, insert.star, str(insert.out))
+    assert (insert.out / 'star.sf').read_text().count('*BLOCK') == 2
+
+
+def test_insert_names_socrates_when_prep_spec_is_absent(insert, monkeypatch):
+    """A SOCRATES tree without the tool gives a stop that names RAD_DIR, before any change."""
+    monkeypatch.setenv('PATH', str(insert.tmp / 'empty'))
+    (insert.out / 'star.sf').write_text('old')
+    with pytest.raises(RuntimeError, match='RAD_DIR'):
+        ss.InsertStellarSpectrum(insert.orig, insert.star, str(insert.out))
+    assert (insert.out / 'star.sf').read_text() == 'old'
