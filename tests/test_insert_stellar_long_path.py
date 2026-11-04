@@ -68,8 +68,7 @@ def test_long_output_path_gives_the_same_spectral_file_as_a_short_one(tmp_path):
 
     def folder(length):
         path = str(tmp_path / 'long')
-        while len(path) + 1 < length:
-            path = os.path.join(path, 'd' * min(60, max(1, length - len(path) - 2)))
+        path = os.path.join(path, 'd' * (length - 2 - len(path)))
         os.makedirs(path)
         assert len(path) + 1 == length
         return path
