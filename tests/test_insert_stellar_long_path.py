@@ -22,9 +22,12 @@ CHILD = textwrap.dedent(
     """
     import sys
     from janus.utils import StellarSpectrum as ss
-    ss.InsertStellarSpectrum(*sys.argv[1:])
+    try:
+        ss.InsertStellarSpectrum(*sys.argv[1:])
+    except ValueError:
+        sys.exit(STOPPED)
     """
-)
+).replace('STOPPED', '3')
 
 
 def _insert(orig, star, out):
@@ -49,9 +52,9 @@ def _insert(orig, star, out):
 
 
 def test_long_output_path_gives_the_same_spectral_file_as_a_short_one(tmp_path):
-    """A 190-character folder is above the 132 characters of prep_spec and inside the 200 of
-    Cl_run_cdf: the call ends and writes the bytes of a short-path call, with the star in them.
-    The other edge, 201 characters, stops with a non-zero code and writes nothing.
+    """A 190-byte folder is above the 132 of prep_spec and inside the limit from Cl_run_cdf:
+    the call ends and writes the bytes of a short-path call, with the star in them. At 191
+    bytes the call stops with the ValueError of the limit and writes nothing.
     """
     DownloadSpectralFiles('Oak')
     orig = str(spectral_file_dir('Oak') / 'Oak.sf')
@@ -81,6 +84,6 @@ def test_long_output_path_gives_the_same_spectral_file_as_a_short_one(tmp_path):
     assert sorted(os.listdir(long)) == ['star.sf', 'star.sf_k']
 
     shutil.rmtree(tmp_path / 'long')
-    over = folder(201)
-    assert _insert(orig, str(star), over) == 1
+    over = folder(191)
+    assert _insert(orig, str(star), over) == 3
     assert os.listdir(over) == []

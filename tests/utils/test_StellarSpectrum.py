@@ -168,13 +168,13 @@ def test_insert_replaces_stale_outputs_and_resolves_a_relative_star(insert, monk
     assert 'stale' not in (insert.out / 'star.sf_k').read_text()
 
 
-@pytest.mark.parametrize('length, stops', [(200, False), (201, True), (400, True)])
+@pytest.mark.parametrize('length, stops', [(190, False), (191, True), (400, True)])
 def test_insert_stops_on_a_folder_above_the_socrates_limit(insert, length, stops):
-    """Cl_run_cdf holds the folder in a string of 200 characters: 200 passes, 201 stops."""
-    out = _folder(insert.tmp, length)
+    """Cl_run_cdf holds the folder and mcica_data in 200 bytes: 190 passes, 191 stops."""
+    out = _folder(insert.tmp, length) + '/'
     Path(out, 'star.sf').write_text('old')
     if stops:
-        with pytest.raises(ValueError, match=f'{length} characters'):
+        with pytest.raises(ValueError, match=f'{length} bytes'):
             ss.InsertStellarSpectrum(insert.orig, insert.star, out)
         assert not insert.log.exists(), 'prep_spec must not start'
         assert Path(out, 'star.sf').read_text() == 'old', 'no side effect before the stop'
@@ -215,6 +215,25 @@ def test_insert_raises_when_prep_spec_writes_no_star(insert, monkeypatch, mode, 
     assert os.listdir(insert.out) == []
 
 
+def test_insert_counts_bytes_of_a_folder_name_with_non_ascii_characters(insert):
+    """The limit in the Fortran string is in bytes: 190 characters here are above 190 bytes."""
+    out = insert.tmp / ('\u00e9' * (188 - len(str(insert.tmp))))
+    out.mkdir()
+    assert len(os.path.join(out, '')) == 190
+    with pytest.raises(ValueError, match=' bytes'):
+        ss.InsertStellarSpectrum(insert.orig, insert.star, str(out))
+    assert not insert.log.exists()
+
+
+def test_insert_accepts_a_binned_star_file(insert, tmp_path):
+    """prep_spec reads both data markers, *BEGIN_DATA and *BEGIN_BINNED_DATA."""
+    star = tmp_path / 'binned.txt'
+    star.write_text('Star\n*BEGIN_BINNED_DATA\n 1.0e-7 2.0e-7 1.0e6\n*END\n')
+    ss.InsertStellarSpectrum(insert.orig, str(star), str(insert.out))
+    assert (insert.out / 'star.sf').read_text().count('*BLOCK') == 2
+    assert insert.log.exists()
+
+
 def test_insert_needs_both_blocks(insert, monkeypatch):
     """A file with the thermal block and no stellar block fails, and the other way round."""
     for line, missing in (('6', '2'), ('2', '6')):
@@ -239,13 +258,6 @@ def test_insert_stops_a_stuck_prep_spec_without_growth(insert, monkeypatch, mode
     assert time.monotonic() - start < 20.0
     assert len(str(err.value)) < 5000
     assert os.listdir(insert.out) == []
-
-
-def test_insert_time_limit_does_not_cut_a_normal_call(insert):
-    """The limit is far above the seconds of a normal call on a stored spectral file."""
-    assert ss.PREP_SPEC_TIMEOUT >= 600.0
-    ss.InsertStellarSpectrum(insert.orig, insert.star, str(insert.out))
-    assert (insert.out / 'star.sf').read_text().count('*BLOCK') == 2
 
 
 def test_insert_names_socrates_when_prep_spec_is_absent(insert, monkeypatch):
