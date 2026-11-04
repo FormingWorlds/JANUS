@@ -209,6 +209,7 @@ def test_insert_raises_when_prep_spec_writes_no_star(insert, monkeypatch, mode, 
     and no working folder.
     """
     (insert.out / 'star.sf').write_text('stale')
+    (insert.out / 'star.sf_k').write_text('stale')
     monkeypatch.setenv('FAKE_MODE', mode)
     with pytest.raises(RuntimeError, match=message):
         ss.InsertStellarSpectrum(insert.orig, insert.star, str(insert.out))
