@@ -216,6 +216,15 @@ def test_insert_raises_when_prep_spec_writes_no_star(insert, monkeypatch, mode, 
     assert os.listdir(insert.out) == []
 
 
+def test_insert_counts_the_trailing_separator_of_the_folder(insert):
+    """PROTEUS passes the folder with a slash and other callers without: both count the same."""
+    with pytest.raises(ValueError, match='191 bytes'):
+        ss.InsertStellarSpectrum(insert.orig, insert.star, _folder(insert.tmp, 191))
+    assert not insert.log.exists()
+    ss.InsertStellarSpectrum(insert.orig, insert.star, _folder(insert.tmp / 'b', 190))
+    assert insert.log.exists()
+
+
 def test_insert_counts_bytes_of_a_folder_name_with_non_ascii_characters(insert):
     """The limit in the Fortran string is in bytes: 190 characters here are above 190 bytes."""
     out = insert.tmp / ('\u00e9' * (188 - len(str(insert.tmp))))
