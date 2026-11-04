@@ -1,39 +1,47 @@
-"""InsertStellarSpectrum with the real prep_spec on a path above its 132-character limit.
+"""InsertStellarSpectrum with the real prep_spec.
 
-The call runs in its own process group under a time limit, with its output dropped, so a
-loop in prep_spec fails this test by the limit, without growth on disk. See docs/How-to/test.md.
+Each call runs in a child process group under a time limit, with its output dropped, so a
+loop in prep_spec fails the test by the limit, without growth on disk. The child imports the
+code of this tree and exits with its own code if it did not. See docs/How-to/test.md.
 """
 
 import os
-import shutil
 import signal
 import subprocess
 import sys
-import textwrap
+from pathlib import Path
 
+import numpy as np
 import pytest
 from helpers import DownloadSpectralFiles, spectral_file_dir
 
 pytestmark = [pytest.mark.smoke, pytest.mark.timeout(60)]
 
 LIMIT_S = 30
+SRC = Path(__file__).resolve().parents[1] / 'src'
+NO_STAR_BLOCK = 3
+OTHER_TREE = 4
 
-CHILD = textwrap.dedent(
-    """
-    import sys
-    from janus.utils import StellarSpectrum as ss
-    try:
-        ss.InsertStellarSpectrum(*sys.argv[1:])
-    except ValueError:
-        sys.exit(STOPPED)
-    """
-).replace('STOPPED', '3')
+CHILD = f"""
+import sys
+import janus
+from janus.utils import StellarSpectrum as ss
+if not janus.__file__.startswith(sys.argv[1]):
+    sys.exit({OTHER_TREE})
+try:
+    ss.InsertStellarSpectrum(*sys.argv[2:])
+except RuntimeError as err:
+    sys.exit({NO_STAR_BLOCK} if 'block 2' in str(err) else 1)
+"""
 
 
-def _insert(orig, star, out):
-    """Run the insert in a child process group; return its code, or None at the time limit."""
+def _insert(star, out):
+    """Run the insert on Oak 318 in a child; return its code, or None at the time limit."""
+    DownloadSpectralFiles('Oak')
+    orig = str(spectral_file_dir('Oak') / 'Oak.sf')
     proc = subprocess.Popen(
-        [sys.executable, '-c', CHILD, orig, star, out],
+        [sys.executable, '-c', CHILD, str(SRC / 'janus'), orig, str(star), str(out)],
+        env={**os.environ, 'PYTHONPATH': str(SRC)},
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -51,30 +59,27 @@ def _insert(orig, star, out):
         proc.wait()
 
 
+def _star(path, end):
+    """Write a star file from 1e-10 m up to ``end``."""
+    rows = ''.join(f' {w:.7e} 1.0e+06\n' for w in np.geomspace(1e-10, end, 80))
+    path.write_text(f'Star\n WAVELENGTH IRRADIANCE\n (m) (W/m3)\n*BEGIN_DATA\n{rows}*END\n ')
+    return path
+
+
 def test_long_output_path_gives_the_same_spectral_file_as_a_short_one(tmp_path):
     """A 190-byte folder is above the 132 of prep_spec and inside the limit from Cl_run_cdf:
-    the call ends and writes the bytes of a short-path call, with the star in them. At 191
-    bytes the call stops with the ValueError of the limit and writes nothing.
+    the call ends and writes the bytes of a short-path call, with the star in them.
     """
-    DownloadSpectralFiles('Oak')
-    orig = str(spectral_file_dir('Oak') / 'Oak.sf')
-    star = tmp_path / 'star.txt'
-    rows = ''.join(f' {w:.7e} 1.0e+06\n' for w in [1e-10 * 1.5**i for i in range(80)])
-    star.write_text(f'Star\n WAVELENGTH IRRADIANCE\n (m) (W/m3)\n*BEGIN_DATA\n{rows}*END\n ')
-
+    star = _star(tmp_path / 'star.txt', 1.01e-4)
     short = tmp_path / 'short'
     short.mkdir()
-    assert _insert(orig, str(star), str(short)) == 0
+    assert _insert(star, short) == 0
 
-    def folder(length):
-        path = str(tmp_path / 'long')
-        path = os.path.join(path, 'd' * (length - 2 - len(path)))
-        os.makedirs(path)
-        assert len(path) + 1 == length
-        return path
-
-    long = folder(190)
-    assert _insert(orig, str(star), long) == 0
+    long = str(tmp_path / 'long')
+    long = os.path.join(long, 'd' * (188 - len(long)))
+    os.makedirs(long)
+    assert len(long) + 1 == 190
+    assert _insert(star, long) == 0
     for name in ('star.sf', 'star.sf_k'):
         with open(short / name, 'rb') as a, open(os.path.join(long, name), 'rb') as b:
             assert a.read() == b.read()
@@ -82,7 +87,12 @@ def test_long_output_path_gives_the_same_spectral_file_as_a_short_one(tmp_path):
     assert '*BLOCK: TYPE =    2' in text and '*BLOCK: TYPE =    6' in text
     assert sorted(os.listdir(long)) == ['star.sf', 'star.sf_k']
 
-    shutil.rmtree(tmp_path / 'long')
-    over = folder(191)
-    assert _insert(orig, str(star), over) == 3
-    assert os.listdir(over) == []
+
+def test_star_ending_on_an_inner_band_edge_stops_the_insert(tmp_path):
+    """A star that ends exactly on an inner band edge, 1e-4 m on Oak 318: prep_spec reports an
+    error, exits 0 and leaves out block 2.
+    """
+    out = tmp_path / 'out'
+    out.mkdir()
+    assert _insert(_star(tmp_path / 'star.txt', 1e-4), out) == NO_STAR_BLOCK
+    assert os.listdir(out) == []

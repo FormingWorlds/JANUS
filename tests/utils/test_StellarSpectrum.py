@@ -91,7 +91,7 @@ name=${name:0:132}
 case "$FAKE_MODE" in
   sleep) exec sleep 600 ;;
   flood) while :; do echo '+++ Invalid input: Please re-enter.' >&2; done ;;
-  rc2) echo '*** Error: bad block' >&2; exit 2 ;;
+  rc2) echo '*** Error: bad block' >&2; seq 40; exit 2 ;;
   noblock) echo '*** Error: no block' >&2; exit 0 ;;
 esac
 [ -f "$name" ] || { echo 'A new spectral file will be created.' >&2; exit 0; }
@@ -151,19 +151,19 @@ def test_insert_gives_prep_spec_short_names_and_a_lock(insert):
     assert cwd.startswith(os.path.realpath(out)) and cwd != os.path.realpath(out)
     answers = rest[rest.index('a') :]
     assert answers[:6] == ['a', '6', 'n', 'T', '100 4000', '250']
-    assert answers[6:8] == ['2', 'n'] and not answers[8].startswith('/')
+    assert answers[6:9] == ['2', 'n', 'star.txt']
     assert answers[9:11] == ['y', '-1']
-    assert star not in rest
     assert Path(out, 'star.sf').read_text().endswith('VERSION =    1\n')
     assert Path(out, 'star.sf_k').read_text() == 'K DATA\nwritten\n'
     assert sorted(os.listdir(out)) == ['star.sf', 'star.sf_k']
 
 
 def test_insert_replaces_stale_outputs_and_resolves_a_relative_star(insert, monkeypatch):
-    """Old outputs go, and a star path relative to the caller reads after the cwd change."""
+    """Old outputs go; a relative star path and PATH entry still work after the cwd change."""
     (insert.out / 'star.sf').write_text('stale')
     (insert.out / 'star.sf_k').write_text('stale')
     monkeypatch.chdir(insert.tmp)
+    monkeypatch.setenv('PATH', f'bin{os.pathsep}{os.environ["PATH"]}')
     ss.InsertStellarSpectrum(insert.orig, 'star.txt', str(insert.out))
     assert (insert.out / 'star.sf').read_text().startswith('SPECTRAL DATA')
     assert 'stale' not in (insert.out / 'star.sf_k').read_text()
@@ -199,7 +199,7 @@ def test_insert_stops_on_a_star_file_prep_spec_would_loop_on(insert, body):
 @pytest.mark.parametrize(
     'mode, message',
     [
-        ('rc2', r'code 2[\s\S]*bad block'),
+        ('rc2', r'code 2: \*\*\* Error: bad block'),
         ('noblock', r'block[\s\S]*no block'),
     ],
 )
