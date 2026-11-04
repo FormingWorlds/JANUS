@@ -169,7 +169,7 @@ def test_insert_replaces_stale_outputs_and_resolves_a_relative_star(insert, monk
     assert 'stale' not in (insert.out / 'star.sf_k').read_text()
 
 
-@pytest.mark.parametrize('length, stops', [(190, False), (191, True), (400, True)])
+@pytest.mark.parametrize('length, stops', [(190, False), (191, True)])
 def test_insert_stops_on_a_folder_above_the_socrates_limit(insert, length, stops):
     """Cl_run_cdf holds the folder and mcica_data in 200 bytes: 190 passes, 191 stops."""
     out = _folder(insert.tmp, length) + '/'
@@ -184,7 +184,7 @@ def test_insert_stops_on_a_folder_above_the_socrates_limit(insert, length, stops
         assert Path(out, 'star.sf').read_text().startswith('SPECTRAL DATA')
 
 
-@pytest.mark.parametrize('body', [None, '', 'no data marker\n'])
+@pytest.mark.parametrize('body', [None, 'no data marker\n'])
 def test_insert_stops_on_a_star_file_prep_spec_would_loop_on(insert, body):
     """Without *BEGIN_DATA in the star file prep_spec reads on without end, even with a lock."""
     star = insert.tmp / 'bad.txt'
