@@ -110,7 +110,8 @@ def InsertStellarSpectrum(orig_file:str, star_file:str, output_folder:str):
         star_file : str
             Path to file containing stellar spectrum in the SOCRATES format.
         output_folder : str
-            Path to output folder, at most MAX_OUTPUT_FOLDER_BYTES bytes.
+            Path to output folder, at most MAX_OUTPUT_FOLDER_BYTES bytes with its
+            trailing separator.
 
     Raises
     ------
@@ -166,18 +167,19 @@ def InsertStellarSpectrum(orig_file:str, star_file:str, output_folder:str):
         with open(answers, "w") as handle:
             handle.write('\n'.join(inputs))
 
+        # prep_spec writes its errors to stderr and its menus to stdout
         with open(answers) as stdin, subprocess.Popen(
-                [os.path.abspath(prep_spec)], cwd=work, stdin=stdin, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, encoding="ascii", errors="replace") as proc:
+                [os.path.abspath(prep_spec)], cwd=work, stdin=stdin, stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE, encoding="ascii", errors="replace") as proc:
             timer = threading.Timer(PREP_SPEC_TIMEOUT, proc.kill)
             timer.daemon = True
             timer.start()
-            tail = "".join(deque(proc.stdout, maxlen=20)).strip()
+            tail = "".join(deque(proc.stderr, maxlen=20)).strip()
             expired = not timer.is_alive()
             timer.cancel()
-        log.debug("prep_spec output ends with: %s", tail)
         if expired:
-            raise RuntimeError(f"prep_spec passed its time limit, {PREP_SPEC_TIMEOUT:g} s: {tail}")
+            raise RuntimeError(f"prep_spec passed its time limit, {PREP_SPEC_TIMEOUT:g} s: "
+                               f"{tail}")
         if proc.returncode != 0:
             raise RuntimeError(f"prep_spec returned with code {proc.returncode}: {tail}")
 
