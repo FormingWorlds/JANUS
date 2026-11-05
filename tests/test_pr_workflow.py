@@ -55,8 +55,8 @@ def test_pr_ci_fills_the_oak_tree_before_an_offline_pytest():
     lines = [line.strip() for line in steps[tests]['run'].splitlines()]
     pytest_line = next(n for n, line in enumerate(lines) if line.startswith('pytest -m'))
     assert lines.index(f'export FWL_DATA="{ROOT}"') < pytest_line
-    assert lines.index('export FWL_IO_OFFLINE=1') < pytest_line
     assert [line for line in lines if 'FWL_IO_OFFLINE' in line] == ['export FWL_IO_OFFLINE=1']
+    assert lines.index('export FWL_IO_OFFLINE=1') < pytest_line
     for scope in (workflow, job):
         assert not {'defaults', 'continue-on-error', 'if'} & scope.keys()
         assert not {'FWL_DATA', 'FWL_IO_OFFLINE'} & scope.get('env', {}).keys()
@@ -85,4 +85,6 @@ def test_long_path_limit_holds_for_the_test_call_only():
         if isinstance(node, ast.Call) and getattr(node.func, 'attr', '') == 'timeout'
     ]
     assert len(limits) == 1
-    assert {k.arg: ast.literal_eval(k.value) for k in limits[0].keywords}['func_only'] is True
+    assert {k.arg: ast.literal_eval(k.value) for k in limits[0].keywords}.get(
+        'func_only'
+    ) is True
