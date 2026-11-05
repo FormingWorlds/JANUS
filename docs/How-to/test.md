@@ -68,7 +68,8 @@ pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 Push and PR CI fetch the Oak spectral file in a step of their own, from a cache or
 else from the mirrors in turn, and run pytest with `FWL_IO_OFFLINE=1`. So no test on
 that CI downloads, and a test that needs other data stops at once with an
-`OfflineDataError`: add that dataset to the key and fetch steps of `tests.yaml`.
+`OfflineDataError`: add that dataset to the key and fetch steps of `tests.yaml` and to
+`tests/test_pr_workflow.py`.
 
 New per-source tests mirror the source path: `src/janus/<subdir>/<file>.py` maps
 to `tests/<subdir>/test_<file>.py`. The cross-cutting files

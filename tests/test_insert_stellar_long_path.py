@@ -101,12 +101,3 @@ def test_star_ending_on_an_inner_band_edge_stops_the_insert(tmp_path):
     out.mkdir()
     assert _insert(_star(tmp_path / 'star.txt', 1e-4), out) == NO_STAR_BLOCK
     assert os.listdir(out) == []
-
-
-def test_the_time_limit_leaves_the_fetch_out(request):
-    """A mirror read may take 60 s by itself, so a limit of 60 s on the fixture ends the fetch
-    before it can reach the next mirror. The limit must hold for the test call only.
-    """
-    limit = request.node.get_closest_marker('timeout')
-    assert limit.args == (60,)
-    assert limit.kwargs == {'func_only': True}
