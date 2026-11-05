@@ -125,10 +125,8 @@ def insert(tmp_path, monkeypatch):
 
 def _folder(root, length):
     """Make a folder whose path, with its trailing slash, has exactly ``length`` characters."""
-    path, need = str(root), length - 1 - len(str(root))
-    while need > 202:
-        path, need = os.path.join(path, 'd' * 200), need - 201
-    path = os.path.join(path, 'd' * (need - 1))
+    path = str(root)
+    path = os.path.join(path, 'd' * (length - 2 - len(path)))
     assert len(path) + 1 == length
     os.makedirs(path, exist_ok=True)
     return path

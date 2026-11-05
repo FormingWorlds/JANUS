@@ -31,13 +31,17 @@ if not janus.__file__.startswith(sys.argv[1]):
 try:
     ss.InsertStellarSpectrum(*sys.argv[2:])
 except RuntimeError as err:
-    sys.exit({NO_STAR_BLOCK} if 'block 2' in str(err) else 1)
+    sys.exit({NO_STAR_BLOCK} if 'wavelengths are incorrectly ordered' in str(err) else 1)
 """
+
+
+@pytest.fixture(scope='module', autouse=True)
+def _oak():
+    DownloadSpectralFiles('Oak')
 
 
 def _insert(star, out):
     """Run the insert on Oak 318 in a child; return its code, or None at the time limit."""
-    DownloadSpectralFiles('Oak')
     orig = str(spectral_file_dir('Oak') / 'Oak.sf')
     proc = subprocess.Popen(
         [sys.executable, '-c', CHILD, str(SRC / 'janus'), orig, str(star), str(out)],
@@ -90,7 +94,7 @@ def test_long_output_path_gives_the_same_spectral_file_as_a_short_one(tmp_path):
 
 def test_star_ending_on_an_inner_band_edge_stops_the_insert(tmp_path):
     """A star that ends exactly on an inner band edge, 1e-4 m on Oak 318: prep_spec reports an
-    error, exits 0 and leaves out block 2.
+    error, exits 0 and leaves out block 2. The error line of prep_spec must reach the message.
     """
     out = tmp_path / 'out'
     out.mkdir()
