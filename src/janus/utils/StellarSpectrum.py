@@ -1,6 +1,10 @@
 import numpy as np
+import re
 import shutil , os
 import subprocess
+import tempfile
+import threading
+from collections import deque
 from scipy.interpolate import PchipInterpolator
 
 import logging 
@@ -8,6 +12,11 @@ log = logging.getLogger("fwl."+__name__)
 
 
 from .. import set_socrates_env 
+
+PREP_SPEC_TIMEOUT = 1800.0      # [s] limit of one prep_spec call; 4096 bands take about 50 s
+MAX_OUTPUT_FOLDER_BYTES = 190   # With the trailing separator
+STAR_DATA_MARKERS = ("*BEGIN_DATA", "*BEGIN_BINNED_DATA")
+BLOCK_HEADER = re.compile(r"\*BLOCK: TYPE =\s*(\d+)")
 
 def PrepareStellarSpectrum(wl, fl, star_file, nbins_max=95000):
     """Write a stellar spectrum.
@@ -101,12 +110,36 @@ def InsertStellarSpectrum(orig_file:str, star_file:str, output_folder:str):
         star_file : str
             Path to file containing stellar spectrum in the SOCRATES format.
         output_folder : str
-            Path to output folder
-            
+            Path to output folder, at most MAX_OUTPUT_FOLDER_BYTES bytes with its
+            trailing separator.
+
+    Raises
+    ------
+        ValueError
+            If the output folder path is too long, or the stellar spectrum has no data.
+        RuntimeError
+            If prep_spec is missing, fails, passes PREP_SPEC_TIMEOUT or writes no stellar
+            spectrum. No star.sf remains in the output folder after a failure in prep_spec.
     """
 
-    # k files
-    orig_filek = orig_file+"_k"
+    # Cl_run_cdf later holds the folder and "mcica_data" in CHARACTER (LEN=200) MCICA_DATA.
+    folder_bytes = len(os.fsencode(os.path.join(output_folder, "")))
+    if folder_bytes > MAX_OUTPUT_FOLDER_BYTES:
+        raise ValueError(f"Output folder path has {folder_bytes} bytes, above the SOCRATES "
+                         f"limit of {MAX_OUTPUT_FOLDER_BYTES}: {output_folder}")
+
+    # prep_spec reads on without end if the star file has no data marker
+    has_data = False
+    if os.path.isfile(star_file):
+        with open(star_file, errors="replace") as handle:
+            has_data = any(line.startswith(STAR_DATA_MARKERS) for line in handle)
+    if not has_data:
+        raise ValueError(f"Stellar spectrum has no {STAR_DATA_MARKERS[0]} line or is missing: "
+                         f"{star_file}")
+
+    prep_spec = shutil.which("prep_spec")
+    if prep_spec is None:
+        raise RuntimeError("Cannot find prep_spec on PATH: check the SOCRATES build in RAD_DIR")
 
     outp_file  = os.path.join(output_folder, "star.sf")
     outp_filek = outp_file+"_k"
@@ -117,18 +150,46 @@ def InsertStellarSpectrum(orig_file:str, star_file:str, output_folder:str):
     if os.path.exists(outp_filek):
         os.remove(outp_filek)
 
-    # Copy original files to new location (retain old files)
-    shutil.copyfile(orig_file,  outp_file)
-    shutil.copyfile(orig_filek, outp_filek)
+    # Relative names avoid the 132-character limit of prep_spec on any file name; the lock
+    # file stops its interactive mode, which loops on a bad answer.
+    with tempfile.TemporaryDirectory(prefix="prep_spec_", dir=output_folder) as work:
+        shutil.copyfile(orig_file,      os.path.join(work, "star.sf"))
+        shutil.copyfile(orig_file+"_k", os.path.join(work, "star.sf_k"))
+        shutil.copyfile(star_file,      os.path.join(work, "star.txt"))
+        open(os.path.join(work, "radiation_code.lock"), "w").close()
 
-    # Run prep_spec
-    inputs = [outp_file,'a',                    # append existing file 
-              '6','n','T','100 4000','250',     # tabulate thermal source function
-              '2','n',star_file,'y',            # insert stellar spectrum
-              '-1','EOF'                        # save and exit
-              ]
-    p = subprocess.run(['prep_spec'], stdout=subprocess.PIPE, input='\n'.join(inputs), encoding='ascii')
-    if (p.returncode != 0):
-        log.warning("prep_spec returned with code %d" % p.returncode)
-    
+        inputs = ["star.sf",'a',                     # append existing file
+                  '6','n','T','100 4000','250',      # tabulate thermal source function
+                  '2','n',"star.txt",'y',            # insert stellar spectrum
+                  '-1','EOF'                         # save and exit
+                  ]
+        answers = os.path.join(work, "answers.txt")
+        with open(answers, "w") as handle:
+            handle.write('\n'.join(inputs))
 
+        # stderr holds the error line of a star that prep_spec rejects; stdout holds the menus
+        # and some other error text, and is dropped
+        with open(answers) as stdin, subprocess.Popen(
+                [os.path.abspath(prep_spec)], cwd=work, stdin=stdin, stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE, encoding="ascii", errors="replace") as proc:
+            timer = threading.Timer(PREP_SPEC_TIMEOUT, proc.kill)
+            timer.daemon = True
+            timer.start()
+            tail = "".join(deque(proc.stderr, maxlen=20)).strip()
+            expired = not timer.is_alive()
+            timer.cancel()
+        if expired:
+            raise RuntimeError(f"prep_spec passed its time limit, {PREP_SPEC_TIMEOUT:g} s: "
+                               f"{tail}")
+        if proc.returncode != 0:
+            raise RuntimeError(f"prep_spec returned with code {proc.returncode}: {tail}")
+
+        # prep_spec exits with 0 when it leaves out a block after an error
+        with open(os.path.join(work, "star.sf"), errors="replace") as handle:
+            blocks = {int(m[1]) for m in map(BLOCK_HEADER.match, handle) if m}
+        if not {2, 6} <= blocks:
+            raise RuntimeError("prep_spec wrote no stellar spectrum (block 2) or thermal "
+                               f"source function (block 6): {tail}")
+
+        os.replace(os.path.join(work, "star.sf"),   outp_file)
+        os.replace(os.path.join(work, "star.sf_k"), outp_filek)
