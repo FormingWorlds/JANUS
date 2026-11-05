@@ -15,8 +15,9 @@ on:
   workflow_dispatch:
 
 # Push and PR CI: unit + smoke tiers only, ubuntu-latest across the
-# Python 3.11 / 3.12 / 3.13 matrix (jobs run in parallel, so each stays
-# within the <10 min per-job budget). The integration and slow tiers run
+# Python 3.11 / 3.12 / 3.13 matrix. The jobs run in parallel. The 25 min limit
+# per job holds the 6 min fetch limit and about 15 min for all other steps at
+# their slowest: apt, builds, tests and cache saves. The integration and slow tiers run
 # real multi-timestep SOCRATES solves and live in the scheduled nightly
 # workflow `nightly.yml` instead. Coverage measurement is canonical in
 # nightly; the Codecov dashboard updates from nightly's upload step.
@@ -28,7 +29,7 @@ jobs:
   test:
     name: JANUS-check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
