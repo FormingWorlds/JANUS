@@ -14,12 +14,9 @@ on:
       - ready_for_review
   workflow_dispatch:
 
-# Push and PR CI: unit + smoke tiers only, ubuntu-latest across the
-# Python 3.11 / 3.12 / 3.13 matrix (jobs run in parallel, so each stays
-# within the <10 min per-job budget). The integration and slow tiers run
-# real multi-timestep SOCRATES solves and live in the scheduled nightly
-# workflow `nightly.yml` instead. Coverage measurement is canonical in
-# nightly; the Codecov dashboard updates from nightly's upload step.
+# Push and PR CI run the unit and smoke tiers; nightly.yml runs the other tiers and uploads coverage.
+# The 25 min job limit holds the 6 min fetch limit and about 15 min for all other steps at their
+# slowest, on each of the 3 Python versions: apt, builds, tests and cache saves.
 
 permissions:
   contents: read
@@ -28,7 +25,7 @@ jobs:
   test:
     name: JANUS-check
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -179,9 +176,26 @@ jobs:
           print(f'OK: fail_under {head_v} within [{floor}, {ECOSYSTEM_CEILING}].')
           PY
 
+      # The real prep_spec tests read Oak. A mirror read may take 60 s, the limit of a smoke
+      # test, so the fetch runs here with its retries and pytest stays offline.
+      - name: Resolve the Oak cache key
+        id: oak-key
+        run: fwl-io cache key --prefix oak-data- --key atmos_clim.spectral_files.oak.318
+
+      - uses: actions/cache@v4
+        with:
+          path: /home/runner/work/fwl_data
+          key: ${{ steps.oak-key.outputs.key }}
+          restore-keys: ${{ steps.oak-key.outputs.restore-keys }}
+
+      - name: Fetch Oak from the first mirror that answers
+        timeout-minutes: 6
+        run: fwl-io cache fetch --key atmos_clim.spectral_files.oak.318 --data-root /home/runner/work/fwl_data
+
       - name: Run unit + smoke tests
         run: |
           export FWL_DATA="/home/runner/work/fwl_data"
+          export FWL_IO_OFFLINE=1
           export RAD_DIR="/home/runner/work/JANUS/JANUS/SOCRATES"
           source "$RAD_DIR/set_rad_env"
           FAST_FAIL_UNDER=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['tool']['janus']['coverage_fast']['fail_under'])")

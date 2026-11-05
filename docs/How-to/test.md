@@ -65,6 +65,16 @@ pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 | `integration` | full `RadConvEqm` / `MCPA_CBL` pipeline | 300 s |
 | `slow` | long sweeps and full validation | 3600 s |
 
+In `tests/test_insert_stellar_long_path.py` the smoke limit holds for the test call
+only, because its module fixture fetches Oak and a mirror read alone may take 60 s.
+
+Push and PR CI fetch the Oak spectral file in a step of their own, from a cache or
+else from the mirrors in turn, and run pytest with `FWL_IO_OFFLINE=1`. The flag stops
+every fetch through fwl-io, so a test that needs other fwl-io data stops at once with
+an `OfflineDataError`: add that dataset to the key and fetch steps of `tests.yaml` and
+to `tests/test_pr_workflow.py`. The SOCRATES download in `src/janus/socrates.py` does
+not use fwl-io, and its unit tests mock the call.
+
 New per-source tests mirror the source path: `src/janus/<subdir>/<file>.py` maps
 to `tests/<subdir>/test_<file>.py`. The cross-cutting files
 (`tests/test_constants.py`, `tests/test_code.py`) and the pipeline files
