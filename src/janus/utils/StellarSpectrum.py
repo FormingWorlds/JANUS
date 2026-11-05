@@ -167,7 +167,8 @@ def InsertStellarSpectrum(orig_file:str, star_file:str, output_folder:str):
         with open(answers, "w") as handle:
             handle.write('\n'.join(inputs))
 
-        # prep_spec writes its errors to stderr and its menus to stdout
+        # stderr holds the error line of a star that prep_spec rejects; stdout holds the menus
+        # and some other error text, and is dropped
         with open(answers) as stdin, subprocess.Popen(
                 [os.path.abspath(prep_spec)], cwd=work, stdin=stdin, stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE, encoding="ascii", errors="replace") as proc:
