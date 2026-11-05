@@ -65,6 +65,11 @@ pytestmark = [pytest.mark.unit, pytest.mark.timeout(30)]
 | `integration` | full `RadConvEqm` / `MCPA_CBL` pipeline | 300 s |
 | `slow` | long sweeps and full validation | 3600 s |
 
+Push and PR CI fetch the Oak spectral file in a step of their own, from a cache or
+else from the mirrors in turn, and run pytest with `FWL_IO_OFFLINE=1`. So no test on
+that CI downloads, and a test that needs other data stops at once with an
+`OfflineDataError`: add that dataset to the key and fetch steps of `tests.yaml`.
+
 New per-source tests mirror the source path: `src/janus/<subdir>/<file>.py` maps
 to `tests/<subdir>/test_<file>.py`. The cross-cutting files
 (`tests/test_constants.py`, `tests/test_code.py`) and the pipeline files

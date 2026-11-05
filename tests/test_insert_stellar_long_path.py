@@ -2,7 +2,8 @@
 
 Each call runs in a child process group under a time limit, with its output dropped, so a
 loop in prep_spec fails the test by the limit, without growth on disk. The child imports the
-code of this tree and exits with its own code if it did not. See docs/How-to/test.md.
+code of this tree and exits with its own code if it did not. The tests never skip: without
+Oak they stop at the fixture with the error of fwl-io. See docs/How-to/test.md.
 """
 
 import os
@@ -15,7 +16,7 @@ import numpy as np
 import pytest
 from helpers import DownloadSpectralFiles, spectral_file_dir
 
-pytestmark = [pytest.mark.smoke, pytest.mark.timeout(60)]
+pytestmark = [pytest.mark.smoke, pytest.mark.timeout(60, func_only=True)]
 
 LIMIT_S = 30
 SRC = Path(__file__).resolve().parents[1] / 'src'
@@ -106,4 +107,6 @@ def test_the_time_limit_leaves_the_fetch_out(request):
     """A mirror read may take 60 s by itself, so a limit of 60 s on the fixture ends the fetch
     before it can reach the next mirror. The limit must hold for the test call only.
     """
-    assert request.node.get_closest_marker('timeout').kwargs == {'func_only': True}
+    limit = request.node.get_closest_marker('timeout')
+    assert limit.args == (60,)
+    assert limit.kwargs == {'func_only': True}
