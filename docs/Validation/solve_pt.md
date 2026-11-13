@@ -69,6 +69,6 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 
 The runaway-greenhouse outgoing-radiation limit follows Nakajima et al. (1992)[^cite-nakajima1992] and the pure-steam formulation of Goldblatt et al. (2013)[^cite-goldblatt2013]. The stored values are the JANUS + SOCRATES result of that curve, not a direct transcription of either paper.
 
-[^cite-nakajima1992]: S. Nakajima, Y.-Y. Hayashi, Y. Abe, *[A Study on the “Runaway Greenhouse Effect” with a One-Dimensional Radiative–Convective Equilibrium Model](https://doi.org/10.1175/1520-0469(1992)049%3C2256:ASOTGE%3E2.0.CO;2)*, Journal of the Atmospheric Sciences, 49, 2256-2266, 1992. [SciX](https://scixplorer.org/abs/1992JAtS...49.2256N/abstract).
+[^cite-nakajima1992]: S. Nakajima, Y.-Y. Hayashi, Y. Abe, *[A Study on the “Runaway Greenhouse Effect” with a One-Dimensional Radiative-Convective Equilibrium Model](https://doi.org/10.1175/1520-0469(1992)049%3C2256:ASOTGE%3E2.0.CO;2)*, Journal of the Atmospheric Sciences, 49, 2256-2266, 1992. [SciX](https://scixplorer.org/abs/1992JAtS...49.2256N/abstract).
 
 [^cite-goldblatt2013]: C. Goldblatt, T. D. Robinson, K. J. Zahnle, D. Crisp, *[Low simulated radiation limit for runaway greenhouse climates](https://doi.org/10.1038/ngeo1892)*, Nature Geoscience, 6, 661-667, 2013. [SciX](https://scixplorer.org/abs/2013NatGe...6..661G/abstract).

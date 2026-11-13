@@ -209,7 +209,7 @@ where $\sigma_{\rm 1\mu m} = 0.3743 \times 2.49 \times 10^{-6}$ m$^2$ kg$^{-1}$.
 |---|---|---|---|
 | Retained condensate fraction | $f_c$ | 0.0 | 0 = full rainout |
 | Tropopause temperature | $T_r$ | 0 K | 0 disables stratosphere |
-| Mean zenith angle | $\theta$ | 54.74° | Code default; Lichtenberg 2021[^cite-lichtenberg2021] uses 54.55° |
+| Mean zenith angle | $\theta$ | 54.74° | Code default; Lichtenberg et al. (2021)[^cite-lichtenberg2021] uses 54.55° |
 | Bond albedo | $\alpha_b$ | 0.175 | Applied before SOCRATES |
 | Surface albedo | $\alpha_{\rm surf}$ | 0.0 | Applied inside SOCRATES |
 | Rotation scaling of instellation | $f_s$ | 3/8 | Cronin (2014)[^cite-cronin2014] |
@@ -235,7 +235,7 @@ where $\sigma_{\rm 1\mu m} = 0.3743 \times 2.49 \times 10^{-6}$ m$^2$ kg$^{-1}$.
 
 [^cite-hamano2015]: K. Hamano, H. Kawahara, Y. Abe, M. Onishi, G. L. Hashimoto, *[Lifetime and Spectral Evolution of a Magma Ocean with a Steam Atmosphere: Its Detectability by Future Direct Imaging](https://doi.org/10.1088/0004-637X/806/2/216)*, The Astrophysical Journal, 806, 216, 2015. [SciX](https://scixplorer.org/abs/2015ApJ...806..216H/abstract).
 
-[^cite-nakajima1992]: S. Nakajima, Y.-Y. Hayashi, Y. Abe, *[A Study on the “Runaway Greenhouse Effect” with a One-Dimensional Radiative–Convective Equilibrium Model](https://doi.org/10.1175/1520-0469(1992)049%3C2256:ASOTGE%3E2.0.CO;2)*, Journal of the Atmospheric Sciences, 49, 2256-2266, 1992. [SciX](https://scixplorer.org/abs/1992JAtS...49.2256N/abstract).
+[^cite-nakajima1992]: S. Nakajima, Y.-Y. Hayashi, Y. Abe, *[A Study on the “Runaway Greenhouse Effect” with a One-Dimensional Radiative-Convective Equilibrium Model](https://doi.org/10.1175/1520-0469(1992)049%3C2256:ASOTGE%3E2.0.CO;2)*, Journal of the Atmospheric Sciences, 49, 2256-2266, 1992. [SciX](https://scixplorer.org/abs/1992JAtS...49.2256N/abstract).
 
 [^cite-boukrouche2021]: R. Boukrouche, T. Lichtenberg, R. T. Pierrehumbert, *[Beyond Runaway: Initiation of the Post-runaway Greenhouse State on Rocky Exoplanets](https://doi.org/10.3847/1538-4357/ac1345)*, The Astrophysical Journal, 919, 130, 2021. [SciX](https://scixplorer.org/abs/2021ApJ...919..130B/abstract).
 
