@@ -74,7 +74,7 @@ Above the critical temperature, $L_s = 0$: species become supercritical and are 
 
 H$_2$ is hardcoded as non-condensing at all temperatures relevant to magma ocean atmospheres ($p_{\rm sat} \to 10^{30}$ Pa), reflecting the fact that H$_2$ condensation occurs only below $\sim 30$ K. <br><br>
 
-![Thermal structure for single-species atmospheres at $P_{\rm surf} = 260$ bar and $T_{\rm surf} = 1000$ K. Solid lines show the adiabatic temperature profile for each volatile; dashed lines show the corresponding saturation vapour pressure curve $p_{\rm sat}^i$. In the lower troposphere the profile follows the dry adiabat until it intersects $p_{\rm sat}^i$, at which point condensation occurs and the lapse rate follows the moist convective profile (Eqs. 5-7). Figure 3 from Lichtenberg et al. (2021)[^cite-lichtenberg2021].](../assets/thermal_structure.png)
+![Thermal structure for single-species atmospheres at $P_{\rm surf} = 260$ bar and $T_{\rm surf} = 1000$ K. Solid lines show the adiabatic temperature profile for each volatile; dashed lines show the corresponding saturation vapour pressure curve $p_{\rm sat}^i$. In the lower troposphere the profile follows the dry adiabat until it intersects $p_{\rm sat}^i$, at which point condensation occurs and the lapse rate follows the moist convective profile (Eqs. 5-7). Figure 3 from Lichtenberg et al. (2021).](../assets/thermal_structure.png)
 
 *Thermal structure for single-species atmospheres with fixed surface pressure
 $P_{\rm surf} = 260$ bar and surface temperature $T_{\rm surf} = 1000$ K.
@@ -101,7 +101,7 @@ The mean molar mass and heat capacity are updated at each level from these quant
 
 ## 4. Stratosphere
 
-Above the tropopause, the atmosphere is set to an **isothermal stratosphere** at temperature $T_r$. The stratosphere temperature is set to the radiative skin temperature (Nicholls et al. 2024[^cite-nicholls2024]) Eq. (8):
+Above the tropopause, the atmosphere is set to an **isothermal stratosphere** at temperature $T_r$. The stratosphere temperature is set to the radiative skin temperature (Nicholls et al. 2024[^cite-nicholls2024], Eq. 8):
 
 $$T_r = \left(\frac{(1-\alpha_b) f_s F_\star}{2\sigma_{\rm SB}}\right)^{1/4} \tag{9}$$
 
@@ -123,15 +123,15 @@ Radiative fluxes are computed by the **SOCRATES** radiative transfer suite (Edwa
 
 ### 5.1 Thermal (longwave) fluxes
 
-The upward and downward longwave fluxes satisfy the two-stream equation (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (14):
+The upward and downward longwave fluxes satisfy the two-stream equation (Lichtenberg et al. 2021[^cite-lichtenberg2021], Eq. 14):
 
 $$\pm \frac{1}{D}\frac{dF_{\rm th}^{\uparrow\downarrow}}{d\tau} = F_{\rm th}^{\uparrow\downarrow} - \pi B(T) \tag{10}$$
 
-with diffusivity factor $D = 1.66$, optical depth $\tau$, and Planck intensity $B(T)$. The optical depth in differential form is (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (19):
+with diffusivity factor $D = 1.66$, optical depth $\tau$, and Planck intensity $B(T)$. The optical depth in differential form is (Lichtenberg et al. 2021[^cite-lichtenberg2021], Eq. 19):
 
 $$d\tau = -k(z)\,dz = -k_\rho(z)\rho(z)\,dz = -\sum_i \zeta_i(z)\,k^i_\rho(z)\,\rho(z)\,dz \tag{11}$$
 
-with mass mixing ratio $\zeta_i$ and mass absorption coefficient $k^i_\rho$ for species $i$. The atmospheric heating rate is (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (20):
+with mass mixing ratio $\zeta_i$ and mass absorption coefficient $k^i_\rho$ for species $i$. The atmospheric heating rate is (Lichtenberg et al. 2021[^cite-lichtenberg2021], Eq. 20):
 
 $$\mathcal{H} = -\frac{dF}{dz} = \frac{g\bar{\mu}_{\rm atm}P}{RT}\frac{dF_{\rm atm}}{dP} \tag{12}$$
 
@@ -157,11 +157,11 @@ with radiation constants $c_1 = 1.191042 \times 10^{-5}$ and $c_2 = 1.4387752$ (
 
 ### 5.4 Energy balance
 
-The total upward and downward fluxes are the sum of thermal and stellar components (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (17):
+The total upward and downward fluxes are the sum of thermal and stellar components (Lichtenberg et al. 2021[^cite-lichtenberg2021], Eq. 17):
 
 $$F_{\rm net}^{\uparrow\downarrow} = F_{\rm th}^{\uparrow\downarrow} + F_\star^{\uparrow\downarrow} \tag{16}$$
 
-The net radiative flux used as the interior-atmosphere boundary condition is (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (18), (Nicholls et al. 2024[^cite-nicholls2024]) Eq. (4):
+The net radiative flux used as the interior-atmosphere boundary condition is (Lichtenberg et al. 2021[^cite-lichtenberg2021], Eq. 18; Nicholls et al. 2024[^cite-nicholls2024], Eq. 4):
 
 $$F_{\rm net} = F_{\rm LW}^{\uparrow} + F_{\rm SW}^{\uparrow} - F_{\rm LW}^{\downarrow} - F_{\rm SW}^{\downarrow} \tag{17}$$
 
