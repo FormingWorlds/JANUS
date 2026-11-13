@@ -4,7 +4,7 @@ A 1D prescribed convective atmosphere model for rocky exoplanet and magma ocean 
 
 ## 1. Model summary
 
-JANUS computes the temperature-pressure (T-p) structure of a planetary atmosphere in hydrostatic and convective equilibrium, then calculates the resulting radiative energy fluxes. It is designed for atmospheres overlying magma ocean surfaces, where surface temperatures are high, atmospheric compositions are diverse and potentially non-dilute in condensable species, and the standard dilute-vapour approximations of terrestrial meteorology break down. The model operates as a 1D column, integrating upward from a prescribed surface temperature and set of volatile partial pressures [^1][^2].
+JANUS computes the temperature-pressure (T-p) structure of a planetary atmosphere in hydrostatic and convective equilibrium, then calculates the resulting radiative energy fluxes. It is designed for atmospheres overlying magma ocean surfaces, where surface temperatures are high, atmospheric compositions are diverse and potentially non-dilute in condensable species, and the standard dilute-vapour approximations of terrestrial meteorology break down. The model operates as a 1D column, integrating upward from a prescribed surface temperature and set of volatile partial pressures (Lichtenberg et al. 2021[^cite-lichtenberg2021]; Nicholls et al. 2024[^cite-nicholls2024]).
 
 ---
 
@@ -34,7 +34,7 @@ where $c_p^{\rm mix}$ is the molar heat capacity of the local gas mixture. The a
 
 ### 3.2 Heat capacities
 
-Gas-phase molar heat capacities are temperature-dependent, computed from Shomate polynomials [^1]:
+Gas-phase molar heat capacities are temperature-dependent, computed from Shomate polynomials (Lichtenberg et al. 2021[^cite-lichtenberg2021]):
 
 $$c_{p,s}(\hat T) = A_s + B_s \hat T + C_s \hat T^2 + D_s \hat T^3 + E_s / \hat T^2 \tag{4}$$
 
@@ -42,15 +42,15 @@ where $\hat T = T/1000$ and the fit constants $A_s$-$E_s$ are taken from the NIS
 
 ### 3.3 Generalised moist pseudoadiabat
 
-When one or more volatile species reach their saturation vapour pressure, the atmosphere becomes convectively unstable and the temperature-pressure slope is set by the **generalised multi-species pseudoadiabat** [^3]. This generalises the single-species derivation of Pierrehumbert (2010) [^4] to $N$ condensing species of arbitrary concentration and a freely tunable retained condensate fraction $f_c \in [0,1]$.
+When one or more volatile species reach their saturation vapour pressure, the atmosphere becomes convectively unstable and the temperature-pressure slope is set by the **generalised multi-species pseudoadiabat** (Graham et al. 2021[^cite-graham2021]). This generalises the single-species derivation of Pierrehumbert (2010)[^cite-pierrehumbert2010] to $N$ condensing species of arbitrary concentration and a freely tunable retained condensate fraction $f_c \in [0,1]$.
 
-The lapse rate is computed in two steps. First, the slope with respect to the **dry partial pressure** $p_d$ (Graham et al. 2021 [^3] Eq. 15):
+The lapse rate is computed in two steps. First, the slope with respect to the **dry partial pressure** $p_d$ (Graham et al. 2021[^cite-graham2021] Eq. 15):
 
 $$\frac{d\ln T}{d\ln p_d} = \frac{R + \displaystyle\sum_s \eta_s \frac{L_s}{T}}{\displaystyle\sum_s \left[\eta_s \left(c_{p,s} + R \beta_s \left(\frac{L_s}{R T} - 1\right)\right) + f_c \eta_s^c c_{p,s}^{\rm cond}\right]} \tag{5}$$
 
-where $\eta_s = x_s^{\rm gas} / x_d$ is the ratio of the gas-phase mole fraction of condensable $s$ to the total dry mole fraction, $\eta_s^c = x_s^{\rm cond} / x_d$ is the condensate mole fraction normalised by the dry mole fraction, $L_s$ is the molar latent heat, $c_{p,s}$ is the molar heat capacity of species $s$ in the gas phase, $c_{p,s}^{\rm cond}$ is the heat capacity of the condensed phase, $\beta_s = L_s / (R T)$ is the dimensionless latent heat parameter, and $f_c$ is the retained condensate fraction [^3].
+where $\eta_s = x_s^{\rm gas} / x_d$ is the ratio of the gas-phase mole fraction of condensable $s$ to the total dry mole fraction, $\eta_s^c = x_s^{\rm cond} / x_d$ is the condensate mole fraction normalised by the dry mole fraction, $L_s$ is the molar latent heat, $c_{p,s}$ is the molar heat capacity of species $s$ in the gas phase, $c_{p,s}^{\rm cond}$ is the heat capacity of the condensed phase, $\beta_s = L_s / (R T)$ is the dimensionless latent heat parameter, and $f_c$ is the retained condensate fraction (Graham et al. 2021[^cite-graham2021]).
 
-Second, this is converted to the total pressure gradient via the chain rule (Graham et al. 2021 [^3] Eq. 16):
+Second, this is converted to the total pressure gradient via the chain rule (Graham et al. 2021[^cite-graham2021] Eq. 16):
 
 $$\frac{d\ln T}{d\ln p} = \frac{d\ln T}{d\ln p_d} \cdot \frac{d\ln p_d}{d\ln p} \tag{6}$$
 
@@ -58,13 +58,13 @@ where
 
 $$\frac{d\ln p_d}{d\ln p} = \frac{1 + \displaystyle\sum_s \eta_s}{1 + \displaystyle\sum_s \beta_s \eta_s \left(\frac{d\ln T}{d\ln p_d}\right)} \tag{7}$$
 
-This ODE in $(\ln p, \ln T)$ space is integrated upward from the surface using a **fourth-order Runge-Kutta** scheme with step size $\Delta \ln p = -0.01$ [^3].
+This ODE in $(\ln p, \ln T)$ space is integrated upward from the surface using a **fourth-order Runge-Kutta** scheme with step size $\Delta \ln p = -0.01$ (Graham et al. 2021[^cite-graham2021]).
 
-The parameter $f_c = 0$ recovers the pure pseudoadiabatic limit (all condensate immediately rained out), while $f_c = 1$ gives fully reversible adiabatic ascent (all condensate retained) [^3].
+The parameter $f_c = 0$ recovers the pure pseudoadiabatic limit (all condensate immediately rained out), while $f_c = 1$ gives fully reversible adiabatic ascent (all condensate retained) (Graham et al. 2021[^cite-graham2021]).
 
 ### 3.4 Saturation vapour pressure and condensation
 
-A species $s$ is condensing at pressure level $p$ when its partial pressure $p_s \geq p_{\rm sat,s}(T)$. The saturation vapour pressure is computed from the **integrated Clausius-Clapeyron equation** anchored at the triple point [^4]:
+A species $s$ is condensing at pressure level $p$ when its partial pressure $p_s \geq p_{\rm sat,s}(T)$. The saturation vapour pressure is computed from the **integrated Clausius-Clapeyron equation** anchored at the triple point (Pierrehumbert 2010[^cite-pierrehumbert2010]):
 
 $$p_{\rm sat,s}(T) = p_{\rm triple,s} \exp\!\left[-\frac{L_s}{R}\left(\frac{1}{T} - \frac{1}{T_{\rm triple,s}}\right)\right] \tag{8}$$
 
@@ -74,7 +74,7 @@ Above the critical temperature, $L_s = 0$: species become supercritical and are 
 
 H$_2$ is hardcoded as non-condensing at all temperatures relevant to magma ocean atmospheres ($p_{\rm sat} \to 10^{30}$ Pa), reflecting the fact that H$_2$ condensation occurs only below $\sim 30$ K. <br><br>
 
-![Thermal structure for single-species atmospheres at $P_{\rm surf} = 260$ bar and $T_{\rm surf} = 1000$ K. Solid lines show the adiabatic temperature profile for each volatile; dashed lines show the corresponding saturation vapour pressure curve $p_{\rm sat}^i$. In the lower troposphere the profile follows the dry adiabat until it intersects $p_{\rm sat}^i$, at which point condensation occurs and the lapse rate follows the moist convective profile (Eqs. 5-7). Figure 3 from Lichtenberg et al. (2021) [^1].](../assets/thermal_structure.png)
+![Thermal structure for single-species atmospheres at $P_{\rm surf} = 260$ bar and $T_{\rm surf} = 1000$ K. Solid lines show the adiabatic temperature profile for each volatile; dashed lines show the corresponding saturation vapour pressure curve $p_{\rm sat}^i$. In the lower troposphere the profile follows the dry adiabat until it intersects $p_{\rm sat}^i$, at which point condensation occurs and the lapse rate follows the moist convective profile (Eqs. 5-7). Figure 3 from Lichtenberg et al. (2021)[^cite-lichtenberg2021].](../assets/thermal_structure.png)
 
 *Thermal structure for single-species atmospheres with fixed surface pressure
 $P_{\rm surf} = 260$ bar and surface temperature $T_{\rm surf} = 1000$ K.
@@ -83,7 +83,7 @@ each volatile; dashed lines show the corresponding saturation vapour pressure
 curve $p_{\rm sat}^i$ (Eq. 8). In the lower troposphere the profile follows
 the dry adiabat until it intersects $p_{\rm sat}^i$, at which point the lapse
 rate transitions to moist convection. Figure 3 from Lichtenberg et al.
-(2021) [^1].*
+(2021)[^cite-lichtenberg2021].*
 
 ### 3.5 Condensate tracking
 
@@ -101,11 +101,11 @@ The mean molar mass and heat capacity are updated at each level from these quant
 
 ## 4. Stratosphere
 
-Above the tropopause, the atmosphere is set to an **isothermal stratosphere** at temperature $T_r$. The stratosphere temperature is set to the radiative skin temperature [^2] Eq. (8):
+Above the tropopause, the atmosphere is set to an **isothermal stratosphere** at temperature $T_r$. The stratosphere temperature is set to the radiative skin temperature (Nicholls et al. 2024[^cite-nicholls2024]) Eq. (8):
 
 $$T_r = \left(\frac{(1-\alpha_b) f_s F_\star}{2\sigma_{\rm SB}}\right)^{1/4} \tag{9}$$
 
-where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $F_\star$ is the bolometric stellar flux, and $\sigma_{\rm SB}$ is the Stefan-Boltzmann constant [^4].
+where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $F_\star$ is the bolometric stellar flux, and $\sigma_{\rm SB}$ is the Stefan-Boltzmann constant (Pierrehumbert 2010[^cite-pierrehumbert2010]).
 
 The tropopause is located by either a **fixed temperature criterion**, the first level where $T < T_r$, or a **heating rate criterion**, where the tropopause is placed where the net radiative heating rate changes sign. In the stratosphere, volatile mixing ratios are fixed to their tropopause values.
 
@@ -119,19 +119,19 @@ The tropopause is located by either a **fixed temperature criterion**, the first
 
 ## 5. Radiative transfer
 
-Radiative fluxes are computed by the **SOCRATES** radiative transfer suite [^5], which solves the plane-parallel two-stream equations under the correlated-$k$ approximation, using the random overlap method for combined gaseous absorption [^2].
+Radiative fluxes are computed by the **SOCRATES** radiative transfer suite (Edwards & Slingo 1996[^cite-edwards1996]), which solves the plane-parallel two-stream equations under the correlated-$k$ approximation, using the random overlap method for combined gaseous absorption (Nicholls et al. 2024[^cite-nicholls2024]).
 
 ### 5.1 Thermal (longwave) fluxes
 
-The upward and downward longwave fluxes satisfy the two-stream equation [^1] Eq. (14):
+The upward and downward longwave fluxes satisfy the two-stream equation (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (14):
 
 $$\pm \frac{1}{D}\frac{dF_{\rm th}^{\uparrow\downarrow}}{d\tau} = F_{\rm th}^{\uparrow\downarrow} - \pi B(T) \tag{10}$$
 
-with diffusivity factor $D = 1.66$, optical depth $\tau$, and Planck intensity $B(T)$. The optical depth in differential form is [^1] Eq. (19):
+with diffusivity factor $D = 1.66$, optical depth $\tau$, and Planck intensity $B(T)$. The optical depth in differential form is (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (19):
 
 $$d\tau = -k(z)\,dz = -k_\rho(z)\rho(z)\,dz = -\sum_i \zeta_i(z)\,k^i_\rho(z)\,\rho(z)\,dz \tag{11}$$
 
-with mass mixing ratio $\zeta_i$ and mass absorption coefficient $k^i_\rho$ for species $i$. The atmospheric heating rate is [^1] Eq. (20):
+with mass mixing ratio $\zeta_i$ and mass absorption coefficient $k^i_\rho$ for species $i$. The atmospheric heating rate is (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (20):
 
 $$\mathcal{H} = -\frac{dF}{dz} = \frac{g\bar{\mu}_{\rm atm}P}{RT}\frac{dF_{\rm atm}}{dP} \tag{12}$$
 
@@ -141,11 +141,11 @@ $${\rm OLR} = F_{\rm th}^\uparrow(\tau_{\rm TOA}) \tag{13}$$
 
 ### 5.2 Stellar (shortwave) flux
 
-The absorbed stellar flux (ASF) at the top of atmosphere is [^2]:
+The absorbed stellar flux (ASF) at the top of atmosphere is (Nicholls et al. 2024[^cite-nicholls2024]):
 
 $${\rm ASF} = F_\star f_s (1 - \alpha_p) \cos(\theta) \tag{14}$$
 
-where $F_\star$ is the instellation, $f_s = 3/8$ is an axial rotation scaling factor [^6], $\alpha_p$ is the planetary albedo, and $\theta = 54.74°$ ($= \arccos(1/\sqrt{3})$) is the mean solar zenith angle [^7].
+where $F_\star$ is the instellation, $f_s = 3/8$ is an axial rotation scaling factor (Cronin 2014[^cite-cronin2014]), $\alpha_p$ is the planetary albedo, and $\theta = 54.74°$ ($= \arccos(1/\sqrt{3})$) is the mean solar zenith angle (Hamano et al. 2015[^cite-hamano2015]).
 
 ### 5.3 Surface emission
 
@@ -157,11 +157,11 @@ with radiation constants $c_1 = 1.191042 \times 10^{-5}$ and $c_2 = 1.4387752$ (
 
 ### 5.4 Energy balance
 
-The total upward and downward fluxes are the sum of thermal and stellar components [^1] Eq. (17):
+The total upward and downward fluxes are the sum of thermal and stellar components (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (17):
 
 $$F_{\rm net}^{\uparrow\downarrow} = F_{\rm th}^{\uparrow\downarrow} + F_\star^{\uparrow\downarrow} \tag{16}$$
 
-The net radiative flux used as the interior-atmosphere boundary condition is [^1] Eq. (18), [^2] Eq. (4):
+The net radiative flux used as the interior-atmosphere boundary condition is (Lichtenberg et al. 2021[^cite-lichtenberg2021]) Eq. (18), (Nicholls et al. 2024[^cite-nicholls2024]) Eq. (4):
 
 $$F_{\rm net} = F_{\rm LW}^{\uparrow} + F_{\rm SW}^{\uparrow} - F_{\rm LW}^{\downarrow} - F_{\rm SW}^{\downarrow} \tag{17}$$
 
@@ -171,7 +171,7 @@ Positive $F_{\rm net}$ indicates the atmosphere is losing energy (cooling); nega
 
 ## 6. Coupled interior-atmosphere boundary condition
 
-When coupled to an interior model, JANUS finds the surface temperature $T_s$ such that the conductive flux through the surface skin layer equals the net atmospheric flux [^2]:
+When coupled to an interior model, JANUS finds the surface temperature $T_s$ such that the conductive flux through the surface skin layer equals the net atmospheric flux (Nicholls et al. 2024[^cite-nicholls2024]):
 
 $$F_{\rm c} = \frac{k_{\rm c}}{d_{\rm c}} (T_{\rm magma} - T_s) = F_{\rm net} \tag{18}$$
 
@@ -181,21 +181,21 @@ where $k_{\rm c}$ is the thermal conductivity and $d_{\rm c}$ the thickness of t
 
 ## 7. Runaway greenhouse physics
 
-In a steam-dominated atmosphere, the OLR becomes decoupled from the surface temperature when the photosphere lies within a condensing region. Since the temperature structure in that region is fixed by the saturation curve rather than by $T_s$, OLR saturates at the **Simpson-Nakajima radiation limit** ($\approx 280$ W m$^{-2}$ for pure steam) [^8]. Only when surface temperatures are high enough that the deep atmosphere becomes supercritical, and the condensing zone transparent, does the photosphere re-couple to $T_s$, entering the **post-runaway regime** [^9].
+In a steam-dominated atmosphere, the OLR becomes decoupled from the surface temperature when the photosphere lies within a condensing region. Since the temperature structure in that region is fixed by the saturation curve rather than by $T_s$, OLR saturates at the **Simpson-Nakajima radiation limit** ($\approx 280$ W m$^{-2}$ for pure steam) (Nakajima et al. 1992[^cite-nakajima1992]). Only when surface temperatures are high enough that the deep atmosphere becomes supercritical, and the condensing zone transparent, does the photosphere re-couple to $T_s$, entering the **post-runaway regime** (Boukrouche et al. 2021[^cite-boukrouche2021]).
 
-For multi-component outgassed atmospheres above molten surfaces, this classical radiation limit does not appear: the diverse gas mixture and volatile dissolution into the magma mean the OLR varies continuously with $T_s$ with no clear plateau [^10].
+For multi-component outgassed atmospheres above molten surfaces, this classical radiation limit does not appear: the diverse gas mixture and volatile dissolution into the magma mean the OLR varies continuously with $T_s$ with no clear plateau (Boer et al. 2025[^cite-boer2025]).
 
 ---
 
 ## 8. Rayleigh scattering
 
-When enabled, Rayleigh scattering cross-sections are computed per spectral band and inserted into the SOCRATES spectral file at runtime. For CO$_2$ and N$_2$, the Vardavas & Carver (1984) [^11] formula is used:
+When enabled, Rayleigh scattering cross-sections are computed per spectral band and inserted into the SOCRATES spectral file at runtime. For CO$_2$ and N$_2$, the Vardavas & Carver (1984)[^cite-vardavas1984] formula is used:
 
 $$\sigma_{\rm Ray}(\lambda) = \frac{4.577 \times 10^{-21} \delta}{\lambda^4[\mu{\rm m}]} \left[A\left(1 + \frac{B}{\lambda^2[\mu{\rm m}]}\right)\right]^2 \frac{N_A \times 10^{-4}}{\mu} \quad [\text{m}^2\,\text{kg}^{-1}] \tag{19}$$
 
-where $\delta = (6 + 3\Delta)/(6 - 7\Delta)$ is the King factor, $\Delta$ is the depolarisation ratio, $A$ and $B$ are species-specific refractivity coefficients from Allen's Astrophysical Quantities (2002), $N_A$ is Avogadro's number, and $\mu$ is the molar mass in kg mol$^{-1}$.
+where $\delta = (6 + 3\Delta)/(6 - 7\Delta)$ is the King factor, $\Delta$ is the depolarisation ratio, $A$ and $B$ are species-specific refractivity coefficients from Allen's Astrophysical Quantities (2002)[^cite-cox2002], $N_A$ is Avogadro's number, and $\mu$ is the molar mass in kg mol$^{-1}$. <!-- docs-check: ignore -->
 
-For H$_2$O, a simpler $\lambda^{-4}$ scaling is used instead, anchored to the mass-weighted cross-section at 1 μm from Pierrehumbert (2010) [^4] Table 5.2:
+For H$_2$O, a simpler $\lambda^{-4}$ scaling is used instead, anchored to the mass-weighted cross-section at 1 μm from Pierrehumbert (2010)[^cite-pierrehumbert2010] Table 5.2:
 
 $$\sigma_{\rm Ray}^{\rm H_2O}(\lambda) = \sigma_{\rm 1\mu m} \left(\frac{1\,\mu{\rm m}}{\lambda}\right)^4 \tag{20}$$
 
@@ -209,10 +209,10 @@ where $\sigma_{\rm 1\mu m} = 0.3743 \times 2.49 \times 10^{-6}$ m$^2$ kg$^{-1}$.
 |---|---|---|---|
 | Retained condensate fraction | $f_c$ | 0.0 | 0 = full rainout |
 | Tropopause temperature | $T_r$ | 0 K | 0 disables stratosphere |
-| Mean zenith angle | $\theta$ | 54.74° | Code default; Lichtenberg 2021 [^1] uses 54.55° |
+| Mean zenith angle | $\theta$ | 54.74° | Code default; Lichtenberg 2021[^cite-lichtenberg2021] uses 54.55° |
 | Bond albedo | $\alpha_b$ | 0.175 | Applied before SOCRATES |
 | Surface albedo | $\alpha_{\rm surf}$ | 0.0 | Applied inside SOCRATES |
-| Rotation scaling of instellation | $f_s$ | 3/8 | Cronin (2014) [^6] |
+| Rotation scaling of instellation | $f_s$ | 3/8 | Cronin (2014)[^cite-cronin2014] |
 | Skin layer thickness | $d_{\rm c}$ | 0.01 m | Used in coupled mode |
 | Skin layer conductivity | $k_{\rm c}$ | 2.0 W m$^{-1}$ K$^{-1}$ | Used in coupled mode |
 | Gas overlap method | n/a | Random Overlap | SOCRATES `overlap_type=2` |
@@ -221,24 +221,26 @@ where $\sigma_{\rm 1\mu m} = 0.3743 \times 2.49 \times 10^{-6}$ m$^2$ kg$^{-1}$.
 
 ---
 
-[^1]: Lichtenberg, T., Bower, D. J., Hammond, M., Boukrouche, R., Sanan, P., Tsai, S. M., & Pierrehumbert, R. T. (2021). Vertically resolved magma ocean-protoatmosphere evolution: H₂, H₂O, CO₂, CH₄, CO, O₂, and N₂ as primary absorbers. *Journal of Geophysical Research: Planets, 126*(2), e2020JE006711. https://doi.org/10.1029/2020JE006711
+[^cite-lichtenberg2021]: T. Lichtenberg, D. J. Bower, M. Hammond, R. Boukrouche, P. Sanan, S.-M. Tsai, R. T. Pierrehumbert, *[Vertically Resolved Magma Ocean-Protoatmosphere Evolution: H₂, H₂O, CO₂, CH₄, CO, O₂, and N₂ as Primary Absorbers](https://doi.org/10.1029/2020JE006711)*, Journal of Geophysical Research: Planets, 126, e2020JE006711, 2021. [SciX](https://scixplorer.org/abs/2021JGRE..12606711L/abstract).
 
-[^2]: Nicholls, H., Lichtenberg, T., Bower, D. J., & Pierrehumbert, R. (2024). Magma ocean evolution at arbitrary redox state. *Journal of Geophysical Research: Planets, 129*(12), e2024JE008576. https://doi.org/10.1029/2024JE008576
+[^cite-nicholls2024]: H. Nicholls, T. Lichtenberg, D. J. Bower, R. Pierrehumbert, *[Magma Ocean Evolution at Arbitrary Redox State](https://doi.org/10.1029/2024JE008576)*, Journal of Geophysical Research: Planets, 129, e2024JE008576, 2024. [SciX](https://scixplorer.org/abs/2024JGRE..12908576N/abstract).
 
-[^3]: Graham, R. J., Lichtenberg, T., Boukrouche, R., & Pierrehumbert, R. T. (2021). A multispecies pseudoadiabat for simulating condensable-rich exoplanet atmospheres. *The Planetary Science Journal, 2*(5), 207. https://doi.org/10.3847/PSJ/ac214c
+[^cite-graham2021]: R. J. Graham, T. Lichtenberg, R. Boukrouche, R. T. Pierrehumbert, *[A Multispecies Pseudoadiabat for Simulating Condensable-rich Exoplanet Atmospheres](https://doi.org/10.3847/PSJ/ac214c)*, The Planetary Science Journal, 2, 207, 2021. [SciX](https://scixplorer.org/abs/2021PSJ.....2..207G/abstract).
 
-[^4]: Pierrehumbert, R. T. (2010). *Principles of Planetary Climate.* Cambridge University Press.
+[^cite-pierrehumbert2010]: R. T. Pierrehumbert, *[Principles of Planetary Climate](https://doi.org/10.1017/CBO9780511780783)*, Cambridge University Press, 2010. [SciX](https://scixplorer.org/abs/2010ppc..book.....P/abstract).
 
-[^5]: Edwards, J. M., & Slingo, A. (1996). Studies with a flexible new radiation code. I: Choosing a configuration for a large-scale model. *Quarterly Journal of the Royal Meteorological Society, 122*(531), 689–719. https://doi.org/10.1002/qj.49712253107
+[^cite-edwards1996]: J. M. Edwards, A. Slingo, *[Studies with a flexible new radiation code. I: Choosing a configuration for a large-scale model](https://doi.org/10.1002/qj.49712253107)*, Quarterly Journal of the Royal Meteorological Society, 122, 689-719, 1996. [SciX](https://scixplorer.org/abs/1996QJRMS.122..689E/abstract).
 
-[^6]: Cronin, T. W. (2014). On the choice of average solar zenith angle. *Journal of the Atmospheric Sciences, 71*(8), 2994–3003. https://doi.org/10.1175/JAS-D-13-0392.1
+[^cite-cronin2014]: T. W. Cronin, *[On the Choice of Average Solar Zenith Angle](https://doi.org/10.1175/JAS-D-13-0392.1)*, Journal of the Atmospheric Sciences, 71, 2994-3003, 2014. [SciX](https://scixplorer.org/abs/2014JAtS...71.2994C/abstract).
 
-[^7]: Hamano, K., Kawahara, H., Abe, Y., Onishi, M., & Hashimoto, G. L. (2015). Lifetime and spectral evolution of a magma ocean with a steam atmosphere. *The Astrophysical Journal, 806*(2), 216. https://doi.org/10.1088/0004-637X/806/2/216
+[^cite-hamano2015]: K. Hamano, H. Kawahara, Y. Abe, M. Onishi, G. L. Hashimoto, *[Lifetime and Spectral Evolution of a Magma Ocean with a Steam Atmosphere: Its Detectability by Future Direct Imaging](https://doi.org/10.1088/0004-637X/806/2/216)*, The Astrophysical Journal, 806, 216, 2015. [SciX](https://scixplorer.org/abs/2015ApJ...806..216H/abstract).
 
-[^8]: Nakajima, S., Hayashi, Y. Y., & Abe, Y. (1992). A study on the runaway greenhouse effect with a one-dimensional radiative-convective equilibrium model. *Journal of the Atmospheric Sciences, 49*(23), 2256–2266. https://doi.org/10.1175/1520-0469(1992)049
+[^cite-nakajima1992]: S. Nakajima, Y.-Y. Hayashi, Y. Abe, *[A Study on the “Runaway Greenhouse Effect” with a One-Dimensional Radiative–Convective Equilibrium Model](https://doi.org/10.1175/1520-0469(1992)049%3C2256:ASOTGE%3E2.0.CO;2)*, Journal of the Atmospheric Sciences, 49, 2256-2266, 1992. [SciX](https://scixplorer.org/abs/1992JAtS...49.2256N/abstract).
 
-[^9]: Boukrouche, R., Lichtenberg, T., & Pierrehumbert, R. T. (2021). Beyond runaway: initiation of the post-runaway greenhouse state on rocky exoplanets. *The Astrophysical Journal, 919*(2), 130. https://doi.org/10.3847/1538-4357/ac1345
+[^cite-boukrouche2021]: R. Boukrouche, T. Lichtenberg, R. T. Pierrehumbert, *[Beyond Runaway: Initiation of the Post-runaway Greenhouse State on Rocky Exoplanets](https://doi.org/10.3847/1538-4357/ac1345)*, The Astrophysical Journal, 919, 130, 2021. [SciX](https://scixplorer.org/abs/2021ApJ...919..130B/abstract).
 
-[^10]: Boer, I. D., Nicholls, H., & Lichtenberg, T. (2025). Absence of a runaway greenhouse limit on lava planets. *The Astrophysical Journal, 987*(2), 172. https://doi.org/10.3847/1538-4357/add69f
+[^cite-boer2025]: I. D. Boer, H. Nicholls, T. Lichtenberg, *[Absence of a Runaway Greenhouse Limit on Lava Planets](https://doi.org/10.3847/1538-4357/add69f)*, The Astrophysical Journal, 987, 172, 2025. [SciX](https://scixplorer.org/abs/2025ApJ...987..172B/abstract).
 
-[^11]: Vardavas, I. M., & Carver, J. H. (1984). Solar and terrestrial parameterizations for radiative-convective models. *Planetary and Space Science, 32*(10), 1307–1325. https://doi.org/10.1016/0032-0633(84)90074-6
+[^cite-vardavas1984]: I. M. Vardavas, J. H. Carver, *[Solar and terrestrial parameterizations for radiative-convective models](https://doi.org/10.1016/0032-0633(84)90074-6)*, Planetary and Space Science, 32, 1307-1325, 1984. [SciX](https://scixplorer.org/abs/1984P%26SS...32.1307V/abstract).
+
+[^cite-cox2002]: A. N. Cox (ed.), *[Allen's Astrophysical Quantities](https://doi.org/10.1007/978-1-4612-1186-0)*, Springer New York, 2002.
