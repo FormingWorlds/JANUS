@@ -19,8 +19,8 @@ datasets.
 pure H₂O atmosphere from 200 K to 2800 K in 20 steps, computing the OLR at
 each step using the full JANUS pipeline (moist pseudoadiabat + SOCRATES
 radiative transfer). The result is the classic **runaway greenhouse curve**,
-plotted against reference data from Kopparapu+2013, Goldblatt+2013,
-Hamano+2015, and Selsis+2023.
+plotted against reference data from Kopparapu et al. (2013)[^cite-kopparapu2013], Goldblatt et al. (2013)[^cite-goldblatt2013],
+Hamano et al. (2015)[^cite-hamano2015], and Selsis et al. (2023)[^cite-selsis2023].
 
 ## 2. Run it
 
@@ -68,7 +68,7 @@ runaway greenhouse; its oceans evaporate entirely.
 the photosphere couples back to the surface, and OLR rises steeply into the
 post-runaway regime.
 
-**The JANUS curve** should sit close to Hamano+2015 and Selsis+2023. Small
+**The JANUS curve** should sit close to Hamano et al. (2015)[^cite-hamano2015] and Selsis et al. (2023)[^cite-selsis2023]. Small
 differences between models come from different spectral line databases and
 lapse rate assumptions.
 
@@ -90,3 +90,11 @@ python examples/demo_instellation.py
   from its star
 - See the [physical model overview](../Explanations/model.md) for the equations
   behind the pseudoadiabat and radiative transfer
+
+[^cite-kopparapu2013]: R. K. Kopparapu, R. Ramirez, J. F. Kasting, V. Eymet, T. D. Robinson, S. Mahadevan, R. C. Terrien, S. Domagal-Goldman, V. Meadows, R. Deshpande, *[Habitable Zones around Main-sequence Stars: New Estimates](https://doi.org/10.1088/0004-637X/765/2/131)*, The Astrophysical Journal, 765, 131, 2013. [SciX](https://scixplorer.org/abs/2013ApJ...765..131K/abstract).
+
+[^cite-goldblatt2013]: C. Goldblatt, T. D. Robinson, K. J. Zahnle, D. Crisp, *[Low simulated radiation limit for runaway greenhouse climates](https://doi.org/10.1038/ngeo1892)*, Nature Geoscience, 6, 661-667, 2013. [SciX](https://scixplorer.org/abs/2013NatGe...6..661G/abstract).
+
+[^cite-hamano2015]: K. Hamano, H. Kawahara, Y. Abe, M. Onishi, G. L. Hashimoto, *[Lifetime and Spectral Evolution of a Magma Ocean with a Steam Atmosphere: Its Detectability by Future Direct Imaging](https://doi.org/10.1088/0004-637X/806/2/216)*, The Astrophysical Journal, 806, 216, 2015. [SciX](https://scixplorer.org/abs/2015ApJ...806..216H/abstract).
+
+[^cite-selsis2023]: F. Selsis, J. Leconte, M. Turbet, G. Chaverot, É. Bolmont, *[A cool runaway greenhouse without surface magma ocean](https://doi.org/10.1038/s41586-023-06258-3)*, Nature, 620, 287-291, 2023. [SciX](https://scixplorer.org/abs/2023Natur.620..287S/abstract).
