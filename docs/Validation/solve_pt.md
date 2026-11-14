@@ -10,7 +10,7 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 
 **What it tests.** `RadConvEqm` builds a radiative-convective equilibrium column and returns the top-of-atmosphere fluxes for a given surface temperature. For a pure-steam atmosphere, the outgoing longwave radiation (OLR) flattens toward the Simpson-Nakajima limit as the surface warms. This limit bounds the OLR while the condensing steam atmosphere is optically thick; at high enough surface temperature the OLR rises again. The test runs the column with `cp_dry=False` at 3 surface temperatures, 200, 1705.3 and 2800 K, and compares the OLR with stored values. 1705.3 K lies near the end of the plateau, and 2800 K beyond it. Before that comparison it checks that the returned flux is finite and positive.
 
-**How we know the right answer.** The stored values are the JANUS + SOCRATES result of the runaway-greenhouse curve of Nakajima et al. (1992) and Goldblatt et al. (2013) (see References). They lock the current solve. A solve that returns `nan` or a negative flux fails the finiteness check first.
+**How we know the right answer.** The stored values are the JANUS + SOCRATES result of the runaway-greenhouse curve of Nakajima et al. (1992)[^cite-nakajima1992] and Goldblatt et al. (2013)[^cite-goldblatt2013] (see References). They lock the current solve. A solve that returns `nan` or a negative flux fails the finiteness check first.
 
 **Why it matters.** `RadConvEqm` returns the atmosphere state. When a physics change moves these values on purpose, the stored values change in the same commit, with the reason in the commit message.
 
@@ -67,4 +67,8 @@ This page checks 2 of the atmosphere solves of JANUS, `RadConvEqm` and `MCPA_CBL
 
 ## References
 
-The runaway-greenhouse outgoing-radiation limit follows Nakajima et al. (1992), *Journal of the Atmospheric Sciences* 49, 2256, and the pure-steam formulation of Goldblatt et al. (2013), *Nature Geoscience* 6, 661. The stored values are the JANUS + SOCRATES result of that curve, not a direct transcription of either paper.
+The runaway-greenhouse outgoing-radiation limit follows Nakajima et al. (1992)[^cite-nakajima1992] and the pure-steam formulation of Goldblatt et al. (2013)[^cite-goldblatt2013]. The stored values are the JANUS + SOCRATES result of that curve, not a direct transcription of either paper.
+
+[^cite-nakajima1992]: S. Nakajima, Y.-Y. Hayashi, Y. Abe, *[A Study on the “Runaway Greenhouse Effect” with a One-Dimensional Radiative-Convective Equilibrium Model](https://doi.org/10.1175/1520-0469(1992)049%3C2256:ASOTGE%3E2.0.CO;2)*, Journal of the Atmospheric Sciences, 49, 2256-2266, 1992. [SciX](https://scixplorer.org/abs/1992JAtS...49.2256N/abstract).
+
+[^cite-goldblatt2013]: C. Goldblatt, T. D. Robinson, K. J. Zahnle, D. Crisp, *[Low simulated radiation limit for runaway greenhouse climates](https://doi.org/10.1038/ngeo1892)*, Nature Geoscience, 6, 661-667, 2013. [SciX](https://scixplorer.org/abs/2013NatGe...6..661G/abstract).
