@@ -30,11 +30,11 @@ In regions where no volatile species condense, the temperature follows the **dry
 
 $$T(p) = T_s \left(\frac{p}{p_s}\right)^{R/c_p^{\rm mix}} \tag{3}$$
 
-where $c_p^{\rm mix}$ is the molar heat capacity of the local gas mixture. The adiabatic exponent $R/c_p^{\rm mix}$ is computed from the molar-weighted heat capacities of all species present.
+where $c_p^{\rm mix}$ is the molar heat capacity of the gas mixture. The adiabatic exponent $R/c_p^{\rm mix}$ is computed once, from the mole-fraction-weighted heat capacities of all species at the surface, evaluated at $T_s$, and is held constant with height.
 
 ### 3.2 Heat capacities
 
-Gas-phase molar heat capacities are temperature-dependent, computed from Shomate polynomials (Lichtenberg et al. 2021[^cite-lichtenberg2021]):
+By default (`cp_mode = "constant"` in `cpv`), each species has a constant gas-phase molar heat capacity: its specific heat at 298 K and 1 bar times its molecular weight. With `cp_mode = "T-dependent"`, heat capacities are instead computed from Shomate polynomials (Lichtenberg et al. 2021[^cite-lichtenberg2021]):
 
 $$c_{p,s}(\hat T) = A_s + B_s \hat T + C_s \hat T^2 + D_s \hat T^3 + E_s / \hat T^2 \tag{4}$$
 
@@ -48,7 +48,7 @@ The lapse rate is computed in two steps. First, the slope with respect to the **
 
 $$\frac{d\ln T}{d\ln p_d} = \frac{R + \displaystyle\sum_s \eta_s \frac{L_s}{T}}{\displaystyle\sum_s \left[\eta_s \left(c_{p,s} + R \beta_s \left(\frac{L_s}{R T} - 1\right)\right) + f_c \eta_s^c c_{p,s}^{\rm cond}\right]} \tag{5}$$
 
-where $\eta_s = x_s^{\rm gas} / x_d$ is the ratio of the gas-phase mole fraction of condensable $s$ to the total dry mole fraction, $\eta_s^c = x_s^{\rm cond} / x_d$ is the condensate mole fraction normalised by the dry mole fraction, $L_s$ is the molar latent heat, $c_{p,s}$ is the molar heat capacity of species $s$ in the gas phase, $c_{p,s}^{\rm cond}$ is the heat capacity of the condensed phase, $\beta_s = L_s / (R T)$ is the dimensionless latent heat parameter, and $f_c$ is the retained condensate fraction (Graham et al. 2021[^cite-graham2021]).
+where $\eta_s = x_s^{\rm gas} / x_d$ is the ratio of the gas-phase mole fraction of species $s$ to the total dry mole fraction, $\eta_s^c = x_s^{\rm cond} / x_d$ is the condensate mole fraction normalised by the dry mole fraction, $L_s$ is the molar latent heat, $c_{p,s}$ is the molar heat capacity of species $s$ in the gas phase, $c_{p,s}^{\rm cond}$ is the heat capacity of the condensed phase, $\beta_s = L_s / (R T)$ is the dimensionless latent heat parameter (for H$_2$O with the water lookup table, between the triple and critical points, $\beta_s$ is instead the tabulated $d\ln p_{\rm sat}/d\ln T$), and $f_c$ is the retained condensate fraction (Graham et al. 2021[^cite-graham2021]). The latent-heat and condensate terms are summed only over species that are condensing (Section 3.4) and below their critical temperature; every other species, dry ones included, contributes only $\eta_s c_{p,s}$ to the denominator.
 
 Second, this is converted to the total pressure gradient via the chain rule (Graham et al. 2021[^cite-graham2021] Eq. 16):
 
@@ -107,12 +107,13 @@ $$T_r = \left(\frac{(1-\alpha_b) f_s F_\star}{2\sigma_{\rm SB}}\right)^{1/4} \ta
 
 where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $F_\star$ is the bolometric stellar flux, and $\sigma_{\rm SB}$ is the Stefan-Boltzmann constant (Pierrehumbert 2010[^cite-pierrehumbert2010]).
 
-The tropopause is located by either a **fixed temperature criterion**, the first level where $T < T_r$, or a **heating rate criterion**, where the tropopause is placed where the net radiative heating rate changes sign. In the stratosphere, volatile mixing ratios are fixed to their tropopause values.
+The tropopause is located by either a **fixed temperature criterion**, the first level where $T < T_r$, or a **heating rate criterion**: if the net radiative heating rate changes sign in the column and its maximum exceeds 50 K/day, the tropopause is placed at the first level below the heating maximum where the heating rate no longer exceeds 30 K/day, and $T_r$ is set to the temperature there. The tropopause is discarded if it lies within the top 2% of levels or if the mean heating above it is below 10 K/day. In the stratosphere, volatile mixing ratios are fixed to their tropopause values.
 
 !!! note
-    Setting $T_r = 0$ K disables the stratosphere entirely: since no atmospheric
-    level reaches 0 K, the fixed-temperature criterion is never triggered and the
-    whole column is treated as convective. This is the appropriate choice for pure
+    Setting $T_r = 0$ K disables the stratosphere entirely: with the
+    fixed-temperature criterion, the tropopause step is skipped whenever $T_r$
+    does not exceed the temperature floor `minT` (default 1 K), and the whole
+    column is treated as convective. This is the appropriate choice for pure
     steam atmospheres, and is the default in `config_runaway.toml`.
 
 ---
@@ -208,7 +209,7 @@ where $\sigma_{\rm 1\mu m} = 0.3743 \times 2.49 \times 10^{-6}$ m$^2$ kg$^{-1}$.
 | Parameter | Symbol | Default | Notes |
 |---|---|---|---|
 | Retained condensate fraction | $f_c$ | 0.0 | 0 = full rainout |
-| Tropopause temperature | $T_r$ | 0 K | 0 disables stratosphere |
+| Tropopause temperature | $T_r$ | 290 K | Values $\le$ `minT` (default 1 K) disable the stratosphere |
 | Mean zenith angle | $\theta$ | 54.74° | Code default; Lichtenberg et al. (2021)[^cite-lichtenberg2021] uses 54.55° |
 | Bond albedo | $\alpha_b$ | 0.175 | Applied before SOCRATES |
 | Surface albedo | $\alpha_{\rm surf}$ | 0.0 | Applied inside SOCRATES |
