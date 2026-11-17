@@ -220,8 +220,6 @@ where $\sigma_{\rm 1\mu m} = 0.3743 \times 2.49 \times 10^{-6}$ m$^2$ kg$^{-1}$.
 | TOA pressure | $p_{\rm top}$ | $10^{-5}$ bar | User-configurable |
 | RK4 step size | $\Delta\ln p$ | −0.01 | Pseudoadiabat integration |
 
----
-
 [^cite-lichtenberg2021]: T. Lichtenberg, D. J. Bower, M. Hammond, R. Boukrouche, P. Sanan, S.-M. Tsai, R. T. Pierrehumbert, *[Vertically Resolved Magma Ocean-Protoatmosphere Evolution: H₂, H₂O, CO₂, CH₄, CO, O₂, and N₂ as Primary Absorbers](https://doi.org/10.1029/2020JE006711)*, Journal of Geophysical Research: Planets, 126, e2020JE006711, 2021. [SciX](https://scixplorer.org/abs/2021JGRE..12606711L/abstract).
 
 [^cite-nicholls2024]: H. Nicholls, T. Lichtenberg, D. J. Bower, R. Pierrehumbert, *[Magma Ocean Evolution at Arbitrary Redox State](https://doi.org/10.1029/2024JE008576)*, Journal of Geophysical Research: Planets, 129, e2024JE008576, 2024. [SciX](https://scixplorer.org/abs/2024JGRE..12908576N/abstract).
