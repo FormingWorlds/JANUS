@@ -4,7 +4,7 @@ A 1D prescribed convective atmosphere model for rocky exoplanet and magma ocean 
 
 ## 1. Model summary
 
-JANUS computes the temperature-pressure (T-p) structure of a planetary atmosphere in hydrostatic and convective equilibrium, then calculates the resulting radiative energy fluxes. It is designed for atmospheres overlying magma ocean surfaces, where surface temperatures are high, atmospheric compositions are diverse and potentially non-dilute in condensable species, and the standard dilute-vapour approximations of terrestrial meteorology break down. The model operates as a 1D column, integrating upward from a prescribed surface temperature and set of volatile partial pressures (Lichtenberg et al. 2021[^cite-lichtenberg2021]; Nicholls et al. 2024[^cite-nicholls2024]).
+JANUS computes the temperature-pressure (T-p) structure of a planetary atmosphere in hydrostatic and convective equilibrium, then calculates the resulting radiative energy fluxes. It is designed for atmospheres overlying magma ocean surfaces, where surface temperatures are high, atmospheric compositions are diverse and potentially non-dilute in condensable species, and the standard dilute-vapour approximations of terrestrial meteorology break down. The model operates as a 1D column, integrating upward from a prescribed surface temperature and set of volatile partial pressures (Lichtenberg et al. 2021 [^cite-lichtenberg2021]; Nicholls et al. 2024 [^cite-nicholls2024]).
 
 ---
 
@@ -34,7 +34,7 @@ where $c_p^{\rm mix}$ is the molar heat capacity of the gas mixture. The adiabat
 
 ### 3.2 Heat capacities
 
-By default, each species has a constant molar heat capacity, its value at 298 K and 1 bar. Temperature-dependent heat capacities from Shomate polynomials are also implemented (`cp_mode = "T-dependent"` in `cpv`), but are not used by default (Lichtenberg et al. 2021[^cite-lichtenberg2021]):
+By default, each species has a constant molar heat capacity, its value at 298 K and 1 bar. Temperature-dependent heat capacities from Shomate polynomials are also implemented (`cp_mode = "T-dependent"` in `cpv`), but are not used by default (Lichtenberg et al. 2021 [^cite-lichtenberg2021]):
 
 $$c_{p,s}(\hat T) = A_s + B_s \hat T + C_s \hat T^2 + D_s \hat T^3 + E_s / \hat T^2 \tag{4}$$
 
@@ -42,7 +42,7 @@ where $\hat T = T/1000$ and the fit constants $A_s$-$E_s$ are taken from the NIS
 
 ### 3.3 Generalised moist pseudoadiabat
 
-When one or more volatile species reach their saturation vapour pressure, the atmosphere becomes convectively unstable and the temperature-pressure slope is set by the **generalised multi-species pseudoadiabat** (Graham et al. 2021 [^cite-graham2021]). This generalises the single-species derivation of Pierrehumbert (2010)[^cite-pierrehumbert2010] to $N$ condensing species of arbitrary concentration and a freely tunable retained condensate fraction $f_c \in [0,1]$.
+When one or more volatile species reach their saturation vapour pressure, the atmosphere becomes convectively unstable and the temperature-pressure slope is set by the **generalised multi-species pseudoadiabat** (Graham et al. 2021 [^cite-graham2021]). This generalises the single-species derivation of Pierrehumbert (2010) [^cite-pierrehumbert2010] to $N$ condensing species of arbitrary concentration and a freely tunable retained condensate fraction $f_c \in [0,1]$.
 
 The lapse rate is computed in two steps. First, the slope with respect to the **dry partial pressure** $p_d$ (Graham et al. 2021 [^cite-graham2021] Eq. 15):
 
