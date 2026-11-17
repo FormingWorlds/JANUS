@@ -350,7 +350,7 @@ def test_quote_cut_from_an_equation_is_shown_as_the_whole_equation(repo):
         ],
     )
     assert '> $$a + b \\tag{5}$$' in r.inc and '_Quoted part:_ ` a + b `' in r.inc
-    assert '> Intro $x$\n' in r.inc and '_Quoted part:_ ` Intro $x `' in r.inc
+    assert '> Intro $`x`$\n' in r.inc and '_Quoted part:_ ` Intro $x `' in r.inc
     assert '> Plain words\n' in r.inc and r.inc.count('_Quoted part:_') == 2
 
 
@@ -639,9 +639,9 @@ def test_line_number_prefixes_are_stripped_before_matching(repo):
     assert '2:     y' not in r.inc
 
 
-def test_multi_line_fix_is_shown_as_a_diff_block(repo):
-    """A fix spanning lines is rendered as a fenced diff, so a blank line or a line that
-    starts a list cannot break out of it; a one-line fix keeps its inline form."""
+def test_every_fix_is_shown_as_a_diff_block(repo):
+    """Every fix is rendered as a fenced diff, so a blank line or a line that starts a
+    list cannot break out of it, and a one-line fix uses the same form."""
     doc = DOC_TEXT + '!!! note\n    First line here\n    ends the sentence.\n'
     (repo / DOC_FILE).write_text(doc)
     old = 'First line here\n    ends the sentence.'
@@ -655,7 +655,8 @@ def test_multi_line_fix_is_shown_as_a_diff_block(repo):
     r = run_triage(repo, [wrapped, finding('short', suggested_fix=SAFE_FIX)])
     block = '```diff\n- First line here\n-     ends the sentence.\n+ First line here\n+ \n'
     assert block + '+     - ends the `cp` sentence.\n```' in r.pr
-    assert '- old: ` moist lapse uses alpha=1 `' in r.pr
+    assert '```diff\n- moist lapse uses alpha=1\n+ moist lapse uses alpha=5\n```' in r.pr
+    assert '- old:' not in r.pr and '- new:' not in r.pr
 
 
 def test_gap_may_have_an_empty_doc_excerpt(repo):
@@ -680,12 +681,12 @@ def test_gap_without_a_doc_file_is_not_filed_as_unverified(repo):
     assert '## Unverified inconsistencies' in r.inc and '`bad-file`' in r.inc
 
 
-def test_backticks_in_a_fix_do_not_break_its_code_span(repo):
-    """Fix text containing backticks is wrapped in a longer backtick delimiter."""
-    fix = {'old_text': 'moist lapse', 'new_text': 'lapse from `cp`'}
+def test_backticks_in_a_fix_do_not_break_its_diff_block(repo):
+    """Fix text containing a triple backtick gets a longer fence, so it stays inside."""
+    fix = {'old_text': 'moist lapse', 'new_text': 'lapse from ```cp```'}
     r = run_triage(repo, [finding('ticks', suggested_fix=fix)])
-    assert 'The lapse from `cp` uses alpha=1 too.' in r.doc
-    assert '- new: `` lapse from `cp` ``' in r.pr and '- old: ` moist lapse `' in r.pr
+    assert 'The lapse from ```cp``` uses alpha=1 too.' in r.doc
+    assert '````diff\n- moist lapse\n+ lapse from ```cp```\n````' in r.pr
 
 
 def test_already_reported_findings_are_not_posted_again(repo):
@@ -765,3 +766,22 @@ def test_empty_analysis_sets_no_outputs(repo):
     assert r.outputs == NOTHING
     assert r.doc == DOC_TEXT
     assert r.inc == '' and r.gaps == ''
+
+
+def test_inline_math_is_written_in_the_form_github_renders(repo):
+    """GitHub leaves H$_2$O unrendered and pairs its underscore with the next formula's
+    as emphasis; the $`...`$ form keeps both intact. Code spans and $$...$$ are kept."""
+    text = (
+        r'For H$_2$O, $\beta$ is the tabulated $d\ln p_{\rm sat}/d\ln T$ '
+        r'(`p_$x$`), not $$a_b$$.'
+    )
+    out = triage.github_math(text)
+    assert out == (
+        r'For $`\mathrm{H}_2\mathrm{O}`$, $`\beta`$ is the tabulated '
+        r'$`d\ln p_{\rm sat}/d\ln T`$ (`p_$x$`), not $$a_b$$.'
+    )
+    # Without a formula the text is unchanged, and a lone dollar sign is not math.
+    assert triage.github_math('costs $5 per `x`') == 'costs $5 per `x`'
+    desc = r'Uses $T_r \le$ `minT` for H$_2$O.'
+    r = run_triage(repo, [finding('math', description=desc)])
+    assert r'Uses $`T_r \le`$ `minT` for $`\mathrm{H}_2\mathrm{O}`$.' in r.inc
