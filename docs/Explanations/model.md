@@ -30,13 +30,13 @@ In regions where no volatile species condense, the temperature follows the **dry
 
 $$T(p) = T_s \left(\frac{p}{p_s}\right)^{R/c_p^{\rm mix}} \tag{3}$$
 
-where $c_p^{\rm mix}$ is the molar heat capacity of the gas mixture. The dry-adiabat setup (`dry_adiabat_atm`) computes the exponent $R/c_p^{\rm mix}$ once, from the surface composition and the heat capacities at $T_s$, and uses it unchanged at every level. The main temperature profile is instead integrated level by level with Eqs. 5-7. Where nothing condenses, these reduce to the slope $R/c_p^{\rm mix}$ with the heat capacities at the local temperature. With the default constant heat capacities (Section 3.2), both give the same exponent.
+where $c_p^{\rm mix}$ is the molar heat capacity of the gas mixture. The initial dry profile (`dry_adiabat_atm`) uses one exponent $R/c_p^{\rm mix}$ for the whole column, computed from the surface composition and the heat capacities at $T_s$. The main temperature profile is integrated level by level with Eqs. 5-7. Where nothing condenses, these give $d\ln T/d\ln p = R/c_p^{\rm mix}$, with the heat capacities at the local temperature. Because the heat capacities are constant by default (Section 3.2), both approaches give the same exponent.
 
 ### 3.2 Heat capacities
 
-By default, the gas-phase molar heat capacity of each species is constant, at its value at 298 K and 1 bar. Values are defined for H$_2$O, CH$_4$, CO$_2$, CO, N$_2$, O$_2$, H$_2$, He and NH$_3$; any other species gets a gas-phase heat capacity of zero. The heat capacity of the condensed phase, $c_{p,s}^{\rm cond}$, is set separately, and for several species, H$_2$O included, it depends on temperature by default. It enters the lapse rate only when the retained condensate fraction $f_c$ (`alpha_cloud`) is above zero.
+By default, the gas-phase molar heat capacity of each species is constant, at its value at 298 K and 1 bar. Values are defined for H$_2$O, CH$_4$, CO$_2$, CO, N$_2$, O$_2$, H$_2$, He and NH$_3$; any other species gets a gas-phase heat capacity of zero. The heat capacity of the condensed phase, $c_{p,s}^{\rm cond}$, is defined separately. For several species, including H$_2$O, it depends on temperature by default. It enters the lapse rate only when the retained condensate fraction $f_c$ (`alpha_cloud`) is above zero.
 
-Temperature-dependent gas-phase heat capacities from Shomate polynomials (Lichtenberg et al. 2021 [^cite-lichtenberg2021]) are also implemented, through the `cp_mode` argument of `cpv`. No caller sets this argument, so they cannot be selected from a configuration file; using them requires a code change. The Shomate form is:
+Temperature-dependent gas-phase heat capacities from Shomate polynomials (Lichtenberg et al. 2021 [^cite-lichtenberg2021]) are also implemented, through the `cp_mode` argument of `cpv`. JANUS itself never sets this argument, so the Shomate form cannot be chosen from a configuration file and needs a code change. The Shomate form is:
 
 $$c_{p,s}(\hat T) = A_s + B_s \hat T + C_s \hat T^2 + D_s \hat T^3 + E_s / \hat T^2 \tag{4}$$
 
@@ -103,11 +103,11 @@ The mean molar mass and heat capacity are updated at each level from these quant
 
 ## 4. Stratosphere
 
-Above the tropopause, the atmosphere is set to an **isothermal stratosphere** at temperature $T_r$. $T_r$ is an input to JANUS. A natural choice is the radiative skin temperature (Nicholls et al. 2024 [^cite-nicholls2024], Eq. 8):
+Above the tropopause, the atmosphere is set to an **isothermal stratosphere** at temperature $T_r$. $T_r$ is an input to JANUS. One option is the radiative skin temperature (Nicholls et al. 2024 [^cite-nicholls2024], Eq. 8):
 
 $$T_r = \left(\frac{(1-\alpha_b) f_s F_\star}{2\sigma_{\rm SB}}\right)^{1/4} \tag{9}$$
 
-where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $F_\star$ is the bolometric stellar flux, and $\sigma_{\rm SB}$ is the Stefan-Boltzmann constant (Pierrehumbert 2010 [^cite-pierrehumbert2010]). JANUS computes Eq. 9 only when `setTropopauseTemperature` is called, as in `examples/demo_instellation.py`. When coupled to PROTEUS, $T_r$ is passed in by PROTEUS instead: its skin temperature, or 0.5 K.
+where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $F_\star$ is the bolometric stellar flux, and $\sigma_{\rm SB}$ is the Stefan-Boltzmann constant (Pierrehumbert 2010 [^cite-pierrehumbert2010]). JANUS computes Eq. 9 only when `setTropopauseTemperature` is called, as in `examples/demo_instellation.py`. When coupled to PROTEUS, $T_r$ is the skin temperature if `atmos_clim.janus.tropopause = "skin"`, and 0.5 K otherwise.
 
 The tropopause is located by one of two criteria. With the **fixed temperature criterion**, it is the first level where $T < T_r$. With the **heating rate criterion**, it is placed where strong radiative heating in the upper atmosphere fades out: if the net heating rate changes sign in the column and peaks above 50 K/day, the tropopause is the first level beneath the peak (at higher pressure) where heating is 30 K/day or less, and $T_r$ becomes the temperature there. No tropopause is set if that level lies in the top 2% of model levels, or if the mean heating above it is below 10 K/day. In the stratosphere, volatile mixing ratios are fixed to their tropopause values.
 
@@ -211,7 +211,7 @@ where $\sigma_{\rm 1\mu m} = 0.3743 \times 2.49 \times 10^{-6}$ m$^2$ kg$^{-1}$.
 | Parameter | Symbol | Default | Notes |
 |---|---|---|---|
 | Retained condensate fraction | $f_c$ | 0.0 | 0 = full rainout |
-| Tropopause temperature | $T_r$ | 290 K | With the fixed-temperature criterion, values ≤ `minT` (atmosphere argument, default 1 K) disable the stratosphere |
+| Tropopause temperature | $T_r$ | 290 K | Values ≤ `minT` (default 1 K) disable the stratosphere, unless the heating rate criterion is used |
 | Mean zenith angle | $\theta$ | 54.74° | Code default; Lichtenberg et al. (2021) [^cite-lichtenberg2021] uses 54.55° |
 | Bond albedo | $\alpha_b$ | 0.175 | Applied before SOCRATES |
 | Surface albedo | $\alpha_{\rm surf}$ | 0.0 | Applied inside SOCRATES |
