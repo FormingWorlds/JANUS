@@ -30,11 +30,11 @@ In regions where no volatile species condense, the temperature follows the **dry
 
 $$T(p) = T_s \left(\frac{p}{p_s}\right)^{R/c_p^{\rm mix}} \tag{3}$$
 
-where $c_p^{\rm mix}$ is the molar heat capacity of the gas mixture. The initial dry profile (`dry_adiabat_atm`) uses one exponent $R/c_p^{\rm mix}$ for the whole column, computed from the surface composition and the heat capacities at $T_s$. The main temperature profile is integrated level by level with Eqs. 5-7. Where nothing condenses, these give $d\ln T/d\ln p = R/c_p^{\rm mix}$, with the heat capacities at the local temperature. Because the heat capacities are constant by default (Section 3.2), both approaches give the same exponent.
+where $c_p^{\rm mix}$ is the molar heat capacity of the gas mixture. The exponent $R/c_p^{\rm mix}$ uses the heat capacities at $T_s$ in the initial dry profile (`dry_adiabat_atm`), and at the local temperature in the main profile, which is integrated with Eqs. 5-7. Because the heat capacities are constant by default (Section 3.2), both give the same exponent.
 
 ### 3.2 Heat capacities
 
-By default, the gas-phase molar heat capacity of each species is constant, at its value at 298 K and 1 bar. Values are defined for H$_2$O, CH$_4$, CO$_2$, CO, N$_2$, O$_2$, H$_2$, He and NH$_3$; any other species gets a gas-phase heat capacity of zero. The heat capacity of the condensed phase, $c_{p,s}^{\rm cond}$, is defined separately. For several species, including H$_2$O, it depends on temperature by default. It enters the lapse rate only when the retained condensate fraction $f_c$ (`alpha_cloud`) is above zero.
+By default, the gas-phase molar heat capacity of each species is constant, at its value at 298 K and 1 bar. Values are defined for H$_2$O, CH$_4$, CO$_2$, CO, N$_2$, O$_2$, H$_2$, He and NH$_3$; any other species gets a gas-phase heat capacity of zero. The heat capacity of the condensed phase, $c_{p,s}^{\rm cond}$, depends on temperature by default for several species, including H$_2$O. It enters the lapse rate only when the retained condensate fraction $f_c$ (`alpha_cloud`) is above zero.
 
 Temperature-dependent gas-phase heat capacities from Shomate polynomials (Lichtenberg et al. 2021 [^cite-lichtenberg2021]) are also implemented, through the `cp_mode` argument of `cpv`. JANUS itself never sets this argument, so the Shomate form cannot be chosen from a configuration file and needs a code change. The Shomate form is:
 
@@ -50,7 +50,7 @@ The lapse rate is computed in two steps. First, the slope with respect to the **
 
 $$\frac{d\ln T}{d\ln p_d} = \frac{R + \displaystyle\sum_s \eta_s \frac{L_s}{T}}{\displaystyle\sum_s \left[\eta_s \left(c_{p,s} + R \beta_s \left(\frac{L_s}{R T} - 1\right)\right) + f_c \eta_s^c c_{p,s}^{\rm cond}\right]} \tag{5}$$
 
-where $\eta_s = x_s^{\rm gas} / x_d$ is the ratio of the gas-phase mole fraction of species $s$ to the total dry mole fraction, $\eta_s^c = x_s^{\rm cond} / x_d$ is the condensate mole fraction normalised by the dry mole fraction, $L_s$ is the molar latent heat, $c_{p,s}$ is the molar heat capacity of species $s$ in the gas phase, $c_{p,s}^{\rm cond}$ is the heat capacity of the condensed phase, $\beta_s = L_s / (R T)$ is the dimensionless latent heat parameter, and $f_c$ is the retained condensate fraction (Graham et al. 2021 [^cite-graham2021]). For H$_2$O between the triple and critical points, $\beta_s$ is taken from the water lookup table (Section 3.4) as $d\ln p_{\rm sat}/d\ln T$ when that table is enabled. The terms with $L_s$, $\beta_s$ and $f_c$ are included only for species that are condensing (Section 3.4) and below their critical temperature; every other species, dry ones included, adds only $\eta_s c_{p,s}$ to the denominator. Likewise, both sums in Eq. 7 run only over species that are condensing and below their critical temperature.
+where $\eta_s = x_s^{\rm gas} / x_d$ is the ratio of the gas-phase mole fraction of species $s$ to the total dry mole fraction, $\eta_s^c = x_s^{\rm cond} / x_d$ is the condensate mole fraction normalised by the dry mole fraction, $L_s$ is the molar latent heat, $c_{p,s}$ is the molar heat capacity of species $s$ in the gas phase, $c_{p,s}^{\rm cond}$ is the heat capacity of the condensed phase, $\beta_s = L_s / (R T)$ is the dimensionless latent heat parameter, and $f_c$ is the retained condensate fraction (Graham et al. 2021 [^cite-graham2021]). For H$_2$O between the triple and critical points, $\beta_s$ is taken from the water lookup table (Section 3.4) as $d\ln p_{\rm sat}/d\ln T$ when that table is enabled. The terms with $L_s$, $\beta_s$ and $f_c$ are included only for species that are condensing (Section 3.4) and below their critical temperature; every other species, dry ones included, adds only $\eta_s c_{p,s}$ to the denominator. The same restriction applies to both sums in Eq. 7.
 
 Second, this is converted to the total pressure gradient via the chain rule (Graham et al. 2021 [^cite-graham2021] Eq. 16):
 
@@ -112,11 +112,12 @@ where $\alpha_b$ is the Bond albedo, $f_s$ is the instellation scaling factor, $
 The tropopause is located by one of two criteria. With the **fixed temperature criterion**, it is the first level where $T < T_r$. With the **heating rate criterion**, it is placed where strong radiative heating in the upper atmosphere fades out: if the net heating rate changes sign in the column and peaks above 50 K/day, the tropopause is the first level beneath the peak (at higher pressure) where heating is 30 K/day or less, and $T_r$ becomes the temperature there. No tropopause is set if that level lies in the top 2% of model levels, or if the mean heating above it is below 10 K/day. In the stratosphere, volatile mixing ratios are fixed to their tropopause values.
 
 !!! note
-    Setting $T_r = 0$ K disables the stratosphere entirely: with the
-    fixed-temperature criterion, the tropopause search and the isothermal
-    stratosphere are skipped whenever $T_r$ does not exceed the temperature floor
-    `minT` (default 1 K), and the whole column is treated as convective. This is the appropriate choice for pure
-    steam atmospheres, and is the default in `config_runaway.toml`.
+    With the fixed-temperature criterion, setting $T_r = 0$ K disables the
+    stratosphere: the tropopause search and the isothermal stratosphere are
+    skipped whenever $T_r$ does not exceed the temperature floor `minT`
+    (default 1 K), and the whole column is treated as convective. This is the
+    appropriate choice for pure steam atmospheres, and is the default in
+    `config_runaway.toml`.
 
 ---
 
