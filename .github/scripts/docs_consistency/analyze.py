@@ -7,6 +7,7 @@ to analysis.json at the repo root.
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -138,6 +139,16 @@ READABILITY_SCHEMA = {
 }
 
 
+# What a reworded fix must keep from the original: its numbers, inline and display
+# math, code spans and footnote references, in any order.
+KEPT_PATTERNS = [
+    re.compile(r'\d+(?:\.\d+)?'),
+    re.compile(r'\$\$.+?\$\$|\$.+?\$', flags=re.DOTALL),
+    re.compile(r'(`+).+?\1', flags=re.DOTALL),
+    re.compile(r'\[\^[^\]]+\]'),
+]
+
+
 def read_numbered(rel_path):
     text = (REPO_ROOT / rel_path).read_text()
     numbered = '\n'.join(f'{i + 1}: {line}' for i, line in enumerate(text.splitlines()))
@@ -236,12 +247,24 @@ def build_readability_prompt(fixed):
     return template.replace('{{FIXES}}', json.dumps(items, indent=2))
 
 
+def keeps_content(original, rewrite):
+    """Whether rewrite has the same numbers, math, code spans, footnote references and
+    number of lines as original."""
+    if original.count('\n') != rewrite.count('\n'):
+        return False
+    return all(
+        sorted(m[0] for m in pattern.finditer(original))
+        == sorted(m[0] for m in pattern.finditer(rewrite))
+        for pattern in KEPT_PATTERNS
+    )
+
+
 def apply_rewrites(findings, rewrites):
     """Put the reworded new_text back on the findings it belongs to.
 
-    A rewrite is used only when its id names exactly one finding with a fix, and its
-    text is non-empty and still differs from old_text. Returns the number of fixes
-    that changed.
+    A rewrite is used only when its id names exactly one finding with a fix, its text
+    changes more than white space, does not undo the fix, and keeps the content of the
+    original new_text (see keeps_content). Returns the number of fixes that changed.
     """
     by_id = {}
     for f in findings:
@@ -249,14 +272,21 @@ def apply_rewrites(findings, rewrites):
             by_id.setdefault(f['id'], []).append(f)
     changed = 0
     for r in rewrites:
+        if not isinstance(r, dict) or not isinstance(r.get('new_text'), str):
+            continue
         matches = by_id.get(r.get('id'), [])
-        new = r.get('new_text') or ''
-        if len(matches) != 1 or not new.strip():
+        new = r['new_text']
+        if len(matches) != 1:
             continue
         fix = matches[0]['suggested_fix']
-        if new not in (fix['old_text'], fix['new_text']):
-            fix['new_text'] = new
-            changed += 1
+        words = new.split()
+        if not words or words in (fix['old_text'].split(), fix['new_text'].split()):
+            continue
+        if not keeps_content(fix['new_text'], new):
+            print(f'Kept the original wording of {r["id"]}: the rewording changed its content')
+            continue
+        fix['new_text'] = new
+        changed += 1
     return changed
 
 
@@ -280,8 +310,8 @@ def main():
             )['fixes']
             changed = apply_rewrites(findings, rewrites)
             print(f'Readability check reworded {changed} of {len(fixed)} fixes')
-        except RuntimeError as err:
-            print(f'Readability check skipped: {err}', file=sys.stderr)
+        except Exception as err:  # any failure here keeps the findings as they are
+            print(f'Readability check skipped: {err!r}', file=sys.stderr)
 
     out_path = REPO_ROOT / 'analysis.json'
     out_path.write_text(json.dumps(findings, indent=2))

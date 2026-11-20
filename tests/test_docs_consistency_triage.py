@@ -782,6 +782,8 @@ def test_inline_math_is_written_in_the_form_github_renders(repo):
     )
     # Without a formula the text is unchanged, and a lone dollar sign is not math.
     assert triage.github_math('costs $5 per `x`') == 'costs $5 per `x`'
+    # Two prices on one line are not a formula.
+    assert triage.github_math('costs $5 and $10 each') == 'costs $5 and $10 each'
     desc = r'Uses $T_r \le$ `minT` for H$_2$O.'
     r = run_triage(repo, [finding('math', description=desc)])
     assert r'Uses $`T_r \le`$ `minT` for $`\mathrm{H}_2\mathrm{O}`$.' in r.inc

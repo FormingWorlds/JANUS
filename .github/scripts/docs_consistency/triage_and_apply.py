@@ -35,11 +35,13 @@ CODE_GAP_RE = re.compile(r'^[ \t]*\.\.\.[ \t]*$', flags=re.MULTILINE)
 # A doc quote cut from inside an equation renders as raw LaTeX, so the displayed quote is
 # widened to the whole $...$ or $$...$$ span.
 MATH_SPAN_RE = re.compile(r'\$\$.+?\$\$|\$[^$\n]+?\$', flags=re.DOTALL)
-# Inline code spans (kept as they are by github_math), captured so split() returns them.
+# Inline code spans, which github_math leaves as they are.
 CODE_SPAN_RE = re.compile(r'(?<!`)(`+)(?!`).*?(?<!`)\1(?!`)', flags=re.DOTALL)
-# One inline $...$ (not $$), with any letters or digits glued to either side.
+# One inline $...$ (not $$), with any letters or digits glued to either side. As in
+# Pandoc, the formula cannot start or end with a space and the closing $ cannot be
+# followed by a digit, so two prices such as $5 and $10 are not read as math.
 GLUED_MATH_RE = re.compile(
-    r'([A-Za-z0-9]*)(?<!\$)\$(?!\$)([^$`\n]+?)(?<!\$)\$(?!\$)([A-Za-z0-9]*)'
+    r'([A-Za-z0-9]*)(?<!\$)\$(?![$\s])([^$`\n]+?)(?<![$\s])\$(?![$\d])([A-Za-z0-9]*)'
 )
 # Dashes between words become ', ' (or '-' in a range); standalone ones, like empty table
 # cells, are kept.

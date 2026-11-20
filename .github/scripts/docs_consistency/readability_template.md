@@ -17,6 +17,8 @@ What you must keep:
 - Line breaks and indentation: where `old_text` is wrapped by hand (e.g. the indented text of a `!!! note`), wrap `new_text` at the same width and indentation. Otherwise keep `new_text` on as many lines as it has now.
 - No em-dashes or en-dashes; use a colon, semicolon, comma or parentheses instead.
 
+A rewording that drops or changes a number, a `$...$` formula, a backtick span or a footnote reference such as `[^cite-x]`, or that changes the number of lines, is discarded and the given `new_text` is used instead.
+
 The fixes, as JSON:
 
 {{FIXES}}
