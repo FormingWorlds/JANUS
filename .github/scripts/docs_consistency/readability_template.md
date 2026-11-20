@@ -14,10 +14,10 @@ What you must keep:
 - Every statement, condition, number, unit, symbol, code identifier and citation in the given `new_text`. Add no new claims, and drop none. The `code_excerpt` and `description` show what the text must stay true to; do not use them to add anything.
 - The doc's notation: every equation, symbol or variable as LaTeX inside `$...$`, written exactly as in the given `new_text`.
 - The fit with its surroundings: `new_text` replaces `old_text` inside `doc_excerpt`, so it must start and end so that the text around it still reads as one passage.
-- Line breaks and indentation: where `old_text` is wrapped by hand (e.g. the indented text of a `!!! note`), wrap `new_text` at the same width and indentation. Otherwise keep `new_text` on as many lines as it has now.
+- Line breaks and indentation: where `old_text` is wrapped by hand (e.g. the indented text of a `!!! note`), wrap `new_text` at the same width and indentation; it may end up a line longer or shorter. Keep every paragraph break, list item and other line-start marker.
 - No em-dashes or en-dashes; use a colon, semicolon, comma or parentheses instead.
 
-A rewording that drops or changes a number, a `$...$` formula, a backtick span or a footnote reference such as `[^cite-x]`, or that changes the number of lines, is discarded and the given `new_text` is used instead.
+A rewording that drops or changes a number, a `$...$` formula, a backtick span or a footnote reference such as `[^cite-x]`, that adds or removes a paragraph break or list item, or that wraps onto a line with a new indentation, is discarded and the given `new_text` is used instead.
 
 The fixes, as JSON:
 

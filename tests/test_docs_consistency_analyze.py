@@ -57,18 +57,22 @@ def test_rewrites_replace_only_matching_unambiguous_fixes():
 
 
 ORIGINAL = 'T_r is 290 K, see $T_r$ [^cite-x] and `minT`.'
+# Text wrapped by hand inside a `!!! note`, indented by four spaces.
+NOTE = 'T_r is 290 K,\n    see $T_r$ [^cite-x] and `minT`.'
 
 
 @pytest.mark.parametrize(
-    'rewrite',
+    'original, rewrite',
     [
-        'T_r is set to the default.',
-        'T_r is 300 K, see $T_r$ [^cite-x] and `minT`.',
-        'T_r is 290 K, see T_r [^cite-x] and `minT`.',
-        'T_r is 290 K, see $T_r$ [^cite-x] and minT.',
-        'T_r is 290 K, see $T_r$ and `minT`.',
-        'T_r is 290 K,\nsee $T_r$ [^cite-x] and `minT`.',
-        'T_r  is 290 K, see $T_r$ [^cite-x]\tand `minT`. ',
+        (ORIGINAL, 'T_r is set to the default.'),
+        (ORIGINAL, 'T_r is 300 K, see $T_r$ [^cite-x] and `minT`.'),
+        (ORIGINAL, 'T_r is 290 K, see T_r [^cite-x] and `minT`.'),
+        (ORIGINAL, 'T_r is 290 K, see $T_r$ [^cite-x] and minT.'),
+        (ORIGINAL, 'T_r is 290 K, see $T_r$ and `minT`.'),
+        (ORIGINAL, 'T_r is 290 K.\n\nSee $T_r$ [^cite-x] and `minT`.'),
+        (ORIGINAL, 'T_r is 290 K:\n- see $T_r$ [^cite-x] and `minT`.'),
+        (NOTE, 'T_r is 290 K,\nsee $T_r$ [^cite-x] and `minT`.'),
+        (ORIGINAL, 'T_r  is 290 K, see $T_r$ [^cite-x]\tand `minT`. '),
     ],
     ids=[
         'drops-everything',
@@ -76,19 +80,39 @@ ORIGINAL = 'T_r is 290 K, see $T_r$ [^cite-x] and `minT`.'
         'math-dropped',
         'code-span-dropped',
         'footnote-dropped',
-        'line-break-added',
+        'paragraph-break-added',
+        'list-item-added',
+        'line-leaves-the-note',
         'white-space-only',
     ],
 )
-def test_rewrite_that_loses_content_keeps_the_original_fix(rewrite):
+def test_rewrite_that_loses_content_keeps_the_original_fix(original, rewrite):
     """The rewording call never sees the source code, so a rewording that changes a
-    number, a formula, a code span, a footnote or the line count could undo what the
-    analysis checked; the original new_text is kept. A change of white space alone is
-    not a rewording."""
-    findings = [fixed('a', new=ORIGINAL)]
+    number, a formula, a code span, a footnote or the text structure could undo what
+    the analysis checked; the original new_text is kept. A change of white space alone
+    is not a rewording."""
+    findings = [fixed('a', new=original)]
     assert analyze.apply_rewrites(findings, [{'id': 'a', 'new_text': rewrite}]) == 0
-    assert findings[0]['suggested_fix']['new_text'] == ORIGINAL
-    assert not analyze.keeps_content(ORIGINAL, rewrite) or rewrite.split() == ORIGINAL.split()
+    assert findings[0]['suggested_fix']['new_text'] == original
+    assert not analyze.keeps_content(original, rewrite) or rewrite.split() == original.split()
+
+
+@pytest.mark.parametrize(
+    'original, rewrite, indent',
+    [
+        (ORIGINAL, 'T_r is 290 K,\nsee $T_r$ [^cite-x] and `minT`.', ''),
+        (ORIGINAL, 'T_r is 290 K,\n    see $T_r$ [^cite-x] and `minT`.', '    '),
+        (NOTE, 'T_r is\n    290 K, see $T_r$\n    [^cite-x] and `minT`.', ''),
+        ('T_r is\n    290 K, see $T_r$\n    [^cite-x] and `minT`.', NOTE, ''),
+    ],
+    ids=['line-added', 'line-added-in-note', 'note-rewrapped-longer', 'note-rewrapped-shorter'],
+)
+def test_rewrapping_onto_more_or_fewer_lines_is_allowed(original, rewrite, indent):
+    """A slight rewording can wrap onto one line more or less; that is fine as long as
+    each new line keeps an indentation the doc already uses there."""
+    assert analyze.keeps_content(original, rewrite, indent)
+    # Error path: the same rewrap with the indentation lost or changed is refused.
+    assert not analyze.keeps_content(original, rewrite.replace('\n', '\n  '), indent)
 
 
 def test_rewrite_that_reorders_kept_content_is_used():
@@ -221,3 +245,15 @@ def test_run_claude_returns_the_structured_output(monkeypatch):
     monkeypatch.setattr(analyze.subprocess, 'run', fake_run)
     assert analyze.run_claude('prompt', analyze.READABILITY_SCHEMA, 5) == {'fixes': []}
     assert seen['schema'] == analyze.READABILITY_SCHEMA
+
+
+def test_one_line_fix_inside_a_note_may_wrap_only_at_the_note_indentation():
+    """A one-line fix has no indentation of its own, so the indentation of the doc line
+    it starts on decides where a new line may start: inside a note, at four spaces."""
+    finding = fixed('a', old='old words', new=ORIGINAL)
+    finding['doc_excerpt'] = '!!! note\n    The old words here.'
+    unindented = 'T_r is 290 K,\nsee $T_r$ [^cite-x] and `minT`.'
+    assert analyze.apply_rewrites([finding], [{'id': 'a', 'new_text': unindented}]) == 0
+    indented = unindented.replace('\n', '\n    ')
+    assert analyze.apply_rewrites([finding], [{'id': 'a', 'new_text': indented}]) == 1
+    assert finding['suggested_fix']['new_text'] == indented

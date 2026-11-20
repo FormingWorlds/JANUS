@@ -247,10 +247,33 @@ def build_readability_prompt(fixed):
     return template.replace('{{FIXES}}', json.dumps(items, indent=2))
 
 
-def keeps_content(original, rewrite):
-    """Whether rewrite has the same numbers, math, code spans, footnote references and
-    number of lines as original."""
-    if original.count('\n') != rewrite.count('\n'):
+# Text structure a reworded fix must keep: blank lines between paragraphs, and the
+# markers that start a list item, heading, table row, admonition or quote.
+BLANK_LINE_RE = re.compile(r'\n[ \t]*\n')
+LINE_MARKER_RE = re.compile(r'^[ \t]*([-*+]|\d+\.|#{1,6}|\||!!!|>)[ \t]', flags=re.MULTILINE)
+
+
+def continuation_indents(text):
+    """The indentation of every non-blank line after the first."""
+    return {
+        line[: len(line) - len(line.lstrip())] for line in text.split('\n')[1:] if line.strip()
+    }
+
+
+def keeps_content(original, rewrite, indent=''):
+    """Whether rewrite keeps the numbers, math, code spans, footnote references and
+    structure of original.
+
+    Rewrapping may add or remove lines, but every new line must use an indentation the
+    original uses (indent, that of the doc line the fix starts on, when the original is
+    one line), so text inside a note stays inside it. Paragraph breaks and line-start
+    markers must stay the same.
+    """
+    if not continuation_indents(rewrite) <= (continuation_indents(original) or {indent}):
+        return False
+    if len(BLANK_LINE_RE.findall(original)) != len(BLANK_LINE_RE.findall(rewrite)):
+        return False
+    if sorted(LINE_MARKER_RE.findall(original)) != sorted(LINE_MARKER_RE.findall(rewrite)):
         return False
     return all(
         sorted(m[0] for m in pattern.finditer(original))
@@ -279,10 +302,14 @@ def apply_rewrites(findings, rewrites):
         if len(matches) != 1:
             continue
         fix = matches[0]['suggested_fix']
+        excerpt = matches[0].get('doc_excerpt', '')
+        start = max(excerpt.find(fix['old_text']), 0)
+        line = excerpt[excerpt.rfind('\n', 0, start) + 1 : start]
+        indent = line[: len(line) - len(line.lstrip())]
         words = new.split()
         if not words or words in (fix['old_text'].split(), fix['new_text'].split()):
             continue
-        if not keeps_content(fix['new_text'], new):
+        if not keeps_content(fix['new_text'], new, indent):
             print(f'Kept the original wording of {r["id"]}: the rewording changed its content')
             continue
         fix['new_text'] = new
