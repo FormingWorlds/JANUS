@@ -295,9 +295,7 @@ def apply_rewrites(findings, rewrites):
             by_id.setdefault(f['id'], []).append(f)
     changed = 0
     for r in rewrites:
-        if not isinstance(r, dict) or not isinstance(r.get('new_text'), str):
-            continue
-        matches = by_id.get(r.get('id'), [])
+        matches = by_id.get(r['id'], [])
         new = r['new_text']
         if len(matches) != 1:
             continue

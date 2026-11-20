@@ -117,14 +117,11 @@ def test_rewrapping_onto_more_or_fewer_lines_is_allowed(original, rewrite, inden
 
 def test_rewrite_that_reorders_kept_content_is_used():
     """Reordering and rephrasing are allowed as long as every number, formula, code
-    span and footnote survives; a reply outside the schema is ignored, not raised."""
+    span and footnote survives."""
     findings = [fixed('a', new=ORIGINAL)]
     clearer = 'See $T_r$ [^cite-x] and `minT`: T_r is 290 K.'
     assert analyze.keeps_content(ORIGINAL, clearer)
-    assert (
-        analyze.apply_rewrites(findings, ['x', {'id': 'a'}, {'id': 'a', 'new_text': clearer}])
-        == 1
-    )
+    assert analyze.apply_rewrites(findings, [{'id': 'a', 'new_text': clearer}]) == 1
     assert findings[0]['suggested_fix']['new_text'] == clearer
     # Edge case: the same number twice must stay twice.
     assert not analyze.keeps_content('1 and 1', '1 and one')
