@@ -252,7 +252,7 @@ def test_one_line_fix_inside_a_note_may_wrap_only_at_the_note_indentation():
     it starts on decides where a new line may start: inside a note, at four spaces."""
     finding = fixed('a', old='old words', new=ORIGINAL)
     finding['doc_excerpt'] = '!!! note\n    The old words here.'
-    unindented = 'T_r is 290 K,\nsee $T_r$ [^cite-x] and `minT`.'
+    unindented = 'T_r is 290 K;\nsee $T_r$ [^cite-x] and also `minT`.'
     assert analyze.apply_rewrites([finding], [{'id': 'a', 'new_text': unindented}]) == 0
     indented = unindented.replace('\n', '\n    ')
     assert analyze.apply_rewrites([finding], [{'id': 'a', 'new_text': indented}]) == 1
