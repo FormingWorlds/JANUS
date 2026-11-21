@@ -35,6 +35,14 @@ CODE_GAP_RE = re.compile(r'^[ \t]*\.\.\.[ \t]*$', flags=re.MULTILINE)
 # A doc quote cut from inside an equation renders as raw LaTeX, so the displayed quote is
 # widened to the whole $...$ or $$...$$ span.
 MATH_SPAN_RE = re.compile(r'\$\$.+?\$\$|\$[^$\n]+?\$', flags=re.DOTALL)
+# Inline code spans, which github_math leaves as they are.
+CODE_SPAN_RE = re.compile(r'(?<!`)(`+)(?!`).*?(?<!`)\1(?!`)', flags=re.DOTALL)
+# One inline $...$ (not $$), with any letters or digits glued to either side. As in
+# Pandoc, the formula cannot start or end with a space and the closing $ cannot be
+# followed by a digit, so two prices such as $5 and $10 are not read as math.
+GLUED_MATH_RE = re.compile(
+    r'([A-Za-z0-9]*)(?<!\$)\$(?![$\s])([^$`\n]+?)(?<![$\s])\$(?![$\d])([A-Za-z0-9]*)'
+)
 # Dashes between words become ', ' (or '-' in a range); standalone ones, like empty table
 # cells, are kept.
 EM_DASH_RE = re.compile(r'(?<=[\w$`)])(?:\s*\u2014\s*|\s+\u2013\s+)(?=[\w$`(])')
@@ -264,6 +272,28 @@ def code_span(text):
     return f'{ticks} {text} {ticks}'
 
 
+def github_math(text):
+    """Rewrite inline $...$ as GitHub's $`...`$ form, outside code spans.
+
+    GitHub only reads $...$ as math in some positions; elsewhere Markdown takes an
+    underscore inside it as emphasis and pairs it with one in the next formula, which
+    breaks both. Letters glued to a formula, as in H$_2$O, move into it as upright text.
+    Display math ($$...$$) is left as it is.
+    """
+
+    def as_github(m):
+        glued_before = rf'\mathrm{{{m[1]}}}' if m[1] else ''
+        glued_after = rf'\mathrm{{{m[3]}}}' if m[3] else ''
+        return f'$`{glued_before}{m[2]}{glued_after}`$'
+
+    out, pos = [], 0
+    for span in CODE_SPAN_RE.finditer(text):
+        out += [GLUED_MATH_RE.sub(as_github, text[pos : span.start()]), span[0]]
+        pos = span.end()
+    out.append(GLUED_MATH_RE.sub(as_github, text[pos:]))
+    return ''.join(out)
+
+
 def render_finding(finding, fix_status=None, problems=None, with_fingerprint=False):
     """Render one finding as markdown.
 
@@ -288,12 +318,12 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
         ]
         lines += [f'> - {p}' for p in problems]
         lines.append('')
-    lines += [finding['description'], '']
+    lines += [github_math(finding['description']), '']
     doc_excerpt = finding.get('doc_excerpt') or ''
     if doc_excerpt:
         display = finding.get('doc_display') or doc_excerpt
         lines.append(f'**Doc** (`{finding["doc_file"]}`):')
-        lines += [f'> {line}' for line in display.splitlines()]
+        lines += [f'> {line}' for line in github_math(display).splitlines()]
         if display != doc_excerpt:
             lines += ['', f'_Quoted part:_ {code_span(doc_excerpt)}']
     else:
@@ -312,19 +342,12 @@ def render_finding(finding, fix_status=None, problems=None, with_fingerprint=Fal
         else:
             label = f'Suggested fix (not applied: {fix_status})'
         old, new = fix['old_text'], fix['new_text']
-        if '\n' in old + new:
-            # A multi-line fix cannot sit in an inline code span; show it as a diff.
-            diff = [f'- {line}' for line in old.split('\n')]
-            diff += [f'+ {line}' for line in new.split('\n')]
-            fence = '`' * max(3, max(map(len, re.findall('`+', old + new)), default=0) + 1)
-            lines += ['', f'**{label}**', f'{fence}diff', *diff, fence]
-        else:
-            lines += [
-                '',
-                f'**{label}**',
-                f'- old: {code_span(old)}',
-                f'- new: {code_span(new)}',
-            ]
+        # Always a fenced diff: one form for every fix, and a blank line or a line that
+        # starts a list cannot break out of it.
+        diff = [f'- {line}' for line in old.split('\n')]
+        diff += [f'+ {line}' for line in new.split('\n')]
+        fence = '`' * max(3, max(map(len, re.findall('`+', old + new)), default=0) + 1)
+        lines += ['', f'**{label}**', f'{fence}diff', *diff, fence]
     elif finding['type'] == 'inconsistency':
         lines += ['', '_No safe literal fix suggested; needs a manual edit._']
     lines.append('')
