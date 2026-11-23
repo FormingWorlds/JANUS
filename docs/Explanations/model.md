@@ -72,7 +72,7 @@ $$p_{\rm sat,s}(T) = p_{\rm triple,s} \exp\!\left[-\frac{L_s}{R}\left(\frac{1}{T
 
 switching between $L_{\rm sublimation}$ below the triple point and $L_{\rm vaporization}$ above it. For water, a [lookup table](https://github.com/FormingWorlds/JANUS/blob/main/src/janus/utils/water_tables.py) is available, providing temperature-dependent $L_{\rm vap}(T)$ and $p_{\rm sat}(T)$ from the triple point (273.16 K) to the critical point (647.10 K).
 
-Above the critical temperature, $L_s = 0$: species become supercritical and are treated as permanently gaseous with no latent heat contribution to the lapse rate.
+Above the critical temperature, $L_s = 0$: species become supercritical and add no latent heat contribution to the lapse rate (Eqs. 5-7). However, the condensation test $p_s \geq p_{\rm sat,s}(T)$ used for condensate tracking (Section 3.5) does not check whether the temperature exceeds the critical temperature.
 
 H$_2$ is hardcoded as non-condensing at all temperatures relevant to magma ocean atmospheres ($p_{\rm sat} \to 10^{30}$ Pa), reflecting the fact that H$_2$ condensation occurs only below $\sim 30$ K. <br><br>
 
